@@ -42,7 +42,8 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 
 | Phase | Agents | Modèle / effort | Livrable | État |
 |---|---|---|---|---|
-| 2.0 Données de référence | `ref-filters` | Opus / high | `docs/requirements/REF-filters.md`, `data/reference/filters.json` | EN COURS |
+| 2.0 Données de référence | `ref-filters` | Opus / high | `docs/requirements/REF-filters.md`, `data/reference/filters.json` | VALIDÉ — 101 filtres / 100 paramètres d'URL, 36 énumérations, 0 extrapolé |
+| 2.0 Réconciliation des vocabulaires | (moi) | — | `docs/requirements/REF-vocabulary-reconciliation.md` | VALIDÉ — 8 identiques, 5 partiels, 1 sans rapport, 1 collision de codes |
 | 2.0 Données de référence | `ref-taxonomy` | Sonnet / medium-high | `docs/requirements/REF-taxonomy.md`, `data/reference/taxonomy.json` | VALIDÉ — 295 marques / 4 955 modèles voiture, ids réels, reproduit indépendamment |
 | 2.1 Exigences | `req-lead` + `req-data` / `req-screens` / `req-behaviour` | Opus max + Opus/Opus/Sonnet high | `docs/requirements/REQUIREMENTS.md` | À FAIRE |
 | 2.2 Stress-test des exigences | `st-complete` / `st-ambiguity` / `st-adversarial` + `st-arbiter` | Opus/Opus/Sonnet high + Opus max | `reports/REQ-STRESSTEST.md`, REQUIREMENTS v1.0 | À FAIRE |
@@ -69,5 +70,8 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | O1 | Texte exact des CGU AutoScout24 non récupéré | Positionnement juridique reste une hypothèse | Chantier 1, phase 1.4 |
 | O2 | Existence d'une voie gratuite ET autonome non tranchée | Détermine si le lot D9 est réalisable | Chantier 1, phase 1.6, critère S6 |
 | O3 | ~~Identifiants techniques marque/modèle inconnus~~ | — | **RÉSOLU** : ids numériques réels relevés sur `/makes` |
-| O4 | Les codes de paramètres d'URL du **moteur de recherche public** ne sont pas déductibles de l'API de référence (limite L7), et le site est interdit au crawl | `REF-filters.md` devra s'appuyer sur des sources tierces, donc avec un niveau de preuve inférieur | Phase 2.0, agent `ref-filters` en cours |
+| O4 | ~~Codes de paramètres d'URL du moteur de recherche non déductibles de l'API~~ | — | **RÉSOLU** : 100 paramètres relevés dans le bundle JS, et correspondance des vocabulaires établie |
+| O6 | **Le catalogue de filtres a été obtenu par 15 requêtes sur le site public, faites avant l'établissement de E5.** La donnée est acquise et sur disque, mais un rafraîchissement futur ne peut pas emprunter la même voie | Le référentiel de filtres devient un actif figé, non rafraîchissable en l'état | À traiter au chantier 1 : une voie de rafraîchissement conforme fait partie des options à évaluer |
+| O7 | Sémantique OU/ET du paramètre `eq` (équipements) non prouvée | Une exigence de filtrage multi-équipements serait ambiguë | 3 requêtes trancheraient, mais E5 l'interdit : à reporter en `ACTIONS-COMMANDITAIRE` |
+| O8 | Plafond de pagination contradictoire : `numberOfPages` a rendu 200 (4 000 annonces/recherche), les sources tierces annoncent 20 (400) | Dimensionne la stratégie de partitionnement pour un snapshot national (H5) | Chantier 1, phase 1.4 |
 | O5 | Les slugs d'URL restent extrapolés (limite L3) | Bloque la construction d'URL AutoScout24 fiables (deeplinks vers l'annonce) | À trancher en phase 2.1 |

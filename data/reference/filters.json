@@ -641,7 +641,7 @@
     "hasleasing"
    ],
    "evidence": "RELEVE_PARTIEL",
-   "note": "taxonomy.leasingTargetGroup est vide sur BE et .com ; les codes viennent du mapping de tracking (module 92526) et 'private' a été accepté et échoué par le serveur."
+   "note": "taxonomy.leasingTargetGroup est vide sur BE et .com ; les codes viennent du mapping de tracking (module 92526) et 'private' a été accepté et repris en écho par le serveur."
   },
   {
    "id": "governmentBonus",
@@ -3021,7 +3021,7 @@
    "default": 20,
    "dependencies": [],
    "evidence": "RELEVE",
-   "note": "Sérialisé côté client uniquement pour le marketplace CA, mais accepté et échoué par le serveur BE et .com. Constante 64538.Hy = 20."
+   "note": "Sérialisé côté client uniquement pour le marketplace CA, mais accepté et repris en écho par le serveur BE et .com. Constante 64538.Hy = 20."
   },
   {
    "id": "bedsFrom",
@@ -3085,12 +3085,17 @@
    "label_en": "Bed type",
    "group": "autres_atype",
    "type": "enum_multi",
+   "separator": ",",
+   "semantics": "OU (présumé, par analogie avec les autres enum_multi)",
+   "domain": {
+    "status": "NON RELEVÉ — taxonomy.bedType est vide pour atype=C"
+   },
    "default": [],
    "dependencies": [
     "atype"
    ],
    "evidence": "RELEVE_PARTIEL",
-   "note": "taxonomy.bedType existe mais est vide pour atype=C, et AUCUN paramètre d'URL correspondant n'a été trouvé dans la table de sérialisation."
+   "note": "taxonomy.bedType existe mais est vide pour atype=C, et AUCUN paramètre d'URL correspondant n'a été trouvé dans la table de sérialisation. Entrée conservée pour l'exhaustivité du relevé : c'est le seul filtre de taxonomy sans paramètre d'URL identifié."
   },
   {
    "id": "slideOutCount",
