@@ -130,7 +130,7 @@ constituent un signal ; deux méthodes qui divergent constituent une question.
 | Réf. | Écran | Route | Origine |
 |---|---|---|---|
 | S0 | Coquille — en-tête, bandeaux, fil d'Ariane, panneau Diagnostic | — | composant |
-| C1 | **Bandeau de filtres** — les 78 filtres retenus, spécifié une fois | partagé | composant |
+| C1 | **Bandeau de filtres** — les 77 filtres retenus, spécifié une fois | partagé | composant |
 | C3 | Bandeau de couverture d'échantillon | partagé | composant |
 | **A** | **Survol du marché** | `/marche?<filtres>` | **imposé** |
 | **B** | **Distribution d'un modèle** | `/marche/:makeId-:makeSlug/:modelId-:modelSlug` | **imposé** |
@@ -146,7 +146,7 @@ interdit les champs vendeur. Le deeplink vers l'annonce d'origine suffit. C'est 
 
 ## 6. Bandeau de filtres → **Annexe B** pour la forme, **Annexe C** pour l'encodage
 
-**Périmètre : 78 filtres retenus sur 101** (arbitrage A-01). 23 exclus, et eux seuls : `cid`
+**Périmètre : 77 filtres retenus sur 101** (arbitrage A-01). 24 exclus, et eux seuls : `cid`
 (règle R3), les 16 filtres non-voiture, 5 paramètres de télémétrie AutoScout24, 2 doublons stricts.
 
 Hiérarchie à trois niveaux — 9 contrôles primaires toujours visibles couvrant 13 paramètres,
@@ -216,7 +216,7 @@ confidentialité et rétention, stratégie de surcharge des libellés non tradui
 | Détection d'outliers M1/M2 | `EX-DATA-111…120` | Tests sur outliers injectés volontairement par le générateur du lot D3, plus M3 en contrôle croisé | 2.5 |
 | Écrans et graphes | `EX-SCR-1…224` | Inspection dirigée écran par écran contre la maquette structurelle, plus les 6 états par écran | 2.5 |
 | Navigation et URL | `EX-NAV-*` | Tests aller-retour : état → URL → état, égalité stricte de la chaîne sérialisée | 2.5 |
-| Recherche et filtrage | `EX-SRCH-*` | Tests des 78 filtres, dont dépendances parent-enfant et intervalles inversés | 2.5 |
+| Recherche et filtrage | `EX-SRCH-*` | Tests des 77 filtres, dont dépendances parent-enfant et intervalles inversés | 2.5 |
 | CRUD | `EX-CRUD-*` | Tests de cycle de vie et de limite de nombre | 2.5 |
 | Non fonctionnel | `EX-NFR-*` | Mesure chiffrée contre la cible, au percentile déclaré | 2.5 |
 | Confidentialité | `P-1…P-6` | Test d'absence : aucun champ interdit dans le schéma, le code, ni les données produites | 2.5 |
@@ -232,7 +232,7 @@ Ces deux parcours sont **exercés de bout en bout** en phase 2.7, journal d'exé
 
 ### 11.3 — Couverture des filtres relevés
 
-Les 101 filtres de `REF-filters.md` reçoivent chacun un statut : 78 retenus et spécifiés, 23 exclus
+Les 101 filtres de `REF-filters.md` reçoivent chacun un statut : 77 retenus et spécifiés, 24 exclus
 avec motif nommé (arbitrage A-01). **Aucun filtre du catalogue n'est laissé sans statut** — critère
 de succès S4 de la phase 2.1.
 

@@ -32,7 +32,14 @@ secondaire relève de `draft-screens.md` et reste valide.
 | Technique interne AutoScout24, pas un filtre utilisateur | `search_id`, `query_id`, `tier_rotation`, `show_nfm`, `adage` | Paramètres de télémétrie et de rotation publicitaire côté AS24. Ils ne décrivent pas un véhicule et n'ont pas d'équivalent dans notre dataset. |
 | Doublon strict | `mmm` (legacy, remplacé par `mmmv`), `pricetype` (doublon de `custtype`) | Deux paramètres pour une même notion. On implémente la notion une fois ; l'URL accepte l'alias en lecture. |
 
-**Total exclu : 23. Total retenu : 78.**
+**Total exclu : 24. Total retenu : 77.**
+
+> **Correction du 2026-09-06** — la première rédaction annonçait 23 exclus et 78 retenus. Le compte
+> était faux : la table ci-dessus énumère bien 24 exclusions (1 + 16 + 5 + 2), dont `bedType`, seule
+> entrée du catalogue sans paramètre d'URL — le catalogue compte 101 entrées pour 100 paramètres.
+> Erreur relevée par le constat T-02 du stress-test. **La liste normative n'est plus tenue en prose** :
+> elle est générée dans `data/reference/filters-scope.json` par `scripts/build-filter-scope.mjs`, qui
+> échoue si la partition ne tombe pas juste. C'est ce fichier qui fait foi, pas ce paragraphe.
 
 ### Exclusions annulées
 
@@ -47,7 +54,7 @@ secondaire relève de `draft-screens.md` et reste valide.
 ### Conséquence
 
 `draft-behaviour.md` doit être corrigé à l'assemblage : la table de portée passe de 22 IN / 75 OUT
-à 78 IN / 23 OUT, et les exigences `EX-NAV-*` d'encodage s'appliquent aux 78.
+à 77 IN / 24 OUT, et les exigences `EX-NAV-*` d'encodage s'appliquent aux 77.
 
 ---
 

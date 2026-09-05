@@ -1,0 +1,1255 @@
+{
+  "source": "Généré par scripts/build-filter-scope.mjs depuis data/reference/filters.json",
+  "regle": "Arbitrage A-01 de docs/requirements/ARBITRAGES-req-lead.md",
+  "generatedAt": "2026-09-05T23:56:37.662Z",
+  "totalCatalogue": 101,
+  "totalRetenus": 77,
+  "totalExclus": 24,
+  "exclusionsParCategorie": {
+    "DOUBLON_STRICT": 2,
+    "R3_DONNEE_PERSONNELLE": 1,
+    "TELEMETRIE_AS24": 5,
+    "HORS_PERIMETRE_VOITURE": 16
+  },
+  "retenus": [
+    {
+      "id": "articleType",
+      "param": "atype",
+      "label": "Type de véhicule",
+      "type": "enum_single",
+      "group": "vehicule_base",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=articleType].domain"
+    },
+    {
+      "id": "makesModelsVariants",
+      "param": "mmmv",
+      "label": "Marque / Modèle / Version",
+      "type": "structured_multi",
+      "group": "vehicule_base",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "vkhFilters",
+      "param": "cat",
+      "label": "Catégorie taxonomique (nouvelle taxonomie)",
+      "type": "structured_multi",
+      "group": "vehicule_base",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [
+        "mmmv"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "vkhFiltersModelCat",
+      "param": "mcat",
+      "label": "Catégorie modèle (nouvelle taxonomie)",
+      "type": "structured_multi",
+      "group": "vehicule_base",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [
+        "cat"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "version",
+      "param": "version0",
+      "label": "Version / finition",
+      "type": "text",
+      "group": "vehicule_base",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "mmmv"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "offer",
+      "param": "offer",
+      "label": "Type d'annonce / état du véhicule",
+      "type": "enum_multi",
+      "group": "vehicule_base",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=offer].domain"
+    },
+    {
+      "id": "keyword",
+      "param": "kwd",
+      "label": "Recherche par mots-clés",
+      "type": "text",
+      "group": "vehicule_base",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "priceFrom",
+      "param": "pricefrom",
+      "label": "Prix de",
+      "type": "range_min",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=priceFrom].domain"
+    },
+    {
+      "id": "priceTo",
+      "param": "priceto",
+      "label": "Prix à",
+      "type": "range_max",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=priceTo].domain"
+    },
+    {
+      "id": "vatReportable",
+      "param": "vatded",
+      "label": "TVA déductible / récupérable",
+      "type": "boolean",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=vatReportable].domain"
+    },
+    {
+      "id": "superDeal",
+      "param": "superdeal",
+      "label": "SuperDeal",
+      "type": "boolean",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "priceEvaluation",
+      "param": "pe_category",
+      "label": "Évaluation du prix",
+      "type": "enum_multi",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=priceEvaluation].domain"
+    },
+    {
+      "id": "financeRateFrom",
+      "param": "financeratefrom",
+      "label": "Mensualité de financement de",
+      "type": "range_min",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=financeRateFrom].domain"
+    },
+    {
+      "id": "financeRateTo",
+      "param": "financerateto",
+      "label": "Mensualité de financement à",
+      "type": "range_max",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=financeRateTo].domain"
+    },
+    {
+      "id": "hasLeasing",
+      "param": "hasleasing",
+      "label": "Offre de leasing disponible",
+      "type": "boolean",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "leasingRateFrom",
+      "param": "leasingratefrom",
+      "label": "Loyer de leasing de",
+      "type": "range_min",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=leasingRateFrom].domain"
+    },
+    {
+      "id": "leasingRateTo",
+      "param": "leasingrateto",
+      "label": "Loyer de leasing à",
+      "type": "range_max",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=leasingRateTo].domain"
+    },
+    {
+      "id": "leasingDurationFrom",
+      "param": "lsdufrom",
+      "label": "Durée de leasing de",
+      "type": "range_min",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=leasingDurationFrom].domain"
+    },
+    {
+      "id": "leasingDurationTo",
+      "param": "lsduto",
+      "label": "Durée de leasing à",
+      "type": "range_max",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=leasingDurationTo].domain"
+    },
+    {
+      "id": "leasingYearlyIncludedMileageFrom",
+      "param": "lsyeinmifrom",
+      "label": "Kilométrage annuel inclus (min)",
+      "type": "range_min",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=leasingYearlyIncludedMileageFrom].domain"
+    },
+    {
+      "id": "leasingTradeInBonus",
+      "param": "lstrinbo",
+      "label": "Bonus de reprise (leasing)",
+      "type": "boolean",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "leasingEnvironmentBonus",
+      "param": "lsenbo",
+      "label": "Bonus écologique (leasing)",
+      "type": "boolean",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "leasingAvailableNow",
+      "param": "lsavno",
+      "label": "Disponible immédiatement (leasing)",
+      "type": "boolean",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "leasingTargetGroup",
+      "param": "lstagr",
+      "label": "Groupe cible du leasing",
+      "type": "enum_single",
+      "group": "prix",
+      "evidence": "RELEVE_PARTIEL",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "hasleasing"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=leasingTargetGroup].domain"
+    },
+    {
+      "id": "governmentBonus",
+      "param": "efeg",
+      "label": "Prime à l'achat / bonus étatique",
+      "type": "boolean",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "tradeIn",
+      "param": "tradeIn",
+      "label": "Reprise de mon véhicule",
+      "type": "boolean",
+      "group": "prix",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "mileageFrom",
+      "param": "kmfrom",
+      "label": "Kilométrage de",
+      "type": "range_min",
+      "group": "kilometrage",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=mileageFrom].domain"
+    },
+    {
+      "id": "mileageTo",
+      "param": "kmto",
+      "label": "Kilométrage à",
+      "type": "range_max",
+      "group": "kilometrage",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=mileageTo].domain"
+    },
+    {
+      "id": "dateOfRegistrationFrom",
+      "param": "fregfrom",
+      "label": "Première immatriculation de",
+      "type": "range_min",
+      "group": "immatriculation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=dateOfRegistrationFrom].domain"
+    },
+    {
+      "id": "dateOfRegistrationTo",
+      "param": "fregto",
+      "label": "Première immatriculation à",
+      "type": "range_max",
+      "group": "immatriculation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=dateOfRegistrationTo].domain"
+    },
+    {
+      "id": "dateOfModelYearFrom",
+      "param": "modelyearfrom",
+      "label": "Année-modèle de",
+      "type": "range_min",
+      "group": "immatriculation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=dateOfModelYearFrom].domain"
+    },
+    {
+      "id": "dateOfModelYearTo",
+      "param": "modelyearto",
+      "label": "Année-modèle à",
+      "type": "range_max",
+      "group": "immatriculation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=dateOfModelYearTo].domain"
+    },
+    {
+      "id": "fuelType",
+      "param": "fuel",
+      "label": "Carburant",
+      "type": "enum_multi",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=fuelType].domain"
+    },
+    {
+      "id": "powerType",
+      "param": "powertype",
+      "label": "Unité de puissance",
+      "type": "enum_single",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=powerType].domain"
+    },
+    {
+      "id": "powerFrom",
+      "param": "powerfrom",
+      "label": "Puissance de",
+      "type": "range_min",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "powertype"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "powerTo",
+      "param": "powerto",
+      "label": "Puissance à",
+      "type": "range_max",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "powertype"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "engineMotorSizeFrom",
+      "param": "ccmfrom",
+      "label": "Cylindrée de",
+      "type": "range_min",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "engineMotorSizeTo",
+      "param": "ccmto",
+      "label": "Cylindrée à",
+      "type": "range_max",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "engineType",
+      "param": "cylinders",
+      "label": "Nombre de cylindres",
+      "type": "enum_multi",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=engineType].domain"
+    },
+    {
+      "id": "driveTrain",
+      "param": "dtrain",
+      "label": "Transmission (roues motrices)",
+      "type": "enum_multi",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=driveTrain].domain"
+    },
+    {
+      "id": "gearType",
+      "param": "gear",
+      "label": "Boîte de vitesses",
+      "type": "enum_multi",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=gearType].domain"
+    },
+    {
+      "id": "newDriver",
+      "param": "newdriver",
+      "label": "Pour les nouveaux conducteurs",
+      "type": "boolean",
+      "group": "motorisation",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "bodyType",
+      "param": "body",
+      "label": "Carrosserie",
+      "type": "enum_multi",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=bodyType].domain"
+    },
+    {
+      "id": "doorFrom",
+      "param": "doorfrom",
+      "label": "Nombre de portes (min)",
+      "type": "range_min",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=doorFrom].domain"
+    },
+    {
+      "id": "doorTo",
+      "param": "doorto",
+      "label": "Nombre de portes (max)",
+      "type": "range_max",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=doorTo].domain"
+    },
+    {
+      "id": "numberOfSeatsFrom",
+      "param": "seatsfrom",
+      "label": "Nombre de places (min)",
+      "type": "range_min",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=numberOfSeatsFrom].domain"
+    },
+    {
+      "id": "numberOfSeatsTo",
+      "param": "seatsto",
+      "label": "Nombre de places (max)",
+      "type": "range_max",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=numberOfSeatsTo].domain"
+    },
+    {
+      "id": "bodyColor",
+      "param": "bcol",
+      "label": "Couleur extérieure",
+      "type": "enum_multi",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=bodyColor].domain"
+    },
+    {
+      "id": "paintwork",
+      "param": "ptype",
+      "label": "Type de peinture",
+      "type": "enum_multi",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=paintwork].domain"
+    },
+    {
+      "id": "interiorColor",
+      "param": "icol",
+      "label": "Couleur intérieure",
+      "type": "enum_multi",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=interiorColor].domain"
+    },
+    {
+      "id": "upholstery",
+      "param": "uph",
+      "label": "Revêtement / sellerie",
+      "type": "enum_multi",
+      "group": "carrosserie",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=upholstery].domain"
+    },
+    {
+      "id": "emissionClass",
+      "param": "emclass",
+      "label": "Norme Euro / classe d'émission",
+      "type": "enum_single",
+      "group": "ecologie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=emissionClass].domain"
+    },
+    {
+      "id": "emissionSticker",
+      "param": "ensticker",
+      "label": "Vignette environnementale",
+      "type": "enum_single",
+      "group": "ecologie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=emissionSticker].domain"
+    },
+    {
+      "id": "batteryOwnershipType",
+      "param": "bot",
+      "label": "Propriété de la batterie",
+      "type": "enum_single",
+      "group": "ecologie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "fuel"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=batteryOwnershipType].domain"
+    },
+    {
+      "id": "electricRangeFrom",
+      "param": "erfrom",
+      "label": "Autonomie électrique de",
+      "type": "range_min",
+      "group": "ecologie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "fuel"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=electricRangeFrom].domain"
+    },
+    {
+      "id": "electricRangeTo",
+      "param": "erto",
+      "label": "Autonomie électrique à",
+      "type": "range_max",
+      "group": "ecologie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "fuel"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=electricRangeTo].domain"
+    },
+    {
+      "id": "equipment",
+      "param": "eq",
+      "label": "Équipement",
+      "type": "enum_multi",
+      "group": "equipements",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "ET (présumé)",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=equipment].domain"
+    },
+    {
+      "id": "hadAccident",
+      "param": "ustate",
+      "label": "Véhicule accidenté (BE/EU)",
+      "type": "enum_single",
+      "group": "etat_historique",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=hadAccident].domain"
+    },
+    {
+      "id": "hadAccidentNew",
+      "param": "damaged_listing",
+      "label": "Véhicule accidenté (variante récente)",
+      "type": "enum_single",
+      "group": "etat_historique",
+      "evidence": "RELEVE_PARTIEL",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=hadAccidentNew].domain"
+    },
+    {
+      "id": "numberOfOwners",
+      "param": "prevownersid",
+      "label": "Nombre de propriétaires précédents",
+      "type": "enum_single",
+      "group": "etat_historique",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=numberOfOwners].domain"
+    },
+    {
+      "id": "seals",
+      "param": "sealor",
+      "label": "Label / programme d'occasion certifiée",
+      "type": "enum_multi",
+      "group": "etat_historique",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [
+        "mmmv"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=seals].domain"
+    },
+    {
+      "id": "sellerType",
+      "param": "custtype",
+      "label": "Type de vendeur",
+      "type": "enum_single",
+      "group": "vendeur",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=sellerType].domain"
+    },
+    {
+      "id": "countryType",
+      "param": "cy",
+      "label": "Pays",
+      "type": "enum_multi",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "separator": ",",
+      "semantics": "OU",
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=countryType].domain"
+    },
+    {
+      "id": "location",
+      "param": "zip",
+      "label": "Ville / code postal",
+      "type": "geo_text",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "radius",
+      "param": "zipr",
+      "label": "Rayon",
+      "type": "enum_single",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "zip"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=radius].domain"
+    },
+    {
+      "id": "lat",
+      "param": "lat",
+      "label": "Latitude",
+      "type": "number",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "zip"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "lon",
+      "param": "lon",
+      "label": "Longitude",
+      "type": "number",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "zip"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "region",
+      "param": "region",
+      "label": "Région / province",
+      "type": "text",
+      "group": "geographie",
+      "evidence": "RELEVE_PARTIEL",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "cy"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "crossBorder",
+      "param": "crossborder",
+      "label": "Inclure les véhicules au-delà de la frontière",
+      "type": "boolean",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "zip",
+        "zipr"
+      ],
+      "domainRef": null
+    },
+    {
+      "id": "buyOnline",
+      "param": "ot_osc",
+      "label": "Achat en ligne (Smyle / OCS)",
+      "type": "boolean",
+      "group": "divers",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "ocsListing",
+      "param": "ocs_listing",
+      "label": "Annonces achat-en-ligne",
+      "type": "enum_single",
+      "group": "divers",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=ocsListing].domain"
+    },
+    {
+      "id": "deliverableInsertion",
+      "param": "dlv_max",
+      "label": "Offres avec livraison (portée max)",
+      "type": "text",
+      "group": "divers",
+      "evidence": "RELEVE_PARTIEL",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "smyleTail",
+      "param": "dlv_tail",
+      "label": "Élargir aux offres livrables",
+      "type": "boolean",
+      "group": "divers",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": null
+    },
+    {
+      "id": "sortTypes",
+      "param": "sort",
+      "label": "Critère de tri",
+      "type": "enum_single",
+      "group": "tri_pagination",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=sortTypes].domain"
+    },
+    {
+      "id": "descType",
+      "param": "desc",
+      "label": "Sens du tri",
+      "type": "enum_single",
+      "group": "tri_pagination",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [
+        "sort"
+      ],
+      "domainRef": "data/reference/filters.json#filters[id=descType].domain"
+    },
+    {
+      "id": "page",
+      "param": "page",
+      "label": "Page",
+      "type": "number",
+      "group": "tri_pagination",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=page].domain"
+    },
+    {
+      "id": "pageSize",
+      "param": "size",
+      "label": "Taille de page",
+      "type": "number",
+      "group": "tri_pagination",
+      "evidence": "RELEVE",
+      "separator": null,
+      "semantics": null,
+      "dependencies": [],
+      "domainRef": "data/reference/filters.json#filters[id=pageSize].domain"
+    }
+  ],
+  "exclus": [
+    {
+      "id": "priceTypeTech",
+      "param": "pricetype",
+      "label": "Base d'affichage du prix",
+      "type": "enum_single",
+      "group": "prix",
+      "evidence": "RELEVE_PARTIEL",
+      "exclusion": "DOUBLON_STRICT",
+      "motif": "Deux paramètres pour une même notion. La notion est implémentée une fois ; le paramètre est accepté en lecture d'URL comme alias.",
+      "alias": "custtype"
+    },
+    {
+      "id": "customerId",
+      "param": "cid",
+      "label": "Identifiant du vendeur",
+      "type": "text",
+      "group": "vendeur",
+      "evidence": "RELEVE",
+      "exclusion": "R3_DONNEE_PERSONNELLE",
+      "motif": "Identifiant vendeur. Règle R3 de 00-CONTEXT.md : aucun champ identifiant un vendeur n'entre dans le schéma.",
+      "alias": null
+    },
+    {
+      "id": "onlineSince",
+      "param": "adage",
+      "label": "En ligne depuis",
+      "type": "enum_single",
+      "group": "divers",
+      "evidence": "RELEVE",
+      "exclusion": "TELEMETRIE_AS24",
+      "motif": "Paramètre de télémétrie ou de rotation publicitaire interne à AutoScout24. Ne décrit aucun véhicule et n'a pas d'équivalent dans notre dataset.",
+      "alias": null
+    },
+    {
+      "id": "bedsFrom",
+      "param": "bedsfrom",
+      "label": "Nombre de lits (min)",
+      "type": "range_min",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "bedsTo",
+      "param": "bedsto",
+      "label": "Nombre de lits (max)",
+      "type": "range_max",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "numberOfBeds",
+      "param": "beds",
+      "label": "Nombre de lits",
+      "type": "enum_multi",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "bedType",
+      "param": null,
+      "label": "Type de lit",
+      "type": "enum_multi",
+      "group": "autres_atype",
+      "evidence": "RELEVE_PARTIEL",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "slideOutCount",
+      "param": "sout",
+      "label": "Nombre d'extensions (slide-out)",
+      "type": "enum_multi",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "wheelbaseFrom",
+      "param": "wbfrom",
+      "label": "Empattement de",
+      "type": "range_min",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "wheelbaseTo",
+      "param": "wbto",
+      "label": "Empattement à",
+      "type": "range_max",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "weightFrom",
+      "param": "ewfrom",
+      "label": "Poids à vide de",
+      "type": "range_min",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "weightTo",
+      "param": "ewto",
+      "label": "Poids à vide à",
+      "type": "range_max",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "lengthFrom",
+      "param": "totlenfrom",
+      "label": "Longueur totale de",
+      "type": "range_min",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "lengthTo",
+      "param": "totlento",
+      "label": "Longueur totale à",
+      "type": "range_max",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "hoursFrom",
+      "param": "ehfrom",
+      "label": "Heures de fonctionnement de",
+      "type": "range_min",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "hoursTo",
+      "param": "ehto",
+      "label": "Heures de fonctionnement à",
+      "type": "range_max",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "numberOfAxles",
+      "param": "axlenumber",
+      "label": "Nombre d'essieux",
+      "type": "number",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "grossWeightFrom",
+      "param": "grossweightfrom",
+      "label": "Poids total autorisé de",
+      "type": "range_min",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "grossWeightTo",
+      "param": "grossweightto",
+      "label": "Poids total autorisé à",
+      "type": "range_max",
+      "group": "autres_atype",
+      "evidence": "RELEVE",
+      "exclusion": "HORS_PERIMETRE_VOITURE",
+      "motif": "Filtre propre à atype≠C (caravane, camping-car, utilitaire lourd). KYCAR fixe atype=C.",
+      "alias": null
+    },
+    {
+      "id": "_showNfm",
+      "param": "show_nfm",
+      "label": "[technique] Nouveau modèle de financement",
+      "type": "boolean",
+      "group": "technique",
+      "evidence": "RELEVE",
+      "exclusion": "TELEMETRIE_AS24",
+      "motif": "Paramètre de télémétrie ou de rotation publicitaire interne à AutoScout24. Ne décrit aucun véhicule et n'a pas d'équivalent dans notre dataset.",
+      "alias": null
+    },
+    {
+      "id": "_searchId",
+      "param": "search_id",
+      "label": "[technique] Identifiant de recherche",
+      "type": "text",
+      "group": "technique",
+      "evidence": "RELEVE",
+      "exclusion": "TELEMETRIE_AS24",
+      "motif": "Paramètre de télémétrie ou de rotation publicitaire interne à AutoScout24. Ne décrit aucun véhicule et n'a pas d'équivalent dans notre dataset.",
+      "alias": null
+    },
+    {
+      "id": "_queryId",
+      "param": "query_id",
+      "label": "[technique] Identifiant de requête",
+      "type": "text",
+      "group": "technique",
+      "evidence": "RELEVE",
+      "exclusion": "TELEMETRIE_AS24",
+      "motif": "Paramètre de télémétrie ou de rotation publicitaire interne à AutoScout24. Ne décrit aucun véhicule et n'a pas d'équivalent dans notre dataset.",
+      "alias": null
+    },
+    {
+      "id": "_tierRotation",
+      "param": "tier_rotation",
+      "label": "[technique] Rotation des paliers d'annonces",
+      "type": "boolean",
+      "group": "technique",
+      "evidence": "RELEVE",
+      "exclusion": "TELEMETRIE_AS24",
+      "motif": "Paramètre de télémétrie ou de rotation publicitaire interne à AutoScout24. Ne décrit aucun véhicule et n'a pas d'équivalent dans notre dataset.",
+      "alias": null
+    },
+    {
+      "id": "_mmmLegacy",
+      "param": "mmm",
+      "label": "[legacy] Marque/modèle (paramètre répété)",
+      "type": "structured_multi",
+      "group": "technique",
+      "evidence": "RELEVE",
+      "exclusion": "DOUBLON_STRICT",
+      "motif": "Deux paramètres pour une même notion. La notion est implémentée une fois ; le paramètre est accepté en lecture d'URL comme alias.",
+      "alias": "mmmv"
+    }
+  ]
+}
