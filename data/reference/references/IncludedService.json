@@ -1,0 +1,24 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "IncludedService",
+  "count": 2,
+  "references": [
+    {
+      "id": "1",
+      "label": "HU/AU neu",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "2",
+      "label": "APK nieuw",
+      "vehicleType": null,
+      "country": null
+    }
+  ]
+}

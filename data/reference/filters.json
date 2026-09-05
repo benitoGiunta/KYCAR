@@ -1,0 +1,4997 @@
+{
+ "meta": {
+  "source": "AutoScout24 — autoscout24.be (fr-BE) et autoscout24.com (en-GB)",
+  "extracted_at": "2026-09-06",
+  "build": "as24-search-funnel_main-20260904153933",
+  "primary_evidence": [
+   "GET https://www.autoscout24.be/fr/lst?atype=C&cy=B&desc=0&search_id=1&sort=standard&ustate=N%2CU -> script#__NEXT_DATA__ (props.pageProps.taxonomy, .translations, .marketplaceFeatureToggles.filters)",
+   "GET https://www.autoscout24.be/assets/as24-search-funnel/_next/static/chunks/5007-a4ccf9591481be8b.js -> module 55200 (table de sérialisation filtre -> paramètre d'URL), module 95983 (valeurs par défaut), module 56702 (fonction de sérialisation)",
+   "GET https://www.autoscout24.be/assets/as24-search-funnel/_next/static/chunks/pages/_app-6a360044f3d26f11.js -> module 64538 (constantes : taille de page = 20, tri par défaut = standard, sens par défaut = 0)",
+   "GET https://www.autoscout24.be/fr/lst?<66 paramètres> -> HTTP 200, écho de pageQuery (vérification empirique)",
+   "GET https://www.autoscout24.com/lst?atype=C&cy=D&mmmv=54%7C1409%7C%7C&... -> HTTP 200, libellés anglais + taxonomy.models peuplé pour makeId=54"
+  ],
+  "evidence_levels": {
+   "RELEVE": "paramètre, type et domaine lus dans une source AutoScout24 réelle",
+   "RELEVE_PARTIEL": "paramètre relevé, domaine de valeurs incomplet ou comportement non confirmé",
+   "DOCUMENTE": "établi par une source tierce uniquement",
+   "EXTRAPOLE": "non relevé — hypothèse"
+  },
+  "multi_value_rule": "Tous les filtres de type enum_multi sont sérialisés en UNE seule occurrence du paramètre, valeurs jointes par une virgule (source : module 56702, fonction C : i.join(\",\") pour les types number[] et string[]). La virgule est URL-encodée %2C. Seule exception : le paramètre legacy mmm, qui est répété.",
+  "boolean_rule": "Les booléens sont sérialisés via String(valeur). Valeurs relevées dans pageQuery : '1' (valeur transmise telle quelle) et 'true' (hasleasing). Un booléen faux n'est pas émis.",
+  "default_omission_rule": "Un filtre à sa valeur par défaut n'est pas émis dans l'URL. Cas particulier : ensticker code 1 est mappé sur null, donc jamais émis.",
+  "invalid_param_behaviour": "togglingInfo['enable-404-for-invalid-parameter']=true : le serveur répond 404 sur un paramètre invalide. Un HTTP 200 vaut donc validation du nom de paramètre."
+ },
+ "filters": [
+  {
+   "id": "articleType",
+   "param": "atype",
+   "label_fr": "Type de véhicule",
+   "label_en": "Vehicle type",
+   "group": "vehicule_base",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "C",
+     "label_fr": "Voiture",
+     "label_en": "Car"
+    },
+    {
+     "code": "B",
+     "label_fr": "Moto",
+     "label_en": "Bike"
+    },
+    {
+     "code": "N",
+     "label_fr": "Caravane / camping-car",
+     "label_en": "Caravan"
+    },
+    {
+     "code": "X",
+     "label_fr": "Utilitaire",
+     "label_en": "Transporter"
+    },
+    {
+     "code": "L",
+     "label_fr": "Remorque",
+     "label_en": "Trailer"
+    },
+    {
+     "code": "O",
+     "label_fr": "Bateau",
+     "label_en": "Boats"
+    },
+    {
+     "code": "W",
+     "label_fr": "Engin nautique",
+     "label_en": "Watercraft"
+    },
+    {
+     "code": "S",
+     "label_fr": "Motoneige",
+     "label_en": "Snowmobiles"
+    },
+    {
+     "code": "E",
+     "label_fr": "Engin de chantier",
+     "label_en": "Heavy equipment"
+    },
+    {
+     "code": "A",
+     "label_fr": "Engin agricole",
+     "label_en": "Farm equipment"
+    }
+   ],
+   "default": "C",
+   "required": true,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Détermine tout le reste du domaine de filtres. KYCAR = atype=C."
+  },
+  {
+   "id": "makesModelsVariants",
+   "param": "mmmv",
+   "label_fr": "Marque / Modèle / Version",
+   "label_en": "Make / Model / Version",
+   "group": "vehicule_base",
+   "type": "structured_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "value_format": "makeId|modelId|modelLineId|version — répété séparé par des virgules ; une virgule littérale dans <version> est échappée en ',,' puis ré-encodée en %2C",
+   "default": "|||",
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Le domaine des modèles (taxonomy.models) n'est peuplé qu'une fois un makeId posé — vérifié : mmmv=54|1409|| a peuplé taxonomy.models['54']."
+  },
+  {
+   "id": "vkhFilters",
+   "param": "cat",
+   "label_fr": "Catégorie taxonomique (nouvelle taxonomie)",
+   "label_en": "Taxonomy category",
+   "group": "vehicule_base",
+   "type": "structured_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "value_format": "ma<makeId>[gr<modelGroupId>|mo<modelId>][_<version>]",
+   "default": null,
+   "dependencies": [
+    "mmmv"
+   ],
+   "evidence": "RELEVE",
+   "note": "Voie alternative à mmmv. Inactive sur BE/COM au relevé (pageProps.newTaxonomyAvailable=false)."
+  },
+  {
+   "id": "vkhFiltersModelCat",
+   "param": "mcat",
+   "label_fr": "Catégorie modèle (nouvelle taxonomie)",
+   "label_en": "Model category",
+   "group": "vehicule_base",
+   "type": "structured_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "default": null,
+   "dependencies": [
+    "cat"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "version",
+   "param": "version0",
+   "label_fr": "Version / finition",
+   "label_en": "Version / trim",
+   "group": "vehicule_base",
+   "type": "text",
+   "cardinality": 1,
+   "default": null,
+   "dependencies": [
+    "mmmv"
+   ],
+   "evidence": "RELEVE",
+   "note": "Sérialisé UNIQUEMENT si makeId ET modelId sont posés sur le 1er bloc mmmv. Variantes legacy : version0/version1/version2 avec le paramètre legacy mmm."
+  },
+  {
+   "id": "offer",
+   "param": "offer",
+   "label_fr": "Type d'annonce / état du véhicule",
+   "label_en": "Vehicle condition / offer type",
+   "group": "vehicule_base",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": "N",
+     "label_fr": "Neuf",
+     "label_en": "New"
+    },
+    {
+     "code": "U",
+     "label_fr": "Occasion",
+     "label_en": "Used"
+    },
+    {
+     "code": "J",
+     "label_fr": "Voiture récente",
+     "label_en": "Employee's car"
+    },
+    {
+     "code": "O",
+     "label_fr": "Ancêtre",
+     "label_en": "Antique / Classic"
+    },
+    {
+     "code": "D",
+     "label_fr": "Voiture de démonstration",
+     "label_en": "Demonstration"
+    },
+    {
+     "code": "S",
+     "label_fr": "Pré-enregistrement",
+     "label_en": "Pre-registered"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "keyword",
+   "param": "kwd",
+   "label_fr": "Recherche par mots-clés",
+   "label_en": "Keyword search",
+   "group": "vehicule_base",
+   "type": "text",
+   "cardinality": 1,
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Recherche dans les titres d'annonces (translations listfilters.keyword.helper)."
+  },
+  {
+   "id": "priceFrom",
+   "param": "pricefrom",
+   "label_fr": "Prix de",
+   "label_en": "Price from",
+   "group": "prix",
+   "type": "range_min",
+   "unit": "EUR",
+   "domain": {
+    "steps": [
+     500,
+     1000,
+     1500,
+     2000,
+     2500,
+     3000,
+     4000,
+     5000,
+     6000,
+     7000,
+     8000,
+     9000,
+     10000,
+     12500,
+     15000,
+     17500,
+     20000,
+     25000,
+     30000,
+     40000,
+     50000,
+     75000,
+     100000
+    ],
+    "min": 500,
+    "max": 100000,
+    "free_input": true
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "priceTo",
+   "param": "priceto",
+   "label_fr": "Prix à",
+   "label_en": "Price to",
+   "group": "prix",
+   "type": "range_max",
+   "unit": "EUR",
+   "domain": {
+    "steps": [
+     500,
+     1000,
+     1500,
+     2000,
+     2500,
+     3000,
+     4000,
+     5000,
+     6000,
+     7000,
+     8000,
+     9000,
+     10000,
+     12500,
+     15000,
+     17500,
+     20000,
+     25000,
+     30000,
+     40000,
+     50000,
+     75000,
+     100000
+    ],
+    "min": 500,
+    "max": 100000,
+    "free_input": true
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "priceTypeTech",
+   "param": "pricetype",
+   "label_fr": "Base d'affichage du prix",
+   "label_en": "Price display basis",
+   "group": "prix",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "public",
+     "label_fr": "Prix public",
+     "label_en": "Public price"
+    },
+    {
+     "code": "private",
+     "label_fr": "Particulier",
+     "label_en": "Private"
+    },
+    {
+     "code": "dealer",
+     "label_fr": "Professionnel",
+     "label_en": "Dealer"
+    }
+   ],
+   "default": "public",
+   "dependencies": [],
+   "evidence": "RELEVE_PARTIEL",
+   "note": "pricetype=public est injecté par défaut par le serveur (relevé dans pageQuery). Les codes 'private'/'dealer' viennent de taxonomy.priceType ; leur usage sur ce paramètre n'a pas été prouvé."
+  },
+  {
+   "id": "vatReportable",
+   "param": "vatded",
+   "label_fr": "TVA déductible / récupérable",
+   "label_en": "VAT deductible",
+   "group": "prix",
+   "type": "boolean",
+   "domain": [
+    {
+     "code": "1",
+     "label_fr": "Uniquement TVA déductible",
+     "label_en": "VAT deductible only"
+    }
+   ],
+   "default": false,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Actif sur BE (searchMask.priceFilter.vatReportable=true), inactif sur .com."
+  },
+  {
+   "id": "superDeal",
+   "param": "superdeal",
+   "label_fr": "SuperDeal",
+   "label_en": "SuperDeal",
+   "group": "prix",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Actif sur BE (filters.superDeal=true), inactif sur .com."
+  },
+  {
+   "id": "priceEvaluation",
+   "param": "pe_category",
+   "label_fr": "Évaluation du prix",
+   "label_en": "Price evaluation",
+   "group": "prix",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "Très bon prix",
+     "label_en": "Very good price"
+    },
+    {
+     "code": 2,
+     "label_fr": "Bon prix",
+     "label_en": "Good price"
+    },
+    {
+     "code": 3,
+     "label_fr": "Prix correct",
+     "label_en": "Fair price"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Domaine non vide sur BE, vide sur .com (taxonomy.priceEvaluation=[])."
+  },
+  {
+   "id": "financeRateFrom",
+   "param": "financeratefrom",
+   "label_fr": "Mensualité de financement de",
+   "label_en": "Finance rate from",
+   "group": "prix",
+   "type": "range_min",
+   "unit": "EUR/mois",
+   "domain": {
+    "steps": [
+     50,
+     100,
+     200,
+     300,
+     400,
+     500,
+     600,
+     700
+    ]
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "financeRateTo",
+   "param": "financerateto",
+   "label_fr": "Mensualité de financement à",
+   "label_en": "Finance rate to",
+   "group": "prix",
+   "type": "range_max",
+   "unit": "EUR/mois",
+   "domain": {
+    "steps": [
+     50,
+     100,
+     200,
+     300,
+     400,
+     500,
+     600,
+     700
+    ]
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "hasLeasing",
+   "param": "hasleasing",
+   "label_fr": "Offre de leasing disponible",
+   "label_en": "Leasing offer available",
+   "group": "prix",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Écho serveur observé : hasleasing=true."
+  },
+  {
+   "id": "leasingRateFrom",
+   "param": "leasingratefrom",
+   "label_fr": "Loyer de leasing de",
+   "label_en": "Leasing rate from",
+   "group": "prix",
+   "type": "range_min",
+   "unit": "EUR/mois",
+   "domain": {
+    "steps": [
+     50,
+     100,
+     200,
+     300,
+     400,
+     500,
+     600,
+     700
+    ]
+   },
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "leasingRateTo",
+   "param": "leasingrateto",
+   "label_fr": "Loyer de leasing à",
+   "label_en": "Leasing rate to",
+   "group": "prix",
+   "type": "range_max",
+   "unit": "EUR/mois",
+   "domain": {
+    "steps": [
+     50,
+     100,
+     200,
+     300,
+     400,
+     500,
+     600,
+     700
+    ]
+   },
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "leasingDurationFrom",
+   "param": "lsdufrom",
+   "label_fr": "Durée de leasing de",
+   "label_en": "Leasing duration from",
+   "group": "prix",
+   "type": "range_min",
+   "unit": "mois",
+   "domain": {
+    "steps": [
+     12,
+     24,
+     36,
+     48,
+     60,
+     72
+    ]
+   },
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "leasingDurationTo",
+   "param": "lsduto",
+   "label_fr": "Durée de leasing à",
+   "label_en": "Leasing duration to",
+   "group": "prix",
+   "type": "range_max",
+   "unit": "mois",
+   "domain": {
+    "steps": [
+     12,
+     24,
+     36,
+     48,
+     60,
+     72
+    ]
+   },
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "leasingYearlyIncludedMileageFrom",
+   "param": "lsyeinmifrom",
+   "label_fr": "Kilométrage annuel inclus (min)",
+   "label_en": "Yearly included mileage from",
+   "group": "prix",
+   "type": "range_min",
+   "unit": "km/an",
+   "domain": {
+    "steps": [
+     10000,
+     15000,
+     20000,
+     25000,
+     30000
+    ]
+   },
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "leasingTradeInBonus",
+   "param": "lstrinbo",
+   "label_fr": "Bonus de reprise (leasing)",
+   "label_en": "Trade-in bonus",
+   "group": "prix",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "leasingEnvironmentBonus",
+   "param": "lsenbo",
+   "label_fr": "Bonus écologique (leasing)",
+   "label_en": "Environment bonus",
+   "group": "prix",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "leasingAvailableNow",
+   "param": "lsavno",
+   "label_fr": "Disponible immédiatement (leasing)",
+   "label_en": "Available now",
+   "group": "prix",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "leasingTargetGroup",
+   "param": "lstagr",
+   "label_fr": "Groupe cible du leasing",
+   "label_en": "Leasing target group",
+   "group": "prix",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "private",
+     "label_fr": "Particulier",
+     "label_en": "Private"
+    },
+    {
+     "code": "business",
+     "label_fr": "Entreprise",
+     "label_en": "Business"
+    },
+    {
+     "code": "private&business",
+     "label_fr": "Particulier/entreprise",
+     "label_en": "Private/Business"
+    }
+   ],
+   "default": null,
+   "dependencies": [
+    "hasleasing"
+   ],
+   "evidence": "RELEVE_PARTIEL",
+   "note": "taxonomy.leasingTargetGroup est vide sur BE et .com ; les codes viennent du mapping de tracking (module 92526) et 'private' a été accepté et échoué par le serveur."
+  },
+  {
+   "id": "governmentBonus",
+   "param": "efeg",
+   "label_fr": "Prime à l'achat / bonus étatique",
+   "label_en": "Government bonus",
+   "group": "prix",
+   "type": "boolean",
+   "default": false,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "tradeIn",
+   "param": "tradeIn",
+   "label_fr": "Reprise de mon véhicule",
+   "label_en": "Trade-in",
+   "group": "prix",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Seul paramètre du catalogue en camelCase."
+  },
+  {
+   "id": "mileageFrom",
+   "param": "kmfrom",
+   "label_fr": "Kilométrage de",
+   "label_en": "Mileage from",
+   "group": "kilometrage",
+   "type": "range_min",
+   "unit": "km",
+   "domain": {
+    "steps": [
+     2500,
+     5000,
+     10000,
+     20000,
+     30000,
+     40000,
+     50000,
+     60000,
+     70000,
+     80000,
+     90000,
+     100000,
+     125000,
+     150000,
+     175000,
+     200000
+    ],
+    "free_input": true
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "mileageTo",
+   "param": "kmto",
+   "label_fr": "Kilométrage à",
+   "label_en": "Mileage to",
+   "group": "kilometrage",
+   "type": "range_max",
+   "unit": "km",
+   "domain": {
+    "steps": [
+     2500,
+     5000,
+     10000,
+     20000,
+     30000,
+     40000,
+     50000,
+     60000,
+     70000,
+     80000,
+     90000,
+     100000,
+     125000,
+     150000,
+     175000,
+     200000
+    ],
+    "free_input": true
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "dateOfRegistrationFrom",
+   "param": "fregfrom",
+   "label_fr": "Première immatriculation de",
+   "label_en": "First registration from",
+   "group": "immatriculation",
+   "type": "range_min",
+   "unit": "année",
+   "domain": {
+    "min": 1900,
+    "max": 2026,
+    "step": 1
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "dateOfRegistrationTo",
+   "param": "fregto",
+   "label_fr": "Première immatriculation à",
+   "label_en": "First registration to",
+   "group": "immatriculation",
+   "type": "range_max",
+   "unit": "année",
+   "domain": {
+    "min": 1900,
+    "max": 2026,
+    "step": 1
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "dateOfModelYearFrom",
+   "param": "modelyearfrom",
+   "label_fr": "Année-modèle de",
+   "label_en": "Model year from",
+   "group": "immatriculation",
+   "type": "range_min",
+   "unit": "année",
+   "domain": {
+    "min": 1900,
+    "max": 2027,
+    "step": 1
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "dateOfModelYearTo",
+   "param": "modelyearto",
+   "label_fr": "Année-modèle à",
+   "label_en": "Model year to",
+   "group": "immatriculation",
+   "type": "range_max",
+   "unit": "année",
+   "domain": {
+    "min": 1900,
+    "max": 2027,
+    "step": 1
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "fuelType",
+   "param": "fuel",
+   "label_fr": "Carburant",
+   "label_en": "Fuel type",
+   "group": "motorisation",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": "2",
+     "label_fr": "Electrique/Essence",
+     "label_en": "Electric/Gasoline"
+    },
+    {
+     "code": "3",
+     "label_fr": "Electrique/Diesel",
+     "label_en": "Electric/Diesel"
+    },
+    {
+     "code": "B",
+     "label_fr": "Essence",
+     "label_en": "Gasoline"
+    },
+    {
+     "code": "C",
+     "label_fr": "CNG",
+     "label_en": "CNG"
+    },
+    {
+     "code": "D",
+     "label_fr": "Diesel",
+     "label_en": "Diesel"
+    },
+    {
+     "code": "E",
+     "label_fr": "Electrique",
+     "label_en": "Electric"
+    },
+    {
+     "code": "H",
+     "label_fr": "Hydrogène",
+     "label_en": "Hydrogen"
+    },
+    {
+     "code": "L",
+     "label_fr": "GPL",
+     "label_en": "LPG"
+    },
+    {
+     "code": "M",
+     "label_fr": "Ethanol",
+     "label_en": "Ethanol"
+    },
+    {
+     "code": "O",
+     "label_fr": "Autres",
+     "label_en": "Others"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "powerType",
+   "param": "powertype",
+   "label_fr": "Unité de puissance",
+   "label_en": "Power unit",
+   "group": "motorisation",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "hp",
+     "label_fr": "CH",
+     "label_en": "hp"
+    },
+    {
+     "code": "kw",
+     "label_fr": "kW",
+     "label_en": "kW"
+    }
+   ],
+   "default": "kw",
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Détermine l'unité de powerfrom/powerto. Défaut null sur le marketplace CA."
+  },
+  {
+   "id": "powerFrom",
+   "param": "powerfrom",
+   "label_fr": "Puissance de",
+   "label_en": "Power from",
+   "group": "motorisation",
+   "type": "range_min",
+   "unit": "dépend de powertype (kW ou ch)",
+   "default": null,
+   "dependencies": [
+    "powertype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "powerTo",
+   "param": "powerto",
+   "label_fr": "Puissance à",
+   "label_en": "Power to",
+   "group": "motorisation",
+   "type": "range_max",
+   "unit": "dépend de powertype (kW ou ch)",
+   "default": null,
+   "dependencies": [
+    "powertype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "engineMotorSizeFrom",
+   "param": "ccmfrom",
+   "label_fr": "Cylindrée de",
+   "label_en": "Engine size from",
+   "group": "motorisation",
+   "type": "range_min",
+   "unit": "cm3",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "engineMotorSizeTo",
+   "param": "ccmto",
+   "label_fr": "Cylindrée à",
+   "label_en": "Engine size to",
+   "group": "motorisation",
+   "type": "range_max",
+   "unit": "cm3",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "engineType",
+   "param": "cylinders",
+   "label_fr": "Nombre de cylindres",
+   "label_en": "Cylinders",
+   "group": "motorisation",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": "3",
+     "label_fr": "3 cylindres",
+     "label_en": "3 cylinder"
+    },
+    {
+     "code": "4",
+     "label_fr": "4 cylindres",
+     "label_en": "4 cylinder"
+    },
+    {
+     "code": "6",
+     "label_fr": "6 cylindres",
+     "label_en": "6 cylinder"
+    },
+    {
+     "code": "8",
+     "label_fr": "8 cylindres",
+     "label_en": "8 cylinder"
+    },
+    {
+     "code": "10plus",
+     "label_fr": "10+ cylindres",
+     "label_en": "10+ cylinder"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "filters.isEngineTypeEnabled=false sur BE et .com : masqué dans l'UI mais accepté en URL (vérifié)."
+  },
+  {
+   "id": "driveTrain",
+   "param": "dtrain",
+   "label_fr": "Transmission (roues motrices)",
+   "label_en": "Drivetrain",
+   "group": "motorisation",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": "4",
+     "label_fr": "4x4",
+     "label_en": "4WD"
+    },
+    {
+     "code": "F",
+     "label_fr": "Avant",
+     "label_en": "Front Wheel Drive"
+    },
+    {
+     "code": "R",
+     "label_fr": "Arrière",
+     "label_en": "Rear Wheel Drive"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "filters.isDriveTrainEnabled=false sur BE et .com : masqué dans l'UI mais accepté en URL (vérifié)."
+  },
+  {
+   "id": "gearType",
+   "param": "gear",
+   "label_fr": "Boîte de vitesses",
+   "label_en": "Transmission",
+   "group": "motorisation",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": "A",
+     "label_fr": "Boîte automatique",
+     "label_en": "Automatic"
+    },
+    {
+     "code": "M",
+     "label_fr": "Boîte manuelle",
+     "label_en": "Manual"
+    },
+    {
+     "code": "S",
+     "label_fr": "Semi-automatique",
+     "label_en": "Semi-automatic"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "newDriver",
+   "param": "newdriver",
+   "label_fr": "Pour les nouveaux conducteurs",
+   "label_en": "For new drivers",
+   "group": "motorisation",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "searchMask.powerFilter.newDriver=false sur BE/.com. Libellé UI : listfilters.power.modal.newdriver."
+  },
+  {
+   "id": "bodyType",
+   "param": "body",
+   "label_fr": "Carrosserie",
+   "label_en": "Body type",
+   "group": "carrosserie",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "Citadine",
+     "label_en": "Compact"
+    },
+    {
+     "code": 2,
+     "label_fr": "Cabriolet",
+     "label_en": "Convertible"
+    },
+    {
+     "code": 3,
+     "label_fr": "Coupé",
+     "label_en": "Coupe"
+    },
+    {
+     "code": 4,
+     "label_fr": "SUV/4x4/Pick-Up",
+     "label_en": "SUV/Off-Road/Pick-Up"
+    },
+    {
+     "code": 5,
+     "label_fr": "Break",
+     "label_en": "Station Wagon"
+    },
+    {
+     "code": 6,
+     "label_fr": "Berline",
+     "label_en": "Sedan"
+    },
+    {
+     "code": 12,
+     "label_fr": "Monospace",
+     "label_en": "Van"
+    },
+    {
+     "code": 13,
+     "label_fr": "Utilitaire",
+     "label_en": "Transporter"
+    },
+    {
+     "code": 7,
+     "label_fr": "Autres",
+     "label_en": "Other"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "doorFrom",
+   "param": "doorfrom",
+   "label_fr": "Nombre de portes (min)",
+   "label_en": "Doors from",
+   "group": "carrosserie",
+   "type": "range_min",
+   "domain": {
+    "values": [
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ]
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "doorTo",
+   "param": "doorto",
+   "label_fr": "Nombre de portes (max)",
+   "label_en": "Doors to",
+   "group": "carrosserie",
+   "type": "range_max",
+   "domain": {
+    "values": [
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ]
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "numberOfSeatsFrom",
+   "param": "seatsfrom",
+   "label_fr": "Nombre de places (min)",
+   "label_en": "Seats from",
+   "group": "carrosserie",
+   "type": "range_min",
+   "domain": {
+    "values": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "numberOfSeatsTo",
+   "param": "seatsto",
+   "label_fr": "Nombre de places (max)",
+   "label_en": "Seats to",
+   "group": "carrosserie",
+   "type": "range_max",
+   "domain": {
+    "values": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   },
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "bodyColor",
+   "param": "bcol",
+   "label_fr": "Couleur extérieure",
+   "label_en": "Exterior colour",
+   "group": "carrosserie",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "Beige",
+     "label_en": "Beige"
+    },
+    {
+     "code": 2,
+     "label_fr": "Bleu",
+     "label_en": "Blue"
+    },
+    {
+     "code": 3,
+     "label_fr": "Brun",
+     "label_en": "Brown"
+    },
+    {
+     "code": 4,
+     "label_fr": "Bronze",
+     "label_en": "Bronze"
+    },
+    {
+     "code": 5,
+     "label_fr": "Jaune",
+     "label_en": "Yellow"
+    },
+    {
+     "code": 6,
+     "label_fr": "Gris",
+     "label_en": "Grey"
+    },
+    {
+     "code": 7,
+     "label_fr": "Vert",
+     "label_en": "Green"
+    },
+    {
+     "code": 10,
+     "label_fr": "Rouge",
+     "label_en": "Red"
+    },
+    {
+     "code": 11,
+     "label_fr": "Noir",
+     "label_en": "Black"
+    },
+    {
+     "code": 12,
+     "label_fr": "Argent",
+     "label_en": "Silver"
+    },
+    {
+     "code": 13,
+     "label_fr": "Mauve",
+     "label_en": "Violet"
+    },
+    {
+     "code": 14,
+     "label_fr": "Blanc",
+     "label_en": "White"
+    },
+    {
+     "code": 15,
+     "label_fr": "Orange",
+     "label_en": "Orange"
+    },
+    {
+     "code": 16,
+     "label_fr": "Or",
+     "label_en": "Gold"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "paintwork",
+   "param": "ptype",
+   "label_fr": "Type de peinture",
+   "label_en": "Paintwork",
+   "group": "carrosserie",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": "M",
+     "label_fr": "Métallisé",
+     "label_en": "Metallic"
+    },
+    {
+     "code": "O",
+     "label_fr": "Autres",
+     "label_en": "Others"
+    },
+    {
+     "code": "P",
+     "label_fr": "Nacré",
+     "label_en": "Perl Effect"
+    },
+    {
+     "code": "S",
+     "label_fr": "Mica",
+     "label_en": "Mica (Stoned)"
+    },
+    {
+     "code": "U",
+     "label_fr": "Uni",
+     "label_en": "Uni/Basic"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "searchMask.exteriorColorAndPaintworkFilter.paintworkFilter=true sur BE."
+  },
+  {
+   "id": "interiorColor",
+   "param": "icol",
+   "label_fr": "Couleur intérieure",
+   "label_en": "Interior colour",
+   "group": "carrosserie",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "Beige",
+     "label_en": "Beige"
+    },
+    {
+     "code": 2,
+     "label_fr": "Noir",
+     "label_en": "Black"
+    },
+    {
+     "code": 3,
+     "label_fr": "Gris",
+     "label_en": "Grey"
+    },
+    {
+     "code": 4,
+     "label_fr": "Brun",
+     "label_en": "Brown"
+    },
+    {
+     "code": 5,
+     "label_fr": "Autres",
+     "label_en": "Other"
+    },
+    {
+     "code": 6,
+     "label_fr": "Bleu",
+     "label_en": "Blue"
+    },
+    {
+     "code": 7,
+     "label_fr": "Rouge",
+     "label_en": "Red"
+    },
+    {
+     "code": 8,
+     "label_fr": "Vert",
+     "label_en": "Green"
+    },
+    {
+     "code": 9,
+     "label_fr": "Jaune",
+     "label_en": "Yellow"
+    },
+    {
+     "code": 10,
+     "label_fr": "Orange",
+     "label_en": "Orange"
+    },
+    {
+     "code": 11,
+     "label_fr": "Blanc",
+     "label_en": "White"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "upholstery",
+   "param": "uph",
+   "label_fr": "Revêtement / sellerie",
+   "label_en": "Upholstery",
+   "group": "carrosserie",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": "AL",
+     "label_fr": "Alcantara",
+     "label_en": "Alcantara"
+    },
+    {
+     "code": "CL",
+     "label_fr": "Tissu",
+     "label_en": "Cloth"
+    },
+    {
+     "code": "FL",
+     "label_fr": "Cuir",
+     "label_en": "Full leather"
+    },
+    {
+     "code": "OT",
+     "label_fr": "Autres",
+     "label_en": "Other"
+    },
+    {
+     "code": "PL",
+     "label_fr": "Cuir partiel",
+     "label_en": "Part leather"
+    },
+    {
+     "code": "VL",
+     "label_fr": "Velours",
+     "label_en": "Velour"
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "emissionClass",
+   "param": "emclass",
+   "label_fr": "Norme Euro / classe d'émission",
+   "label_en": "Emission class",
+   "group": "ecologie",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "Euro 1",
+     "label_en": "Euro 1"
+    },
+    {
+     "code": 2,
+     "label_fr": "Euro 2",
+     "label_en": "Euro 2"
+    },
+    {
+     "code": 3,
+     "label_fr": "Euro 3",
+     "label_en": "Euro 3"
+    },
+    {
+     "code": 4,
+     "label_fr": "Euro 4",
+     "label_en": "Euro 4"
+    },
+    {
+     "code": 5,
+     "label_fr": "Euro 5",
+     "label_en": "Euro 5"
+    },
+    {
+     "code": 6,
+     "label_fr": "Euro 6",
+     "label_en": "Euro 6"
+    },
+    {
+     "code": 11,
+     "label_fr": "Euro 6b",
+     "label_en": "Euro 6b"
+    },
+    {
+     "code": 7,
+     "label_fr": "Euro 6c",
+     "label_en": "Euro 6c"
+    },
+    {
+     "code": 8,
+     "label_fr": "Euro 6d",
+     "label_en": "Euro 6d"
+    },
+    {
+     "code": 9,
+     "label_fr": "Euro 6d-TEMP",
+     "label_en": "Euro 6d-TEMP"
+    },
+    {
+     "code": 10,
+     "label_fr": "Euro 6e",
+     "label_en": "Euro 6e"
+    }
+   ],
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Sémantique 'au moins' (min. Euro N) présumée d'après l'UI ; non prouvée par relevé."
+  },
+  {
+   "id": "emissionSticker",
+   "param": "ensticker",
+   "label_fr": "Vignette environnementale",
+   "label_en": "Emission sticker",
+   "group": "ecologie",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "Aucune classification environnementale",
+     "label_en": "None"
+    },
+    {
+     "code": 2,
+     "label_fr": "min. 2 (Rouge)",
+     "label_en": "min. 2 (Red)"
+    },
+    {
+     "code": 3,
+     "label_fr": "min. 3 (Jaune)",
+     "label_en": "min. 3 (Yellow)"
+    },
+    {
+     "code": 4,
+     "label_fr": "min. 4 (Vert)",
+     "label_en": "min. 4 (Green)"
+    },
+    {
+     "code": 5,
+     "label_fr": "min. 5 (Bleu)",
+     "label_en": "min. 5 (Blue)"
+    }
+   ],
+   "default": 1,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Le code 1 ('Aucune classification') est mappé sur null : le paramètre n'est alors PAS émis. searchMask.environmentFilter.emissionSticker=false sur BE/.com (pertinent surtout pour DE)."
+  },
+  {
+   "id": "batteryOwnershipType",
+   "param": "bot",
+   "label_fr": "Propriété de la batterie",
+   "label_en": "Battery ownership",
+   "group": "ecologie",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "Incluse",
+     "label_en": "Included"
+    },
+    {
+     "code": 2,
+     "label_fr": "Louée",
+     "label_en": "Rented"
+    },
+    {
+     "code": 3,
+     "label_fr": "Sans batterie",
+     "label_en": "Excluded"
+    }
+   ],
+   "default": null,
+   "dependencies": [
+    "fuel"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "electricRangeFrom",
+   "param": "erfrom",
+   "label_fr": "Autonomie électrique de",
+   "label_en": "Electric range from",
+   "group": "ecologie",
+   "type": "range_min",
+   "unit": "km",
+   "domain": {
+    "steps": [
+     80,
+     120,
+     180,
+     250,
+     350,
+     450,
+     550
+    ]
+   },
+   "default": null,
+   "dependencies": [
+    "fuel"
+   ],
+   "evidence": "RELEVE",
+   "note": "searchMask.fuelTypeFilter.electricRange=false sur BE/.com : masqué dans l'UI mais accepté en URL (vérifié)."
+  },
+  {
+   "id": "electricRangeTo",
+   "param": "erto",
+   "label_fr": "Autonomie électrique à",
+   "label_en": "Electric range to",
+   "group": "ecologie",
+   "type": "range_max",
+   "unit": "km",
+   "domain": {
+    "steps": [
+     80,
+     120,
+     180,
+     250,
+     350,
+     450,
+     550
+    ]
+   },
+   "default": null,
+   "dependencies": [
+    "fuel"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "equipment",
+   "param": "eq",
+   "label_fr": "Équipement",
+   "label_en": "Equipment",
+   "group": "equipements",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "ET (présumé)",
+   "domain": [
+    {
+     "code": 187,
+     "label_fr": "360° caméra",
+     "label_en": null
+    },
+    {
+     "code": 11,
+     "label_fr": "4x4",
+     "label_en": null
+    },
+    {
+     "code": 1,
+     "label_fr": "ABS",
+     "label_en": null
+    },
+    {
+     "code": 134,
+     "label_fr": "Accoudoir",
+     "label_en": null
+    },
+    {
+     "code": 123,
+     "label_fr": "Affichage tête haute",
+     "label_en": null
+    },
+    {
+     "code": 40,
+     "label_fr": "Aides au stationnement",
+     "label_en": null
+    },
+    {
+     "code": 45,
+     "label_fr": "Airbag arrière",
+     "label_en": null
+    },
+    {
+     "code": 46,
+     "label_fr": "Airbag avant",
+     "label_en": null
+    },
+    {
+     "code": 2,
+     "label_fr": "Airbag conducteur",
+     "label_en": null
+    },
+    {
+     "code": 3,
+     "label_fr": "Airbag passager",
+     "label_en": null
+    },
+    {
+     "code": 32,
+     "label_fr": "Airbags latéraux",
+     "label_en": null
+    },
+    {
+     "code": 18,
+     "label_fr": "Alarme",
+     "label_en": null
+    },
+    {
+     "code": 157,
+     "label_fr": "Alerte de franchissement involontaire de lignes",
+     "label_en": null
+    },
+    {
+     "code": 222,
+     "label_fr": "Android Auto",
+     "label_en": null
+    },
+    {
+     "code": 26,
+     "label_fr": "Anti-démarrage",
+     "label_en": null
+    },
+    {
+     "code": 31,
+     "label_fr": "Anti-patinage",
+     "label_en": null
+    },
+    {
+     "code": 221,
+     "label_fr": "Apple CarPlay",
+     "label_en": null
+    },
+    {
+     "code": 148,
+     "label_fr": "Assistant au freinage d'urgence",
+     "label_en": null
+    },
+    {
+     "code": 137,
+     "label_fr": "Assistant de démarrage en côte",
+     "label_en": null
+    },
+    {
+     "code": 147,
+     "label_fr": "Assistant de vision nocturne",
+     "label_en": null
+    },
+    {
+     "code": 189,
+     "label_fr": "Assistant feux de route",
+     "label_en": null
+    },
+    {
+     "code": 20,
+     "label_fr": "Attache remorque",
+     "label_en": null
+    },
+    {
+     "code": 174,
+     "label_fr": "Auvent",
+     "label_en": null
+    },
+    {
+     "code": 158,
+     "label_fr": "Avertisseur d'angle mort",
+     "label_en": null
+    },
+    {
+     "code": 122,
+     "label_fr": "Bluetooth",
+     "label_en": null
+    },
+    {
+     "code": 130,
+     "label_fr": "Caméra d'aide au stationnement",
+     "label_en": null
+    },
+    {
+     "code": 129,
+     "label_fr": "Capteurs d'aide au stationnement arrière",
+     "label_en": null
+    },
+    {
+     "code": 128,
+     "label_fr": "Capteurs d'aide au stationnement avant",
+     "label_en": null
+    },
+    {
+     "code": 132,
+     "label_fr": "CD",
+     "label_en": null
+    },
+    {
+     "code": 251,
+     "label_fr": "Certificat de batterie",
+     "label_en": null
+    },
+    {
+     "code": 250,
+     "label_fr": "Charge bidirectionnelle",
+     "label_en": null
+    },
+    {
+     "code": 223,
+     "label_fr": "Chargeur smartphone à induction",
+     "label_en": null
+    },
+    {
+     "code": 52,
+     "label_fr": "Chauffage auxiliaire",
+     "label_en": null
+    },
+    {
+     "code": 5,
+     "label_fr": "Climatisation",
+     "label_en": null
+    },
+    {
+     "code": 30,
+     "label_fr": "Climatisation automatique",
+     "label_en": null
+    },
+    {
+     "code": 242,
+     "label_fr": "Climatisation automatique, 3 zones",
+     "label_en": null
+    },
+    {
+     "code": 243,
+     "label_fr": "Climatisation automatique, 4 zones",
+     "label_en": null
+    },
+    {
+     "code": 241,
+     "label_fr": "Climatisation automatique, bi-zone",
+     "label_en": null
+    },
+    {
+     "code": 156,
+     "label_fr": "Commande vocale",
+     "label_en": null
+    },
+    {
+     "code": 173,
+     "label_fr": "Compatible E-10",
+     "label_en": null
+    },
+    {
+     "code": 48,
+     "label_fr": "Conduite à droite",
+     "label_en": null
+    },
+    {
+     "code": 44,
+     "label_fr": "Coupe vent (pour cabriolet)",
+     "label_en": null
+    },
+    {
+     "code": 238,
+     "label_fr": "Déflecteur",
+     "label_en": null
+    },
+    {
+     "code": 126,
+     "label_fr": "Détecteur de lumière",
+     "label_en": null
+    },
+    {
+     "code": 127,
+     "label_fr": "Détecteur de pluie",
+     "label_en": null
+    },
+    {
+     "code": 162,
+     "label_fr": "Détection des panneaux routiers",
+     "label_en": null
+    },
+    {
+     "code": 12,
+     "label_fr": "Direction assistée",
+     "label_en": null
+    },
+    {
+     "code": 124,
+     "label_fr": "Dispositif mains libres",
+     "label_en": null
+    },
+    {
+     "code": 219,
+     "label_fr": "Éclairage d'ambiance",
+     "label_en": null
+    },
+    {
+     "code": 224,
+     "label_fr": "Écran multifonction entièrement numérique",
+     "label_en": null
+    },
+    {
+     "code": 159,
+     "label_fr": "Ecran tactile",
+     "label_en": null
+    },
+    {
+     "code": 36,
+     "label_fr": "Equipement handicapé",
+     "label_en": null
+    },
+    {
+     "code": 42,
+     "label_fr": "ESP",
+     "label_en": null
+    },
+    {
+     "code": 19,
+     "label_fr": "Feux anti-brouillard",
+     "label_en": null
+    },
+    {
+     "code": 214,
+     "label_fr": "Feux de route non éblouissants",
+     "label_en": null
+    },
+    {
+     "code": 160,
+     "label_fr": "Fonction TV",
+     "label_en": null
+    },
+    {
+     "code": 170,
+     "label_fr": "Fonctionne au biodiesel",
+     "label_en": null
+    },
+    {
+     "code": 240,
+     "label_fr": "Frein de stationnement électronique",
+     "label_en": null
+    },
+    {
+     "code": 139,
+     "label_fr": "Hayon arrière électrique",
+     "label_en": null
+    },
+    {
+     "code": 220,
+     "label_fr": "Hotspot Wi-Fi",
+     "label_en": null
+    },
+    {
+     "code": 125,
+     "label_fr": "Isofix",
+     "label_en": null
+    },
+    {
+     "code": 212,
+     "label_fr": "Jantes acier",
+     "label_en": null
+    },
+    {
+     "code": 15,
+     "label_fr": "Jantes alliage",
+     "label_en": null
+    },
+    {
+     "code": 217,
+     "label_fr": "Kit de dépannage",
+     "label_en": null
+    },
+    {
+     "code": 218,
+     "label_fr": "Kit fumeur",
+     "label_en": null
+    },
+    {
+     "code": 141,
+     "label_fr": "LED phare de jour",
+     "label_en": null
+    },
+    {
+     "code": 227,
+     "label_fr": "Limiteur de vitesse",
+     "label_en": null
+    },
+    {
+     "code": 43,
+     "label_fr": "MP3",
+     "label_en": null
+    },
+    {
+     "code": 41,
+     "label_fr": "Ordinateur de bord",
+     "label_en": null
+    },
+    {
+     "code": 231,
+     "label_fr": "Pack hiver",
+     "label_en": null
+    },
+    {
+     "code": 112,
+     "label_fr": "Pack Sport",
+     "label_en": null
+    },
+    {
+     "code": 151,
+     "label_fr": "Palettes de changement de vitesses",
+     "label_en": null
+    },
+    {
+     "code": 135,
+     "label_fr": "Pare-brise chauffant",
+     "label_en": null
+    },
+    {
+     "code": 140,
+     "label_fr": "Phares au LED",
+     "label_en": null
+    },
+    {
+     "code": 39,
+     "label_fr": "Phares au Xénon",
+     "label_en": null
+    },
+    {
+     "code": 230,
+     "label_fr": "Phares bi-xénon",
+     "label_en": null
+    },
+    {
+     "code": 115,
+     "label_fr": "Phares de jour",
+     "label_en": null
+    },
+    {
+     "code": 118,
+     "label_fr": "Phares directionnels",
+     "label_en": null
+    },
+    {
+     "code": 239,
+     "label_fr": "Phares Full LED",
+     "label_en": null
+    },
+    {
+     "code": 213,
+     "label_fr": "Phares laser",
+     "label_en": null
+    },
+    {
+     "code": 210,
+     "label_fr": "Pneus été",
+     "label_en": null
+    },
+    {
+     "code": 25,
+     "label_fr": "Pneus neige",
+     "label_en": null
+    },
+    {
+     "code": 211,
+     "label_fr": "Pneus tout temps saisons",
+     "label_en": null
+    },
+    {
+     "code": 249,
+     "label_fr": "Pompe à chaleur",
+     "label_en": null
+    },
+    {
+     "code": 152,
+     "label_fr": "Porte coulissante",
+     "label_en": null
+    },
+    {
+     "code": 245,
+     "label_fr": "Porte coulissante droite",
+     "label_en": null
+    },
+    {
+     "code": 244,
+     "label_fr": "Porte coulissante gauche",
+     "label_en": null
+    },
+    {
+     "code": 27,
+     "label_fr": "Porte-bagages",
+     "label_en": null
+    },
+    {
+     "code": 29,
+     "label_fr": "Pot catalytique",
+     "label_en": null
+    },
+    {
+     "code": 237,
+     "label_fr": "Prolongateur d'autonomie",
+     "label_en": null
+    },
+    {
+     "code": 10,
+     "label_fr": "Radio",
+     "label_en": null
+    },
+    {
+     "code": 138,
+     "label_fr": "Radio numérique",
+     "label_en": null
+    },
+    {
+     "code": 233,
+     "label_fr": "Réglage électrique du siège arrière",
+     "label_en": null
+    },
+    {
+     "code": 133,
+     "label_fr": "Régulateur de distance",
+     "label_en": null
+    },
+    {
+     "code": 38,
+     "label_fr": "Régulateur de vitesse",
+     "label_en": null
+    },
+    {
+     "code": 225,
+     "label_fr": "Rétroviseur intérieur anti-éblouissement automatique",
+     "label_en": null
+    },
+    {
+     "code": 121,
+     "label_fr": "Rétroviseurs latéraux électriques",
+     "label_en": null
+    },
+    {
+     "code": 215,
+     "label_fr": "Roue de secours",
+     "label_en": null
+    },
+    {
+     "code": 216,
+     "label_fr": "Roue de urgence",
+     "label_en": null
+    },
+    {
+     "code": 6,
+     "label_fr": "Sellerie cuir",
+     "label_en": null
+    },
+    {
+     "code": 226,
+     "label_fr": "Séparateur pour coffre",
+     "label_en": null
+    },
+    {
+     "code": 143,
+     "label_fr": "Siège à réglage lombaire",
+     "label_en": null
+    },
+    {
+     "code": 229,
+     "label_fr": "Siège passager repliable",
+     "label_en": null
+    },
+    {
+     "code": 248,
+     "label_fr": "Sièges arrière chauffant",
+     "label_en": null
+    },
+    {
+     "code": 21,
+     "label_fr": "Sièges arrières 1/3 - 2/3",
+     "label_en": null
+    },
+    {
+     "code": 34,
+     "label_fr": "Sièges chauffants",
+     "label_en": null
+    },
+    {
+     "code": 16,
+     "label_fr": "Sièges électriques",
+     "label_en": null
+    },
+    {
+     "code": 145,
+     "label_fr": "Sièges massants",
+     "label_en": null
+    },
+    {
+     "code": 117,
+     "label_fr": "Sièges sport",
+     "label_en": null
+    },
+    {
+     "code": 154,
+     "label_fr": "Sièges ventilés",
+     "label_en": null
+    },
+    {
+     "code": 155,
+     "label_fr": "Soundsystem",
+     "label_en": null
+    },
+    {
+     "code": 113,
+     "label_fr": "Start/Stop automatique",
+     "label_en": null
+    },
+    {
+     "code": 228,
+     "label_fr": "Streaming audio intégré",
+     "label_en": null
+    },
+    {
+     "code": 144,
+     "label_fr": "Suspension pneumatique",
+     "label_en": null
+    },
+    {
+     "code": 116,
+     "label_fr": "Suspension sport",
+     "label_en": null
+    },
+    {
+     "code": 131,
+     "label_fr": "Système d'aide au stationnement automatique",
+     "label_en": null
+    },
+    {
+     "code": 149,
+     "label_fr": "Système d'appel d'urgence",
+     "label_en": null
+    },
+    {
+     "code": 232,
+     "label_fr": "Système d'avertissement de distance",
+     "label_en": null
+    },
+    {
+     "code": 150,
+     "label_fr": "Système de contrôle de la pression pneus",
+     "label_en": null
+    },
+    {
+     "code": 146,
+     "label_fr": "Système de détection de la somnolence",
+     "label_en": null
+    },
+    {
+     "code": 23,
+     "label_fr": "Système de navigation",
+     "label_en": null
+    },
+    {
+     "code": 190,
+     "label_fr": "Système de nettoyage des phares",
+     "label_en": null
+    },
+    {
+     "code": 111,
+     "label_fr": "Taxi ou voiture de location",
+     "label_en": null
+    },
+    {
+     "code": 4,
+     "label_fr": "Toit ouvrant",
+     "label_en": null
+    },
+    {
+     "code": 50,
+     "label_fr": "Toit panoramique",
+     "label_en": null
+    },
+    {
+     "code": 119,
+     "label_fr": "Trappe à ski",
+     "label_en": null
+    },
+    {
+     "code": 28,
+     "label_fr": "Tuning",
+     "label_en": null
+    },
+    {
+     "code": 161,
+     "label_fr": "USB",
+     "label_en": null
+    },
+    {
+     "code": 17,
+     "label_fr": "Verrouillage centralisé",
+     "label_en": null
+    },
+    {
+     "code": 47,
+     "label_fr": "Verrouillage centralisé avec télécommande",
+     "label_en": null
+    },
+    {
+     "code": 153,
+     "label_fr": "Verrouillage centralisé sans clé",
+     "label_en": null
+    },
+    {
+     "code": 13,
+     "label_fr": "Vitres électriques",
+     "label_en": null
+    },
+    {
+     "code": 54,
+     "label_fr": "Vitres teintées",
+     "label_en": null
+    },
+    {
+     "code": 136,
+     "label_fr": "Volant chauffant",
+     "label_en": null
+    },
+    {
+     "code": 142,
+     "label_fr": "Volant en cuir",
+     "label_en": null
+    },
+    {
+     "code": 114,
+     "label_fr": "Volant multifonctions",
+     "label_en": null
+    }
+   ],
+   "default": [],
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "136 valeurs relevées pour atype=C sur autoscout24.be/fr. La sémantique ET (cumul d'équipements) est déduite de l'usage produit, non prouvée par relevé — voir zones d'ombre. Les codes 37/49/53/110/120 sont aussi exposés séparément dans le bloc 'Garantie et historique' (taxonomy.conditionEquipment)."
+  },
+  {
+   "id": "hadAccident",
+   "param": "ustate",
+   "label_fr": "Véhicule accidenté (BE/EU)",
+   "label_en": "Damaged vehicle (BE/EU)",
+   "group": "etat_historique",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "N,U",
+     "label_fr": "Ne pas montrer",
+     "label_en": "Do not show"
+    },
+    {
+     "code": "A,N,U",
+     "label_fr": "Montrer aussi",
+     "label_en": "Show also"
+    },
+    {
+     "code": "A",
+     "label_fr": "Montrer seulement",
+     "label_en": "Show only"
+    }
+   ],
+   "default": "N,U",
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Toujours présent dans l'URL. La virgule est encodée %2C. Attention : la valeur mélange état-du-véhicule (N/U) et accidenté (A)."
+  },
+  {
+   "id": "hadAccidentNew",
+   "param": "damaged_listing",
+   "label_fr": "Véhicule accidenté (variante récente)",
+   "label_en": "Damaged listing",
+   "group": "etat_historique",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "exclude",
+     "label_fr": "Ne pas montrer",
+     "label_en": "Do not show"
+    },
+    {
+     "code": "include",
+     "label_fr": "Montrer aussi",
+     "label_en": "Show also"
+    },
+    {
+     "code": "damaged-only",
+     "label_fr": "Montrer seulement",
+     "label_en": "Show only"
+    }
+   ],
+   "default": "exclude",
+   "dependencies": [],
+   "evidence": "RELEVE_PARTIEL",
+   "note": "Paramètre présent dans la table de sérialisation mais REJETÉ par le serveur BE et .com au relevé (absent de pageQuery dans les deux tests). Actif seulement là où searchMask.warrantyAndHistoryAndSealsFilter.newAccidentFilter=true. Mutuellement exclusif avec ustate."
+  },
+  {
+   "id": "numberOfOwners",
+   "param": "prevownersid",
+   "label_fr": "Nombre de propriétaires précédents",
+   "label_en": "Previous owners",
+   "group": "etat_historique",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "1",
+     "label_en": null
+    },
+    {
+     "code": 2,
+     "label_fr": "2",
+     "label_en": null
+    },
+    {
+     "code": 3,
+     "label_fr": "3",
+     "label_en": null
+    },
+    {
+     "code": 4,
+     "label_fr": "4+",
+     "label_en": null
+    }
+   ],
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Sémantique 'au plus N' présumée d'après les libellés (1, 2, 3, 4+ — le code 4 est libellé '>3' dans le code)."
+  },
+  {
+   "id": "seals",
+   "param": "sealor",
+   "label_fr": "Label / programme d'occasion certifiée",
+   "label_en": "Seal / certified pre-owned programme",
+   "group": "etat_historique",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": 249,
+     "label_fr": "BMW Motorrad Premium Selection",
+     "label_en": "BMW Motorrad Premium Selection",
+     "makes": [
+      13
+     ]
+    },
+    {
+     "code": 247,
+     "label_fr": "Hyundai H PROMISE",
+     "label_en": "Hyundai H PROMISE",
+     "makes": [
+      33
+     ]
+    },
+    {
+     "code": 216,
+     "label_fr": "Ford Approved",
+     "label_en": "Ford Approved",
+     "makes": [
+      29
+     ]
+    },
+    {
+     "code": 156,
+     "label_fr": "Opel Select",
+     "label_en": "Opel Select",
+     "makes": [
+      54
+     ]
+    },
+    {
+     "code": 134,
+     "label_fr": "Peugeot Occasions",
+     "label_en": "Peugeot Occasions",
+     "makes": [
+      55
+     ]
+    },
+    {
+     "code": 118,
+     "label_fr": "My Way",
+     "label_en": "My Way",
+     "makes": [
+      74,
+      64,
+      65,
+      9,
+      51802
+     ]
+    },
+    {
+     "code": 271,
+     "label_fr": "Aston Martin Timeless",
+     "label_en": "Aston Martin Timeless",
+     "makes": [
+      8
+     ]
+    },
+    {
+     "code": 112,
+     "label_fr": "Jaguar Approved",
+     "label_en": "Jaguar Approved",
+     "makes": [
+      37
+     ]
+    },
+    {
+     "code": 295,
+     "label_fr": "Lamborghini Certified Pre-Owned",
+     "label_en": "Lamborghini Certified Pre-Owned",
+     "makes": [
+      41
+     ]
+    },
+    {
+     "code": 315,
+     "label_fr": "Porsche Approved",
+     "label_en": "Porsche Approved",
+     "makes": [
+      57
+     ]
+    },
+    {
+     "code": 111,
+     "label_fr": "Land Rover Approved",
+     "label_en": "Land Rover Approved",
+     "makes": [
+      15641
+     ]
+    },
+    {
+     "code": 223,
+     "label_fr": "Bentley PRE-OWNED",
+     "label_en": "Bentley PRE-OWNED",
+     "makes": [
+      11
+     ]
+    },
+    {
+     "code": 226,
+     "label_fr": "Audi Approved Plus",
+     "label_en": "Audi Approved Plus",
+     "makes": [
+      9
+     ]
+    },
+    {
+     "code": 241,
+     "label_fr": "KIA Used Cars",
+     "label_en": "KIA Used Cars",
+     "makes": [
+      39
+     ]
+    }
+   ],
+   "default": [],
+   "dependencies": [
+    "mmmv"
+   ],
+   "evidence": "RELEVE",
+   "note": "Chaque label est rattaché à une ou plusieurs marques (champ makes). Le domaine est spécifique au pays/culture. searchMask.warrantyAndHistoryAndSealsFilter.seals=true sur BE."
+  },
+  {
+   "id": "sellerType",
+   "param": "custtype",
+   "label_fr": "Type de vendeur",
+   "label_en": "Seller type",
+   "group": "vendeur",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "P",
+     "label_fr": "Particulier",
+     "label_en": "Private"
+    },
+    {
+     "code": "D",
+     "label_fr": "Professionnel",
+     "label_en": "Dealer"
+    }
+   ],
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "customerId",
+   "param": "cid",
+   "label_fr": "Identifiant du vendeur",
+   "label_en": "Dealer / customer id",
+   "group": "vendeur",
+   "type": "text",
+   "cardinality": 1,
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Restreint la recherche à un vendeur donné. À EXCLURE du périmètre KYCAR (règle R3 : aucun champ identifiant un vendeur particulier)."
+  },
+  {
+   "id": "countryType",
+   "param": "cy",
+   "label_fr": "Pays",
+   "label_en": "Country",
+   "group": "geographie",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    {
+     "code": "",
+     "label_fr": "Europe",
+     "label_en": "Europe"
+    },
+    {
+     "code": "A",
+     "label_fr": "Autriche",
+     "label_en": "Austria"
+    },
+    {
+     "code": "B",
+     "label_fr": "Belgique",
+     "label_en": "Belgium"
+    },
+    {
+     "code": "D",
+     "label_fr": "Allemagne",
+     "label_en": "Germany"
+    },
+    {
+     "code": "E",
+     "label_fr": "Espagne",
+     "label_en": "Spain"
+    },
+    {
+     "code": "F",
+     "label_fr": "France",
+     "label_en": "France"
+    },
+    {
+     "code": "I",
+     "label_fr": "Italie",
+     "label_en": "Italy"
+    },
+    {
+     "code": "L",
+     "label_fr": "Luxembourg",
+     "label_en": "Luxembourg"
+    },
+    {
+     "code": "NL",
+     "label_fr": "Pays-Bas",
+     "label_en": "Netherlands"
+    }
+   ],
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Le code 'eu' correspond à la valeur littérale 'D,A,B,E,F,I,L,NL'. Le marketplace CA ajoute 'CA'. Valeur effective par défaut = pays du marketplace (B sur autoscout24.be)."
+  },
+  {
+   "id": "location",
+   "param": "zip",
+   "label_fr": "Ville / code postal",
+   "label_en": "City / postcode",
+   "group": "geographie",
+   "type": "geo_text",
+   "cardinality": 1,
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Géocodé par le serveur : zip=1000 a produit lat=50.84553 et lon=4.3557 dans pageQuery."
+  },
+  {
+   "id": "radius",
+   "param": "zipr",
+   "label_fr": "Rayon",
+   "label_en": "Radius",
+   "group": "geographie",
+   "type": "enum_single",
+   "cardinality": 1,
+   "unit": "km",
+   "domain": [
+    10,
+    20,
+    50,
+    100,
+    150,
+    200,
+    250,
+    300,
+    400
+   ],
+   "default": null,
+   "dependencies": [
+    "zip"
+   ],
+   "evidence": "RELEVE",
+   "note": "N'a de sens qu'avec zip (ou lat/lon). filters.defaultRadius100=false sur BE/.com."
+  },
+  {
+   "id": "lat",
+   "param": "lat",
+   "label_fr": "Latitude",
+   "label_en": "Latitude",
+   "group": "geographie",
+   "type": "number",
+   "default": null,
+   "dependencies": [
+    "zip"
+   ],
+   "evidence": "RELEVE",
+   "note": "Dérivé automatiquement de zip par le serveur, mais acceptable en entrée."
+  },
+  {
+   "id": "lon",
+   "param": "lon",
+   "label_fr": "Longitude",
+   "label_en": "Longitude",
+   "group": "geographie",
+   "type": "number",
+   "default": null,
+   "dependencies": [
+    "zip"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "region",
+   "param": "region",
+   "label_fr": "Région / province",
+   "label_en": "Region / province",
+   "group": "geographie",
+   "type": "text",
+   "cardinality": 1,
+   "default": null,
+   "dependencies": [
+    "cy"
+   ],
+   "evidence": "RELEVE_PARTIEL",
+   "note": "Paramètre présent dans la table de sérialisation ; domaine de valeurs NON relevé (filters.provinceAndNationalBasedLocationSearch=false et searchMask.shared.enableProvinceCodeInLocation=false sur BE/.com). Une valeur vide est rejetée par le serveur."
+  },
+  {
+   "id": "crossBorder",
+   "param": "crossborder",
+   "label_fr": "Inclure les véhicules au-delà de la frontière",
+   "label_en": "Cross-border",
+   "group": "geographie",
+   "type": "boolean",
+   "default": false,
+   "dependencies": [
+    "zip",
+    "zipr"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "buyOnline",
+   "param": "ot_osc",
+   "label_fr": "Achat en ligne (Smyle / OCS)",
+   "label_en": "Buy online",
+   "group": "divers",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "ocsListing",
+   "param": "ocs_listing",
+   "label_fr": "Annonces achat-en-ligne",
+   "label_en": "Online-checkout listings",
+   "group": "divers",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "ocs-only",
+     "label_fr": "Uniquement achat en ligne",
+     "label_en": "Online only"
+    },
+    {
+     "code": "include",
+     "label_fr": "Inclure",
+     "label_en": "Include"
+    },
+    {
+     "code": "exclude",
+     "label_fr": "Exclure",
+     "label_en": "Exclude"
+    }
+   ],
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Défaut = 'include' sur le marketplace DE, null ailleurs (module 95983). Le serveur .com l'a injecté à 'include' au relevé."
+  },
+  {
+   "id": "deliverableInsertion",
+   "param": "dlv_max",
+   "label_fr": "Offres avec livraison (portée max)",
+   "label_en": "Deliverable insertion",
+   "group": "divers",
+   "type": "text",
+   "cardinality": 1,
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE_PARTIEL",
+   "note": "Paramètre présent dans la table de sérialisation ; domaine de valeurs NON relevé."
+  },
+  {
+   "id": "smyleTail",
+   "param": "dlv_tail",
+   "label_fr": "Élargir aux offres livrables",
+   "label_en": "Deliverable tail",
+   "group": "divers",
+   "type": "boolean",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Lié à pageProps.deliverableTailTotalItems."
+  },
+  {
+   "id": "onlineSince",
+   "param": "adage",
+   "label_fr": "En ligne depuis",
+   "label_en": "Online since",
+   "group": "divers",
+   "type": "enum_single",
+   "cardinality": 1,
+   "unit": "jours",
+   "domain": [
+    {
+     "code": 1,
+     "label_fr": "1 jour",
+     "label_en": "1 day"
+    },
+    {
+     "code": 2,
+     "label_fr": "2 jours",
+     "label_en": "2 days"
+    },
+    {
+     "code": 3,
+     "label_fr": "3 jours",
+     "label_en": "3 days"
+    },
+    {
+     "code": 4,
+     "label_fr": "4 jours",
+     "label_en": "4 days"
+    },
+    {
+     "code": 5,
+     "label_fr": "5 jours",
+     "label_en": "5 days"
+    },
+    {
+     "code": 6,
+     "label_fr": "6 jours",
+     "label_en": "6 days"
+    },
+    {
+     "code": 7,
+     "label_fr": "1 semaine",
+     "label_en": "1 week"
+    },
+    {
+     "code": 14,
+     "label_fr": "2 semaines",
+     "label_en": "2 weeks"
+    }
+   ],
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "sortTypes",
+   "param": "sort",
+   "label_fr": "Critère de tri",
+   "label_en": "Sort criterion",
+   "group": "tri_pagination",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "price",
+     "label_fr": "Prix",
+     "label_en": "Price"
+    },
+    {
+     "code": "financerate",
+     "label_fr": "Rate",
+     "label_en": "Rate"
+    },
+    {
+     "code": "make",
+     "label_fr": "Marque/Modèle",
+     "label_en": "Make/Model"
+    },
+    {
+     "code": "leasing_rate",
+     "label_fr": "Leasing Rate",
+     "label_en": "Leasing Rate"
+    },
+    {
+     "code": "year",
+     "label_fr": "Année",
+     "label_en": "First registration"
+    },
+    {
+     "code": "mileage",
+     "label_fr": "Kilométrage",
+     "label_en": "Mileage"
+    },
+    {
+     "code": "power",
+     "label_fr": "Puissance",
+     "label_en": "Power"
+    },
+    {
+     "code": "age",
+     "label_fr": "Annonces les plus récentes d'abord",
+     "label_en": "Latest offers first"
+    },
+    {
+     "code": "standard",
+     "label_fr": "Résultats standards",
+     "label_en": "Best results"
+    },
+    {
+     "code": "distance",
+     "label_fr": "Selon la distance",
+     "label_en": "By distance"
+    }
+   ],
+   "default": "standard",
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Le mapping de sérialisation expose aussi 'model_year' (absent de taxonomy.sortingKeys) ; à l'inverse 'make' apparaît dans taxonomy.sortingKeys mais PAS dans le mapping de sérialisation. 'distance' exige un zip. 'financerate' et 'leasing_rate' sont désactivés sur BE (filters.sorting.*=false)."
+  },
+  {
+   "id": "descType",
+   "param": "desc",
+   "label_fr": "Sens du tri",
+   "label_en": "Sort direction",
+   "group": "tri_pagination",
+   "type": "enum_single",
+   "cardinality": 1,
+   "domain": [
+    {
+     "code": "0",
+     "label_fr": "Ordre croissant",
+     "label_en": "Ascending"
+    },
+    {
+     "code": "1",
+     "label_fr": "Ordre décroissant",
+     "label_en": "Descending"
+    }
+   ],
+   "default": "0",
+   "dependencies": [
+    "sort"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "page",
+   "param": "page",
+   "label_fr": "Page",
+   "label_en": "Page",
+   "group": "tri_pagination",
+   "type": "number",
+   "domain": {
+    "min": 1,
+    "max": 20,
+    "step": 1,
+    "note_max": "20 = limite documentée par sources tierces, non prouvée par relevé"
+   },
+   "default": 1,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "pageProps.numberOfPages a renvoyé 200 pour 120 779 résultats (soit 200 x 20 = 4000 annonces exposables au maximum ; la limite pratique de 20 pages annoncée par les sources tierces n'a pas été vérifiée)."
+  },
+  {
+   "id": "pageSize",
+   "param": "size",
+   "label_fr": "Taille de page",
+   "label_en": "Page size",
+   "group": "tri_pagination",
+   "type": "number",
+   "domain": {
+    "observed": [
+     20
+    ]
+   },
+   "default": 20,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Sérialisé côté client uniquement pour le marketplace CA, mais accepté et échoué par le serveur BE et .com. Constante 64538.Hy = 20."
+  },
+  {
+   "id": "bedsFrom",
+   "param": "bedsfrom",
+   "label_fr": "Nombre de lits (min)",
+   "label_en": "Beds from",
+   "group": "autres_atype",
+   "type": "range_min",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE",
+   "note": "Domaine vide pour atype=C (camping-cars / caravanes)."
+  },
+  {
+   "id": "bedsTo",
+   "param": "bedsto",
+   "label_fr": "Nombre de lits (max)",
+   "label_en": "Beds to",
+   "group": "autres_atype",
+   "type": "range_max",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "numberOfBeds",
+   "param": "beds",
+   "label_fr": "Nombre de lits",
+   "label_en": "Number of beds",
+   "group": "autres_atype",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "default": [],
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "bedType",
+   "param": null,
+   "label_fr": "Type de lit",
+   "label_en": "Bed type",
+   "group": "autres_atype",
+   "type": "enum_multi",
+   "default": [],
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE_PARTIEL",
+   "note": "taxonomy.bedType existe mais est vide pour atype=C, et AUCUN paramètre d'URL correspondant n'a été trouvé dans la table de sérialisation."
+  },
+  {
+   "id": "slideOutCount",
+   "param": "sout",
+   "label_fr": "Nombre d'extensions (slide-out)",
+   "label_en": "Slide-outs",
+   "group": "autres_atype",
+   "type": "enum_multi",
+   "cardinality": "n",
+   "separator": ",",
+   "semantics": "OU",
+   "domain": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "default": [],
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "wheelbaseFrom",
+   "param": "wbfrom",
+   "label_fr": "Empattement de",
+   "label_en": "Wheelbase from",
+   "group": "autres_atype",
+   "type": "range_min",
+   "unit": "mm",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "wheelbaseTo",
+   "param": "wbto",
+   "label_fr": "Empattement à",
+   "label_en": "Wheelbase to",
+   "group": "autres_atype",
+   "type": "range_max",
+   "unit": "mm",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "weightFrom",
+   "param": "ewfrom",
+   "label_fr": "Poids à vide de",
+   "label_en": "Empty weight from",
+   "group": "autres_atype",
+   "type": "range_min",
+   "unit": "kg",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "weightTo",
+   "param": "ewto",
+   "label_fr": "Poids à vide à",
+   "label_en": "Empty weight to",
+   "group": "autres_atype",
+   "type": "range_max",
+   "unit": "kg",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "lengthFrom",
+   "param": "totlenfrom",
+   "label_fr": "Longueur totale de",
+   "label_en": "Total length from",
+   "group": "autres_atype",
+   "type": "range_min",
+   "unit": "mm",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "lengthTo",
+   "param": "totlento",
+   "label_fr": "Longueur totale à",
+   "label_en": "Total length to",
+   "group": "autres_atype",
+   "type": "range_max",
+   "unit": "mm",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "hoursFrom",
+   "param": "ehfrom",
+   "label_fr": "Heures de fonctionnement de",
+   "label_en": "Engine hours from",
+   "group": "autres_atype",
+   "type": "range_min",
+   "unit": "h",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "hoursTo",
+   "param": "ehto",
+   "label_fr": "Heures de fonctionnement à",
+   "label_en": "Engine hours to",
+   "group": "autres_atype",
+   "type": "range_max",
+   "unit": "h",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "numberOfAxles",
+   "param": "axlenumber",
+   "label_fr": "Nombre d'essieux",
+   "label_en": "Number of axles",
+   "group": "autres_atype",
+   "type": "number",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE",
+   "note": "taxonomy.numberOfAxles vide pour atype=C."
+  },
+  {
+   "id": "grossWeightFrom",
+   "param": "grossweightfrom",
+   "label_fr": "Poids total autorisé de",
+   "label_en": "Gross weight from",
+   "group": "autres_atype",
+   "type": "range_min",
+   "unit": "kg",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE",
+   "note": "Libellé UI FR : 'Poids total du véhicule' (listfilters.loadCapacity.title)."
+  },
+  {
+   "id": "grossWeightTo",
+   "param": "grossweightto",
+   "label_fr": "Poids total autorisé à",
+   "label_en": "Gross weight to",
+   "group": "autres_atype",
+   "type": "range_max",
+   "unit": "kg",
+   "default": null,
+   "dependencies": [
+    "atype"
+   ],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "_showNfm",
+   "param": "show_nfm",
+   "label_fr": "[technique] Nouveau modèle de financement",
+   "label_en": "[technical] new finance model",
+   "group": "technique",
+   "type": "boolean",
+   "default": "true",
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Injecté par le serveur, non exposé comme filtre."
+  },
+  {
+   "id": "_searchId",
+   "param": "search_id",
+   "label_fr": "[technique] Identifiant de recherche",
+   "label_en": "[technical] search id",
+   "group": "technique",
+   "type": "text",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "_queryId",
+   "param": "query_id",
+   "label_fr": "[technique] Identifiant de requête",
+   "label_en": "[technical] query id",
+   "group": "technique",
+   "type": "text",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Régénéré à chaque requête (valeurs relevées : 'rmsoxpszbb', '55996etl6i')."
+  },
+  {
+   "id": "_tierRotation",
+   "param": "tier_rotation",
+   "label_fr": "[technique] Rotation des paliers d'annonces",
+   "label_en": "[technical] tier rotation",
+   "group": "technique",
+   "type": "boolean",
+   "default": "true",
+   "dependencies": [],
+   "evidence": "RELEVE"
+  },
+  {
+   "id": "_mmmLegacy",
+   "param": "mmm",
+   "label_fr": "[legacy] Marque/modèle (paramètre répété)",
+   "label_en": "[legacy] make/model (repeated param)",
+   "group": "technique",
+   "type": "structured_multi",
+   "cardinality": "n",
+   "separator": "répétition du paramètre",
+   "semantics": "OU",
+   "value_format": "mmm=makeId|modelId|modelLineId — répété : &mmm=...&mmm=... ; la version part dans &version<N>=",
+   "default": null,
+   "dependencies": [],
+   "evidence": "RELEVE",
+   "note": "Voie de sérialisation alternative à mmmv (fonction N du module 56702). Noms réservés legacy : ['mmm','version','version0','version1','version2']."
+  }
+ ],
+ "enumerations": {
+  "offer": [
+   {
+    "code": "N",
+    "label_fr": "Neuf",
+    "label_en": "New"
+   },
+   {
+    "code": "U",
+    "label_fr": "Occasion",
+    "label_en": "Used"
+   },
+   {
+    "code": "J",
+    "label_fr": "Voiture récente",
+    "label_en": "Employee's car"
+   },
+   {
+    "code": "O",
+    "label_fr": "Ancêtre",
+    "label_en": "Antique / Classic"
+   },
+   {
+    "code": "D",
+    "label_fr": "Voiture de démonstration",
+    "label_en": "Demonstration"
+   },
+   {
+    "code": "S",
+    "label_fr": "Pré-enregistrement",
+    "label_en": "Pre-registered"
+   }
+  ],
+  "bodyType": [
+   {
+    "code": 1,
+    "label_fr": "Citadine",
+    "label_en": "Compact"
+   },
+   {
+    "code": 2,
+    "label_fr": "Cabriolet",
+    "label_en": "Convertible"
+   },
+   {
+    "code": 3,
+    "label_fr": "Coupé",
+    "label_en": "Coupe"
+   },
+   {
+    "code": 4,
+    "label_fr": "SUV/4x4/Pick-Up",
+    "label_en": "SUV/Off-Road/Pick-Up"
+   },
+   {
+    "code": 5,
+    "label_fr": "Break",
+    "label_en": "Station Wagon"
+   },
+   {
+    "code": 6,
+    "label_fr": "Berline",
+    "label_en": "Sedan"
+   },
+   {
+    "code": 12,
+    "label_fr": "Monospace",
+    "label_en": "Van"
+   },
+   {
+    "code": 13,
+    "label_fr": "Utilitaire",
+    "label_en": "Transporter"
+   },
+   {
+    "code": 7,
+    "label_fr": "Autres",
+    "label_en": "Other"
+   }
+  ],
+  "fuelType": [
+   {
+    "code": "2",
+    "label_fr": "Electrique/Essence",
+    "label_en": "Electric/Gasoline"
+   },
+   {
+    "code": "3",
+    "label_fr": "Electrique/Diesel",
+    "label_en": "Electric/Diesel"
+   },
+   {
+    "code": "B",
+    "label_fr": "Essence",
+    "label_en": "Gasoline"
+   },
+   {
+    "code": "C",
+    "label_fr": "CNG",
+    "label_en": "CNG"
+   },
+   {
+    "code": "D",
+    "label_fr": "Diesel",
+    "label_en": "Diesel"
+   },
+   {
+    "code": "E",
+    "label_fr": "Electrique",
+    "label_en": "Electric"
+   },
+   {
+    "code": "H",
+    "label_fr": "Hydrogène",
+    "label_en": "Hydrogen"
+   },
+   {
+    "code": "L",
+    "label_fr": "GPL",
+    "label_en": "LPG"
+   },
+   {
+    "code": "M",
+    "label_fr": "Ethanol",
+    "label_en": "Ethanol"
+   },
+   {
+    "code": "O",
+    "label_fr": "Autres",
+    "label_en": "Others"
+   }
+  ],
+  "gearing": [
+   {
+    "code": "A",
+    "label_fr": "Boîte automatique",
+    "label_en": "Automatic"
+   },
+   {
+    "code": "M",
+    "label_fr": "Boîte manuelle",
+    "label_en": "Manual"
+   },
+   {
+    "code": "S",
+    "label_fr": "Semi-automatique",
+    "label_en": "Semi-automatic"
+   }
+  ],
+  "drivetrain": [
+   {
+    "code": "4",
+    "label_fr": "4x4",
+    "label_en": "4WD"
+   },
+   {
+    "code": "F",
+    "label_fr": "Avant",
+    "label_en": "Front Wheel Drive"
+   },
+   {
+    "code": "R",
+    "label_fr": "Arrière",
+    "label_en": "Rear Wheel Drive"
+   }
+  ],
+  "upholstery": [
+   {
+    "code": "AL",
+    "label_fr": "Alcantara",
+    "label_en": "Alcantara"
+   },
+   {
+    "code": "CL",
+    "label_fr": "Tissu",
+    "label_en": "Cloth"
+   },
+   {
+    "code": "FL",
+    "label_fr": "Cuir",
+    "label_en": "Full leather"
+   },
+   {
+    "code": "OT",
+    "label_fr": "Autres",
+    "label_en": "Other"
+   },
+   {
+    "code": "PL",
+    "label_fr": "Cuir partiel",
+    "label_en": "Part leather"
+   },
+   {
+    "code": "VL",
+    "label_fr": "Velours",
+    "label_en": "Velour"
+   }
+  ],
+  "bodyPainting": [
+   {
+    "code": "M",
+    "label_fr": "Métallisé",
+    "label_en": "Metallic"
+   },
+   {
+    "code": "O",
+    "label_fr": "Autres",
+    "label_en": "Others"
+   },
+   {
+    "code": "P",
+    "label_fr": "Nacré",
+    "label_en": "Perl Effect"
+   },
+   {
+    "code": "S",
+    "label_fr": "Mica",
+    "label_en": "Mica (Stoned)"
+   },
+   {
+    "code": "U",
+    "label_fr": "Uni",
+    "label_en": "Uni/Basic"
+   }
+  ],
+  "bodyColor": [
+   {
+    "code": 1,
+    "label_fr": "Beige",
+    "label_en": "Beige"
+   },
+   {
+    "code": 2,
+    "label_fr": "Bleu",
+    "label_en": "Blue"
+   },
+   {
+    "code": 3,
+    "label_fr": "Brun",
+    "label_en": "Brown"
+   },
+   {
+    "code": 4,
+    "label_fr": "Bronze",
+    "label_en": "Bronze"
+   },
+   {
+    "code": 5,
+    "label_fr": "Jaune",
+    "label_en": "Yellow"
+   },
+   {
+    "code": 6,
+    "label_fr": "Gris",
+    "label_en": "Grey"
+   },
+   {
+    "code": 7,
+    "label_fr": "Vert",
+    "label_en": "Green"
+   },
+   {
+    "code": 10,
+    "label_fr": "Rouge",
+    "label_en": "Red"
+   },
+   {
+    "code": 11,
+    "label_fr": "Noir",
+    "label_en": "Black"
+   },
+   {
+    "code": 12,
+    "label_fr": "Argent",
+    "label_en": "Silver"
+   },
+   {
+    "code": 13,
+    "label_fr": "Mauve",
+    "label_en": "Violet"
+   },
+   {
+    "code": 14,
+    "label_fr": "Blanc",
+    "label_en": "White"
+   },
+   {
+    "code": 15,
+    "label_fr": "Orange",
+    "label_en": "Orange"
+   },
+   {
+    "code": 16,
+    "label_fr": "Or",
+    "label_en": "Gold"
+   }
+  ],
+  "interiorColor": [
+   {
+    "code": 1,
+    "label_fr": "Beige",
+    "label_en": "Beige"
+   },
+   {
+    "code": 2,
+    "label_fr": "Noir",
+    "label_en": "Black"
+   },
+   {
+    "code": 3,
+    "label_fr": "Gris",
+    "label_en": "Grey"
+   },
+   {
+    "code": 4,
+    "label_fr": "Brun",
+    "label_en": "Brown"
+   },
+   {
+    "code": 5,
+    "label_fr": "Autres",
+    "label_en": "Other"
+   },
+   {
+    "code": 6,
+    "label_fr": "Bleu",
+    "label_en": "Blue"
+   },
+   {
+    "code": 7,
+    "label_fr": "Rouge",
+    "label_en": "Red"
+   },
+   {
+    "code": 8,
+    "label_fr": "Vert",
+    "label_en": "Green"
+   },
+   {
+    "code": 9,
+    "label_fr": "Jaune",
+    "label_en": "Yellow"
+   },
+   {
+    "code": 10,
+    "label_fr": "Orange",
+    "label_en": "Orange"
+   },
+   {
+    "code": 11,
+    "label_fr": "Blanc",
+    "label_en": "White"
+   }
+  ],
+  "conditionEquipment": [
+   {
+    "code": 37,
+    "label_fr": "Garantie",
+    "label_en": "Guarantee"
+   },
+   {
+    "code": 49,
+    "label_fr": "Avec carnet d'entretien",
+    "label_en": "With full service history"
+   },
+   {
+    "code": 53,
+    "label_fr": "Filtre à particules",
+    "label_en": "Particulate filter"
+   },
+   {
+    "code": 110,
+    "label_fr": "Voiture non-fumeur",
+    "label_en": "Non-smoking vehicle"
+   },
+   {
+    "code": 120,
+    "label_fr": "HU/AU nouveau",
+    "label_en": "HU/AU new"
+   }
+  ],
+  "customerType": [
+   {
+    "code": "P",
+    "label_fr": "Particulier",
+    "label_en": "Private"
+   },
+   {
+    "code": "D",
+    "label_fr": "Professionnel",
+    "label_en": "Dealer"
+   }
+  ],
+  "priceType": [
+   {
+    "code": "private",
+    "label_fr": "Particulier",
+    "label_en": "Private"
+   },
+   {
+    "code": "dealer",
+    "label_fr": "Professionnel",
+    "label_en": "Dealer"
+   }
+  ],
+  "priceEvaluation": [
+   {
+    "code": 1,
+    "label_fr": "Très bon prix",
+    "label_en": "Very good price"
+   },
+   {
+    "code": 2,
+    "label_fr": "Bon prix",
+    "label_en": "Good price"
+   },
+   {
+    "code": 3,
+    "label_fr": "Prix correct",
+    "label_en": "Fair price"
+   }
+  ],
+  "emissionClass": [
+   {
+    "code": 1,
+    "label_fr": "Euro 1",
+    "label_en": "Euro 1"
+   },
+   {
+    "code": 2,
+    "label_fr": "Euro 2",
+    "label_en": "Euro 2"
+   },
+   {
+    "code": 3,
+    "label_fr": "Euro 3",
+    "label_en": "Euro 3"
+   },
+   {
+    "code": 4,
+    "label_fr": "Euro 4",
+    "label_en": "Euro 4"
+   },
+   {
+    "code": 5,
+    "label_fr": "Euro 5",
+    "label_en": "Euro 5"
+   },
+   {
+    "code": 6,
+    "label_fr": "Euro 6",
+    "label_en": "Euro 6"
+   },
+   {
+    "code": 11,
+    "label_fr": "Euro 6b",
+    "label_en": "Euro 6b"
+   },
+   {
+    "code": 7,
+    "label_fr": "Euro 6c",
+    "label_en": "Euro 6c"
+   },
+   {
+    "code": 8,
+    "label_fr": "Euro 6d",
+    "label_en": "Euro 6d"
+   },
+   {
+    "code": 9,
+    "label_fr": "Euro 6d-TEMP",
+    "label_en": "Euro 6d-TEMP"
+   },
+   {
+    "code": 10,
+    "label_fr": "Euro 6e",
+    "label_en": "Euro 6e"
+   }
+  ],
+  "emissionSticker": [
+   {
+    "code": 1,
+    "label_fr": "Aucune classification environnementale",
+    "label_en": "None"
+   },
+   {
+    "code": 2,
+    "label_fr": "min. 2 (Rouge)",
+    "label_en": "min. 2 (Red)"
+   },
+   {
+    "code": 3,
+    "label_fr": "min. 3 (Jaune)",
+    "label_en": "min. 3 (Yellow)"
+   },
+   {
+    "code": 4,
+    "label_fr": "min. 4 (Vert)",
+    "label_en": "min. 4 (Green)"
+   },
+   {
+    "code": 5,
+    "label_fr": "min. 5 (Bleu)",
+    "label_en": "min. 5 (Blue)"
+   }
+  ],
+  "batteryOwnershipType": [
+   {
+    "code": 1,
+    "label_fr": "Incluse",
+    "label_en": "Included"
+   },
+   {
+    "code": 2,
+    "label_fr": "Louée",
+    "label_en": "Rented"
+   },
+   {
+    "code": 3,
+    "label_fr": "Sans batterie",
+    "label_en": "Excluded"
+   }
+  ],
+  "cylinders": [
+   {
+    "code": "3",
+    "label_fr": "3 cylindres",
+    "label_en": "3 cylinder"
+   },
+   {
+    "code": "4",
+    "label_fr": "4 cylindres",
+    "label_en": "4 cylinder"
+   },
+   {
+    "code": "6",
+    "label_fr": "6 cylindres",
+    "label_en": "6 cylinder"
+   },
+   {
+    "code": "8",
+    "label_fr": "8 cylindres",
+    "label_en": "8 cylinder"
+   },
+   {
+    "code": "10plus",
+    "label_fr": "10+ cylindres",
+    "label_en": "10+ cylinder"
+   }
+  ],
+  "onlineSince": [
+   {
+    "code": 1,
+    "label_fr": "1 jour",
+    "label_en": "1 day"
+   },
+   {
+    "code": 2,
+    "label_fr": "2 jours",
+    "label_en": "2 days"
+   },
+   {
+    "code": 3,
+    "label_fr": "3 jours",
+    "label_en": "3 days"
+   },
+   {
+    "code": 4,
+    "label_fr": "4 jours",
+    "label_en": "4 days"
+   },
+   {
+    "code": 5,
+    "label_fr": "5 jours",
+    "label_en": "5 days"
+   },
+   {
+    "code": 6,
+    "label_fr": "6 jours",
+    "label_en": "6 days"
+   },
+   {
+    "code": 7,
+    "label_fr": "1 semaine",
+    "label_en": "1 week"
+   },
+   {
+    "code": 14,
+    "label_fr": "2 semaines",
+    "label_en": "2 weeks"
+   }
+  ],
+  "sortingKeys": [
+   {
+    "code": "price",
+    "label_fr": "Prix",
+    "label_en": "Price"
+   },
+   {
+    "code": "financerate",
+    "label_fr": "Rate",
+    "label_en": "Rate"
+   },
+   {
+    "code": "make",
+    "label_fr": "Marque/Modèle",
+    "label_en": "Make/Model"
+   },
+   {
+    "code": "leasing_rate",
+    "label_fr": "Leasing Rate",
+    "label_en": "Leasing Rate"
+   },
+   {
+    "code": "year",
+    "label_fr": "Année",
+    "label_en": "First registration"
+   },
+   {
+    "code": "mileage",
+    "label_fr": "Kilométrage",
+    "label_en": "Mileage"
+   },
+   {
+    "code": "power",
+    "label_fr": "Puissance",
+    "label_en": "Power"
+   },
+   {
+    "code": "age",
+    "label_fr": "Annonces les plus récentes d'abord",
+    "label_en": "Latest offers first"
+   },
+   {
+    "code": "standard",
+    "label_fr": "Résultats standards",
+    "label_en": "Best results"
+   },
+   {
+    "code": "distance",
+    "label_fr": "Selon la distance",
+    "label_en": "By distance"
+   }
+  ],
+  "country": [
+   {
+    "code": "",
+    "label_fr": "Europe",
+    "label_en": "Europe"
+   },
+   {
+    "code": "A",
+    "label_fr": "Autriche",
+    "label_en": "Austria"
+   },
+   {
+    "code": "B",
+    "label_fr": "Belgique",
+    "label_en": "Belgium"
+   },
+   {
+    "code": "D",
+    "label_fr": "Allemagne",
+    "label_en": "Germany"
+   },
+   {
+    "code": "E",
+    "label_fr": "Espagne",
+    "label_en": "Spain"
+   },
+   {
+    "code": "F",
+    "label_fr": "France",
+    "label_en": "France"
+   },
+   {
+    "code": "I",
+    "label_fr": "Italie",
+    "label_en": "Italy"
+   },
+   {
+    "code": "L",
+    "label_fr": "Luxembourg",
+    "label_en": "Luxembourg"
+   },
+   {
+    "code": "NL",
+    "label_fr": "Pays-Bas",
+    "label_en": "Netherlands"
+   }
+  ],
+  "powerType": [
+   {
+    "code": "hp",
+    "label_fr": "CH",
+    "label_en": "hp"
+   },
+   {
+    "code": "kw",
+    "label_fr": "kW",
+    "label_en": "kW"
+   }
+  ],
+  "equipment": [
+   {
+    "code": 187,
+    "label_fr": "360° caméra",
+    "label_en": null
+   },
+   {
+    "code": 11,
+    "label_fr": "4x4",
+    "label_en": null
+   },
+   {
+    "code": 1,
+    "label_fr": "ABS",
+    "label_en": null
+   },
+   {
+    "code": 134,
+    "label_fr": "Accoudoir",
+    "label_en": null
+   },
+   {
+    "code": 123,
+    "label_fr": "Affichage tête haute",
+    "label_en": null
+   },
+   {
+    "code": 40,
+    "label_fr": "Aides au stationnement",
+    "label_en": null
+   },
+   {
+    "code": 45,
+    "label_fr": "Airbag arrière",
+    "label_en": null
+   },
+   {
+    "code": 46,
+    "label_fr": "Airbag avant",
+    "label_en": null
+   },
+   {
+    "code": 2,
+    "label_fr": "Airbag conducteur",
+    "label_en": null
+   },
+   {
+    "code": 3,
+    "label_fr": "Airbag passager",
+    "label_en": null
+   },
+   {
+    "code": 32,
+    "label_fr": "Airbags latéraux",
+    "label_en": null
+   },
+   {
+    "code": 18,
+    "label_fr": "Alarme",
+    "label_en": null
+   },
+   {
+    "code": 157,
+    "label_fr": "Alerte de franchissement involontaire de lignes",
+    "label_en": null
+   },
+   {
+    "code": 222,
+    "label_fr": "Android Auto",
+    "label_en": null
+   },
+   {
+    "code": 26,
+    "label_fr": "Anti-démarrage",
+    "label_en": null
+   },
+   {
+    "code": 31,
+    "label_fr": "Anti-patinage",
+    "label_en": null
+   },
+   {
+    "code": 221,
+    "label_fr": "Apple CarPlay",
+    "label_en": null
+   },
+   {
+    "code": 148,
+    "label_fr": "Assistant au freinage d'urgence",
+    "label_en": null
+   },
+   {
+    "code": 137,
+    "label_fr": "Assistant de démarrage en côte",
+    "label_en": null
+   },
+   {
+    "code": 147,
+    "label_fr": "Assistant de vision nocturne",
+    "label_en": null
+   },
+   {
+    "code": 189,
+    "label_fr": "Assistant feux de route",
+    "label_en": null
+   },
+   {
+    "code": 20,
+    "label_fr": "Attache remorque",
+    "label_en": null
+   },
+   {
+    "code": 174,
+    "label_fr": "Auvent",
+    "label_en": null
+   },
+   {
+    "code": 158,
+    "label_fr": "Avertisseur d'angle mort",
+    "label_en": null
+   },
+   {
+    "code": 122,
+    "label_fr": "Bluetooth",
+    "label_en": null
+   },
+   {
+    "code": 130,
+    "label_fr": "Caméra d'aide au stationnement",
+    "label_en": null
+   },
+   {
+    "code": 129,
+    "label_fr": "Capteurs d'aide au stationnement arrière",
+    "label_en": null
+   },
+   {
+    "code": 128,
+    "label_fr": "Capteurs d'aide au stationnement avant",
+    "label_en": null
+   },
+   {
+    "code": 132,
+    "label_fr": "CD",
+    "label_en": null
+   },
+   {
+    "code": 251,
+    "label_fr": "Certificat de batterie",
+    "label_en": null
+   },
+   {
+    "code": 250,
+    "label_fr": "Charge bidirectionnelle",
+    "label_en": null
+   },
+   {
+    "code": 223,
+    "label_fr": "Chargeur smartphone à induction",
+    "label_en": null
+   },
+   {
+    "code": 52,
+    "label_fr": "Chauffage auxiliaire",
+    "label_en": null
+   },
+   {
+    "code": 5,
+    "label_fr": "Climatisation",
+    "label_en": null
+   },
+   {
+    "code": 30,
+    "label_fr": "Climatisation automatique",
+    "label_en": null
+   },
+   {
+    "code": 242,
+    "label_fr": "Climatisation automatique, 3 zones",
+    "label_en": null
+   },
+   {
+    "code": 243,
+    "label_fr": "Climatisation automatique, 4 zones",
+    "label_en": null
+   },
+   {
+    "code": 241,
+    "label_fr": "Climatisation automatique, bi-zone",
+    "label_en": null
+   },
+   {
+    "code": 156,
+    "label_fr": "Commande vocale",
+    "label_en": null
+   },
+   {
+    "code": 173,
+    "label_fr": "Compatible E-10",
+    "label_en": null
+   },
+   {
+    "code": 48,
+    "label_fr": "Conduite à droite",
+    "label_en": null
+   },
+   {
+    "code": 44,
+    "label_fr": "Coupe vent (pour cabriolet)",
+    "label_en": null
+   },
+   {
+    "code": 238,
+    "label_fr": "Déflecteur",
+    "label_en": null
+   },
+   {
+    "code": 126,
+    "label_fr": "Détecteur de lumière",
+    "label_en": null
+   },
+   {
+    "code": 127,
+    "label_fr": "Détecteur de pluie",
+    "label_en": null
+   },
+   {
+    "code": 162,
+    "label_fr": "Détection des panneaux routiers",
+    "label_en": null
+   },
+   {
+    "code": 12,
+    "label_fr": "Direction assistée",
+    "label_en": null
+   },
+   {
+    "code": 124,
+    "label_fr": "Dispositif mains libres",
+    "label_en": null
+   },
+   {
+    "code": 219,
+    "label_fr": "Éclairage d'ambiance",
+    "label_en": null
+   },
+   {
+    "code": 224,
+    "label_fr": "Écran multifonction entièrement numérique",
+    "label_en": null
+   },
+   {
+    "code": 159,
+    "label_fr": "Ecran tactile",
+    "label_en": null
+   },
+   {
+    "code": 36,
+    "label_fr": "Equipement handicapé",
+    "label_en": null
+   },
+   {
+    "code": 42,
+    "label_fr": "ESP",
+    "label_en": null
+   },
+   {
+    "code": 19,
+    "label_fr": "Feux anti-brouillard",
+    "label_en": null
+   },
+   {
+    "code": 214,
+    "label_fr": "Feux de route non éblouissants",
+    "label_en": null
+   },
+   {
+    "code": 160,
+    "label_fr": "Fonction TV",
+    "label_en": null
+   },
+   {
+    "code": 170,
+    "label_fr": "Fonctionne au biodiesel",
+    "label_en": null
+   },
+   {
+    "code": 240,
+    "label_fr": "Frein de stationnement électronique",
+    "label_en": null
+   },
+   {
+    "code": 139,
+    "label_fr": "Hayon arrière électrique",
+    "label_en": null
+   },
+   {
+    "code": 220,
+    "label_fr": "Hotspot Wi-Fi",
+    "label_en": null
+   },
+   {
+    "code": 125,
+    "label_fr": "Isofix",
+    "label_en": null
+   },
+   {
+    "code": 212,
+    "label_fr": "Jantes acier",
+    "label_en": null
+   },
+   {
+    "code": 15,
+    "label_fr": "Jantes alliage",
+    "label_en": null
+   },
+   {
+    "code": 217,
+    "label_fr": "Kit de dépannage",
+    "label_en": null
+   },
+   {
+    "code": 218,
+    "label_fr": "Kit fumeur",
+    "label_en": null
+   },
+   {
+    "code": 141,
+    "label_fr": "LED phare de jour",
+    "label_en": null
+   },
+   {
+    "code": 227,
+    "label_fr": "Limiteur de vitesse",
+    "label_en": null
+   },
+   {
+    "code": 43,
+    "label_fr": "MP3",
+    "label_en": null
+   },
+   {
+    "code": 41,
+    "label_fr": "Ordinateur de bord",
+    "label_en": null
+   },
+   {
+    "code": 231,
+    "label_fr": "Pack hiver",
+    "label_en": null
+   },
+   {
+    "code": 112,
+    "label_fr": "Pack Sport",
+    "label_en": null
+   },
+   {
+    "code": 151,
+    "label_fr": "Palettes de changement de vitesses",
+    "label_en": null
+   },
+   {
+    "code": 135,
+    "label_fr": "Pare-brise chauffant",
+    "label_en": null
+   },
+   {
+    "code": 140,
+    "label_fr": "Phares au LED",
+    "label_en": null
+   },
+   {
+    "code": 39,
+    "label_fr": "Phares au Xénon",
+    "label_en": null
+   },
+   {
+    "code": 230,
+    "label_fr": "Phares bi-xénon",
+    "label_en": null
+   },
+   {
+    "code": 115,
+    "label_fr": "Phares de jour",
+    "label_en": null
+   },
+   {
+    "code": 118,
+    "label_fr": "Phares directionnels",
+    "label_en": null
+   },
+   {
+    "code": 239,
+    "label_fr": "Phares Full LED",
+    "label_en": null
+   },
+   {
+    "code": 213,
+    "label_fr": "Phares laser",
+    "label_en": null
+   },
+   {
+    "code": 210,
+    "label_fr": "Pneus été",
+    "label_en": null
+   },
+   {
+    "code": 25,
+    "label_fr": "Pneus neige",
+    "label_en": null
+   },
+   {
+    "code": 211,
+    "label_fr": "Pneus tout temps saisons",
+    "label_en": null
+   },
+   {
+    "code": 249,
+    "label_fr": "Pompe à chaleur",
+    "label_en": null
+   },
+   {
+    "code": 152,
+    "label_fr": "Porte coulissante",
+    "label_en": null
+   },
+   {
+    "code": 245,
+    "label_fr": "Porte coulissante droite",
+    "label_en": null
+   },
+   {
+    "code": 244,
+    "label_fr": "Porte coulissante gauche",
+    "label_en": null
+   },
+   {
+    "code": 27,
+    "label_fr": "Porte-bagages",
+    "label_en": null
+   },
+   {
+    "code": 29,
+    "label_fr": "Pot catalytique",
+    "label_en": null
+   },
+   {
+    "code": 237,
+    "label_fr": "Prolongateur d'autonomie",
+    "label_en": null
+   },
+   {
+    "code": 10,
+    "label_fr": "Radio",
+    "label_en": null
+   },
+   {
+    "code": 138,
+    "label_fr": "Radio numérique",
+    "label_en": null
+   },
+   {
+    "code": 233,
+    "label_fr": "Réglage électrique du siège arrière",
+    "label_en": null
+   },
+   {
+    "code": 133,
+    "label_fr": "Régulateur de distance",
+    "label_en": null
+   },
+   {
+    "code": 38,
+    "label_fr": "Régulateur de vitesse",
+    "label_en": null
+   },
+   {
+    "code": 225,
+    "label_fr": "Rétroviseur intérieur anti-éblouissement automatique",
+    "label_en": null
+   },
+   {
+    "code": 121,
+    "label_fr": "Rétroviseurs latéraux électriques",
+    "label_en": null
+   },
+   {
+    "code": 215,
+    "label_fr": "Roue de secours",
+    "label_en": null
+   },
+   {
+    "code": 216,
+    "label_fr": "Roue de urgence",
+    "label_en": null
+   },
+   {
+    "code": 6,
+    "label_fr": "Sellerie cuir",
+    "label_en": null
+   },
+   {
+    "code": 226,
+    "label_fr": "Séparateur pour coffre",
+    "label_en": null
+   },
+   {
+    "code": 143,
+    "label_fr": "Siège à réglage lombaire",
+    "label_en": null
+   },
+   {
+    "code": 229,
+    "label_fr": "Siège passager repliable",
+    "label_en": null
+   },
+   {
+    "code": 248,
+    "label_fr": "Sièges arrière chauffant",
+    "label_en": null
+   },
+   {
+    "code": 21,
+    "label_fr": "Sièges arrières 1/3 - 2/3",
+    "label_en": null
+   },
+   {
+    "code": 34,
+    "label_fr": "Sièges chauffants",
+    "label_en": null
+   },
+   {
+    "code": 16,
+    "label_fr": "Sièges électriques",
+    "label_en": null
+   },
+   {
+    "code": 145,
+    "label_fr": "Sièges massants",
+    "label_en": null
+   },
+   {
+    "code": 117,
+    "label_fr": "Sièges sport",
+    "label_en": null
+   },
+   {
+    "code": 154,
+    "label_fr": "Sièges ventilés",
+    "label_en": null
+   },
+   {
+    "code": 155,
+    "label_fr": "Soundsystem",
+    "label_en": null
+   },
+   {
+    "code": 113,
+    "label_fr": "Start/Stop automatique",
+    "label_en": null
+   },
+   {
+    "code": 228,
+    "label_fr": "Streaming audio intégré",
+    "label_en": null
+   },
+   {
+    "code": 144,
+    "label_fr": "Suspension pneumatique",
+    "label_en": null
+   },
+   {
+    "code": 116,
+    "label_fr": "Suspension sport",
+    "label_en": null
+   },
+   {
+    "code": 131,
+    "label_fr": "Système d'aide au stationnement automatique",
+    "label_en": null
+   },
+   {
+    "code": 149,
+    "label_fr": "Système d'appel d'urgence",
+    "label_en": null
+   },
+   {
+    "code": 232,
+    "label_fr": "Système d'avertissement de distance",
+    "label_en": null
+   },
+   {
+    "code": 150,
+    "label_fr": "Système de contrôle de la pression pneus",
+    "label_en": null
+   },
+   {
+    "code": 146,
+    "label_fr": "Système de détection de la somnolence",
+    "label_en": null
+   },
+   {
+    "code": 23,
+    "label_fr": "Système de navigation",
+    "label_en": null
+   },
+   {
+    "code": 190,
+    "label_fr": "Système de nettoyage des phares",
+    "label_en": null
+   },
+   {
+    "code": 111,
+    "label_fr": "Taxi ou voiture de location",
+    "label_en": null
+   },
+   {
+    "code": 4,
+    "label_fr": "Toit ouvrant",
+    "label_en": null
+   },
+   {
+    "code": 50,
+    "label_fr": "Toit panoramique",
+    "label_en": null
+   },
+   {
+    "code": 119,
+    "label_fr": "Trappe à ski",
+    "label_en": null
+   },
+   {
+    "code": 28,
+    "label_fr": "Tuning",
+    "label_en": null
+   },
+   {
+    "code": 161,
+    "label_fr": "USB",
+    "label_en": null
+   },
+   {
+    "code": 17,
+    "label_fr": "Verrouillage centralisé",
+    "label_en": null
+   },
+   {
+    "code": 47,
+    "label_fr": "Verrouillage centralisé avec télécommande",
+    "label_en": null
+   },
+   {
+    "code": 153,
+    "label_fr": "Verrouillage centralisé sans clé",
+    "label_en": null
+   },
+   {
+    "code": 13,
+    "label_fr": "Vitres électriques",
+    "label_en": null
+   },
+   {
+    "code": 54,
+    "label_fr": "Vitres teintées",
+    "label_en": null
+   },
+   {
+    "code": 136,
+    "label_fr": "Volant chauffant",
+    "label_en": null
+   },
+   {
+    "code": 142,
+    "label_fr": "Volant en cuir",
+    "label_en": null
+   },
+   {
+    "code": 114,
+    "label_fr": "Volant multifonctions",
+    "label_en": null
+   }
+  ],
+  "previousOwnersId": [
+   {
+    "code": 1,
+    "label_fr": "1",
+    "label_en": null
+   },
+   {
+    "code": 2,
+    "label_fr": "2",
+    "label_en": null
+   },
+   {
+    "code": 3,
+    "label_fr": "3",
+    "label_en": null
+   },
+   {
+    "code": 4,
+    "label_fr": "4+",
+    "label_en": null
+   }
+  ],
+  "seals": [
+   {
+    "code": 249,
+    "label_fr": "BMW Motorrad Premium Selection",
+    "label_en": "BMW Motorrad Premium Selection",
+    "makes": [
+     13
+    ]
+   },
+   {
+    "code": 247,
+    "label_fr": "Hyundai H PROMISE",
+    "label_en": "Hyundai H PROMISE",
+    "makes": [
+     33
+    ]
+   },
+   {
+    "code": 216,
+    "label_fr": "Ford Approved",
+    "label_en": "Ford Approved",
+    "makes": [
+     29
+    ]
+   },
+   {
+    "code": 156,
+    "label_fr": "Opel Select",
+    "label_en": "Opel Select",
+    "makes": [
+     54
+    ]
+   },
+   {
+    "code": 134,
+    "label_fr": "Peugeot Occasions",
+    "label_en": "Peugeot Occasions",
+    "makes": [
+     55
+    ]
+   },
+   {
+    "code": 118,
+    "label_fr": "My Way",
+    "label_en": "My Way",
+    "makes": [
+     74,
+     64,
+     65,
+     9,
+     51802
+    ]
+   },
+   {
+    "code": 271,
+    "label_fr": "Aston Martin Timeless",
+    "label_en": "Aston Martin Timeless",
+    "makes": [
+     8
+    ]
+   },
+   {
+    "code": 112,
+    "label_fr": "Jaguar Approved",
+    "label_en": "Jaguar Approved",
+    "makes": [
+     37
+    ]
+   },
+   {
+    "code": 295,
+    "label_fr": "Lamborghini Certified Pre-Owned",
+    "label_en": "Lamborghini Certified Pre-Owned",
+    "makes": [
+     41
+    ]
+   },
+   {
+    "code": 315,
+    "label_fr": "Porsche Approved",
+    "label_en": "Porsche Approved",
+    "makes": [
+     57
+    ]
+   },
+   {
+    "code": 111,
+    "label_fr": "Land Rover Approved",
+    "label_en": "Land Rover Approved",
+    "makes": [
+     15641
+    ]
+   },
+   {
+    "code": 223,
+    "label_fr": "Bentley PRE-OWNED",
+    "label_en": "Bentley PRE-OWNED",
+    "makes": [
+     11
+    ]
+   },
+   {
+    "code": 226,
+    "label_fr": "Audi Approved Plus",
+    "label_en": "Audi Approved Plus",
+    "makes": [
+     9
+    ]
+   },
+   {
+    "code": 241,
+    "label_fr": "KIA Used Cars",
+    "label_en": "KIA Used Cars",
+    "makes": [
+     39
+    ]
+   }
+  ],
+  "radius": [
+   10,
+   20,
+   50,
+   100,
+   150,
+   200,
+   250,
+   300,
+   400
+  ],
+  "electricRange": [
+   80,
+   120,
+   180,
+   250,
+   350,
+   450,
+   550
+  ],
+  "priceSteps": [
+   500,
+   1000,
+   1500,
+   2000,
+   2500,
+   3000,
+   4000,
+   5000,
+   6000,
+   7000,
+   8000,
+   9000,
+   10000,
+   12500,
+   15000,
+   17500,
+   20000,
+   25000,
+   30000,
+   40000,
+   50000,
+   75000,
+   100000
+  ],
+  "mileageSteps": [
+   2500,
+   5000,
+   10000,
+   20000,
+   30000,
+   40000,
+   50000,
+   60000,
+   70000,
+   80000,
+   90000,
+   100000,
+   125000,
+   150000,
+   175000,
+   200000
+  ],
+  "leasingRateSteps": [
+   50,
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "leasingDurationSteps": [
+   12,
+   24,
+   36,
+   48,
+   60,
+   72
+  ],
+  "leasingYearlyMileageSteps": [
+   10000,
+   15000,
+   20000,
+   25000,
+   30000
+  ],
+  "financeRateSteps": [
+   50,
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "registrationYears": {
+   "min": 1900,
+   "max": 2026,
+   "step": 1
+  },
+  "modelYears": {
+   "min": 1900,
+   "max": 2027,
+   "step": 1
+  },
+  "doors": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "seats": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12
+  ]
+ }
+}

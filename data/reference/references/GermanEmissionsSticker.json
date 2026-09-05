@@ -1,0 +1,52 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "GermanEmissionsSticker",
+  "count": 4,
+  "references": [
+    {
+      "id": "1",
+      "label": "Aucune classification environnementale",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "2",
+      "label": "Rouge",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "3",
+      "label": "Jaune",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "4",
+      "label": "Vert",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    }
+  ]
+}

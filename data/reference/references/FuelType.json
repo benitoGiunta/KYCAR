@@ -1,0 +1,188 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "FuelType",
+  "count": 16,
+  "references": [
+    {
+      "id": "1",
+      "label": "Essence 91",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "10",
+      "label": "Gaz naturel H",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "11",
+      "label": "Gaz naturel L",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "12",
+      "label": "Électrique",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "13",
+      "label": "Hydrogène",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "14",
+      "label": "Vegetable oil",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "15",
+      "label": "Biogas",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "16",
+      "label": "Ethanol",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "2",
+      "label": "Super 95",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "3",
+      "label": "Super Plus 98",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "4",
+      "label": "Essence E10 91",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "5",
+      "label": "Super E10 95",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "6",
+      "label": "Super Plus E10 98",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "7",
+      "label": "Diesel",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "8",
+      "label": "Diesel écologique",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "9",
+      "label": "Gaz de pétrole liquéfié",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    }
+  ]
+}

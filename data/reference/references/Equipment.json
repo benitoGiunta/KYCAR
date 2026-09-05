@@ -1,0 +1,1649 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "Equipment",
+  "count": 173,
+  "references": [
+    {
+      "id": "1",
+      "label": "ABS",
+      "vehicleType": [
+        "X",
+        "N",
+        "L",
+        "B",
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "10",
+      "label": "Radio",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "103",
+      "label": "Pare-brise",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "104",
+      "label": "Carénage",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "105",
+      "label": "Top Case",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "106",
+      "label": "Poignées chauffantes",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "107",
+      "label": "Barres de protection",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "108",
+      "label": "Démarreur électrique",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "109",
+      "label": "Kickstarter",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "112",
+      "label": "Pack Sport",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "113",
+      "label": "Start/Stop automatique",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "114",
+      "label": "Volant multifonctions",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "115",
+      "label": "Phares de jour",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "116",
+      "label": "Suspension sport",
+      "vehicleType": [
+        "B",
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "117",
+      "label": "Sièges sport",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "118",
+      "label": "Phares directionnels",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "119",
+      "label": "Trappe à ski",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "12",
+      "label": "Direction assistée",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "121",
+      "label": "Rétroviseurs latéraux électriques",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "122",
+      "label": "Bluetooth",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "123",
+      "label": "Affichage tête haute",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "124",
+      "label": "Dispositif mains libres",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "125",
+      "label": "Isofix",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "126",
+      "label": "Détecteur de lumière",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "127",
+      "label": "Détecteur de pluie",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "128",
+      "label": "Capteurs d'aide au stationnement avant",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "129",
+      "label": "Capteurs d'aide au stationnement arrière",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "13",
+      "label": "Vitres électriques",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "130",
+      "label": "Caméra d'aide au stationnement",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "131",
+      "label": "Système d'aide au stationnement automatique",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "132",
+      "label": "CD",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "133",
+      "label": "Régulateur de distance",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "134",
+      "label": "Accoudoir",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "135",
+      "label": "Pare-brise chauffant",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "136",
+      "label": "Volant chauffant",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "137",
+      "label": "Assistant de démarrage en côte",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "138",
+      "label": "Radio numérique",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "139",
+      "label": "Hayon arrière électrique",
+      "vehicleType": [
+        "C",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "140",
+      "label": "Phares au LED",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "141",
+      "label": "LED phare de jour",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "142",
+      "label": "Volant en cuir",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "143",
+      "label": "Siège à réglage lombaire",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "144",
+      "label": "Suspension pneumatique",
+      "vehicleType": [
+        "C",
+        "L",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "145",
+      "label": "Sièges massants",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "146",
+      "label": "Système de détection de la somnolence",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "147",
+      "label": "Assistant de vision nocturne",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "148",
+      "label": "Assistant au freinage d'urgence",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "149",
+      "label": "Système d'appel d'urgence",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "15",
+      "label": "Jantes alliage",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "150",
+      "label": "Système de contrôle de la pression pneus",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "151",
+      "label": "Palettes de changement de vitesses",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "152",
+      "label": "Porte coulissante",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "153",
+      "label": "Verrouillage centralisé sans clé",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "154",
+      "label": "Sièges ventilés",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "155",
+      "label": "Soundsystem",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "156",
+      "label": "Commande vocale",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "157",
+      "label": "Alerte de franchissement involontaire de lignes",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "158",
+      "label": "Avertisseur d'angle mort",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "159",
+      "label": "Ecran tactile",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "16",
+      "label": "Sièges électriques",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "160",
+      "label": "Fonction TV",
+      "vehicleType": [
+        "C",
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "161",
+      "label": "USB",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "162",
+      "label": "Détection des panneaux routiers",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "17",
+      "label": "Verrouillage centralisé",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "170",
+      "label": "Fonctionne au biodiesel",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "171",
+      "label": "Cuisine à bord",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "172",
+      "label": "Verrouillage différentiel",
+      "vehicleType": [
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "173",
+      "label": "Compatible E-10",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "174",
+      "label": "Auvent",
+      "vehicleType": [
+        "C",
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "175",
+      "label": "Dînette",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "177",
+      "label": "Antenne satellite",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "178",
+      "label": "Treuil",
+      "vehicleType": [
+        "B",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "179",
+      "label": "WC",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "18",
+      "label": "Alarme",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "180",
+      "label": "Phares supplémentaires",
+      "vehicleType": [
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "181",
+      "label": "Baignoire",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "182",
+      "label": "Douche séparée",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "183",
+      "label": "Salon avec banquette circulaire",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "184",
+      "label": "Salon avec sièges latéraux",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "186",
+      "label": "Coffre arrière",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "187",
+      "label": "360° caméra",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "188",
+      "label": "Climatisation d’appoint",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "189",
+      "label": "Assistant feux de route",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "19",
+      "label": "Feux anti-brouillard",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "190",
+      "label": "Système de nettoyage des phares",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "192",
+      "label": "Grue",
+      "vehicleType": [
+        "L",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "193",
+      "label": "Groupe frigorifique",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "194",
+      "label": "Hayon élévateur",
+      "vehicleType": [
+        "L",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "195",
+      "label": "Plateau pivotant",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "196",
+      "label": "Chargeur",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "197",
+      "label": "Véhicule frigorifique (Viande)",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "198",
+      "label": "EBS",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "199",
+      "label": "Insonorisant",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "2",
+      "label": "Airbag conducteur",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "20",
+      "label": "Attache remorque",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "200",
+      "label": "Véhicules municipaux",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "201",
+      "label": "Double cabine",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "202",
+      "label": "Couchette",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "203",
+      "label": "Cloison de cabine",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "204",
+      "label": "Frein à disque",
+      "vehicleType": [
+        "L",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "205",
+      "label": "Panneau solaire",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "206",
+      "label": "Lit",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "207",
+      "label": "Lit escamotable",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "208",
+      "label": "Lits superposés",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "21",
+      "label": "Sièges arrières 1/3 - 2/3",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "210",
+      "label": "Pneus été",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "211",
+      "label": "Pneus tout temps saisons",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "212",
+      "label": "Jantes acier",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "213",
+      "label": "Phares laser",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "214",
+      "label": "Feux de route non éblouissants",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "215",
+      "label": "Roue de secours",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "216",
+      "label": "Roue de urgence",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "217",
+      "label": "Kit de dépannage",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "218",
+      "label": "Kit fumeur",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "219",
+      "label": "Éclairage d'ambiance",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "220",
+      "label": "Hotspot Wi-Fi",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "221",
+      "label": "Apple CarPlay",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "222",
+      "label": "Android Auto",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "223",
+      "label": "Chargeur smartphone à induction",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "224",
+      "label": "Écran multifonction entièrement numérique",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "225",
+      "label": "Rétroviseur intérieur anti-éblouissement automatique",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "226",
+      "label": "Séparateur pour coffre",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "227",
+      "label": "Limiteur de vitesse",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "228",
+      "label": "Streaming audio intégré",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "229",
+      "label": "Siège passager repliable",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "23",
+      "label": "Système de navigation",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "230",
+      "label": "Phares bi-xénon",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "231",
+      "label": "Pack hiver",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "232",
+      "label": "Système d'avertissement de distance",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "233",
+      "label": "Réglage électrique du siège arrière",
+      "vehicleType": [
+        "C",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "237",
+      "label": "Prolongateur d'autonomie",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "238",
+      "label": "Déflecteur",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "239",
+      "label": "Phares Full LED",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "240",
+      "label": "Frein de stationnement électronique",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "241",
+      "label": "Climatisation automatique, bi-zone",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "242",
+      "label": "Climatisation automatique, 3 zones",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "243",
+      "label": "Climatisation automatique, 4 zones",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "244",
+      "label": "Porte coulissante gauche",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "245",
+      "label": "Porte coulissante droite",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "246",
+      "label": "Frein à inertie",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "247",
+      "label": "Valises latérales",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "248",
+      "label": "Sièges arrière chauffant",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "249",
+      "label": "Pompe à chaleur",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "25",
+      "label": "Pneus neige",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "250",
+      "label": "Charge bidirectionnelle",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "251",
+      "label": "Certificat de batterie",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "26",
+      "label": "Anti-démarrage",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "261",
+      "label": "Frein Jake",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "262",
+      "label": "Jupe isolante",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "27",
+      "label": "Porte-bagages",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "28",
+      "label": "Tuning",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "29",
+      "label": "Pot catalytique",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "3",
+      "label": "Airbag passager",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "30",
+      "label": "Climatisation automatique",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "31",
+      "label": "Anti-patinage",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "32",
+      "label": "Airbags latéraux",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "34",
+      "label": "Sièges chauffants",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "36",
+      "label": "Equipement handicapé",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "38",
+      "label": "Régulateur de vitesse",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "39",
+      "label": "Phares au Xénon",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "4",
+      "label": "Toit ouvrant",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "41",
+      "label": "Ordinateur de bord",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "42",
+      "label": "ESP",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "43",
+      "label": "MP3",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "44",
+      "label": "Coupe vent (pour cabriolet)",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "45",
+      "label": "Airbag arrière",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "46",
+      "label": "Airbag avant",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "47",
+      "label": "Verrouillage centralisé avec télécommande",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "48",
+      "label": "Conduite à droite",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "5",
+      "label": "Climatisation",
+      "vehicleType": [
+        "C",
+        "L",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "50",
+      "label": "Toit panoramique",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "52",
+      "label": "Chauffage auxiliaire",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "54",
+      "label": "Vitres teintées",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    }
+  ]
+}

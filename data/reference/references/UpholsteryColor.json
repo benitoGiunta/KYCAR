@@ -1,0 +1,122 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "UpholsteryColor",
+  "count": 11,
+  "references": [
+    {
+      "id": "1",
+      "label": "Beige",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "10",
+      "label": "Orange",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "11",
+      "label": "Blanc",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "2",
+      "label": "Noir",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "3",
+      "label": "Gris",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "4",
+      "label": "Brun",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "5",
+      "label": "Autres",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "6",
+      "label": "Bleu",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "7",
+      "label": "Rouge",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "8",
+      "label": "Vert",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "9",
+      "label": "Jaune",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    }
+  ]
+}

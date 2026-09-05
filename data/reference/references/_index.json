@@ -1,0 +1,208 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceTypes": [
+    {
+      "referenceType": "AvailabilityType",
+      "count": 3,
+      "status": "OK",
+      "elapsedMs": 87
+    },
+    {
+      "referenceType": "BatteryOwnershipType",
+      "count": 3,
+      "status": "OK",
+      "elapsedMs": 78
+    },
+    {
+      "referenceType": "BidirectionalChargingType",
+      "count": 6,
+      "status": "OK",
+      "elapsedMs": 78
+    },
+    {
+      "referenceType": "BedType",
+      "count": 2,
+      "status": "OK",
+      "elapsedMs": 77
+    },
+    {
+      "referenceType": "BodyColor",
+      "count": 14,
+      "status": "OK",
+      "elapsedMs": 78
+    },
+    {
+      "referenceType": "BodyType",
+      "count": 66,
+      "status": "OK",
+      "elapsedMs": 79
+    },
+    {
+      "referenceType": "BrakeType",
+      "count": 2,
+      "status": "OK",
+      "elapsedMs": 41
+    },
+    {
+      "referenceType": "Co2Class",
+      "count": 7,
+      "status": "OK",
+      "elapsedMs": 81
+    },
+    {
+      "referenceType": "Country",
+      "count": 249,
+      "status": "OK",
+      "elapsedMs": 81
+    },
+    {
+      "referenceType": "DebitInterestType",
+      "count": 3,
+      "status": "OK",
+      "elapsedMs": 39
+    },
+    {
+      "referenceType": "Drivetrain",
+      "count": 3,
+      "status": "OK",
+      "elapsedMs": 42
+    },
+    {
+      "referenceType": "EfficiencyClass",
+      "count": 10,
+      "status": "OK",
+      "elapsedMs": 39
+    },
+    {
+      "referenceType": "EngineCoolingSystem",
+      "count": 4,
+      "status": "OK",
+      "elapsedMs": 80
+    },
+    {
+      "referenceType": "EngineMountingType",
+      "count": 0,
+      "status": "ERREUR",
+      "error": "HTTP 400 sur /references?referenceType=EngineMountingType&marketplace=be&culture=fr-BE"
+    },
+    {
+      "referenceType": "Equipment",
+      "count": 173,
+      "status": "OK",
+      "elapsedMs": 79
+    },
+    {
+      "referenceType": "EuEmissionStandard",
+      "count": 11,
+      "status": "OK",
+      "elapsedMs": 78
+    },
+    {
+      "referenceType": "Flooring",
+      "count": 3,
+      "status": "OK",
+      "elapsedMs": 77
+    },
+    {
+      "referenceType": "FridgePowerType",
+      "count": 5,
+      "status": "OK",
+      "elapsedMs": 36
+    },
+    {
+      "referenceType": "FuelCategory",
+      "count": 11,
+      "status": "OK",
+      "elapsedMs": 38
+    },
+    {
+      "referenceType": "FuelDeliveryType",
+      "count": 3,
+      "status": "OK",
+      "elapsedMs": 79
+    },
+    {
+      "referenceType": "FuelType",
+      "count": 16,
+      "status": "OK",
+      "elapsedMs": 78
+    },
+    {
+      "referenceType": "GermanEmissionsSticker",
+      "count": 4,
+      "status": "OK",
+      "elapsedMs": 81
+    },
+    {
+      "referenceType": "IncludedService",
+      "count": 2,
+      "status": "OK",
+      "elapsedMs": 78
+    },
+    {
+      "referenceType": "Material",
+      "count": 2,
+      "status": "OK",
+      "elapsedMs": 40
+    },
+    {
+      "referenceType": "OfferType",
+      "count": 6,
+      "status": "OK",
+      "elapsedMs": 39
+    },
+    {
+      "referenceType": "PlugType",
+      "count": 6,
+      "status": "OK",
+      "elapsedMs": 39
+    },
+    {
+      "referenceType": "PriceLabel",
+      "count": 6,
+      "status": "OK",
+      "elapsedMs": 99
+    },
+    {
+      "referenceType": "Steering",
+      "count": 0,
+      "status": "ERREUR",
+      "error": "HTTP 400 sur /references?referenceType=Steering&marketplace=be&culture=fr-BE"
+    },
+    {
+      "referenceType": "Transmission",
+      "count": 3,
+      "status": "OK",
+      "elapsedMs": 40
+    },
+    {
+      "referenceType": "UpholsteryColor",
+      "count": 11,
+      "status": "OK",
+      "elapsedMs": 78
+    },
+    {
+      "referenceType": "UpholsteryType",
+      "count": 6,
+      "status": "OK",
+      "elapsedMs": 78
+    },
+    {
+      "referenceType": "VehicleType",
+      "count": 5,
+      "status": "OK",
+      "elapsedMs": 76
+    },
+    {
+      "referenceType": "InventoryTag",
+      "count": 28,
+      "status": "OK",
+      "elapsedMs": 41
+    }
+  ]
+}

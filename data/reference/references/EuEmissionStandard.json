@@ -1,0 +1,128 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "EuEmissionStandard",
+  "count": 11,
+  "references": [
+    {
+      "id": "1",
+      "label": "Euro 1",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "10",
+      "label": "Euro 6e",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "11",
+      "label": "Euro 6b",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "2",
+      "label": "Euro 2",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "3",
+      "label": "Euro 3",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "4",
+      "label": "Euro 4",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "5",
+      "label": "Euro 5",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "6",
+      "label": "Euro 6",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "7",
+      "label": "Euro 6c",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "8",
+      "label": "Euro 6d",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "9",
+      "label": "Euro 6d-TEMP",
+      "vehicleType": [
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    }
+  ]
+}

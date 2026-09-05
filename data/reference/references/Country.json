@@ -1,0 +1,1506 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "Country",
+  "count": 249,
+  "references": [
+    {
+      "id": "AD",
+      "label": "Andorra",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AE",
+      "label": "United Arab Emirates",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AF",
+      "label": "Afghanistan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AG",
+      "label": "Antigua and Barbuda",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AI",
+      "label": "Anguilla",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AL",
+      "label": "Albania",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AM",
+      "label": "Armenia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AO",
+      "label": "Angola",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AQ",
+      "label": "Antarctica",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AR",
+      "label": "Argentina",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AS",
+      "label": "American Samoa",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AT",
+      "label": "Autriche",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AU",
+      "label": "Australia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AW",
+      "label": "Aruba",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AX",
+      "label": "Åland Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "AZ",
+      "label": "Azerbaijan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BA",
+      "label": "Bosnia and Herzegovina",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BB",
+      "label": "Barbados",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BD",
+      "label": "Bangladesh",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BE",
+      "label": "Belgique",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BF",
+      "label": "Burkina Faso",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BG",
+      "label": "Bulgaria",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BH",
+      "label": "Bahrain",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BI",
+      "label": "Burundi",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BJ",
+      "label": "Benin",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BL",
+      "label": "Saint Barthélemy",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BM",
+      "label": "Bermuda",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BN",
+      "label": "Brunei Darussalam",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BO",
+      "label": "Bolivia (Plurinational State of)",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BQ",
+      "label": "Bonaire, Sint Eustatius and Saba",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BR",
+      "label": "Brasil",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BS",
+      "label": "Bahamas",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BT",
+      "label": "Bhutan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BV",
+      "label": "Bouvet Island",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BW",
+      "label": "Botswana",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BY",
+      "label": "White Russia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "BZ",
+      "label": "Belize",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CA",
+      "label": "Canada",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CC",
+      "label": "Cocos (Keeling) Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CD",
+      "label": "Democratic Republic of the Congo",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CF",
+      "label": "Central African Republic",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CG",
+      "label": "Congo",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CH",
+      "label": "Suisse",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CI",
+      "label": "Côte d'Ivoire",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CK",
+      "label": "Cook Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CL",
+      "label": "Chile",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CM",
+      "label": "Cameroon",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CN",
+      "label": "China",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CO",
+      "label": "Colombia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CR",
+      "label": "Costa Rica",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CU",
+      "label": "Cuba",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CV",
+      "label": "Cabo Verde",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CW",
+      "label": "Curaçao",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CX",
+      "label": "Christmas Island",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CY",
+      "label": "Cyprus",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "CZ",
+      "label": "République Tchèque",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "DE",
+      "label": "Allemagne",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "DJ",
+      "label": "Djibouti",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "DK",
+      "label": "Denmark",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "DM",
+      "label": "Dominica",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "DO",
+      "label": "Dominican Republic",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "DZ",
+      "label": "Algeria",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "EC",
+      "label": "Ecuador",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "EE",
+      "label": "Estonia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "EG",
+      "label": "Egypt",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "EH",
+      "label": "Western Sahara",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ER",
+      "label": "Eritrea",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ES",
+      "label": "Espagne",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ET",
+      "label": "Ethiopia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "EU",
+      "label": "European Union",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "FI",
+      "label": "Finland",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "FJ",
+      "label": "Fiji",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "FK",
+      "label": "Falkland Islands (Malvinas)",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "FM",
+      "label": "Micronesia (Federated States of)",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "FO",
+      "label": "Faeroe Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "FR",
+      "label": "France",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GA",
+      "label": "Gabon",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GB",
+      "label": "United Kingdom",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GD",
+      "label": "Grenada",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GE",
+      "label": "Georgia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GF",
+      "label": "French Guiana",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GG",
+      "label": "Guernsey",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GH",
+      "label": "Ghana",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GI",
+      "label": "Gibraltar",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GL",
+      "label": "Greenland",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GM",
+      "label": "Gambia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GN",
+      "label": "Guinea",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GP",
+      "label": "Guadeloupe",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GQ",
+      "label": "Equatorial Guinea",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GR",
+      "label": "Greece",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GS",
+      "label": "South Georgia & South Sandwich Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GT",
+      "label": "Guatemala",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GU",
+      "label": "Guam",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GW",
+      "label": "Guinea-Bissau",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "GY",
+      "label": "Guyana",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "HK",
+      "label": "China, Hong Kong Special Administrative Region",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "HM",
+      "label": "Heard & McDonald Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "HN",
+      "label": "Honduras",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "HR",
+      "label": "Croatie",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "HT",
+      "label": "Haiti",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "HU",
+      "label": "Hungary",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ID",
+      "label": "Indonesia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IE",
+      "label": "Ireland",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IL",
+      "label": "Israel",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IM",
+      "label": "Isle of Man",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IN",
+      "label": "India",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IO",
+      "label": "British Indian Ocean Territory",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IQ",
+      "label": "Iraq",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IR",
+      "label": "Iran (Islamic Republic of)",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IS",
+      "label": "Iceland",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "IT",
+      "label": "Italie",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "JE",
+      "label": "Jersey",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "JM",
+      "label": "Jamaica",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "JO",
+      "label": "Jordan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "JP",
+      "label": "Japan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KE",
+      "label": "Kenya",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KG",
+      "label": "Kyrgyzstan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KH",
+      "label": "Cambodia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KI",
+      "label": "Kiribati",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KM",
+      "label": "Comoros",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KN",
+      "label": "Saint Kitts and Nevis",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KP",
+      "label": "Democratic People's Republic of Korea",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KR",
+      "label": "Republic of Korea",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KW",
+      "label": "Kuwait",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KY",
+      "label": "Cayman Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "KZ",
+      "label": "Kazakhstan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LA",
+      "label": "Lao People's Democratic Republic",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LB",
+      "label": "Lebanon",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LC",
+      "label": "Saint Lucia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LI",
+      "label": "Liechtenstein",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LK",
+      "label": "Sri Lanka",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LR",
+      "label": "Liberia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LS",
+      "label": "Lesotho",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LT",
+      "label": "Lituanie",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LU",
+      "label": "Luxembourg",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LV",
+      "label": "Lettonie",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "LY",
+      "label": "Libya",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MA",
+      "label": "Morocco",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MC",
+      "label": "Monaco",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MD",
+      "label": "Moldavia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ME",
+      "label": "Montenegro",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MF",
+      "label": "Saint Martin (French part)",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MG",
+      "label": "Madagascar",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MH",
+      "label": "Marshall Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MK",
+      "label": "Macedonia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ML",
+      "label": "Mali",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MM",
+      "label": "Myanmar",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MN",
+      "label": "Mongolia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MO",
+      "label": "China, Macao Special Administrative Region",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MP",
+      "label": "Northern Mariana Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MQ",
+      "label": "Martinique",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MR",
+      "label": "Mauritania",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MS",
+      "label": "Montserrat",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MT",
+      "label": "Malta",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MU",
+      "label": "Mauritius",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MV",
+      "label": "Maldives",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MW",
+      "label": "Malawi",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MX",
+      "label": "Mexico",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MY",
+      "label": "Malaysia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "MZ",
+      "label": "Mozambique",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NA",
+      "label": "Namibia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NC",
+      "label": "New Caledonia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NE",
+      "label": "Niger",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NF",
+      "label": "Norfolk Island",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NG",
+      "label": "Nigeria",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NI",
+      "label": "Nicaragua",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NL",
+      "label": "Pays-Bas",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NO",
+      "label": "Norway",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NP",
+      "label": "Nepal",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NR",
+      "label": "Nauru",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NU",
+      "label": "Niue",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "NZ",
+      "label": "New Zealand",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "OM",
+      "label": "Oman",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PA",
+      "label": "Panama",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PE",
+      "label": "Peru",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PF",
+      "label": "French Polynesia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PG",
+      "label": "Papua New Guinea",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PH",
+      "label": "Philippines",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PK",
+      "label": "Pakistan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PL",
+      "label": "Pologne",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PM",
+      "label": "Saint Pierre and Miquelon",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PN",
+      "label": "Pitcairn",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PR",
+      "label": "Puerto Rico",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PS",
+      "label": "State of Palestine",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PT",
+      "label": "Portugal",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PW",
+      "label": "Palau",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "PY",
+      "label": "Paraguay",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "QA",
+      "label": "Qatar",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "RE",
+      "label": "Réunion",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "RO",
+      "label": "Romania",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "RS",
+      "label": "Serbia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "RU",
+      "label": "Russie",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "RW",
+      "label": "Rwanda",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SA",
+      "label": "Saudi Arabia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SB",
+      "label": "Solomon Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SC",
+      "label": "Seychelles",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SD",
+      "label": "Sudan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SE",
+      "label": "Suède",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SG",
+      "label": "Singapore",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SH",
+      "label": "Saint Helena",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SI",
+      "label": "Slovénie",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SJ",
+      "label": "Svalbard and Jan Mayen Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SK",
+      "label": "Slovaquie",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SL",
+      "label": "Sierra Leone",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SM",
+      "label": "San Marino",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SN",
+      "label": "Senegal",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SO",
+      "label": "Somalia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SR",
+      "label": "Suriname",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SS",
+      "label": "South Sudan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ST",
+      "label": "Sao Tome and Principe",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SV",
+      "label": "El Salvador",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SX",
+      "label": "Sint Maarten (Dutch part)",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SY",
+      "label": "Syrian Arab Republic",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "SZ",
+      "label": "Swaziland",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TC",
+      "label": "Turks and Caicos Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TD",
+      "label": "Chad",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TF",
+      "label": "French Southern Territories",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TG",
+      "label": "Togo",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TH",
+      "label": "Thailand",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TJ",
+      "label": "Tajikistan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TK",
+      "label": "Tokelau",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TL",
+      "label": "Timor-Leste",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TM",
+      "label": "Turkmenistan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TN",
+      "label": "Tunisia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TO",
+      "label": "Tonga",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TR",
+      "label": "Turkey",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TT",
+      "label": "Trinidad and Tobago",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TV",
+      "label": "Tuvalu",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TW",
+      "label": "Taiwan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "TZ",
+      "label": "United Republic of Tanzania",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "UA",
+      "label": "UA",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "UG",
+      "label": "Uganda",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "US",
+      "label": "United States of America",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "UY",
+      "label": "Uruguay",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "UZ",
+      "label": "Uzbekistan",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "VA",
+      "label": "Vatican City",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "VC",
+      "label": "Saint Vincent and the Grenadines",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "VE",
+      "label": "Venezuela (Bolivarian Republic of)",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "VG",
+      "label": "British Virgin Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "VI",
+      "label": "United States Virgin Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "VN",
+      "label": "Viet Nam",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "VU",
+      "label": "Vanuatu",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "WF",
+      "label": "Wallis and Futuna Islands",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "WS",
+      "label": "Samoa",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "YE",
+      "label": "Yemen",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "YT",
+      "label": "Mayotte",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ZA",
+      "label": "South Africa",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ZM",
+      "label": "Zambia",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "ZW",
+      "label": "Zimbabwe",
+      "vehicleType": null,
+      "country": null
+    }
+  ]
+}

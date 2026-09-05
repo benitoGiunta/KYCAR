@@ -1,0 +1,550 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "BodyType",
+  "count": 66,
+  "references": [
+    {
+      "id": "1",
+      "label": "Citadine",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "101",
+      "label": "Sportive",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "102",
+      "label": "Sport touring",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "103",
+      "label": "Custom",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "104",
+      "label": "Touring",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "105",
+      "label": "Tuning",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "106",
+      "label": "Enduro",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "108",
+      "label": "Cross",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "109",
+      "label": "Sidecar",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "110",
+      "label": "Collection",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "111",
+      "label": "Trois Roues",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "112",
+      "label": "Scooter",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "113",
+      "label": "Moped",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "114",
+      "label": "Supermotard",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "115",
+      "label": "Pocket Bike",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "116",
+      "label": "Autres",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "117",
+      "label": "Roadster",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "118",
+      "label": "Quad",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "119",
+      "label": "Rallye",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "12",
+      "label": "Monospace",
+      "vehicleType": [
+        "C",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "120",
+      "label": "Trials Bike",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "121",
+      "label": "Compétition",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "122",
+      "label": "Routière",
+      "vehicleType": [
+        "B"
+      ],
+      "country": null
+    },
+    {
+      "id": "13",
+      "label": "Utilitaire",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "2",
+      "label": "Cabriolet",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "201",
+      "label": "Capucines",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "202",
+      "label": "Intégrale",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "203",
+      "label": "Motorhome",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "204",
+      "label": "Fourgon tôlé",
+      "vehicleType": [
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "205",
+      "label": "Cabine",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "206",
+      "label": "Mobile home + pick-up",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "207",
+      "label": "Autres caravanes",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "208",
+      "label": "Caravane",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "210",
+      "label": "Mobile Home",
+      "vehicleType": [
+        "N"
+      ],
+      "country": null
+    },
+    {
+      "id": "3",
+      "label": "Coupé",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "302",
+      "label": "Benne amovible",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "303",
+      "label": "Dépanneuse",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "304",
+      "label": "Porte-Benne",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "305",
+      "label": "Grue portée",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "306",
+      "label": "Transport auto",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "307",
+      "label": "Tri Bennes",
+      "vehicleType": [
+        "L",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "308",
+      "label": "Châssis",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "309",
+      "label": "Magasin Mobile",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "310",
+      "label": "Véhicule frigorifique",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "311",
+      "label": "Fourgon blindé",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "312",
+      "label": "Transport de boissons",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "313",
+      "label": "Transport de verre",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "314",
+      "label": "Nacelle",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "315",
+      "label": "Camionnette à toit surélevé",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "316",
+      "label": "Benne",
+      "vehicleType": [
+        "L",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "317",
+      "label": "Caisse fermée (ou tôlé)",
+      "vehicleType": [
+        "L",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "318",
+      "label": "Combi/Van",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "319",
+      "label": "Bétaillère",
+      "vehicleType": [
+        "L",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "320",
+      "label": "Camion plateau plat",
+      "vehicleType": [
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "321",
+      "label": "Benne à bâche",
+      "vehicleType": [
+        "L",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "4",
+      "label": "SUV/4x4/Pick-Up",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "401",
+      "label": "Transports frigorifique",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "407",
+      "label": "Remorque à voiture",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "408",
+      "label": "Remorque à moto",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "411",
+      "label": "Remorque à bateaux",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "419",
+      "label": "Plateau",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "420",
+      "label": "Benne ouverte",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "426",
+      "label": "Remorque professionnelle",
+      "vehicleType": [
+        "L"
+      ],
+      "country": null
+    },
+    {
+      "id": "5",
+      "label": "Break",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "6",
+      "label": "Berline",
+      "vehicleType": [
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "7",
+      "label": "Autres",
+      "vehicleType": [
+        "C",
+        "L",
+        "N",
+        "X"
+      ],
+      "country": null
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "OfferType",
+  "count": 6,
+  "references": [
+    {
+      "id": "D",
+      "label": "Voiture de démonstration",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "J",
+      "label": "Voiture récente",
+      "vehicleType": [
+        "C",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "N",
+      "label": "Neuf",
+      "vehicleType": [
+        "X",
+        "N",
+        "L",
+        "B",
+        "C"
+      ],
+      "country": null
+    },
+    {
+      "id": "O",
+      "label": "Ancêtre",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "S",
+      "label": "Pré-enregistrement",
+      "vehicleType": [
+        "B",
+        "C",
+        "N",
+        "X"
+      ],
+      "country": null
+    },
+    {
+      "id": "U",
+      "label": "Occasion",
+      "vehicleType": [
+        "X",
+        "N",
+        "L",
+        "B",
+        "C"
+      ],
+      "country": null
+    }
+  ]
+}

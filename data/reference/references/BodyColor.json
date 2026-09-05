@@ -1,0 +1,96 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "BodyColor",
+  "count": 14,
+  "references": [
+    {
+      "id": "1",
+      "label": "Beige",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "10",
+      "label": "Rouge",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "11",
+      "label": "Noir",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "12",
+      "label": "Argent",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "13",
+      "label": "Mauve",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "14",
+      "label": "Blanc",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "15",
+      "label": "Orange",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "16",
+      "label": "Or",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "2",
+      "label": "Bleu",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "3",
+      "label": "Brun",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "4",
+      "label": "Bronze",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "5",
+      "label": "Jaune",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "6",
+      "label": "Gris",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "7",
+      "label": "Vert",
+      "vehicleType": null,
+      "country": null
+    }
+  ]
+}

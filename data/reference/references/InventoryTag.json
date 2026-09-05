@@ -1,0 +1,180 @@
+{
+  "source": "https://listing-creation.api.autoscout24.com (API officielle AutoScout24 de création d'annonces, endpoints de lecture publics non authentifiés)",
+  "spec": "https://listing-creation.api.autoscout24.com/assets/openapi/spec.yml",
+  "marketplace": "be",
+  "culture": "fr-BE",
+  "fetchedAt": "2026-09-05T22:54:00.293Z",
+  "evidenceNote": "id et name sont RELEVÉS auprès de l'API. Les slugs sont EXTRAPOLÉS par slugification du libellé : l'API ne les expose pas.",
+  "referenceType": "InventoryTag",
+  "count": 28,
+  "references": [
+    {
+      "id": "asis",
+      "label": "Tel quel",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "bargain",
+      "label": "Bonne affaire",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign1",
+      "label": "Campagne 1",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign2",
+      "label": "Campagne 2",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign3",
+      "label": "Campagne 3",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign4",
+      "label": "Campagne 4",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign5",
+      "label": "Campagne 5",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign6",
+      "label": "Campagne 6",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign7",
+      "label": "Campagne 7",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign8",
+      "label": "Campagne 8",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "campaign9",
+      "label": "Campagne 9",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "clearance",
+      "label": "En solde",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "commercial",
+      "label": "Commercial",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "custom",
+      "label": "Personnalisé",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "damaged",
+      "label": "Endommagé",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "demo",
+      "label": "Démo",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "electric",
+      "label": "Électrique",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "featured",
+      "label": "En vedette",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "fleet",
+      "label": "Flotte",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "hybrid",
+      "label": "Hybride",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "luxury",
+      "label": "Luxe",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "noaccident",
+      "label": "Aucun accident",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "pricenotshown",
+      "label": "Prix non affiché",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "sale",
+      "label": "En vente",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "singleowner",
+      "label": "Propriétaire unique",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "special",
+      "label": "Spécial",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "truck",
+      "label": "Camion",
+      "vehicleType": null,
+      "country": null
+    },
+    {
+      "id": "upgrade",
+      "label": "Surclassement",
+      "vehicleType": null,
+      "country": null
+    }
+  ]
+}
