@@ -175,7 +175,7 @@ entrée ferait de KYCAR un miroir d'une boîte noire au lieu d'un détecteur ind
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `listingId` | Identifiant d'annonce | `chaîne(36)` UUID | 1 | OBL | `listings[].id` (OBSERVÉ) ; `OAS:BaseSharedAllSellersNoImages.id` | — | minuscules, forme canonique 8-4-4-4-12 | doit correspondre à `^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$` ; sinon REJET | REJET |
 | 2 | `listingUrl` | Lien vers l'annonce d'origine | `chaîne(512)` URL | 1 | OBL | `listings[].details.webPage` (OBSERVÉ) | — | schéma forcé `https`, fragment et paramètres de campagne (`utm_*`, `cldtidx`, `search_id`, `query_id`) supprimés | hôte doit appartenir au domaine `autoscout24.<tld>` ; sinon REJET | REJET |
-| 3 | `snapshotId` | Identifiant du snapshot | `chaîne(32)` | 1 | DER | `DÉRIVÉ : identifiant du lot d'ingestion, `<marketplace>-<capturedAt en YYYYMMDDTHHmmssZ>`` | — | — | — | REJET |
+| 3 | `snapshotId` | Identifiant du snapshot | `chaîne(32)` | 1 | DER | DÉRIVÉ : identifiant du lot d'ingestion, de la forme `<marketplace>-<capturedAt en YYYYMMDDTHHmmssZ>` | — | — | — | REJET |
 | 4 | `observedAt` | Date d'observation | `timestamp` UTC | 1 | DER | `DÉRIVÉ : horodatage UTC du début du lot d'ingestion` | — | ISO-8601 à la seconde, suffixe `Z` | ≤ maintenant ; sinon REJET du snapshot entier | REJET |
 | 5 | `marketplace` | Place de marché d'origine | `énum` | 1 | OBL | `DÉRIVÉ : domaine interrogé` ; `OAS:Marketplace` | `KYCAR_MARKETPLACE` | minuscules | ∈ vocabulaire ; sinon REJET | REJET |
 | 6 | `vehicleType` | Type de véhicule | `énum` | 1 | OBL | `listings[].type` (OBSERVÉ, `[À CONFIRMER]`) ; `OAS:VehicleTypeId` | `KYCAR_VEHICLE_TYPE` | majuscule | doit valoir `C` ; sinon REJET | REJET |
@@ -737,3 +737,848 @@ le seuil de 5 est la pratique statistique courante de suppression des petites ce
 **EX-DATA-58.** Un champ classé exclusivement en « diagnostic » est chargé en mémoire mais n'est
 pas exposé dans les écrans du mode 1 ni du mode 2. Il reste accessible par l'export d'annonces et
 par le rapport d'ingestion.
+
+---
+
+# Partie B — Modèle d'agrégation
+
+## B.0 Notations
+
+**EX-DATA-59.** Définitions, valables pour toute la partie B.
+
+| Symbole | Définition |
+|---|---|
+| `S` | le snapshot : l'ensemble des annonces retenues après ingestion |
+| `σ` | la sélection : la conjonction des filtres posés par l'utilisateur, un prédicat sur une annonce |
+| `Σ = { l ∈ S : σ(l) }` | la population sélectionnée |
+| `N = |Σ|` | l'**effectif** de la sélection ; seul chiffre calculé sur toute la population |
+| `m` | une métrique, `m ∈ { price, year, mileage }`, projetant une annonce sur `priceEur`, `firstRegistrationYear`, `mileageKm` |
+| `V_m(A)` | l'**échantillon valide** de `m` sur une population `A` : le multiensemble des `m(l)` pour `l ∈ A` telles que `m(l)` est connue et non exclue par EX-DATA-60 |
+| `n_m(A) = |V_m(A)|` | l'effectif valide de la métrique `m` |
+| `V_m^↑` | l'échantillon valide trié par ordre croissant, `x_1 ≤ x_2 ≤ … ≤ x_n` |
+| `Q(V, p)` | le quantile de niveau `p` de `V`, défini en B.1 |
+
+**EX-DATA-60 — table des exclusions par métrique.** Un effectif et une statistique ne portent
+jamais sur la même population : chaque statistique porte son propre dénominateur.
+
+| Métrique `m` | Une annonce est exclue de `V_m` si |
+|---|---|
+| `price` | `priceStatus ≠ QUOTED` **ou** `ingestFlags ∋ SUSPECT_PRICE_FLOOR` |
+| `year` | `firstRegistrationYear` est `INCONNU` |
+| `mileage` | `mileageKm` est `INCONNU` **ou** `ingestFlags ∋ SUSPECT_ZERO_MILEAGE` **ou** `ingestFlags ∋ MILEAGE_OUT_OF_RANGE` |
+
+**EX-DATA-61.** Toute statistique publiée est accompagnée de trois nombres inséparables : la
+valeur, son effectif `n_m`, et sa couverture `coverage_m = n_m / N` arrondie à 4 décimales.
+Publier une statistique sans son effectif est interdit.
+**Justification** : une médiane de prix sur 8 annonces et une médiane sur 1 281 annonces
+s'affichent identiquement mais ne valent pas la même chose ; l'effectif est la seule information
+qui permette au lecteur de trancher.
+
+## B.1 Le quantile — définition unique et non négociable
+
+**EX-DATA-62.** Tout quantile de KYCAR est le **quantile de type 7** (interpolation linéaire entre
+statistiques d'ordre, convention par défaut de R et de NumPy). Pour un échantillon trié
+`x_1 ≤ … ≤ x_n` et `p ∈ [0, 1]` :
+
+```
+h = (n − 1) · p + 1
+i = plancher(h)
+f = h − i
+Q(V, p) = x_1                        si n = 1
+Q(V, p) = x_i                        si f = 0 ou i = n
+Q(V, p) = x_i + f · (x_{i+1} − x_i)  sinon
+```
+
+**Justification** : il existe neuf définitions courantes du quantile empirique, qui divergent sur
+les petits échantillons ; en imposer une par sa formule est la seule façon de garantir que deux
+implémentations correctes des exigences produisent le même quartile.
+
+**EX-DATA-63.** `Q` est calculé en **double précision** sur l'échantillon valide, sans arrondi
+intermédiaire. L'arrondi n'a lieu qu'à la présentation, selon EX-DATA-6 et la table B.2.
+
+## B.2 Statistiques descriptives par sélection
+
+**EX-DATA-64.** Pour toute sélection `Σ` et toute métrique `m`, le bloc statistique est composé
+des treize valeurs suivantes, sans exception ni variante.
+
+| Statistique | Formule | Défini si | Arrondi de présentation |
+|---|---|---|---|
+| `count` | `N = |Σ|` | toujours | entier |
+| `n` | `n_m(Σ)` | toujours | entier |
+| `coverage` | `n_m / N` | `N ≥ 1` | 4 décimales |
+| `min` | `x_1` | `n ≥ 1` | prix, km, année : entier |
+| `max` | `x_n` | `n ≥ 1` | idem |
+| `p05` | `Q(V_m, 0,05)` | `n ≥ 1` | prix : euro entier · km : entier · année : **plancher** |
+| `q1` | `Q(V_m, 0,25)` | `n ≥ 1` | idem |
+| `median` | `Q(V_m, 0,50)` | `n ≥ 1` | idem |
+| `q3` | `Q(V_m, 0,75)` | `n ≥ 1` | idem |
+| `p95` | `Q(V_m, 0,95)` | `n ≥ 1` | prix : euro entier · km : entier · année : **plafond** |
+| `mean` | `(1/n) · Σ x_i` | `n ≥ 1` | prix et km : entier · année : 1 décimale |
+| `sd` | `sqrt( (1/(n−1)) · Σ (x_i − mean)² )` | `n ≥ 2`, sinon **`null`** | prix et km : entier · année : 1 décimale |
+| `iqr` | `q3 − q1` | `n ≥ 1` | comme `q1` |
+
+**EX-DATA-65.** L'écart-type est celui **d'échantillon**, dénominateur `n − 1` (correction de
+Bessel), et vaut **`null`** — jamais `0` — pour `n = 1`.
+**Justification** : un écart-type de `0` affirme que la dispersion est nulle, ce qui est faux ;
+`null` affirme qu'elle est inconnue, ce qui est vrai.
+
+**EX-DATA-66.** L'écart-type est calculé par l'**algorithme de Welford** en un passage, et non par
+la formule `E[X²] − E[X]²`.
+**Justification** : sur des prix de l'ordre de 10⁵ €, la formule des moments perd assez de chiffres
+significatifs en double précision pour produire une variance négative sur des échantillons peu
+dispersés, donc une racine carrée de nombre négatif.
+
+**EX-DATA-67 — arrondi des bornes d'année.** Un quantile d'année est un réel ; la borne basse
+affichée est son **plancher**, la borne haute son **plafond**.
+**Justification** : « de 2016,4 à 2021,6 » n'a pas de sens, et arrondir au plus proche produirait
+une fourchette plus étroite que la réalité observée, alors que plancher-plafond garantit que la
+fourchette affichée contient tous les millésimes retenus par les percentiles.
+
+## B.3 Agrégat par marque — `MakeAggregate`
+
+**EX-DATA-68.** Pour une sélection `Σ`, l'ensemble des agrégats par marque est `{ A_k : k ∈
+makeIds(Σ) }` avec `A_k = { l ∈ Σ : l.makeId = k }`. Un agrégat n'est émis que si `|A_k| ≥ 1`.
+
+| Champ | Formule | Type |
+|---|---|---|
+| `makeId`, `makeName` | clé de groupe | entier, chaîne |
+| `listingCount` | `|A_k|` | entier |
+| `modelCount` | `|{ l.modelId : l ∈ A_k, l.modelId ≠ INCONNU }|` | entier |
+| `modelUnresolvedCount` | `|{ l ∈ A_k : l.modelId = INCONNU }|` | entier |
+| `price`, `year`, `mileage` | bloc statistique complet (EX-DATA-64) sur `V_price(A_k)`, `V_year(A_k)`, `V_mileage(A_k)` | 3 × 13 valeurs |
+| `priceQuotedCount`, `priceOnRequestCount`, `priceMissingCount` | comptages | entiers |
+| `displayRange.price` | `[ p05, p95 ]` du bloc `price` | couple |
+| `displayRange.year` | `[ plancher(p05), plafond(p95) ]` du bloc `year` | couple |
+| `displayRange.mileage` | `[ p05, p95 ]` du bloc `mileage` | couple |
+| `rawRange.{price,year,mileage}` | `[ min, max ]` de chaque bloc | 3 couples |
+| `outlierCount.iqr`, `outlierCount.model` | § B.6 | entiers |
+| `adTierDistribution` | effectif par code de `KYCAR_AD_TIER` | 5 entiers |
+| `coverageWarning` | `{ price, year, mileage, samplingBias }` | 4 booléens |
+| `rank` | position dans l'ordre de tri par défaut, 1-indexée | entier |
+
+**EX-DATA-69 — décision sur les bornes de fourchette.** La fourchette **affichée** d'une marque ou
+d'un modèle est `[p05, p95]`, donc **robuste**. La fourchette **brute** `[min, max]` est calculée,
+stockée et accessible au second plan (info-bulle, panneau de détail, export), mais n'est jamais la
+valeur mise en avant.
+**Justification** : le minimum brut d'un agrégat de marque est systématiquement un prix plancher de
+contournement ou une épave — la source annonce elle-même 119 € comme minimum d'occasion — et une
+carte affichant « Opel : de 119 € à 289 000 € » décrit les queues de distribution et non le
+marché, alors que `[p05, p95]` décrit l'offre où se trouvent 90 % des annonces.
+
+**EX-DATA-70 — ordre de tri par défaut.** Les agrégats de marque sont triés par `listingCount`
+**décroissant**, égalités départagées par `makeName` **croissant** en comparaison **point de code
+Unicode** sur le libellé normalisé NFC passé en majuscules, égalités résiduelles départagées par
+`makeId` croissant.
+**Justification** : une comparaison sensible à la locale classerait `Škoda` avant ou après `Suzuki`
+selon la machine, rendant l'ordre des cartes non reproductible et non testable.
+
+**EX-DATA-71.** `modelCount` compte les modèles **distincts présents dans la sélection**, jamais
+les modèles du référentiel.
+**Justification** : le mode 1 répond à « ce que le marché propose à ces conditions », donc un modèle
+absent de la sélection n'est pas une offre.
+
+## B.4 Agrégat par couple marque/modèle — `ModelAggregate`
+
+**EX-DATA-72.** Pour une sélection `Σ`, l'ensemble des agrégats par modèle est `{ B_{k,j} : (k,j)
+∈ modelKeys(Σ) }` avec `B_{k,j} = { l ∈ Σ : l.makeId = k ∧ l.modelId = j }`, la clé réservée
+`j = 0` (« Modèle non identifié ») portant les annonces dont `modelId` est `INCONNU`
+(EX-DATA-20). Le contenu est **strictement identique** à celui de `MakeAggregate`, aux différences
+suivantes près :
+
+| Différence | Détail |
+|---|---|
+| clé | `(makeId, modelId)` au lieu de `makeId` |
+| champs supprimés | `modelCount`, `modelUnresolvedCount` |
+| champs ajoutés | `modelName` · `versionSampleCount = |{ l ∈ B : l.modelVersionClean ≠ INCONNU }|` · `topTrimTokens` : les 5 jetons de `trimTokens` les plus fréquents avec leur effectif, égalités départagées par ordre lexicographique croissant |
+| ordre de tri par défaut | `listingCount` décroissant, puis `modelName` croissant (règle de comparaison d'EX-DATA-70), puis `modelId` croissant ; la clé `j = 0` est **toujours placée en dernier** quel que soit son effectif |
+
+**Justification du placement en dernier de la clé `j = 0`** : « Modèle non identifié » est un
+constat de qualité de donnée et non une offre du marché ; le laisser remonter en tête d'une carte
+de marque à fort taux de non-résolution masquerait les vrais modèles.
+
+**EX-DATA-73.** Un `ModelAggregate` est émis pour tout couple d'effectif au moins 1, sans seuil de
+masquage. Le choix d'en afficher un sous-ensemble relève de la spécification d'écran ; le champ
+`rank` existe pour que l'écran tranche sans recalculer.
+**Justification** : masquer au niveau du modèle d'agrégation rendrait la somme des effectifs des
+modèles inférieure à l'effectif de la marque, incohérence qu'aucun écran ne pourrait rattraper.
+
+**EX-DATA-74 — cohérence de sommation.** Pour toute sélection `Σ` : `Σ_k listingCount(A_k) = N`,
+et pour toute marque `k` : `Σ_j listingCount(B_{k,j}) = listingCount(A_k)`. De même pour toute
+métrique `m` : `Σ_k n_m(A_k) = n_m(Σ)`.
+**Justification** : c'est l'invariant qui prouve qu'aucune annonce n'a été perdue ni comptée deux
+fois par le moteur d'agrégation, et il est directement exécutable comme test du lot D4.
+
+## B.5 Buckets de distribution — règle de binning
+
+**EX-DATA-75 — algorithme unique.** Les trois histogrammes (prix, kilométrage, année) sont produits
+par **une seule** fonction `BIN(V, W, T, O)`, paramétrée différemment. Toute autre règle de
+découpage est interdite. `V` est un échantillon valide, `W` une échelle finie de largeurs
+autorisées, `T` le nombre de bins visé, `O` l'origine de la grille.
+
+```
+BIN(V, W, T, O) :
+  n ← |V|
+  si n = 0 :
+      retourner { status: EMPTY, binWidth: null, bins: [], n: 0 }
+  a ← Q(V, 0,01)
+  b ← Q(V, 0,99)
+  raw ← (b − a) / T
+  w ← le plus petit u ∈ W tel que u ≥ raw ; s'il n'en existe aucun, w ← max(W)
+  kLo ← plancher((a − O) / w)
+  kHi ← plancher((b − O) / w)
+  pour k de kLo à kHi :
+      bins[k] ← { index: k, lo: O + k·w, hi: O + (k+1)·w, open: faux, count: 0 }
+  under ← { index: kLo − 1, lo: −∞,            hi: O + kLo·w, open: vrai, count: 0 }
+  over  ← { index: kHi + 1, lo: O + (kHi+1)·w, hi: +∞,        open: vrai, count: 0 }
+  pour chaque x ∈ V :
+      k ← plancher((x − O) / w)
+      si k < kLo         : under.count ← under.count + 1
+      sinon si k > kHi   : over.count  ← over.count  + 1
+      sinon              : bins[k].count ← bins[k].count + 1
+  sortie ← (under.count > 0 ? [under] : [])
+        ++ [ bins[kLo] … bins[kHi] ]
+        ++ (over.count  > 0 ? [over]  : [])
+  retourner { status: OK, binWidth: w, bins: sortie, n: n,
+              lowConfidence: (n < 12),
+              underflowCount: under.count, overflowCount: over.count }
+```
+
+**EX-DATA-76 — appartenance à un bin.** Tout bin fermé est l'intervalle **semi-ouvert à droite**
+`[lo, hi)`. Le bin de débordement bas est `(−∞, hi)`, le bin de débordement haut est `[lo, +∞)`.
+Ces trois définitions couvrent `ℝ` sans recouvrement : toute valeur appartient à exactement un bin.
+**Justification** : sans convention explicite, une valeur égale à une borne tombe dans un bin ou
+dans son voisin selon l'implémentation, produisant deux histogrammes différents tous deux
+« corrects ».
+
+**EX-DATA-77 — paramétrage.** L'échelle de largeurs est **fixe** ; la largeur retenue est
+**adaptative** au sein de cette échelle.
+
+| Histogramme | `V` | `W` (largeurs autorisées) | `T` | `O` |
+|---|---|---|---:|---:|
+| Prix | `V_price(Σ)` | `{100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000}` (EUR) | 24 | 0 |
+| Kilométrage | `V_mileage(Σ)` | `{1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000}` (km) | 24 | 0 |
+| Année | `V_year(Σ)` | `{1}` (an) | 24 | 0 |
+
+**Justification du choix « largeur adaptative sur échelle fixe »** : une largeur strictement fixe
+est inutilisable, car la même règle doit décrire une sélection « Dacia sous 8 000 € » (étendue
+6 000 €) et une sélection « Porsche » (étendue 250 000 €) — à 1 000 € de largeur, la première donne
+6 bins et la seconde 250. Une largeur entièrement libre `(b−a)/T` donnerait en revanche des bornes
+comme 4 037 €, illisibles et instables au moindre ajout d'annonce. L'échelle fixe de largeurs
+rondes réconcilie les deux : lisible, stable par paliers, et adaptée à l'étendue.
+
+**Justification de `T = 24`** : 24 barres tiennent dans la largeur d'un écran à ≈ 30 px par barre ;
+au-delà de 40 les barres deviennent illisibles, en dessous de 12 la forme de la distribution
+disparaît.
+
+**Justification de l'écrêtage à `[Q(0,01), Q(0,99)]`** : sans lui, un seul véhicule de collection à
+400 000 € dans une sélection de Corsa forcerait `w = 25 000 €` et écraserait toute la distribution
+réelle dans deux barres.
+
+**Justification de `W = {1}` pour l'année** : un bin d'année de largeur autre que 1 an mélangerait
+des millésimes, alors que le millésime est l'unité naturelle de raisonnement de l'utilisateur ;
+l'écrêtage à `[Q(0,01), Q(0,99)]` suffit à empêcher qu'une ancêtre de 1968 crée 50 bins vides,
+puisqu'elle tombe dans le bin de débordement bas.
+
+**EX-DATA-78 — bins vides intérieurs.** Un bin fermé d'effectif nul situé entre `kLo` et `kHi` est
+**conservé** dans la sortie, avec `count = 0`.
+**Justification** : supprimer un bin vide déformerait l'axe et donnerait à voir une distribution
+continue là où il y a un trou, alors que le trou est précisément l'information — une année sans
+offre ou une tranche de prix déserte est un fait de marché.
+
+**EX-DATA-79 — bins de débordement.** Les bins ouverts ne sont émis que si leur effectif est
+strictement positif, portent `open: true`, et **ne sont jamais représentés à l'échelle** : ils
+occupent la même largeur graphique qu'un bin fermé et affichent leur borne finie suivie de `−` ou
+`+`. Leur effectif est aussi publié séparément dans `underflowCount` et `overflowCount`.
+**Justification** : un bin `[150 000 €, +∞)` dessiné à l'échelle serait infiniment large ; le
+dessiner à largeur normale sans le marquer laisserait croire à une tranche de 5 000 €.
+
+**EX-DATA-80 — effectif de 1 et petits effectifs.** Pour `n = 1`, `a = b`, donc `raw = 0` et
+`w = min(W)` : l'algorithme produit exactement **un** bin fermé contenant l'unique valeur. Pour
+`n < 12`, la sortie porte `lowConfidence: true` et l'écran accompagne l'histogramme d'une mention
+d'effectif insuffisant.
+**Justification du seuil 12** : c'est le seuil de la méthode M1 (§ B.6.1) ; en dessous, chacun des
+quartiles repose sur moins de trois observations et la forme affichée est du bruit.
+
+**EX-DATA-81 — sélection vide.** Pour `n = 0` : `status = EMPTY`, `bins = []`, `binWidth = null`.
+Aucun bin fictif n'est émis, aucune largeur par défaut n'est inventée.
+
+**EX-DATA-82 — déterminisme.** `BIN` ne consomme aucune source d'aléa, aucune horloge, aucune
+locale, et aucun ordre d'itération dépendant de l'implémentation : sa sortie est fonction du seul
+multiensemble `V` et de ses trois paramètres. Un test du lot D4 vérifie que deux exécutions sur
+deux permutations du même échantillon produisent des sorties identiques octet à octet.
+**Justification** : c'est la traduction exécutable de l'exigence « deux implémentations correctes
+doivent produire exactement les mêmes bins ».
+
+**EX-DATA-83 — entité produite.** Chaque bin est une instance de `DistributionBucket` :
+`{ snapshotId, selectionHash, metric, index, lo, hi, open, count, share }` avec
+`share = count / n` arrondi à 4 décimales. La somme des `count` sur les bins émis vaut exactement
+`n_m`.
+
+## B.6 Détection d'outliers
+
+**EX-DATA-84 — principe.** KYCAR retient **deux méthodes de détection indépendantes** et **une
+référence externe de contrôle**, jamais fusionnées en un score unique opaque.
+
+| Identifiant | Nature | Rôle |
+|---|---|---|
+| **M1** | barrières de Tukey sur le logarithme du prix | détecteur, applicable dès `n ≥ 12` |
+| **M2** | écart robuste au prix attendu par un modèle `prix ~ f(année, kilométrage)` | détecteur, applicable dès `n ≥ 30` |
+| **M3** | comparaison à `priceEvaluationCategory` d'AutoScout24 | **contrôle**, jamais détecteur (EX-DATA-13) |
+
+**EX-DATA-85 — vocabulaire `KYCAR_OUTLIER_FLAG`, 6 codes.** `LOW_PRICE_IQR`, `HIGH_PRICE_IQR`,
+`LOW_PRICE_MODEL`, `HIGH_PRICE_MODEL`, `INSUFFICIENT_DATA`, `INSUFFICIENT_SPREAD`. Une annonce peut
+porter plusieurs drapeaux ; détectée par les deux méthodes du même côté, elle porte les deux
+drapeaux correspondants.
+
+**EX-DATA-86 — cellule d'homogénéité.** Les deux méthodes comparent une annonce à une **cellule**
+`C`, sous-ensemble de la sélection `Σ` et non du snapshot entier. La cellule est choisie par la
+première règle satisfaite :
+
+| Rang | Cellule | Condition d'usage | Méthodes |
+|---:|---|---|---|
+| 1 | `C₁ = { l ∈ Σ : makeId = k ∧ modelId = j ∧ firstRegistrationYear = y }` | `n_price(C₁) ≥ 12` | M1 seule |
+| 2 | `C₂ = { l ∈ Σ : makeId = k ∧ modelId = j }` | `n_price(C₂) ≥ 12` (M1) ou `≥ 30` (M2) | M1, M2 |
+| 3 | `C₃ = Σ` | `n_price(Σ) ≥ 12` (M1) ou `≥ 30` (M2) | M1, M2 |
+| — | aucune | sinon | drapeau `INSUFFICIENT_DATA` |
+
+M1 essaie `C₁`, puis `C₂`, puis `C₃`. M2 **n'essaie jamais `C₁`** et démarre à `C₂`.
+**Justification du départ de M2 à `C₂`** : M2 régresse sur l'année, or `C₁` fixe l'année, donc la
+variance de ce régresseur y est nulle par construction et son coefficient inestimable.
+**Justification de la cellule prise dans `Σ` et non dans `S`** : les filtres de l'utilisateur
+définissent le marché auquel il compare — signaler comme bon marché une berline diesel au regard
+d'un snapshot national alors que l'utilisateur a filtré sur les coupés essence répondrait à une
+autre question que la sienne.
+
+**EX-DATA-87.** La cellule retenue et son effectif sont publiés avec chaque verdict :
+`cellLevel ∈ {MODEL_YEAR, MODEL, SELECTION}` et `cellSize`.
+**Justification** : un écart de −30 % au prix attendu ne vaut pas la même chose mesuré contre
+14 Corsa de 2017 ou contre 40 000 véhicules toutes marques confondues.
+
+### B.6.1 M1 — barrières de Tukey sur le logarithme du prix
+
+**EX-DATA-88.** Soit `C` la cellule retenue et `L = { ln(p) : p ∈ V_price(C) }`.
+
+```
+Q1  = Q(L, 0,25)
+Q3  = Q(L, 0,75)
+IQR = Q3 − Q1
+si IQR = 0 : aucun drapeau, verdict INSUFFICIENT_SPREAD
+lowFence  = exp( Q1 − 1,5 · IQR )
+highFence = exp( Q3 + 1,5 · IQR )
+pour une annonce de prix p :
+    LOW_PRICE_IQR   si p < lowFence
+    HIGH_PRICE_IQR  si p > highFence
+score publié :  zIqr = ( ln p − Q(L, 0,50) ) / ( IQR / 1,349 )
+```
+
+Grandeurs publiées par verdict : `lowFence`, `highFence`, `zIqr`.
+
+**Justification de la transformation logarithmique** : les prix de véhicules d'occasion sont
+asymétriques à droite et se comparent multiplicativement (« 20 % moins cher »), pas
+additivement. Sur prix bruts, `Q1 − 1,5·IQR` est fréquemment négatif, la barrière basse ne se
+déclenche alors jamais et le côté bas — le seul qui intéresse un chasseur d'opportunités — devient
+indétectable, tandis que la barrière haute signale des dizaines de véhicules simplement haut de
+gamme.
+
+**Justification de la constante 1,5** : c'est la constante canonique de Tukey ; sur un échantillon
+log-normal elle signale environ 0,7 % des observations par queue, soit une liste de candidats
+exploitable (≈ 9 annonces pour 1 281 Corsa belges) plutôt qu'une liste de plusieurs centaines.
+
+**Justification du facteur 1,349** : sous hypothèse gaussienne `IQR ≈ 1,349·σ`, donc `IQR / 1,349`
+est une estimation robuste de l'écart-type et `zIqr` s'exprime sur la même échelle que le score de
+M2, ce qui rend les deux scores comparables et classables ensemble.
+
+**EX-DATA-89.** `IQR = 0` (au moins la moitié de la cellule au même prix) donne
+`INSUFFICIENT_SPREAD` et **aucun** drapeau, y compris pour une annonce très éloignée de ce prix
+unique.
+**Justification** : avec une barrière de largeur nulle, toute valeur différente de la médiane
+serait signalée, ce qui ferait de la méthode un détecteur d'égalité et non de dispersion.
+
+### B.6.2 M2 — écart au prix attendu par un modèle prix ~ f(année, kilométrage)
+
+**EX-DATA-90 — spécification du modèle.** Sur la cellule `C` (rang 2 ou 3), soit `F` l'ensemble
+d'ajustement : les annonces de `C` dont le prix, l'année et le kilométrage sont tous trois valides
+au sens d'EX-DATA-60. `|F| ≥ 30` est requis, sinon `INSUFFICIENT_DATA`.
+
+```
+pour i ∈ F :
+    y_i  = ln(p_i)
+    ȳear = (1/|F|) · Σ firstRegistrationYear_i
+    x1_i = firstRegistrationYear_i − ȳear
+    x2_i = mileageKm_i / 10000
+modèle :  y_i = β0 + β1·x1_i + β2·x2_i + ε_i
+ajustement : moindres carrés ordinaires, équations normales
+             ( XᵗX + λI ) β̂ = Xᵗy    avec λ = 10⁻⁹ · trace(XᵗX) / 3
+             résolution par factorisation de Cholesky
+```
+
+**Justification du centrage de l'année et de l'échelle en 10 000 km** : sans centrage, la colonne
+des années (≈ 2 020) et la constante sont quasi colinéaires et le système est mal conditionné en
+double précision ; l'échelle en dizaines de milliers de kilomètres place les trois colonnes dans le
+même ordre de grandeur et rend `β2` directement lisible comme « variation de log-prix par
+10 000 km ».
+
+**Justification du terme de régularisation `λ`** : il rend le système défini positif quelle que
+soit l'entrée, donc la solution existe et est unique pour tout échantillon, y compris pathologique,
+avec un biais très inférieur à la précision d'affichage (l'euro).
+
+**Justification de la forme log-linéaire** : la dépréciation d'un véhicule est approximativement
+multiplicative et constante par unité de temps et de distance, ce qu'un modèle log-linéaire capture
+exactement avec trois paramètres ; un modèle plus riche serait impossible à ajuster de façon stable
+sur les cellules de 30 à 100 annonces qui constituent le cas courant.
+
+**EX-DATA-91 — dégénérescence des régresseurs.** Si `max(x1) = min(x1)`, le régresseur `x1` est
+retiré ; si `max(x2) = min(x2)`, `x2` est retiré ; si les deux sont retirés, M2 n'est pas
+applicable et le verdict est `INSUFFICIENT_SPREAD`. Le retrait est décidé **avant** l'ajustement,
+sur ce test d'égalité exact, jamais sur un seuil de variance.
+**Justification** : un seuil de variance introduirait une constante arbitraire dont dépendrait le
+nombre de paramètres du modèle, et deux implémentations divergeraient sur les échantillons
+frontaliers.
+
+**EX-DATA-92 — score robuste.** Soit `r_i = y_i − ŷ_i` le résidu.
+
+```
+m_r = médiane(r)
+MAD = médiane( |r_i − m_r| )
+s   = 1,4826 · MAD
+si s = 0 : verdict INSUFFICIENT_SPREAD, aucun drapeau
+z_i = ( r_i − m_r ) / s
+    LOW_PRICE_MODEL   si z_i ≤ −2,5
+    HIGH_PRICE_MODEL  si z_i ≥ +2,5
+prix attendu       :  p̂_i = exp( ŷ_i + m_r )
+écart relatif      :  δ_i = p_i / p̂_i − 1
+```
+
+**Justification de l'échelle par MAD plutôt que par écart-type des résidus** : l'écart-type des
+résidus est lui-même gonflé par les outliers que la méthode cherche, ce qui les masque (effet de
+masquage) ; le MAD a un point de rupture de 50 % et reste insensible à eux. Le facteur 1,4826 rend
+`s` comparable à un écart-type sous hypothèse gaussienne.
+
+**Justification du seuil 2,5** : sur des résidus gaussiens, `|z| ≥ 2,5` couvre 1,24 % des
+observations, soit ≈ 0,62 % par queue — comparable à M1, donc les deux méthodes produisent des
+listes de candidats de tailles voisines et leur désaccord est informatif. Le seuil 3,0 donnerait
+une espérance de 0,08 annonce signalée sur une cellule de 30, méthode inerte au cas courant ; le
+seuil 2,0 en signalerait 4,6 %, liste trop longue pour être une liste d'opportunités.
+
+**EX-DATA-93 — ajustement en exactement deux passes.** Passe 1 : ajustement sur `F`, calcul de `z`.
+Passe 2 : ré-ajustement sur `F' = { i ∈ F : |z_i| < 3,5 }`, puis recalcul de `m_r`, `s` et de tous
+les `z_i` **pour l'ensemble `F` complet** à partir des coefficients de la passe 2. Aucune itération
+supplémentaire, aucun critère de convergence. Si `|F'| < 30`, la passe 2 est annulée et les
+résultats de la passe 1 sont conservés.
+**Justification** : une seule passe laisse les coefficients tirés par les outliers eux-mêmes ; une
+itération jusqu'à convergence rend le résultat dépendant du critère d'arrêt et du nombre maximal
+d'itérations, donc non reproductible. Deux passes exactement suppriment l'essentiel du biais et
+restent spécifiables sans ambiguïté.
+
+### B.6.3 Score d'opportunité et classement
+
+**EX-DATA-94.** Le score publié pour le classement des opportunités est :
+
+```
+opportunityScore = −z_i       si M2 est applicable à l'annonce
+opportunityScore = −zIqr_i    sinon, si M1 est applicable
+opportunityScore = null       sinon
+```
+
+Les candidats sont classés par `opportunityScore` **décroissant**, égalités départagées par
+`priceEur` croissant, puis par `listingId` croissant en comparaison octet à octet sur la forme
+canonique minuscule.
+**Justification de l'unification des deux échelles** : `z` et `zIqr` sont tous deux exprimés en
+écarts-types robustes (EX-DATA-88), donc directement comparables ; sans cette normalisation, un
+classement mêlant les deux méthodes trierait sur deux unités différentes.
+**Justification de la préférence donnée à M2** : M2 tient compte de l'année et du kilométrage, donc
+un écart qu'il signale est un écart de prix à caractéristiques comparables, alors que M1 signale
+aussi un véhicule simplement plus vieux ou plus roulé que la médiane de sa cellule.
+
+**EX-DATA-95.** Une annonce de verdict `INSUFFICIENT_DATA` ou `INSUFFICIENT_SPREAD` n'est **jamais**
+classée parmi les opportunités, et n'est pas non plus comptée comme « non anormale » : l'écran
+publie séparément `outlierEvaluatedCount` et `outlierNotEvaluatedCount`, dont la somme vaut
+`priceQuotedCount`.
+**Justification** : « pas d'anomalie détectée » et « anomalie non évaluable » sont deux états
+distincts, et les confondre présenterait une absence de mesure comme une mesure rassurante.
+
+### B.6.4 M3 — contrôle par la référence externe AutoScout24 (décision V5)
+
+**EX-DATA-96.** Sur la sous-population `E = { l ∈ Σ : priceStatus = QUOTED ∧
+priceEvaluationCategory ∉ {0, INCONNU} }`, on pose `cheap(l) ⟺ priceEvaluationCategory ∈ {1, 2}`
+et `flaggedLow(l) ⟺ outlierFlags ∩ {LOW_PRICE_IQR, LOW_PRICE_MODEL} ≠ ∅`. Avec le tableau de
+contingence 2×2 `(flaggedLow × cheap)` sur `E`, d'effectifs `a` (les deux vrais), `b` (signalé, non
+cheap), `c` (non signalé, cheap), `d` (les deux faux), le rapport de contrôle publie :
+
+| Indicateur | Formule |
+|---|---|
+| `precisionLow` | `a / (a + b)`, `null` si `a + b = 0` |
+| `recallLow` | `a / (a + c)`, `null` si `a + c = 0` |
+| `kappa` | `(p_o − p_e) / (1 − p_e)` avec `p_o = (a+d)/|E|` et `p_e = ((a+b)(a+c) + (c+d)(b+d)) / |E|²` |
+| `evalCoverage` | `|E| / priceQuotedCount`, 4 décimales |
+
+**EX-DATA-97.** Aucun seuil d'acceptation n'est imposé sur `precisionLow`, `recallLow` ou `kappa`.
+L'exigence vérifiable est que **les quatre indicateurs soient calculés et publiés** dans le rapport
+de test du lot D4, pour au moins trois cellules d'effectif supérieur à 200.
+**Justification** : le modèle de prix d'AutoScout24 n'est pas publié, il intègre probablement des
+variables que KYCAR n'a pas (équipement, historique, cote Eurotax) et porte sur son propre
+périmètre — un désaccord n'est donc pas une preuve d'erreur de KYCAR, et fixer un seuil d'accord
+ferait de la boîte noire la vérité de référence, ce qu'EX-DATA-13 interdit.
+
+## B.7 Vue tri-dimensionnelle prix × année × kilométrage
+
+**EX-DATA-98 — données strictement nécessaires par point tracé.**
+
+| Champ | Rôle |
+|---|---|
+| `priceEur` | axe 1 |
+| `firstRegistrationYear` | axe 2 |
+| `mileageKm` | axe 3 |
+| `fuelCategory` | encodage de couleur (`KYCAR_FUEL_CATEGORY`) |
+| `outlierFlags`, `opportunityScore`, `expectedPriceEur` | mise en évidence et info-bulle |
+| `listingId`, `listingUrl` | forage vers l'annonce d'origine |
+| `makeName`, `modelName`, `modelVersionClean`, `powerKw` | contenu de l'info-bulle |
+
+Aucun autre champ n'est transmis à la vue. **Justification** : la charge transmise par point
+détermine directement la mémoire du rendu — 11 champs à ≈ 60 octets par point plafonnent à 300 Ko
+pour 5 000 points, contre plusieurs mégaoctets si l'annonce entière était transmise.
+
+**EX-DATA-99 — éligibilité au tracé.** Une annonce est éligible si et seulement si
+`priceStatus = QUOTED` et si `firstRegistrationYear` et `mileageKm` sont tous deux valides au sens
+d'EX-DATA-60. Les annonces non éligibles sont comptées et **leur motif est ventilé** : `noPrice`,
+`noYear`, `noMileage`, `suspectValue` — une annonce cumulant plusieurs motifs est comptée dans le
+premier de cette liste qui s'applique, de sorte que la somme des quatre compteurs et du nombre
+d'éligibles vaut exactement `N`.
+**Justification de la ventilation** : sans elle, une nuée qui perd 40 % de sa sélection ne dit pas
+pourquoi, et l'utilisateur conclut à un marché étroit au lieu d'un défaut de donnée.
+
+**EX-DATA-100 — plafond de points.** `K = 5 000` points tracés au maximum.
+**Justification** : 5 000 marques se dessinent en une trame à 60 Hz en rendu canvas sur une machine
+de milieu de gamme, et au-delà la nuée sature visuellement — la lisibilité, qui est la raison d'être
+de la vue, se dégrade sans qu'aucune information s'ajoute ; la forme au-delà de 5 000 points est
+portée par la couche de densité d'EX-DATA-102, pas par les points.
+
+**EX-DATA-101 — règle d'échantillonnage, déterministe et sans aléa.** Soit `Elig` l'ensemble
+éligible, `n_e = |Elig|`, et `A = { l ∈ Elig : outlierFlags ∩ {LOW_PRICE_IQR, HIGH_PRICE_IQR,
+LOW_PRICE_MODEL, HIGH_PRICE_MODEL} ≠ ∅ }`.
+
+```
+si n_e ≤ K :
+    tracer Elig en entier ;  sampled = faux ; outlierTruncated = faux
+sinon si |A| ≥ K :
+    tracer les K annonces de A de plus grand |opportunityScore|,
+      égalités départagées par listingId croissant
+    sampled = vrai ; outlierTruncated = vrai
+sinon :
+    tracer A en entier
+    B   ← Elig \ A, trié par listingId croissant
+             (comparaison octet à octet, forme canonique minuscule)
+    q   ← K − |A|
+    pas ← |B| / q                       (réel, non arrondi)
+    pour j de 0 à q − 1 : tracer B[ plancher( j · pas ) ]
+    sampled = vrai ; outlierTruncated = faux
+```
+
+**Justification de la conservation intégrale des annonces signalées** : la vue existe pour isoler
+visuellement ce qui sort de la nuée ; échantillonner les outliers reviendrait à jeter le sujet pour
+garder le décor.
+
+**Justification de l'échantillonnage systématique sur `listingId`** : un UUID v4 est indépendant du
+prix, de l'année et du kilométrage, donc le sous-échantillon est non biaisé par rapport aux trois
+axes ; l'ordre étant celui de l'identifiant, l'échantillon est reproductible sans générateur
+pseudo-aléatoire ni graine à transporter, ce qui rend la vue identique d'une session à l'autre et
+testable.
+
+**EX-DATA-102 — couche de densité, toujours calculée.** Indépendamment du plafond de points, la vue
+publie une grille `G = binsAnnée × binsKilométrage`, où les bins d'année et de kilométrage sont
+**exactement ceux produits par `BIN`** pour la même sélection (EX-DATA-77), bins de débordement
+compris. Pour chaque cellule non vide :
+
+| Champ | Formule |
+|---|---|
+| `yearBinIndex`, `mileageBinIndex` | indices de bin |
+| `count` | effectif de la cellule |
+| `medianPrice` | `Q(V_price(cellule), 0,50)` |
+| `p05Price`, `p95Price` | `Q(·, 0,05)` et `Q(·, 0,95)` |
+| `share` | `count / n_e`, 4 décimales |
+
+Les cellules d'effectif nul ne sont pas émises. Le nombre de cellules est borné par
+`(24 + 2) × (24 + 2) = 676`.
+
+**Justification de la réutilisation des bins de `BIN`** : la couche de densité et les deux
+histogrammes marginaux décrivent alors la même partition, donc la somme des effectifs d'une colonne
+de la grille est exactement l'effectif du bin d'année correspondant — invariant vérifiable par test
+et cohérence visuelle entre les trois graphiques d'un même écran.
+
+**EX-DATA-103.** Quand `sampled = true`, la vue affiche `n_e`, `K`, le nombre de points tracés et
+la mention du mode d'échantillonnage. Quand `outlierTruncated = true`, elle affiche en plus le
+nombre d'annonces signalées non tracées.
+**Justification** : une nuée échantillonnée sans mention laisserait compter les points comme s'ils
+étaient l'effectif, ce qui est la lecture la plus naturelle et serait fausse d'un facteur pouvant
+atteindre 200.
+
+## B.8 Invariants vérifiables du moteur d'agrégation
+
+**EX-DATA-104.** Les huit invariants suivants sont chacun un test exécutable du lot D4.
+
+| # | Invariant |
+|---|---|
+| I1 | `Σ_k listingCount(A_k) = N` |
+| I2 | `∀k : Σ_j listingCount(B_{k,j}) = listingCount(A_k)` |
+| I3 | `∀m : Σ_k n_m(A_k) = n_m(Σ)` |
+| I4 | `∀m : Σ_{bins émis} count = n_m(Σ)` |
+| I5 | `priceQuotedCount + priceOnRequestCount + priceMissingCount = N` |
+| I6 | `outlierEvaluatedCount + outlierNotEvaluatedCount = priceQuotedCount` |
+| I7 | `Σ_{cellules de G} count = n_e`, et pour toute colonne d'année la somme des effectifs de cellules vaut l'effectif du bin d'année correspondant |
+| I8 | `BIN(permutation(V), …) = BIN(V, …)` octet à octet ; `min(V)` appartient au premier bin émis et `max(V)` au dernier |
+
+---
+
+# Partie C — Entités, volumétrie et index
+
+## C.0 Inventaire des entités
+
+**EX-DATA-105.** Le modèle compte **treize entités**, dont quatre seulement sont persistées par
+snapshot.
+
+| Entité | Rôle | Portée |
+|---|---|---|
+| `Snapshot` | un lot d'ingestion et ses métadonnées de qualité | persistée |
+| `Listing` | une annonce, telle que décrite par la partie A | persistée |
+| `Make`, `Model` | taxonomie de référence (295 marques, 4 955 modèles) | statique |
+| `Enumeration`, `EnumValue` | les 27 vocabulaires nommés de § A.1 | statique |
+| `Region`, `PostalRegionRange` | correspondance code postal → NUTS-2 | statique |
+| `MakeAggregate` | agrégat par marque (§ B.3) | persistée pour la sélection vide, calculée sinon |
+| `ModelAggregate` | agrégat par couple marque/modèle (§ B.4) | idem |
+| `DistributionBucket` | un bin d'histogramme (§ B.5) | calculée |
+| `SelectionStats` | bloc statistique de la sélection entière (§ B.2) | calculée |
+| `OutlierVerdict` | verdict de détection par annonce (§ B.6) | calculée |
+| `DensityCell` | cellule de la grille année × kilométrage (§ B.7) | calculée |
+
+**EX-DATA-106 — `Snapshot`.**
+`{ snapshotId, marketplace, capturedAt, sourceKind ∈ {REAL, SYNTHETIC}, providerVersion,
+listingCount, rejectedCount, rejectedByReason: map, duplicateListingCount,
+ingestFlagCounts: map, versionStrippedRate, coverageNote }`.
+**EX-DATA-107.** `sourceKind` est obligatoire et affiché dans l'interface dès qu'il vaut
+`SYNTHETIC`.
+**Justification** : le lot D3 produit un dataset synthétique avec outliers injectés, et un
+utilisateur ne doit jamais pouvoir confondre une distribution générée avec un marché réel.
+
+**EX-DATA-108 — `selectionHash`.** Toute entité calculée est clefée par `selectionHash` :
+les 16 premiers caractères hexadécimaux du SHA-256 de la sérialisation canonique de l'état de
+filtres — filtres triés par identifiant KYCAR croissant, valeurs multiples triées par ordre
+croissant de leur code, filtres à leur valeur par défaut omis, paires jointes par `;` sous la forme
+`identifiant=valeur`. La sélection vide a pour hachage la chaîne réservée `EMPTY`.
+**Justification** : la même règle de canonisation sert de clé de cache, de clé d'entité calculée et
+de base de l'URL partageable, donc deux états de filtres sémantiquement identiques ne peuvent pas
+produire deux caches ni deux liens différents.
+
+## C.1 Stratégie de calcul — précalcul ou calcul à la volée
+
+**EX-DATA-109.** Décision par entité, chiffrée contre H5 (10⁴ à 10⁶ annonces par snapshot).
+
+| Entité | Stratégie | Justification chiffrée |
+|---|---|---|
+| `Listing`, disposition colonnaire | **matérialisée une fois** à l'ingestion | 10⁶ × 44 octets ≈ 44 Mo de colonnes typées, plus 16 Mo d'identifiants binaires |
+| `MakeAggregate` et `ModelAggregate` pour `selectionHash = EMPTY` | **précalculés** à l'ingestion, persistés avec le snapshot | 295 marques + 4 955 modèles = 5 250 agrégats × ≈ 320 octets ≈ 1,7 Mo ; le mode 1 sans filtre s'affiche alors sans aucun balayage |
+| `MakeAggregate` et `ModelAggregate` pour toute autre sélection | **à la volée** | l'espace des sélections est d'au moins 2¹⁰¹ combinaisons (101 filtres relevés) : tout précalcul est impossible par construction, pas par choix |
+| `DistributionBucket` | **à la volée** | dépend de la sélection ; au plus 26 bins par métrique, coût `O(n)` après le balayage de sélection |
+| `SelectionStats` | **à la volée** | idem |
+| `OutlierVerdict` | **à la volée** | dépend de la cellule d'homogénéité, elle-même dépendante de la sélection (EX-DATA-86) |
+| `DensityCell` | **à la volée** | au plus 676 cellules (EX-DATA-102) |
+| `Make`, `Model`, `Enumeration`, `Region` | **statiques**, chargées au démarrage | `filters.json` 97 Ko + `taxonomy.json` 692 Ko + 33 fichiers de références ≈ 200 Ko |
+| cache de sélections | **LRU de 32 entrées** par `selectionHash` | rend le retour arrière et le changement d'onglet `O(1)` ; 32 × ≈ 400 Ko ≈ 13 Mo |
+
+**Justification du refus de précalculer les agrégats filtrés** : avec 101 filtres relevés dont une
+majorité multi-valeurs, le nombre d'états de filtres possibles dépasse 2¹⁰¹ ; même en se limitant
+aux dix filtres les plus utilisés à cinq valeurs chacun, cela ferait 9,8 × 10⁶ jeux d'agrégats à
+matérialiser pour un snapshot, soit plus de volume que le snapshot lui-même. Le balayage à la volée
+est la seule stratégie qui reste bornée.
+
+**EX-DATA-110 — budget de temps par opération, à `N = 10⁶`.** Ces chiffres sont des exigences, pas
+des estimations, et sont mesurés par un test de performance du lot D4.
+
+| Opération | Budget | Base du chiffre |
+|---|---|---|
+| Balayage de sélection (application de tous les filtres posés) | ≤ 60 ms | 10⁶ lignes × ≈ 12 lectures de colonne typée en un passage séquentiel |
+| Regroupement par marque et par modèle | ≤ 40 ms | un passage avec index de groupe entier ; 5 250 accumulateurs de 8 valeurs en double précision = 336 Ko, tenant en cache L2 |
+| Quantiles exacts des trois métriques sur la sélection entière | ≤ 50 ms | tri par comptage sur entiers bornés, `O(n + R)` |
+| Quantiles exacts des trois métriques par groupe | ≤ 120 ms | tri par base LSD sur entiers, 4 passes, `O(n)` cumulé sur tous les groupes |
+| Trois histogrammes + grille de densité | ≤ 20 ms | un passage, ≤ 676 + 78 compteurs |
+| Détection M1 + M2 sur la sélection | ≤ 150 ms | M1 réutilise les quantiles déjà calculés ; M2 est deux résolutions d'un système 3×3 par cellule, plus deux passages sur `F` |
+| **Total d'un recalcul complet de page** | **≤ 450 ms** | somme des postes ci-dessus |
+
+**Justification du budget global de 450 ms** : `00-CONTEXT.md` décrit des « filtres applicables à
+la volée qui recalculent toute la page » ; au-delà d'une demi-seconde l'interaction cesse d'être
+perçue comme immédiate et la manipulation exploratoire des filtres, qui est le cœur du mode 2,
+devient pénible.
+
+**EX-DATA-111 — quantiles exacts, jamais approchés.** Les trois métriques sont des entiers de
+domaine borné (`price ∈ [1, 5·10⁶]`, `mileage ∈ [0, 1,5·10⁶]`, `year ∈ [1900, 2101]`). Les
+quantiles sont donc calculés **exactement**, par tri par comptage pour la sélection entière et par
+tri par base pour les groupes. Aucune approximation par histogramme, aucun t-digest, aucun
+échantillonnage.
+**Justification** : les deux familles d'algorithmes sont en `O(n)` sur des entiers bornés, donc
+l'exactitude ne coûte rien de plus qu'une approximation, alors qu'un quantile approché rendrait
+les invariants I1 à I8 invérifiables et ferait diverger deux implémentations correctes.
+
+**EX-DATA-112 — mémoire de travail.** Tampons de comptage réutilisés entre appels et remis à zéro
+sur la seule plage touchée : 4 Mo pour le prix (`Int32Array(5·10⁶)` alloué paresseusement sur la
+plage observée du snapshot), 6 Mo pour le kilométrage, 808 octets pour l'année. Enveloppe totale à
+`N = 10⁶` : 44 Mo de colonnes + 16 Mo d'identifiants + 11 Mo de tampons + 1,7 Mo d'agrégats de
+base + 1 Mo de référentiels + 13 Mo de cache ≈ **87 Mo**.
+**Justification** : l'enveloppe tient avec une marge d'un facteur 5 sous un budget d'onglet de
+512 Mo, ce qui laisse la place au moteur de rendu et interdit de conclure que la borne haute de H5
+oblige à une architecture serveur.
+
+**EX-DATA-113.** À `N ≤ 10⁴` (borne basse de H5), les budgets d'EX-DATA-110 sont divisés par 100 et
+le total attendu est ≤ 10 ms : aucune stratégie particulière, aucun cache et aucune pagination
+interne ne sont nécessaires. La conception est dimensionnée sur la borne haute et le cas bas en
+découle.
+
+## C.2 Clés, index et ordres
+
+**EX-DATA-114 — clés primaires.**
+
+| Entité | Clé primaire |
+|---|---|
+| `Snapshot` | `snapshotId` |
+| `Listing` | `(snapshotId, listingId)` |
+| `MakeAggregate` | `(snapshotId, selectionHash, makeId)` |
+| `ModelAggregate` | `(snapshotId, selectionHash, makeId, modelId)` |
+| `DistributionBucket` | `(snapshotId, selectionHash, metric, index)` |
+| `SelectionStats` | `(snapshotId, selectionHash)` |
+| `OutlierVerdict` | `(snapshotId, selectionHash, listingId, method)` |
+| `DensityCell` | `(snapshotId, selectionHash, yearBinIndex, mileageBinIndex)` |
+| `Make` | `makeId` · `Model` : `(makeId, modelId)` |
+| `EnumValue` | `(vocabulary, code)` |
+| `PostalRegionRange` | `(countryCode, lo)` avec contrainte de non-recouvrement des plages |
+
+**EX-DATA-115 — index de la table `Listing`.**
+
+| Index | Colonne(s) | Forme physique | Usage | Coût à `N = 10⁶` |
+|---|---|---|---|---|
+| `PK_LISTING` | `listingId` | table de hachage UUID → indice de ligne | forage d'un point du nuage vers son deeplink | ≈ 24 Mo |
+| `IDX_MAKE` | `makeId` | `Int32Array` d'indices de ligne triée, plus un tableau d'offsets indexé par `makeId` | élagage du mode 1 | 4 Mo + 1,2 Ko |
+| `IDX_MODEL` | `(makeId, modelId)` | idem, offsets sur clé composite | élagage du mode 2 | 4 Mo + 40 Ko |
+| `IDX_PRICE_SORTED` | `priceEur` | `Int32Array` d'indices de ligne triée par prix croissant | bornes de prix, top-N, quantiles de la sélection vide | 4 Mo |
+| `BITSET_FUEL`, `BITSET_BODY`, `BITSET_REGION`, `BITSET_COUNTRY`, `BITSET_TRANSMISSION` | colonne énumérée | un bitset par valeur du vocabulaire, 1 bit par ligne | intersection des filtres énumérés sans balayage | 125 Ko par valeur, ≈ 5,4 Mo au total |
+
+**EX-DATA-116 — stratégie d'élagage.** Si la sélection contraint `makeId` ou `(makeId, modelId)`,
+le balayage part de `IDX_MAKE` ou `IDX_MODEL` au lieu de parcourir les `N` lignes. Le mode 2 est
+alors en `O(m)`, `m` étant l'effectif du modèle — de l'ordre de 1 281 pour Opel Corsa en Belgique,
+soit un facteur d'élagage supérieur à 700 par rapport à un balayage complet.
+**Justification** : le mode 2 est par définition toujours filtré sur un couple marque/modèle, donc
+l'élagage s'applique à 100 % de ses recalculs ; sans lui, le budget de 450 ms serait consommé pour
+analyser 1 281 annonces.
+
+**EX-DATA-117 — ce qui doit être trié et ce qui doit être groupé.**
+
+| Besoin | Clé de tri ou de groupe | Ordre |
+|---|---|---|
+| Cartes-marques du mode 1 | groupe `makeId` ; tri `(listingCount desc, makeName asc, makeId asc)` | EX-DATA-70 |
+| Zones-modèles d'une carte | groupe `(makeId, modelId)` ; tri `(listingCount desc, modelName asc, modelId asc)`, `modelId = 0` en dernier | EX-DATA-72 |
+| Bins d'un histogramme | tri `index` croissant, bin de débordement bas en tête, bin de débordement haut en fin | EX-DATA-75 |
+| Liste d'opportunités | tri `(opportunityScore desc, priceEur asc, listingId asc)` | EX-DATA-94 |
+| Échantillonnage du nuage | tri `listingId` croissant octet à octet | EX-DATA-101 |
+| Grille de densité | groupe `(yearBinIndex, mileageBinIndex)` ; tri lexicographique de ce couple | EX-DATA-102 |
+| Quantiles | tri croissant de la métrique, par tri par comptage ou par base | EX-DATA-111 |
+
+**EX-DATA-118.** Tout ordre de tri publié par le modèle d'agrégation est **total** : le dernier
+critère de départage est toujours une clé unique (`makeId`, `modelId` ou `listingId`), de sorte
+qu'aucun ordre ne dépend de la stabilité de l'algorithme de tri employé.
+**Justification** : un tri non total rendrait l'ordre d'affichage dépendant de l'implémentation du
+tri de la plate-forme, donc non reproductible entre deux navigateurs et non testable par
+comparaison de sortie.
+
+## C.3 Disposition physique de la table `Listing`
+
+**EX-DATA-119.** `Listing` est stockée en **colonnes typées**, une par champ, et non en tableau
+d'objets.
+**Justification** : un balayage de sélection lit 3 à 12 champs sur 82 ; en disposition
+ligne-par-ligne il traverserait l'intégralité des 82 champs de chaque annonce, soit un facteur 7 à
+27 de lecture mémoire inutile, ce qui rendrait le budget de 60 ms d'EX-DATA-110 inatteignable.
+
+| Colonne | Type physique | Octets/ligne |
+|---|---|---:|
+| `listingId` | `Uint8Array` de 16 octets par ligne (UUID binaire) | 16 |
+| `priceEur` | `Int32Array`, sentinelle `−1` pour inconnu | 4 |
+| `mileageKm` | `Int32Array`, sentinelle `−1` | 4 |
+| `firstRegistrationYearMonth` | `Int32Array` encodé `12·année + (mois−1)`, sentinelle `−1` | 4 |
+| `modelId` | `Int32Array`, `0` pour non résolu | 4 |
+| `makeId` | `Int16Array` | 2 |
+| `powerKw`, `co2EmissionsGPerKm ×10`, `consumptionCombinedL100Km ×10`, `electricRangeKm` | 4 × `Int16Array`, sentinelle `−1` | 8 |
+| `modelYear` | `Int16Array`, sentinelle `−1` | 2 |
+| `fuelCategory`, `bodyType`, `transmission`, `drivetrain`, `offerType`, `usageState`, `sellerType`, `regionCode`, `countryCode`, `priceStatus`, `priceEvaluationCategory`, `adTier`, `bodyColor`, `upholsteryType`, `euEmissionStandard`, `doorCount`, `seatCount`, `previousOwnerCount`, `imageCount` | 19 × `Uint8Array`, sentinelle `255` | 19 |
+| drapeaux booléens et `ingestFlags` | 2 × `Uint16Array` de bits | 4 |
+| **Total colonnes numériques et énumérées** | | **≈ 71** |
+| `listingUrl`, `modelVersionRaw`, `modelVersionClean`, `fuelSourceLabelRaw`, `trimTokens` | zone de chaînes contiguë + `Uint32Array` d'offsets | ≈ 180 en moyenne |
+
+**EX-DATA-120.** Les colonnes numériques utilisent une **sentinelle typée** pour l'inconnu
+(`−1` pour les grandeurs positives, `255` pour les énumérations sur un octet), jamais `0` ni
+`null`. Toute lecture d'une colonne teste la sentinelle avant d'utiliser la valeur.
+**Justification** : `0` est une valeur légitime pour `mileageKm`, `co2EmissionsGPerKm` et
+`previousOwnerCount` — l'employer comme marqueur d'inconnu créerait exactement la confusion que les
+règles EX-DATA-38 et EX-DATA-49 cherchent à éviter, et un tableau de `null` interdirait les
+tableaux typés donc le budget de performance.
+
+**EX-DATA-121.** Les champs textuels (`listingUrl`, les trois champs de version, `fuelSourceLabelRaw`)
+sont stockés hors des colonnes numériques, dans une zone contiguë adressée par offsets, et **ne
+sont jamais lus pendant un balayage de sélection**, sauf si un filtre par mot-clé est posé.
+**Justification** : ces cinq champs représentent à eux seuls plus de deux fois le volume de toutes
+les colonnes numériques réunies ; les tenir à l'écart du chemin chaud est ce qui rend le budget de
+balayage atteignable.
+
+## C.4 Ce que le modèle ne contient pas
+
+**EX-DATA-122.** Aucune entité, aucune colonne et aucun index ne porte de champ de la liste E1 à
+E14 de § A.7. En particulier, il n'existe **aucun** index par vendeur, par code postal exact, par
+ville ni par coordonnées géographiques — l'absence d'index est ici une conséquence mécanique de
+l'absence de colonne, pas une décision d'optimisation.
+**Justification** : R3 qualifie la contrainte de structurelle ; un index géographique fin serait la
+preuve qu'une colonne interdite existe quelque part.
+
+**EX-DATA-123.** Le modèle ne contient aucune entité de contact, de message, de mise en relation
+ni de transaction.
+**Justification** : `00-CONTEXT.md` exclut explicitement que l'application vende quoi que ce soit
+ou mette en relation acheteur et vendeur, et une entité de ce type serait le premier pas vers la
+republication que la position juridique du projet écarte.
+
+## C.5 Récapitulatif chiffré
+
+| Grandeur | Valeur |
+|---|---|
+| Champs au dictionnaire principal | **82** |
+| Champs exclus par conception | **21**, dont **14 au titre de R3** |
+| Vocabulaires nommés | **27** |
+| Entités | **13** |
+| Exigences `EX-DATA-*` | **127** |
+| Méthodes de détection d'outlier | **2 détecteurs (M1, M2) + 1 contrôle externe (M3)** |
+| Invariants exécutables du moteur d'agrégation | **8** |
+| Budget de recalcul complet de page à `N = 10⁶` | **≤ 450 ms** |
+| Enveloppe mémoire à `N = 10⁶` | **≈ 87 Mo** |
+
+---
+
+# Annexe D — Décisions à soumettre au stress-test de la phase 2.2
+
+**EX-DATA-124.** Les décisions suivantes sont prises par cet agent, sont défendables, et sont
+**identifiées comme contestables** : elles doivent être attaquées nommément en phase 2.2 par
+`st-ambiguity` et `st-adversarial`.
+
+| # | Décision | Exigence | Angle d'attaque attendu |
+|---|---|---|---|
+| D-1 | La fourchette affichée d'une marque ou d'un modèle est `[p05, p95]` et non `[min, max]` | EX-DATA-69 | Un utilisateur qui cherche l'affaire cherche justement le minimum ; masquer le minimum brut au second plan peut cacher exactement l'annonce qu'il veut voir. La contre-lecture est qu'une carte doit afficher `[min, max]` et laisser la détection d'outlier trier le bon grain. |
+| D-2 | Une annonce de prix inférieur à 250 € est conservée dans les effectifs mais exclue des statistiques de prix | EX-DATA-19 | Le seuil est un chiffre absolu sur un marché où existent des épaves à 200 € réellement vendues ; un seuil relatif (par exemple 5 % de la médiane de la cellule) serait défendable et donnerait un autre résultat. |
+| D-3 | Les cellules de comparaison d'outlier sont prises dans la sélection filtrée `Σ`, non dans le snapshot `S` | EX-DATA-86 | Deux jeux de filtres différents donnent alors deux verdicts différents pour la même annonce, ce qui peut se lire comme une incohérence plutôt que comme une contextualisation. |
+
+**EX-DATA-125.** Trois autres décisions sont signalées comme moins contestables mais non
+triviales : le seuil de 12 annonces pour M1 et pour `lowConfidence` (EX-DATA-80, EX-DATA-88), le
+plafond de 5 000 points du nuage (EX-DATA-100), et le choix de `firstRegistrationYear` plutôt que
+`modelYear` comme axe année unique (EX-DATA-25).
+
+**EX-DATA-126.** Deux éléments sont livrés avec une dette explicite, à solder avant le gel v1.0 :
+la table code postal belge → province, marquée `[EXTRAPOLÉ]` et à confronter au fichier officiel
+(EX-DATA-53), et la table de correspondance carburant création → recherche, marquée `[EXTRAPOLÉ]`
+au titre de la décision V2 non confirmée (EX-DATA-10).
+
+**EX-DATA-127.** Trois champs restent `[À CONFIRMER]` quant à leur porteur exact dans la donnée
+observée : `offerType` (porteur probable `listings[].type`, EX-DATA-25 du dictionnaire),
+`vehicleType` (même porteur candidat, § A.2 # 6) et le domaine de valeurs de
+`publicationState` (§ A.4 # 28). Aucun des trois n'est utilisé comme clé d'agrégation, de sorte
+qu'une confirmation contraire n'invalide aucun agrégat.

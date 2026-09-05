@@ -104,3 +104,96 @@ l'état est destiné à circuler par lien.
 l'utilisateur un périmètre différent de celui qu'il croit avoir demandé — sur un outil d'analyse
 c'est un défaut, pas une commodité. La correction doit rester permissive mais **visible** : un
 bandeau non bloquant qui nomme le paramètre corrigé et la valeur retenue.
+
+---
+
+## A-05 — Fourchettes : l'écran décide, pas une règle globale
+
+**Remontée** : `req-data` (décision D-1, `EX-DATA-69`) affiche `[p05, p95]` et non `[min, max]`, en
+signalant la contre-lecture — l'utilisateur cherche précisément le minimum, et masquer le brut peut
+cacher l'annonce visée.
+
+**Décision : les deux, selon la finalité de l'écran.**
+
+| Écran | Fourchette affichée | Motif |
+|---|---|---|
+| A — survol du marché, zone-modèle | `[p05, p95]` en principal, `[min, max]` en secondaire discret | La carte sert à **s'orienter**. `priceInfo` relevé sur la source donne un minimum réel de **119 €** pour l'Opel Corsa : une carte affichant « 119 € – 45 000 € » ne renseigne sur rien. |
+| B — distribution, et écran D | `[min, max]` bruts, toujours | L'écran sert à **chasser**. Écrêter la queue de distribution y supprimerait l'objet de la recherche. |
+
+**Motif du refus d'une règle unique.** La question « robuste ou brut ? » n'a pas de réponse
+indépendante de l'usage. Sur la carte de survol, une valeur aberrante détruit la lisibilité de
+centaines de cartes ; sur l'écran de distribution, c'est la valeur aberrante qui *est* l'information.
+Trancher globalement, dans un sens ou dans l'autre, aurait cassé l'un des deux parcours cibles.
+
+**Contrainte ajoutée** : quand `[p05, p95]` est affiché, l'étiquetage doit le dire — un intervalle
+présenté comme « la fourchette » alors qu'il écrête 10 % des annonces est un mensonge par omission.
+
+## A-06 — Prix sentinelle : les deux règles, en union
+
+**Remontée** : `req-data` (décision D-2, `EX-DATA-19`) retient un seuil absolu de 250 € sous lequel
+un prix est traité comme sentinelle, en notant qu'un seuil relatif à la médiane serait aussi défendable.
+
+**Décision : union des deux règles.** Un prix est sentinelle s'il est inférieur à 250 €
+**ou** inférieur à 10 % de la médiane de sa cellule d'homogénéité.
+
+**Motif.** Les deux règles attrapent deux pathologies différentes, et aucune ne couvre l'autre.
+Le seuil absolu attrape le prix-placeholder (`1 €`, `123 €`) qu'un vendeur saisit pour contourner
+l'obligation de champ. Le seuil relatif attrape le prix crédible dans l'absolu mais absurde dans son
+segment — 900 € sur un modèle dont la médiane est 28 000 €. Choisir l'un revient à laisser passer
+l'autre famille, et ces prix faussent ensuite tous les agrégats de prix.
+
+## A-07 — Base de comparaison de l'outlier : la sélection filtrée, mais nommée à l'écran
+
+**Remontée** : `req-data` (décision D-3, `EX-DATA-86`) calcule les cellules d'outlier sur la sélection
+filtrée et non sur le snapshot, ce qui fait qu'une même annonce reçoit des verdicts différents selon
+les filtres — lisible comme une incohérence.
+
+**Décision : la sélection filtrée est conservée. Ce n'est pas une incohérence, c'est la sémantique correcte.**
+
+**Motif.** Le commanditaire décrit son geste : « je tape corsa 2017 et je vois la distribution des
+offres pour éventuellement cibler des outliers ». Il **choisit son ensemble de comparaison en
+filtrant**. Une anomalie n'existe que relativement à un référentiel ; changer le référentiel doit
+changer le verdict, sinon le filtrage ne sert à rien. Une Corsa à 4 000 € est banale parmi toutes les
+Corsa et remarquable parmi les Corsa 2017 à moins de 60 000 km — les deux verdicts sont justes.
+
+**Contrainte ajoutée, et elle est obligatoire** : chaque affichage d'outlier doit nommer sa base de
+comparaison et son effectif, par exemple « écart calculé sur : Opel Corsa · 2017 · n = 143 ».
+Sans cette mention, l'utilisateur ne peut pas interpréter le verdict, et l'objection de `req-data`
+devient fondée. C'est l'étiquetage qui rend la décision défendable, pas le calcul.
+
+## A-08 — `gear` reste filtre primaire malgré l'absence du champ
+
+**Conflit détecté par le coordinateur** entre deux livrables : `req-screens` retient `gear` (boîte de
+vitesses) parmi les 9 contrôles primaires avec une dérogation documentée (2 critères sur 4), tout en
+écartant le graphe de répartition par boîte au motif que **le champ est absent** des 40 champs relevés
+sur la source.
+
+**Décision : `gear` reste primaire, classé `T`, et le graphe reste écarté en v1.**
+
+**Motif.** La boîte de vitesses est un critère de recherche de premier plan sur le marché belge de
+l'occasion — automatique contre manuelle sépare le marché en deux et pèse sur le prix. La retirer du
+primaire parce que notre échantillon actuel ne porte pas le champ reviendrait à laisser une limite
+temporaire de la source dicter l'ergonomie durable du produit. Le filtre est donc exposé, et sa
+classification `T` (rechargement via `DataProvider`) est exacte et suffit à informer l'utilisateur
+du coût.
+
+Le graphe, lui, ne peut pas être dessiné sans la donnée : il reste écarté, et rejoint la dette des
+histogrammes CO₂ et consommation, à solder quand un adaptateur portera le champ.
+
+## A-09 — Répartition de l'autorité entre les trois annexes
+
+**Constat** : `req-screens` signale des chevauchements assumés avec `req-behaviour` (routes,
+historique, débounce, CRUD des recherches) et avec `req-data` (seuils d'effectif, définition des
+buckets, méthode de `G8`).
+
+**Décision : une règle d'autorité par domaine, opposable en cas de divergence.**
+
+| Domaine | Annexe qui fait foi | Ce que les autres peuvent en dire |
+|---|---|---|
+| Définition mathématique — buckets, statistiques, régressions, seuils d'effectif, normalisation | **Annexe A (données)** | Les autres décrivent l'usage et la présentation, jamais la formule |
+| Disposition, contenu affiché, états visuels, encodages graphiques, hiérarchie des filtres | **Annexe B (écrans)** | Les autres n'imposent aucune disposition |
+| Mécanique de navigation, encodage d'URL, historique, débounce, cycle de vie du CRUD, NFR chiffrées | **Annexe C (comportement)** | Les autres décrivent l'intention, jamais le mécanisme |
+
+En cas de contradiction résiduelle non couverte par cette grille, l'arbitrage revient au coordinateur
+et s'inscrit dans ce fichier. **Aucune divergence ne se résout en silence dans le code** : c'est
+exactement le mode de défaillance que la phase 2.2 doit traquer.
