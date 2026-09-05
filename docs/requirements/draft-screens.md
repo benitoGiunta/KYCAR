@@ -32,8 +32,8 @@
 | 4 | Composant partagé **C1 — Bandeau de filtres** (les 101 filtres) | `EX-SCR-55` → `EX-SCR-103` |
 | 5 | **Écran A — Survol du marché** | `EX-SCR-104` → `EX-SCR-138` |
 | 6 | **Écran B — Distribution d'un modèle** (11 graphes) | `EX-SCR-139` → `EX-SCR-192` |
-| 7 | Écrans additionnels proposés (C, D, E, G) — marqués **AJOUT** | `EX-SCR-193` → `EX-SCR-215` |
-| 8 | Champs manquants, affichages non réalisables, alternatives | `EX-SCR-216` → `EX-SCR-224` |
+| 7 | Écrans additionnels proposés (C, D, E, G) — marqués **AJOUT** | `EX-SCR-193` → `EX-SCR-216` |
+| 8 | Champs manquants, affichages non réalisables, alternatives | `EX-SCR-217` → `EX-SCR-224` |
 | 9 | Matrice de vérification | — |
 
 Total : **224 exigences** `EX-SCR-*`.
@@ -778,11 +778,14 @@ ce tableau. Il satisfait le critère S4 de la phase 2.1.
 | 100 | `tier_rotation` | — | — | **X** | idem |
 | 101 | `mmm` | — | — | **X** | sérialisation legacy remplacée par `mmmv` |
 
-`EX-SCR-83` — **Bilan de l'affectation** : 9 primaires · 55 secondaires · 3 désactivés
-documentés (`damaged_listing`, `region`, `dlv_max`) · 2 contrôles de tri (`sort`, `desc`) ·
-32 hors périmètre avec motif. Total 101. Critère de recette : la somme est vérifiée par un test
-qui lit `data/reference/filters.json` et la table d'affectation, et échoue si un `param` du
-premier n'a pas d'entrée dans la seconde.
+`EX-SCR-83` — **Bilan de l'affectation, arithmétiquement clos** :
+**13** paramètres primaires (regroupés en 9 contrôles, cf. `EX-SCR-59`, `kwd` compris) ·
+**52** secondaires · **3** désactivés documentés (`damaged_listing`, `region`, `dlv_max`) ·
+**2** contrôles de tri (`sort`, `desc`) · **31** hors périmètre avec motif (dont les 16 filtres
+propres à `atype ≠ C`). Somme : 13 + 52 + 3 + 2 + 31 = **101**.
+Critère de recette : un test lit `data/reference/filters.json` (101 entrées) et la table
+`EX-SCR-82`, échoue si un `param` du premier n'a pas exactement une entrée dans la seconde, et
+vérifie les cinq cardinaux ci-dessus.
 
 `EX-SCR-84` — **PIÈGE 1 — collision de codes sur `fuel`.** Le contrôle `Carburant` utilise
 exclusivement le **vocabulaire de recherche** (`2` = Électrique/Essence, `3` = Électrique/Diesel,
@@ -1731,3 +1734,314 @@ lorsque celui-ci diffère de l'effectif de l'en-tête statistique.
 `EX-SCR-192` — **Le numéro `G11` n'est pas attribué.** Il correspondait au graphe « effectif
 par tranche d'âge », écarté pour redondance avec `G3` combiné à `G5`. Le trou de numérotation
 est conservé pour que les références des rapports de revue restent stables.
+
+---
+
+## 7. Écrans additionnels proposés
+
+Les quatre écrans de cette section sont des **ajouts de l'agent `req-screens`**. Chacun est
+justifié en une phrase. Aucun n'est nécessaire au fonctionnement des écrans A et B, et chacun
+peut être retiré du périmètre par `req-lead` sans casser les parcours cibles.
+
+### 7.1 Écran C — Comparaison de modèles **[AJOUT]**
+
+`EX-SCR-193` — **Justification en une phrase** : l'écran A produit naturellement une liste
+courte de modèles candidats, et sans écran de comparaison l'utilisateur doit tenir plusieurs
+distributions en mémoire en naviguant d'un écran B à l'autre.
+
+`EX-SCR-194` — **Route** : `/comparer?m=<modelId>,<modelId>[,<modelId>][,<modelId>]&<filtres>`.
+**Condition d'affichage** : de 2 à 4 identifiants de modèle. Avec 1 seul, redirection vers
+l'écran B ; avec 0, redirection vers l'écran A. Au-delà de 4, les identifiants surnuméraires
+sont ignorés et un bandeau indique `<k> sélections ignorées — maximum 4`.
+Justification du plafond 4 : à 4 colonnes en régime `large` (1 680 px de contenu), chaque
+colonne mesure 396 px, largeur en dessous de laquelle un histogramme cesse d'être lisible
+(minimum de 280 px de zone de tracé plus les axes).
+
+```
++==========================================================================================+
+| S0 + C1 bandeau de filtres (partage, s'applique aux 4 colonnes simultanement)            |
++==========================================================================================+
+| Comparer 3 modeles                          [ + Ajouter un modele ]  [ Tout retirer ]    |
++--------------------+--------------------+--------------------+--------------------------+
+| OPEL CORSA       x | VW POLO          x | RENAULT CLIO     x |                          |
+| 1 281 offres       | 2 410 offres       | 1 905 offres       |                          |
+| med. 12 900 EUR    | med. 14 200 EUR    | med. 11 800 EUR    |                          |
+| km med. 78 000     | km med. 71 000     | km med. 84 000     |                          |
+| 1re immat. 2018    | 1re immat. 2019    | 1re immat. 2017    |                          |
++--------------------+--------------------+--------------------+--------------------------+
+| G1 prix (echelle commune, bornes = union des 3 perimetres)                               |
+|  [histogramme]     |  [histogramme]     |  [histogramme]     |                          |
++--------------------+--------------------+--------------------+--------------------------+
+| G3 annee (echelle commune)                                                               |
++--------------------+--------------------+--------------------+--------------------------+
+| G5 prix median par annee - SUPERPOSE en un seul graphe, une couleur par modele           |
++==========================================================================================+
+```
+
+`EX-SCR-195` — **Échelles communes obligatoires.** Tout graphe répété par colonne partage les
+**mêmes bornes d'axe** sur toutes les colonnes, calculées sur l'union des périmètres comparés.
+Un graphe dont les axes diffèrent d'une colonne à l'autre rendrait la comparaison visuelle
+fausse ; c'est l'erreur la plus probable d'implémentation, d'où cette exigence explicite. Un
+indicateur `échelle commune` est affiché à côté de chaque titre de rangée.
+
+`EX-SCR-196` — **Graphes présents sur l'écran C, exactement quatre rangées** : `G1` par colonne,
+`G3` par colonne, `G5` **superposé** (une courbe par modèle, une couleur de la palette `Q`,
+légende commune), et une rangée `Synthèse` reprenant les statistiques de l'en-tête de l'écran B
+sous forme de tableau à double entrée. `G4`, `G7` et `G8` ne sont **pas** répliqués : leur
+lecture exige la largeur pleine, et la comparaison de quatre nuées superposées est illisible
+(les points de deux modèles occupent la même région du plan prix × année).
+
+`EX-SCR-197` — **Colonne vide.** Une colonne non pourvue affiche un bloc en pointillé de même
+dimension portant `+ Ajouter un modèle`, qui ouvre le sélecteur `G`.
+
+`EX-SCR-198` — **Retrait d'un modèle.** Croix dans l'en-tête de colonne ; le retrait recalcule
+les bornes d'échelle communes et anime la fermeture de la colonne en 200 ms. Passer sous
+2 modèles redirige vers l'écran B du modèle restant.
+
+`EX-SCR-199` — **Responsive de l'écran C.** En `intermédiaire`, 2 colonnes visibles et la
+rangée devient défilable horizontalement, avec des repères de colonne collants en haut. En
+`compact`, le comparatif devient **un tableau unique** à une ligne par statistique et une
+colonne par modèle, défilable horizontalement, et les histogrammes par colonne sont remplacés
+par des sparklines de 60 × 24 px : à moins de 396 px de largeur, un histogramme complet n'est
+pas lisible, et une sparkline au moins situe la forme de la distribution.
+
+`EX-SCR-200` — **États de l'écran C** : `ET-CHARGE-INIT` colonne par colonne (chaque colonne
+charge indépendamment) ; un modèle en erreur laisse sa colonne en état d'erreur individuel sans
+affecter les autres ; un modèle à `n = 0` affiche sa colonne avec `aucune offre` et est **exclu
+du calcul des bornes communes**.
+
+### 7.2 Écran D — Annonces du modèle **[AJOUT]**
+
+`EX-SCR-201` — **Justification en une phrase** : un outlier repéré sur un graphe n'a aucune
+valeur si l'on ne peut pas ouvrir l'annonce correspondante, et l'écran D est la seule sortie de
+l'application vers une action.
+
+`EX-SCR-202` — **Route** :
+`/marche/:makeId-:makeSlug/:modelId-:modelSlug/annonces?<filtres>[&sel=<empreinte>]`.
+Le paramètre `sel` restreint la liste à une sélection de brossage venue de l'écran B.
+
+`EX-SCR-203` — **Structure** : un tableau dense, une ligne par annonce, hauteur de ligne 44 px,
+en-tête de colonne collant. Colonnes, dans cet ordre, **toutes issues de champs relevés en
+§2.3** :
+
+| Colonne | Champ source | Format | Triable |
+|---|---|---|---|
+| Version | `modelVersionInput` | texte tronqué à 40 car. | non (texte libre non normalisé) |
+| Prix | `prices.public.amountInEUR.raw` | `EX-SCR-3` | oui |
+| Écart au prix attendu | calculé (`G8`) | `± <n> € (± <p> %)` | oui |
+| Km | `condition.mileageInKm.raw` | `EX-SCR-5` | oui |
+| 1ʳᵉ immat. | `condition.firstRegistrationDate` | `MM/AAAA` | oui |
+| Année-modèle | `modelYear` | `mod. AAAA` | oui |
+| Puissance | `engine.power.*` | `EX-SCR-7` | oui |
+| Carburant | `fuels.fuelCategory.formatted` | libellé FR relevé | oui |
+| Conso. | `consumption.combinedWithFallback` | `EX-SCR-8` | oui |
+| CO₂ | `co2emissionInGramPerKmWithFallback` | `EX-SCR-8` | oui |
+| Propriétaires | `condition.numberOfPreviousOwnersExtended.raw` | entier | oui |
+| Évaluation AS24 | `prices.public.evaluation.category` | jeton coloré | oui |
+| Vendeur | `seller.type` | `Particulier` / `Professionnel` | oui |
+| Pays / CP | `location.countryCode` + `location.zip` tronqué | `Belgique · 10xx` | oui |
+| TVA | `prices.public.taxDeductible` | jeton `TVA déd.` ou vide | oui |
+| — | `details.webPage` | bouton `Ouvrir ↗` | non |
+
+`EX-SCR-204` — **Colonnes interdites.** Ne figurent dans ce tableau ni `seller.contactName`, ni
+`seller.companyName`, ni `seller.id`, ni `location.city`, ni aucune image (`media.images[]`).
+Motif : règle R3 et §2.5 de `FINDING-allowed-surface.md`, qui a relevé un **nom de personne
+physique** dans `seller.contactName`. L'écran ne peut pas afficher ce qui n'entre pas dans le
+schéma, et le schéma n'a pas de colonne pour cela. Critère de recette : un test échoue si l'un
+de ces cinq noms de champ apparaît dans le code de l'écran D.
+
+`EX-SCR-205` — **Miniatures d'image : écartées.** `media.images[]` existe mais afficher les
+photos d'annonces reviendrait à republier le contenu de la source, ce que `00-CONTEXT.md`
+exclut. Le lien sortant remplace la miniature. Décision écrite pour qu'elle ne soit pas
+« oubliée » comme une simple omission.
+
+`EX-SCR-206` — **Tri.** Par défaut : écart au prix attendu croissant (les meilleures affaires
+en tête), ce qui est cohérent avec l'objet de l'application. Le tri par colonne est unique
+(pas de tri multi-colonnes) ; le sens est indiqué par un chevron dans l'en-tête. Les valeurs
+absentes sont **toujours placées en fin de tri**, quel que soit le sens, et non traitées comme
+des zéros.
+
+`EX-SCR-207` — **Ligne mise en évidence.** Une ligne dont l'écart au prix attendu est inférieur
+au P10 des écarts reçoit un liseré gauche de 3 px de la teinte froide de `G8`. Aucune autre
+mise en forme conditionnelle : au-delà d'un critère, un tableau coloré n'est plus lisible.
+
+`EX-SCR-208` — **Volumétrie.** Rendu virtualisé au-delà de 200 lignes, au plus 60 lignes
+montées. Aucune pagination numérotée. Compteur permanent `<n> annonces` en pied de tableau.
+
+`EX-SCR-209` — **Responsive de l'écran D.** En `intermédiaire`, les colonnes `Année-modèle`,
+`Conso.`, `CO₂` et `TVA` sont masquées et accessibles par un dépliement de ligne (chevron en
+première colonne). En `compact`, le tableau devient une **liste de cartes** de 132 px, chacune
+portant : version, prix, écart, km, première immatriculation, carburant, vendeur et le bouton
+`Ouvrir ↗` ; l'en-tête de tri devient un bouton `Trier par …`.
+
+`EX-SCR-210` — **États de l'écran D** : `ET-VIDE-FILTRES` avec le bloc d'`EX-SCR-26` ;
+`ET-CHARGE-INIT` avec 12 lignes squelettes ; `ET-CHAMP-MANQUANT` cellule par cellule
+(`EX-SCR-34`) ; `ET-PARTIEL-COUVERTURE` avec le bandeau `C3`, dont le libellé précise ici
+`<n_obs> annonces listables sur <n_tot> annoncées` — la nuance est essentielle : l'écran D ne
+peut lister que ce qui a été échantillonné.
+
+### 7.3 Écran E — Recherches enregistrées **[AJOUT]**
+
+`EX-SCR-211` — **Justification en une phrase** : un état d'analyse peut porter jusqu'à
+60 filtres, et le reconstituer à la main serait plus long que l'analyse elle-même.
+
+`EX-SCR-212` — **Route** : `/recherches`. **Structure** : liste verticale de cartes de 96 px,
+une par recherche, portant : le nom donné par l'utilisateur (60 car. max), la description
+générée des filtres actifs (tronquée à 2 lignes), le périmètre (`Toutes marques` ou
+`<Marque> <Modèle>`), l'effectif au moment de l'enregistrement, l'effectif actuel, et l'écart
+entre les deux au format `+ 34 offres depuis le 02/09`. Trois boutons par carte : `Ouvrir`,
+`Renommer`, `Supprimer`.
+
+`EX-SCR-213` — **L'écart d'effectif est la valeur ajoutée de l'écran** : il transforme une
+recherche enregistrée en veille de marché. Un écart positif est affiché en teinte froide, un
+écart négatif en gris. Si le périmètre n'est plus calculable (modèle absent du snapshot), la
+carte affiche `Périmètre indisponible dans le snapshot du <date>` et le bouton `Ouvrir` reste
+actif (`EX-SCR-101`).
+
+`EX-SCR-214` — **États** : liste vide → bloc centré `Aucune recherche enregistrée` avec la
+phrase `Enregistrez une recherche depuis le bandeau de filtres` et un bouton
+`Aller au survol du marché`. Suppression → confirmation en ligne dans la carte
+(`Supprimer « <nom> » ? [Supprimer] [Annuler]`), jamais une fenêtre modale. Le CRUD, la
+persistance et les limites de nombre appartiennent à `req-behaviour`.
+
+### 7.4 Écran G — Sélecteur marque / modèle **[AJOUT, quasi obligatoire]**
+
+`EX-SCR-215` — **Justification en une phrase** : 295 marques et 4 955 modèles ne peuvent pas
+tenir dans une liste déroulante, et le filtre `mmmv` est l'axe de navigation entre les deux
+écrans imposés — sans ce sélecteur, l'écran B est inatteignable autrement que par un clic sur
+une zone-modèle.
+
+```
++============================================================+
+| Selectionner marque et modele                          [x] |
++----------------------+-------------------------------------+
+| [ Rechercher... ]    | [ Rechercher un modele...        ]  |
++----------------------+-------------------------------------+
+| Volkswagen   12 480 >| [ ] Tous les modeles Opel     5 220 |
+| BMW           9 105 >| [x] Corsa                     1 281 |
+| Opel      *   5 220 v| [ ] Astra                       912 |
+| Audi          4 980 >| [ ] Insignia                    441 |
+| ...  (295 marques,   | [ ] Mokka                       388 |
+|       virtualisees)  | ... (liste virtualisee)             |
++----------------------+-------------------------------------+
+| 1 marque, 1 modele selectionnes    [ Annuler ] [ Appliquer ]|
++============================================================+
+```
+
+`EX-SCR-216` — **Structure à deux panneaux** : marques à gauche (largeur 280 px, liste
+virtualisée, triée par effectif décroissant puis alphabétiquement), modèles de la marque
+sélectionnée à droite. Chaque panneau a son propre champ de recherche, insensible à la casse et
+aux diacritiques, filtrant par sous-chaîne. Chaque entrée porte son effectif d'offres dans le
+périmètre filtré courant ; une entrée à effectif 0 reste affichée en gris et cliquable
+(`EX-SCR-89`). Une case `Tous les modèles <Marque>` en tête du panneau droit pose la marque
+sans modèle. Sélection multiple autorisée, plafonnée à **12 couples** (au-delà, la chaîne
+`mmmv` devient ingérable et le bandeau des filtres actifs illisible) ; le dépassement affiche
+`Maximum 12 sélections`. La modale est refermable par `Échap` et `Annuler` sans appliquer, et
+`Appliquer` pose le filtre `mmmv` et ferme. En régime `compact`, les deux panneaux deviennent
+deux étapes successives plein écran avec un bouton `Retour aux marques`.
+
+---
+
+## 8. Champs manquants, affichages non réalisables, alternatives
+
+Cette section est la contrepartie de l'interdiction d'inventer des données. Elle recense chaque
+affichage que la mission, le commanditaire ou le bon sens analytique appellerait, et pour lequel
+la source relevée ne fournit pas le champ.
+
+`EX-SCR-217` — **Les fourchettes de prix, d'année et de kilométrage de l'écran A ne sont pas
+disponibles comme agrégat de la source.** `topModels` ne donne que `listingsCount` et
+`priceInfo` ne donne que des minima (`FINDING-allowed-surface.md` §2.1 et §2.2).
+**Alternative retenue** : calcul sur les annonces échantillonnées, avec l'indicateur de
+couverture obligatoire d'`EX-SCR-115` et la mention `Fourchettes indisponibles` d'`EX-SCR-116`
+lorsque l'échantillon est vide. **Ce que cela interdit** : présenter ces fourchettes comme des
+fourchettes de marché sans qualificatif. Le libellé d'infobulle est normatif.
+
+`EX-SCR-218` — **La boîte de vitesses n'existe pas dans les 40 champs d'annonce relevés.**
+Conséquence : le filtre `gear` est de classe T (transmis à la source) et **aucun graphe de
+répartition par boîte n'est spécifié**. **Alternatives, par ordre de préférence** :
+(a) le `DataProvider` expose un indicateur de capacité `hasGearbox` et l'écran B rend un graphe
+`G16 — Répartition par boîte` **uniquement** si cet indicateur est vrai, le bloc étant sinon
+absent du DOM (`ET-CHAMP-ABSENT-SOURCE`) ; (b) à défaut, l'information reste accessible en
+posant le filtre `gear` et en lisant la variation de l'en-tête statistique, ce qui est
+explicitement documenté dans le panneau `Diagnostic`. **Ce qui est interdit** : dériver la boîte
+par expression régulière sur `modelVersionInput` et l'afficher comme une donnée. Si cette
+dérivation est un jour faite, elle doit porter une colonne `boîte (déduite)` et un jeton
+`déduit` sur chaque valeur.
+
+`EX-SCR-219` — **Aucune date de publication d'annonce n'est relevée.** Seul
+`publication.isNew` existe. Conséquences : le filtre `adage` (En ligne depuis) est de classe T ;
+**aucun affichage d'ancienneté d'annonce n'est spécifié** ; et le tri `age`
+(« Annonces les plus récentes d'abord ») de l'énumération `sort` **n'est pas proposé** sur
+l'écran D. **Alternative** : si le `DataProvider` fournit une date d'ingestion par annonce, une
+colonne `Vue le` peut être ajoutée à l'écran D avec le libellé
+`Date de première observation par KYCAR` — jamais `Mise en ligne le`, qui serait faux.
+
+`EX-SCR-220` — **Champs présents mais non filtrables** : `consumption.combinedWithFallback` et
+`co2emissionInGramPerKmWithFallback` (Z5). Conséquence : ils sont **affichés** (écran D,
+infobulle de `G4`) et **jamais** proposés comme filtre, faute de paramètre à sérialiser. Aucun
+graphe ne leur est consacré (`EX-SCR-172`, motif de non-cliquabilité).
+
+`EX-SCR-221` — **La carrosserie n'est relevée qu'au niveau modèle** (`topModels.bodyTypes`), pas
+au niveau annonce. Conséquence : le filtre `body` est de classe T sur l'écran B et de classe R
+sur l'écran A ; et un jeton de carrosserie peut être affiché dans l'en-tête de l'écran B
+(`Berline`) mais **aucun graphe de répartition par carrosserie n'est spécifié à l'intérieur d'un
+modèle**, où elle est de toute façon constante ou quasi constante.
+
+`EX-SCR-222` — **La province belge n'est pas obtenable de la source** : `region` a un domaine
+inconnu et est désactivé (Z3), et le code postal est tronqué à `NNxx` par contrainte RGPD.
+Conséquence : aucune vue géographique infranationale n'est spécifiée. **Alternative** : une
+table de correspondance CP → province, produite par KYCAR, permettrait `G16b — Répartition par
+province` ; cet écran est conditionné à la production de cette table **et** à une couverture
+≥ 60 %, faute de quoi les effectifs par province tomberaient sous 3 (`EX-SCR-172`).
+
+`EX-SCR-223` — **Sémantiques non prouvées propagées à l'écran.** Les filtres `eq` (ET présumé),
+`emclass` et `ensticker` (« au moins » présumé) et `prevownersid` (« au plus » présumé) portent
+l'icône d'`EX-SCR-85`. **Aucun agrégat local n'utilise ces sémantiques** : un agrégat construit
+sur une sémantique présumée produirait un chiffre faux sans le signaler. C'est la raison pour
+laquelle `prevownersid`, bien que de classe R, n'alimente aucun graphe et n'apparaît que comme
+colonne brute de l'écran D.
+
+`EX-SCR-224` — **Récapitulatif des blocs supprimés faute de champ.** Le panneau `Diagnostic`
+(`EX-SCR-53`) liste, à chaque chargement, les blocs non rendus et leur motif, en reprenant
+littéralement les identifiants de cette section : `G16 boîte de vitesses — champ absent
+(EX-SCR-218)`, `colonne Vue le — champ absent (EX-SCR-219)`, `G16b province — champ absent
+(EX-SCR-222)`, et tout bloc désactivé par `ET-CHAMP-ABSENT-SOURCE`. Critère de recette : le
+panneau affiche au moins 3 entrées sur le jeu de données synthétique du lot D3.
+
+---
+
+## 9. Matrice de vérification
+
+Chaque exigence est vérifiable. Le tableau ci-dessous donne le moyen de contrôle par famille ;
+`req-lead` peut le ventiler exigence par exigence dans la matrice de traçabilité de
+`REQUIREMENTS.md`.
+
+| Famille | Exigences | Moyen de vérification |
+|---|---|---|
+| Formats d'affichage | `EX-SCR-1` → `EX-SCR-14` | tests unitaires de formatage sur un jeu de 30 valeurs limites (0, 1, 999, 1 000, 1 000 000, valeur nulle, valeur absente, négative) |
+| Échelles de graphe | `EX-SCR-15` → `EX-SCR-19` | test d'instantané des bornes et du type d'échelle calculés, sur 5 distributions de référence (uniforme, log-normale, bimodale, à outlier unique, à effectif 1) |
+| Jetons de mise en page | `EX-SCR-20` → `EX-SCR-22` | captures d'écran automatisées à 375 × 812, 1 024 × 768, 1 440 × 900, 1 920 × 1 080 ; comptage des cartes et zones visibles |
+| États dégradés | `EX-SCR-23` → `EX-SCR-39` | 9 jeux de données pathologiques (0, 1, 3, 5, 9, 10, 20 000, 200 000 annonces ; provider en erreur ; cache périmé) ; assertion sur le texte affiché |
+| Coquille et navigation | `EX-SCR-40` → `EX-SCR-54` | tests de bout en bout : conservation des filtres sur A→B→A, égalité de la chaîne de requête, reproduction d'un écran depuis son URL |
+| Bandeau de filtres | `EX-SCR-55` → `EX-SCR-103` | test de complétude comparant `data/reference/filters.json` (101 entrées) à la table d'affectation `EX-SCR-82` ; test de 60 filtres simultanés ; comptage des jetons `T` |
+| Écran A | `EX-SCR-104` → `EX-SCR-138` | tests de rendu sur 1, 6, 20, 40, 295 marques et sur une marque à 80 modèles ; assertion sur la présence des 3 fourchettes de chaque zone-modèle |
+| Écran B | `EX-SCR-139` → `EX-SCR-192` | tests de rendu à `n` = 0, 1, 3, 5, 9, 10, 40, 400, 5 000, 20 000 ; test d'égalité des empreintes de filtre des 14 graphes ; test de présence de la table de données équivalente pour chaque graphe |
+| Écrans additionnels | `EX-SCR-193` → `EX-SCR-216` | tests de rendu à 2, 3, 4 et 5 modèles comparés ; test d'échelle commune ; test d'absence des 5 champs interdits dans l'écran D |
+| Champs manquants | `EX-SCR-217` → `EX-SCR-224` | test statique : aucun composant ne lit un champ absent de la liste des 40 champs autorisés ; le panneau `Diagnostic` recense au moins 3 blocs supprimés |
+| Formulations mesurables | ensemble | revue lexicale automatisée : aucune occurrence de « rapide », « intuitif », « moderne », « clair », « performant », « ergonomique » sans chiffre ou critère observable dans la même phrase (critère S7 de la phase 2.1) |
+
+### Notes de remise à `req-lead`
+
+1. **Chevauchements assumés avec `req-behaviour`** : `EX-SCR-49` à `EX-SCR-52` (routes,
+   historique, partageabilité), `EX-SCR-86` (débounce et application immédiate), `EX-SCR-94` et
+   `EX-SCR-211` à `EX-SCR-214` (CRUD des recherches enregistrées). Ces points doivent être
+   arbitrés une seule fois ; en cas de conflit, la version de `req-behaviour` prime et les
+   exigences ci-dessus doivent être réécrites en référence, pas dupliquées.
+2. **Chevauchements assumés avec `req-data`** : les seuils d'effectif d'`EX-SCR-33`, la
+   définition des buckets (`EX-SCR-145` à `EX-SCR-147`) et la méthode de `G8` (`EX-SCR-164`)
+   touchent au modèle d'agrégation. La présente section fixe les seuils **d'affichage** ;
+   `req-data` doit fixer les définitions mathématiques et vérifier la cohérence des seuils.
+3. **Trois arbitrages pris sans instruction du commanditaire**, à confirmer :
+   la lecture littérale de « graphe nombre d'offre - prix » comme une nuée empilée `G4a`
+   (`EX-SCR-151`) ; l'absence d'écran de détail d'annonce (`EX-SCR-41`) ; le plafond de
+   20 marques affichées lorsque aucun filtre n'est posé (`EX-SCR-125`).
