@@ -902,3 +902,832 @@ retrait unitaire fonctionnel) et que l'URL produite est acceptée au rechargemen
 état, même sérialisation. Aucune variante par écran, à l'exception du contrôle
 `Marque / Modèle`, qui sur l'écran B affiche le couple courant et, au clic, ouvre le sélecteur
 `G` positionné sur ce couple.
+
+---
+
+## 5. Écran A — Survol du marché
+
+### 5.1 Identité
+
+`EX-SCR-104` — **Nom** : « Survol du marché ». **Route** : `/marche?<filtres>`.
+**Rôle** : réalise le parcours cible 1 de `00-CONTEXT.md` — l'utilisateur pose des contraintes
+de marché et découvre *ce que le marché propose*, sans avoir nommé de marque.
+**Condition d'affichage** : le filtre `mmmv` ne contient **aucun `modelId`**. Si `mmmv` contient
+exactement un couple marque + modèle, la route redirige vers l'écran B ; si `mmmv` contient une
+ou plusieurs marques sans modèle, l'écran A reste affiché et la liste des cartes est restreinte
+à ces marques.
+
+### 5.2 Structure
+
+```
++==========================================================================================+
+| S0 en-tete + bandeaux + C1 bandeau de filtres + fil d'Ariane                             |
++==========================================================================================+
+| C3  Statistiques calculees sur 3 840 annonces observees sur 120 779 annoncees - 3 %  (i) |
++==========================================================================================+
+| 42 marques - 318 modeles - 120 779 offres     Trier par [ Nombre d'offres v ] [ ^ ]      |  44 px
+|                                               [ ] Masquer les modeles a moins de 3 offres|
++==========================================================================================+
+|  +-----------------------------------+  +-----------------------------------+            |
+|  | VOLKSWAGEN                 12 480 |  | BMW                        9 105  |  <- en-tete|
+|  | 34 modeles - mediane 18 900 EUR   |  | 28 modeles - mediane 24 500 EUR   |  <- resume |
+|  | 4 200 - 89 000 EUR | 2004-2026    |  | 3 900 - 168 000 EUR | 2003-2026   |            |
+|  +-----------------------------------+  +-----------------------------------+            |
+|  | Golf                      3 120 > |  | Serie 3                   2 004 > | <- zone-  |
+|  |  8 900 - 32 500 EUR   2010 - 2025 |  |  9 500 - 64 000 EUR  2009 - 2025  |    modele |
+|  |  12 000 - 240 000 km  med. 17 400 |  |  15 000 - 260 000 km med. 22 900  |            |
+|  |  [#####____________]              |  |  [####_____________]              |            |
+|  +-----------------------------------+  +-----------------------------------+            |
+|  | Polo                      2 410 > |  | Serie 1                   1 702 > |            |
+|  |  ...                              |  |  ...                              |            |
+|  +-----------------------------------+  +-----------------------------------+            |
+|  | (4 autres zones-modeles)          |  | (4 autres zones-modeles)          |            |
+|  +-----------------------------------+  +-----------------------------------+            |
+|  | + Afficher les 28 autres modeles  |  | + Afficher les 22 autres modeles  |  <- pied   |
+|  +-----------------------------------+  +-----------------------------------+            |
+|                                                                                          |
+|  (grille de 3 colonnes en regime large ; 2 en intermediaire ; 1 en compact)              |
++==========================================================================================+
+| 20 marques sur 295            [ Charger 12 marques de plus ]                             |
++==========================================================================================+
+| S0 pied de page                                                                          |
++==========================================================================================+
+```
+
+`EX-SCR-105` — L'écran A comporte **exactement trois blocs** dans la zone principale, dans cet
+ordre : (1) la **barre de synthèse et de tri**, hauteur fixe 44 px, collante sous le bandeau de
+filtres ; (2) la **grille de cartes-marques** ; (3) le **pied de grille** portant le compteur
+de progression et le bouton de chargement.
+
+`EX-SCR-106` — **Barre de synthèse.** Contenu exact, de gauche à droite :
+`<n> marques · <n> modèles · <n> offres` (séparateur point médian U+00B7, formats `EX-SCR-1`
+et `EX-SCR-10`), puis la liste déroulante de tri, puis le bouton d'inversion de sens du tri,
+puis la case `Masquer les modèles à moins de 3 offres`. Les trois cardinaux sont ceux de la
+population filtrée, pas de la population affichée ; si les deux diffèrent
+(`ET-TROP-RESULTATS`), la barre affiche en plus `— 20 marques affichées` en gris.
+
+### 5.3 Anatomie de la carte-marque
+
+`EX-SCR-107` — Une carte-marque est un bloc de largeur égale à sa colonne de grille
+(min 320 px, max 520 px), composé de **quatre régions verticales** :
+
+| Région | Hauteur | Contenu |
+|---|---|---|
+| **En-tête de marque** | 72 px | pastille + nom de la marque + effectif d'offres de la marque |
+| **Résumé de marque** | 44 px | nombre de modèles, prix médian, fourchettes agrégées |
+| **Liste de zones-modèles** | variable, 6 zones visibles puis repli | une zone par modèle |
+| **Pied de carte** | 40 px | bouton de dépliement, ou rien si tous les modèles sont visibles |
+
+`EX-SCR-108` — **En-tête de marque, contenu exact** : le nom de la marque en capitales, graisse
+600, taille 16 px, tronqué à 22 caractères (`EX-SCR-13`) ; à droite, l'effectif total d'offres
+de la marque dans le périmètre filtré, en graisse 700, taille 20 px, chiffres tabulaires.
+**Aucun logo de marque n'est affiché** : les logos sont des marques déposées et leur
+reproduction dans un agrégat non affilié ajouterait un risque juridique que `00-CONTEXT.md`
+cherche précisément à contenir. À la place, une pastille carrée de 32 px portant les deux
+premières lettres de la marque, sur une couleur dérivée de façon déterministe du `makeId`
+(donc stable entre deux chargements et testable).
+
+`EX-SCR-109` — **Résumé de marque, contenu exact**, sur deux lignes de 20 px :
+ligne 1 — `<n> modèles · médiane <prix> €` ;
+ligne 2 — `<prix min> – <prix max> €  |  <année min> – <année max>` (formats `EX-SCR-4` et
+`EX-SCR-6`). Le kilométrage n'apparaît **pas** au niveau marque : agréger le kilométrage de
+34 modèles hétérogènes produit une fourchette presque toujours égale à `0 – 400 000 km`, donc
+sans information. Justification écrite ici afin qu'elle ne soit pas « corrigée » plus tard.
+
+`EX-SCR-110` — **En-tête cliquable.** Un clic sur l'en-tête ou sur le résumé de marque
+**ajoute la marque au filtre `mmmv`** et recharge l'écran A restreint à cette marque (l'écran A
+reste affiché : une marque sans modèle ne suffit pas à ouvrir une distribution). Retour
+visuel : élévation de la carte de 0 à 2 dp au survol, curseur `pointer`, contour de focus de
+2 px au clavier.
+
+`EX-SCR-111` — **Case de comparaison de marque.** Coin supérieur droit de la carte,
+20 × 20 px, visible au survol de la carte et en permanence si cochée. Elle ajoute la **marque**
+à la sélection de comparaison (écran C). Désactivée si 4 sélections sont déjà faites, avec
+l'infobulle `Maximum 4 sélections`.
+
+### 5.4 Anatomie de la zone-modèle
+
+`EX-SCR-112` — Une zone-modèle est une bande de **72 px** de hauteur en régime `large`,
+séparée de la précédente par un filet de 1 px, composée exactement de :
+
+```
++---------------------------------------------------------------+
+| Golf                                            3 120  >      |   ligne 1 : 22 px
+|   8 900 - 32 500 EUR     2010 - 2025                     (o)  |   ligne 2 : 18 px
+|   12 000 - 240 000 km    med. 17 400 EUR                      |   ligne 3 : 18 px
+|   [##########_____________________]                           |   ligne 4 : 6 px + 8 px
++---------------------------------------------------------------+
+```
+
+`EX-SCR-113` — **Contenu exact de la zone-modèle**, dans cet ordre, aucun élément optionnel :
+1. **Nom du modèle** — `model.formatted`, graisse 600, 14 px, tronqué à 28 caractères.
+2. **Effectif d'offres** — format `EX-SCR-1` sans le mot « offres » (il serait répété 34 fois
+   par carte) ; l'unité est portée par l'`aria-label` de la ligne : `Golf, 3 120 offres`.
+3. **Chevron `>`** — indicateur d'ouverture de l'écran B.
+4. **Fourchette de prix** — `EX-SCR-4`.
+5. **Fourchette d'années de première immatriculation** — `EX-SCR-6`, forme `AAAA – AAAA`.
+6. **Fourchette de kilométrage** — `EX-SCR-5`.
+7. **Prix médian** — `méd. <prix> €`.
+8. **Indicateur de couverture** — disque de 8 px, cf. `EX-SCR-115`.
+9. **Barre de part relative** — barre horizontale de 6 px de haut dont la longueur est
+   proportionnelle à `offres du modèle / offres du modèle le plus offert de cette marque`,
+   pleine largeur = 100 %. Elle porte `aria-hidden="true"` : c'est une redondance visuelle de
+   l'effectif déjà annoncé aux lecteurs d'écran.
+
+`EX-SCR-114` — **Ces trois fourchettes plus l'effectif sont l'exigence textuelle du
+commanditaire** (« le nombre d'offre de ce modèle de cette marque et la fourchette de prix,
+d'année et de kilomètre »). Elles ne sont donc jamais masquées, à aucun régime responsive
+(en `compact` elles passent sur quatre lignes, cf. `EX-SCR-135`).
+
+`EX-SCR-115` — **Provenance des fourchettes, et honnêteté du chiffre.** `topModels` ne fournit
+que `listingsCount`, et `priceInfo` ne fournit que des **minima**
+(`FINDING-allowed-surface.md` §2.1 et §2.2). Les trois fourchettes et la médiane sont donc
+calculées sur les **annonces effectivement observées**, dont le nombre est inférieur à
+l'effectif annoncé. Conséquence normative : chaque zone-modèle affiche un **indicateur de
+couverture** de 8 px — disque plein (couverture ≥ 80 %), à moitié plein (20–80 %), ou creux
+(< 20 %) — dont l'infobulle indique
+`Fourchettes calculées sur <n_obs> des <n_tot> offres`. Un disque creux impose en plus
+l'affichage des trois fourchettes en italique. Sans cet indicateur, l'écran présenterait comme
+une fourchette de marché ce qui n'est qu'une fourchette d'échantillon.
+
+`EX-SCR-116` — **Cas `n_obs = 0` alors que `n_tot > 0`** (prévisible : `listingsCount` est
+exhaustif par construction alors qu'aucune annonce n'a été échantillonnée). La zone-modèle
+affiche l'effectif et, à la place des trois fourchettes, la mention unique
+`Fourchettes indisponibles — aucune annonce échantillonnée`. Le chevron reste actif : l'écran B
+affichera alors `ET-VIDE-FILTRES` avec ce même motif. **Aucun `0 – 0 €` n'est jamais affiché.**
+
+`EX-SCR-117` — **Clic sur la zone-modèle** → navigation vers l'écran B pour ce couple
+marque/modèle, filtres conservés (`EX-SCR-51`). Toute la bande de 72 px est la cible cliquable,
+pas seulement le chevron. Retour visuel : fond à 4 % de l'accent au survol, contour de focus de
+2 px au clavier, et le chevron se décale de 2 px vers la droite.
+
+`EX-SCR-118` — **Case de comparaison de modèle.** Apparaît à gauche du nom au survol de la
+bande, 18 × 18 px, et ajoute le **modèle** à la sélection de l'écran C. Un clic sur la case ne
+déclenche pas la navigation (propagation arrêtée).
+
+### 5.5 Tri, repliement, volumétrie
+
+`EX-SCR-119` — **Ordre de tri des marques**, par défaut : effectif d'offres décroissant.
+Égalité tranchée par ordre alphabétique croissant avec
+`Intl.Collator('fr-BE', { sensitivity: 'base', numeric: true })` — de sorte que `Škoda` se
+classe avec `Skoda` et que `Série 3` précède `Série 30`. Le tri est **total et déterministe** :
+deux chargements identiques produisent le même ordre, ce qui est vérifiable par test.
+
+`EX-SCR-120` — **Options de tri des marques**, exactement quatre :
+`Nombre d'offres` (défaut, décroissant) · `Prix médian` (croissant par défaut) ·
+`Alphabétique` (croissant) · `Nombre de modèles` (décroissant). Le bouton d'inversion applique
+le sens contraire. Aucune option de tri ne repose sur un champ absent de §2.3.
+
+`EX-SCR-121` — **Ordre de tri des modèles dans une carte** : effectif d'offres décroissant,
+égalité tranchée par le même collateur. Ce tri **ne suit pas** celui des marques : trier les
+marques par prix médian ne réordonne pas les modèles, car l'utilisateur attend de trouver le
+modèle le plus offert en tête de chaque carte. Ce choix est écrit parce que les deux
+comportements sont défendables et que l'ambiguïté serait relevée en phase 2.2.
+
+`EX-SCR-122` — **Nombre de modèles visibles avant repli : 6.** Justification chiffrée : à
+72 px par zone, 6 zones + 116 px d'en-tête et de résumé + 40 px de pied = 588 px, ce qui
+permet d'afficher une carte-marque complète et le début de la suivante dans un viewport de
+900 px, et satisfait `EX-SCR-22` (≥ 24 zones-modèles visibles avec 4 cartes sur 3 colonnes).
+Si la marque compte exactement 7 modèles, les 7 sont affichés : déplier pour un seul modèle est
+un clic inutile.
+
+`EX-SCR-123` — **Pied de carte.** Bouton textuel pleine largeur
+`+ Afficher les <n> autres modèles`, où `<n>` est exact. Une fois déplié, le libellé devient
+`− Réduire à 6 modèles`. L'état déplié de chaque carte est encodé dans l'URL sous forme d'une
+liste de `makeId`, afin que `EX-SCR-50` soit satisfait.
+
+`EX-SCR-124` — **Marque à grand nombre de modèles (cas des 80 modèles).** Trois règles
+cumulatives :
+1. Au dépliement, la liste des zones-modèles devient **défilante à l'intérieur de la carte**,
+   hauteur maximale 480 px (soit 6,6 zones visibles), avec une ombre portée haute et basse
+   signalant le débord. La carte ne s'allonge donc jamais au-delà de 636 px.
+2. Dès que la marque compte **plus de 12 modèles**, un **champ de recherche de modèle**
+   apparaît dans le pied de carte au dépliement, pleine largeur, filtrant la liste par
+   sous-chaîne insensible à la casse et aux diacritiques, avec un compteur
+   `<k> modèles sur 80`.
+3. Le rendu de la liste dépliée est **virtualisé** au-delà de 30 zones-modèles : au plus
+   30 nœuds de zone existent simultanément dans le DOM par carte.
+Volumétrie de référence : la taxonomie compte 295 marques et 4 955 modèles, soit 16,8 modèles
+par marque en moyenne ; les marques généralistes dépassent largement cette moyenne, ce qui rend
+la virtualisation obligatoire et non optionnelle.
+
+`EX-SCR-125` — **Cas « aucun filtre posé ».** L'écran ne rend **pas** 295 cartes ni 4 955
+zones. Comportement normatif :
+- La grille affiche les **20 premières marques** par effectif d'offres décroissant.
+- Un bandeau `ET-TROP-RESULTATS` indique
+  `295 marques dans le snapshot — 20 affichées, triées par nombre d'offres` et porte le bouton
+  `Afficher les 295 marques` (rendu virtualisé, `EX-SCR-127`).
+- Un **bloc d'amorce** de 96 px est inséré au-dessus de la grille, contenant la phrase
+  `Posez au moins un critère pour voir ce que le marché propose` et **quatre raccourcis**
+  cliquables, chacun posant un jeu de filtres prédéfini : `Budget ≤ 10 000 €` ·
+  `Budget ≤ 20 000 €` · `Moins de 100 000 km` · `Immatriculées depuis 2020`. Ces raccourcis ne
+  sont **pas** des recommandations de marché : ce sont des amorces de filtre, et leur libellé le
+  dit littéralement.
+Justification des chiffres : 295 cartes × 588 px ≈ 173 000 px de hauteur cumulée et ≈ 1 770
+zones-modèles repliées, soit un écran inexploitable ; et l'agrégation des 4 955 modèles
+représente au pire ≈ 2,3 Go par snapshot d'après la limite P5 de
+`FINDING-allowed-surface.md`.
+
+`EX-SCR-126` — Le bloc d'amorce disparaît dès qu'au moins un filtre autre que `atype`, `cy`,
+`ustate`, `sort`, `desc`, `powertype` et `pricetype` est posé — c'est-à-dire dès qu'un filtre
+non injecté par défaut est actif. Il ne réapparaît pas après un `Tout effacer` de la même
+session, sauf rechargement complet de la page : sa fonction est pédagogique, pas répétitive.
+
+`EX-SCR-127` — **Rendu virtualisé de la grille.** Au-delà de 40 cartes, la grille est
+virtualisée : au plus 12 cartes montées simultanément, hauteur de conteneur estimée depuis la
+hauteur repliée (588 px) puis corrigée à la mesure réelle. Cible mesurée : défilement à
+60 images par seconde sur 295 cartes, sur un appareil de milieu de gamme.
+
+`EX-SCR-128` — **Case `Masquer les modèles à moins de 3 offres`**, défaut **inactif**.
+Lorsqu'elle est active, les zones-modèles dont l'effectif est 1 ou 2 sont retirées et le pied
+de carte indique `<n> modèles masqués (moins de 3 offres)`. Justification du défaut inactif :
+un modèle à 1 offre est précisément le cas où un outlier est le plus probable ; le masquage
+doit rester un choix explicite de l'utilisateur.
+
+`EX-SCR-129` — **Pagination.** Aucune pagination numérotée. Défilement continu avec chargement
+par lots de 12 cartes, déclenché à 600 px du bas de la grille, et bouton
+`Charger 12 marques de plus` en repli lorsque l'observateur d'intersection est indisponible.
+Un indicateur textuel `<n> marques sur <N>` est affiché en pied de grille en permanence.
+
+### 5.6 États de l'écran A
+
+`EX-SCR-130` — `ET-CHARGE-INIT` : 6 cartes-marques squelettes, chacune avec un en-tête, un
+résumé et 6 zones-modèles squelettes, aux dimensions exactes définies ci-dessus. La barre de
+synthèse affiche `— marques · — modèles · — offres`. Le nombre 6 est choisi pour remplir un
+viewport de 900 px sans en dépasser, afin que la transition vers le contenu réel ne provoque
+aucun saut de mise en page mesurable (décalage cumulé de mise en page cible : < 0,05).
+
+`EX-SCR-131` — `ET-VIDE-FILTRES` : la grille est remplacée par le bloc d'`EX-SCR-26`. La barre
+de synthèse affiche `0 marque · 0 modèle · aucune offre` et la liste de tri est désactivée avec
+l'infobulle `Aucun résultat à trier`.
+
+`EX-SCR-132` — **Résultat partiel par marque.** Si l'agrégat d'une marque est disponible mais
+qu'aucun de ses modèles ne l'est, la carte s'affiche avec son en-tête et son résumé, et à la
+place des zones-modèles la mention `Détail par modèle indisponible pour cette marque` plus un
+bouton `Réessayer` portant sur cette seule carte. La carte reste cliquable au niveau marque.
+
+`EX-SCR-133` — **Erreur partielle de grille.** Si `k` cartes sur `n` ont échoué, les cartes en
+échec sont rendues en état d'erreur individuel (bordure ambre de 1 px, texte
+`Chargement impossible`, bouton `Réessayer`) et un bandeau indique
+`<k> marques sur <n> n'ont pas pu être chargées`. La grille n'est **jamais** vidée pour une
+erreur partielle.
+
+`EX-SCR-134` — **`ET-EFFECTIF-FAIBLE` appliqué à la zone-modèle.** Pour `1 ≤ n ≤ 4`, la
+médiane est remplacée par `n trop faible` et les fourchettes restent affichées (min et max sont
+définis dès `n = 1`, auquel cas `EX-SCR-4` produit une valeur unique). Pour `n = 1`, la
+troisième ligne affiche `1 seule offre` à la place de `méd. …`, et la barre de part relative
+est rendue à sa longueur réelle, jamais à zéro.
+
+### 5.7 Responsive de l'écran A
+
+`EX-SCR-135` — **Régime `compact` (< 768 px)** : grille à **1 colonne**, carte pleine largeur
+moins 32 px. La zone-modèle passe de 72 à 96 px et se réorganise sur quatre lignes
+(1 : nom + effectif ; 2 : prix ; 3 : années + km ; 4 : médiane + barre de part). La barre de
+synthèse perd le cardinal `modèles` et ne conserve que `<n> marques · <n> offres` ; la liste de
+tri devient un bouton de 44 px ouvrant une feuille de sélection. Le nombre de modèles visibles
+avant repli passe de 6 à **4**. Le pied de grille reste visible.
+
+`EX-SCR-136` — **Régime `intermédiaire` (768–1279 px)** : grille à **2 colonnes**,
+zones-modèles inchangées à 72 px, 6 modèles visibles avant repli, case
+`Masquer les modèles à moins de 3 offres` déplacée sur une seconde ligne de la barre de
+synthèse (hauteur 68 px).
+
+`EX-SCR-137` — **Régime `large` (≥ 1280 px)** : grille à **3 colonnes** jusqu'à 1 679 px, puis
+**4 colonnes** à partir de 1 680 px de largeur de contenu. La colonne ne dépasse jamais
+520 px : au-delà, la gouttière absorbe l'excédent.
+
+`EX-SCR-138` — **Ce qui devient défilable, et ce qui ne se masque jamais.** Deviennent
+défilables : la grille (verticalement), la liste dépliée d'une carte (verticalement, cf.
+`EX-SCR-124`), la ligne des filtres actifs (horizontalement en `compact`). Ne se masquent
+jamais, à aucun régime : l'effectif d'offres d'une marque, l'effectif d'offres d'un modèle, et
+les trois fourchettes d'une zone-modèle — ce sont exactement les données demandées par le
+commanditaire.
+
+---
+
+## 6. Écran B — Distribution d'un modèle
+
+### 6.1 Identité
+
+`EX-SCR-139` — **Nom** : « Distribution — <Marque> <Modèle> ».
+**Route** : `/marche/:makeId-:makeSlug/:modelId-:modelSlug?<filtres>`.
+**Rôle** : réalise le parcours cible 2 de `00-CONTEXT.md` — obtenir la distribution de l'offre
+d'un couple marque/modèle afin d'y détecter les décalages.
+**Condition d'affichage** : un `modelId` unique est déterminé, par la route ou par un `mmmv`
+contenant exactement un couple marque + modèle. Si `mmmv` contient plusieurs modèles, la route
+redirige vers l'écran C (comparaison).
+
+`EX-SCR-140` — Les segments d'URL portent **à la fois** l'identifiant numérique et le `slug`,
+séparés par un tiret (`20191-opel-adam`). L'identifiant numérique fait foi ; le `slug` est
+cosmétique, et un `slug` erroné n'empêche pas l'affichage (redirection canonique vers le bon
+`slug`). Justification : les `slug` de `data/reference/taxonomy.json` sont marqués
+`[EXTRAPOLÉ]` alors que les `modelId` sont `RELEVÉ` et recoupés par `topModels`.
+
+### 6.2 Structure
+
+```
++==========================================================================================+
+| S0 en-tete + bandeaux + C1 BANDEAU DE FILTRES (PERSISTANT) + fil d'Ariane                |
++==========================================================================================+
+| C3  Statistiques calculees sur 20 annonces observees sur 1 281 annoncees - 2 %       (i) |
+| (!) Representativite de l'echantillon non prouvee - lire Pourquoi ?                      |
++==========================================================================================+
+| OPEL CORSA        1 281 offres | mediane 12 900 EUR | P25 9 900 EUR | P75 16 400 EUR     |
+|                   km median 78 000 | 1re immat. mediane 2018 | 42 % particuliers         |  76 px
+|                   [ Voir les 1 281 annonces > ]   [ Comparer ]   [ Exporter v ]          |
++==========================================================================================+
+| G1 Offres par prix          | G2 Offres par kilometrage   | G3 Offres par annee          |
+|   ____                      |    ______                   |       ___                    |  260 px
+|  |    |__                   |   |      |__                |      |   |__                 |
+|  |    |  |___               |   |      |  |___            |   ___|   |  |                |
+|  +-----------------------   |   +----------------------    |  +------------------------   |
++==========================================================================================+
+| G4  Prix x Annee x Kilometrage   [ Nuee empilee | Nuage prix-annee ]   [+][-][Reinit.]   |
+|                                                                                          |
+|  nb                                        | Couleur (annee)     | Taille (km)           |
+|   ^                                        | 2005 [#######] 2026 |  o     O      ( )     |  480 px
+|   |        o O @ o                         | annee non renseignee|  0  100 000  250 000+ |
+|   |    o O @ @ O o o                       | (3) en gris         |                       |
+|   +--------------------------------> prix  |                                             |
+|   12 annonces regroupees dans le bucket de debord ">= 38 000 EUR"                        |
++==========================================================================================+
+| G5 Prix median par annee              | G6 Depreciation (base 100)                       |  320 px
++==========================================================================================+
+| G7 Densite prix x km                  | G8 Ecart au prix attendu (20 premiers)           |  360 px
++==========================================================================================+
+| G9 Carburant | G10 Prix par tranche km | G12 Evaluation AS24 | G13 Type de vendeur       |  300 px
++==========================================================================================+
+| G14 Prix median par puissance         | G15 Repartition par pays (si cy multiple)        |  280 px
++==========================================================================================+
+| S0 pied de page                                                                          |
++==========================================================================================+
+```
+
+`EX-SCR-141` — L'écran B comporte **exactement quatre blocs** dans la zone principale :
+(1) l'**en-tête statistique** de 76 px, collant sous le bandeau de filtres ;
+(2) la **rangée des trois histogrammes imposés** ;
+(3) la **vue tri-dimensionnelle `G4`**, seule à occuper toute la largeur ;
+(4) la **grille des graphes additionnels** `G5` à `G15`.
+
+`EX-SCR-142` — **En-tête statistique, contenu exact**, trois lignes :
+ligne 1 — `<MARQUE> <MODÈLE>` puis, séparés par des barres verticales : `<n> offres`,
+`médiane <prix> €`, `P25 <prix> €`, `P75 <prix> €` ;
+ligne 2 — `km médian <km>`, `1ʳᵉ immat. médiane <AAAA>`, `<p> % particuliers` ;
+ligne 3 — trois boutons : `Voir les <n> annonces` (écran D), `Comparer` (ajoute le modèle à la
+sélection de l'écran C), `Exporter` (menu de `EX-SCR-187`).
+Toute statistique de l'en-tête porte son effectif en infobulle (`EX-SCR-12`).
+
+`EX-SCR-143` — **Le bandeau de filtres est persistant et s'applique à toute la page.**
+C'est une exigence textuelle du commanditaire. Conséquence normative : **tous** les graphes de
+l'écran B sont recalculés depuis le même ensemble filtré, dans la même transaction ; il
+n'existe aucun graphe qui ignore un filtre. Critère de recette : après application d'un filtre
+de classe R, la somme des effectifs de `G1`, celle de `G2`, celle de `G3` et l'effectif de
+l'en-tête sont égales à l'effectif filtré, aux exclusions de `ET-CHAMP-MANQUANT` près, chacune
+documentée par sa note d'exclusion `EX-SCR-178`.
+
+`EX-SCR-144` — **Ordre des graphes, normatif** : `G1`, `G2`, `G3` (les trois imposés), puis
+`G4` (la vue tri-dimensionnelle imposée), puis les additionnels par utilité décroissante pour
+la détection d'outliers : `G5`, `G6`, `G7`, `G8`, `G9`, `G10`, `G12`, `G13`, `G14`, `G15`.
+L'ordre est fixe et non personnalisable en v1 ; le rendre configurable serait une dette
+assumée, pas une exigence.
+
+### 6.3 Les trois histogrammes imposés
+
+`EX-SCR-145` — **`G1` — Offres par prix.** Type : histogramme à barres verticales.
+Axe X : prix, échelle **linéaire** (justification `EX-SCR-17`), unité `€`, bornes P1–P99
+(`EX-SCR-18`), buckets de largeur égale calculée par la règle de Freedman-Diaconis puis
+arrondie au multiple de 500 € le plus proche, avec un minimum de 8 et un maximum de
+40 buckets. Axe Y : nombre d'offres, **linéaire**, départ à 0, bascule logarithmique
+conditionnelle (`EX-SCR-16`). Étiquettes d'axe X aux bornes de bucket, une sur deux si la
+largeur disponible est inférieure à 48 px par étiquette.
+
+`EX-SCR-146` — **`G2` — Offres par kilométrage.** Identique à `G1`, unité `km`, largeur de
+bucket arrondie au multiple de 5 000 km, minimum 8 et maximum 30 buckets, borne haute P99 avec
+bucket de débord `≥ <borne> km`.
+
+`EX-SCR-147` — **`G3` — Offres par année de première immatriculation.** Buckets de **1 an**,
+sans calcul de largeur : l'année est la granularité naturelle et un bucket de 2,7 ans serait
+illisible. Bornes : de l'année minimale observée à l'année maximale observée, **sans**
+troncature P1/P99 — un modèle couvre 8 à 25 millésimes, la troncature n'apporterait rien et
+masquerait les ancêtres, qui sont un cas d'outlier légitime. Si l'étendue dépasse 30 ans, les
+années les plus anciennes sont regroupées dans un bucket de débord `avant <AAAA>`.
+
+`EX-SCR-148` — **Encodage commun à `G1`–`G3`** : barres d'une seule couleur (accent à 70 %
+d'opacité), **aucune couleur porteuse d'information** — la couleur est réservée à `G4`.
+Espacement inter-barres de 2 px. Aucune barre d'effectif ≥ 1 ne mesure moins de 1 px de
+hauteur : une classe à 1 offre doit rester visible, sinon la détection du cas isolé est perdue.
+
+`EX-SCR-149` — **Interactions communes à `G1`–`G3`** :
+- **Survol d'une barre** → infobulle : intervalle du bucket, effectif, part en pourcentage, et
+  prix médian des offres du bucket (`G2`, `G3`) ou kilométrage médian du bucket (`G1`).
+- **Clic sur une barre** → pose le filtre d'intervalle correspondant au bucket
+  (`pricefrom`/`priceto`, `kmfrom`/`kmto`, `fregfrom`/`fregto`), donc recalcule toute la page.
+  Retour visuel immédiat : la barre passe en accent plein et un jeton apparaît en zone (4) du
+  bandeau avant même la fin du recalcul.
+- **Brossage horizontal** (glisser sur l'axe) → pose l'intervalle de la plage brossée, arrondi
+  aux bornes de bucket ; la plage est encodée dans l'URL.
+- **`Ctrl` + clic** → sélection de plusieurs buckets non contigus ; l'intervalle posé est le
+  plus petit englobant, et une note affiche
+  `intervalle élargi aux bornes des buckets sélectionnés`.
+- **Double-clic dans la zone de tracé** → retire le filtre posé par ce graphe.
+**Aucun zoom molette** : il entrerait en conflit avec le défilement vertical de la page.
+
+`EX-SCR-150` — **`G1`–`G3` à faible effectif.**
+- `n = 0` → le graphe n'est pas tracé ; à sa place, un cadre de dimension identique portant
+  `Aucune offre` centré. Le cadre est conservé pour que la mise en page ne saute pas.
+- `n = 1` → une barre unique de hauteur 1, l'axe X couvrant `valeur ± 1 largeur de bucket`, la
+  mention `1 offre — aucune distribution` sous le titre, et la bascule logarithmique absente
+  du DOM.
+- `n = 3` → au plus trois barres, largeur de bucket forcée à `(max − min) / 3` arrondie au pas
+  de l'unité, jeton ambre `n = 3` accolé au titre, et aucune médiane en infobulle
+  (`EX-SCR-33`).
+
+### 6.4 `G4` — La vue tri-dimensionnelle
+
+`EX-SCR-151` — **`G4` implémente littéralement la demande du commanditaire** — « un graphe
+nombre d'offre - prix avec les points colorés par année et la taille des points liée au nombre
+de km » — et propose l'alternative qu'il autorise explicitement (« ou un autre setup pour
+afficher les 3 dimensions prix années km »). Le composant offre donc **deux vues commutables**,
+une seule visible à la fois :
+
+| Vue | Axe X | Axe Y | Couleur | Taille | Un point = |
+|---|---|---|---|---|---|
+| **`G4a` — Nuée empilée** (défaut si `n ≤ 400`) | prix, mêmes buckets que `G1` | rang d'empilement dans le bucket, donc **nombre d'offres** | année de 1ʳᵉ immatriculation | kilométrage | une annonce |
+| **`G4b` — Nuage prix × année** (défaut si `n > 400`) | date de 1ʳᵉ immatriculation, continue | prix | kilométrage | puissance en kW, sinon taille fixe | une annonce |
+
+`EX-SCR-152` — **`G4a` est la vue par défaut jusqu'à 400 annonces.** Justification chiffrée :
+avec un diamètre de point maximal de 14 px et une hauteur de tracé de 400 px, un bucket ne peut
+empiler plus de 28 points sans chevauchement ; au-delà d'environ 400 annonces réparties sur
+14 buckets, la moyenne par bucket dépasse ce seuil et l'empilement dégénère en colonne opaque.
+La bascule manuelle reste disponible dans les deux sens, et son état est encodé dans l'URL.
+
+`EX-SCR-153` — **Échelles de `G4`.** `G4a` : axe X linéaire en prix, avec **exactement les
+mêmes bornes et les mêmes buckets que `G1`**, afin que les deux graphes se lisent l'un sur
+l'autre ; axe Y linéaire en effectif depuis 0. `G4b` : axe X linéaire en date de première
+immatriculation (graduations annuelles au 1ᵉʳ janvier), axe Y linéaire en prix.
+**Aucune échelle logarithmique dans `G4`** : elle romprait la correspondance visuelle avec
+`G1` et `G3`, qui est la raison d'être de l'alignement des buckets.
+
+`EX-SCR-154` — **Encodage couleur de `G4a` (année).** Rampe séquentielle continue à 5 arrêts,
+de l'ancien au récent, **sûre en déficience de vision des couleurs** (aucune opposition
+rouge/vert) et de luminance monotone pour rester lisible en niveaux de gris. Légende
+obligatoire : barre de dégradé horizontale de 160 px portant l'année minimale, l'année médiane
+et l'année maximale observées. Les annonces dont l'année est absente sont tracées en **gris
+neutre**, avec l'entrée de légende `année non renseignée (<k>)` — jamais fondues dans la rampe.
+
+`EX-SCR-155` — **Encodage taille de `G4a` (kilométrage).** **Aire** du disque proportionnelle
+au kilométrage, donc rayon en racine carrée — jamais le rayon proportionnel, qui surévaluerait
+les gros kilométrages d'un facteur 2 en aire perçue. Diamètre borné de 5 px à 14 px. Légende
+obligatoire : trois disques témoins étiquetés `0 km`, `100 000 km`, `250 000 km et plus`.
+Les kilométrages supérieurs à 250 000 km sont écrêtés au diamètre maximal et reçoivent un
+contour pointillé de 1,5 px signalant l'écrêtage.
+
+`EX-SCR-156` — **Encodage de `G4b`.** Couleur = kilométrage (même famille de rampe
+séquentielle, légende en km) ; taille = puissance en kW lorsque le champ est présent, sinon
+**taille fixe de 6 px** et mention `taille non porteuse d'information` dans la légende.
+Justification de l'inversion des canaux : en nuage prix × année, c'est le kilométrage dont les
+valeurs extrêmes doivent ressortir, et la couleur est un canal plus précis que la taille pour
+une variable continue lue point par point.
+
+`EX-SCR-157` — **Chevauchement et opacité.** Points à 55 % d'opacité, contour de 0,5 px à
+100 % d'opacité pour que deux points superposés restent dénombrables. Au-delà de 5 000 points,
+`G4b` bascule automatiquement d'un rendu SVG à un rendu `canvas`, et au-delà de 20 000 points
+affiche le bandeau `ET-TROP-RESULTATS` avec la mention d'échantillonnage à graine fixée
+(la graine est écrite dans l'infobulle, afin que deux utilisateurs voient le même échantillon).
+
+`EX-SCR-158` — **Interactions de `G4`** :
+- **Survol d'un point** → infobulle de 5 lignes : `modelVersionInput` tronqué à 40 caractères,
+  `<prix> €`, `<km> km`, `1ʳᵉ immat. <MM/AAAA>`, puissance au format `EX-SCR-7`, plus le jeton
+  d'évaluation AutoScout24 (`Très bon prix` / `Bon prix` / `Prix correct`) s'il est présent.
+- **Clic sur un point** → ouvre l'annonce d'origine (`details.webPage`) dans un nouvel onglet,
+  avec `rel="noopener noreferrer"`. C'est le seul lien sortant de l'application, conformément
+  au choix d'architecture de `00-CONTEXT.md` (deeplink plutôt que duplication).
+- **Brossage rectangulaire** (glisser dans la zone de tracé) → sélectionne un sous-ensemble
+  d'annonces. La sélection **n'est pas un filtre** : elle met en surbrillance les mêmes
+  annonces dans `G1`, `G2`, `G3`, `G7`, `G8` et `G10` (liaison croisée, `EX-SCR-184`), affiche
+  un compteur `<n> annonces sélectionnées` et propose deux boutons :
+  `Filtrer sur cette sélection` (convertit la sélection en filtres d'intervalle) et
+  `Voir ces annonces` (écran D restreint à la sélection).
+- **Zoom** : boutons `+`, `−` et `Réinitialiser` explicites, plus `Maj` + glisser pour un zoom
+  rectangulaire. Aucun zoom molette (`EX-SCR-149`).
+- **`Échap`** → annule la sélection de brossage.
+
+`EX-SCR-159` — **`G4` à faible effectif.**
+- `n = 1` → un point unique tracé au centre de la zone, axes bornés à `valeur ± 20 %` ;
+  les légendes de couleur et de taille sont **remplacées** par les valeurs littérales
+  (`année 2017`, `84 000 km`), car une rampe à un seul arrêt n'a aucun sens ; mention
+  `1 offre` sous le titre.
+- `n = 3` → trois points ; la rampe de couleur est remplacée par **trois pastilles discrètes**
+  étiquetées de leurs années exactes, et trois disques témoins étiquetés de leurs kilométrages
+  exacts. Brossage et zoom sont désactivés pour `n ≤ 3` (infobulle
+  `Sélection inutile en dessous de 4 offres`).
+- Seuil de bascule des légendes continues vers les légendes discrètes : `n < 8`.
+
+`EX-SCR-160` — **`G4` sans année exploitable.** Si aucune annonce du périmètre ne porte de date
+de première immatriculation, `G4a` conserve sa nuée mais la dimension couleur est remplacée par
+une couleur unique, et la légende affiche `année non renseignée sur les <n> offres` ;
+`G4b` devient indisponible, son onglet est désactivé avec l'infobulle
+`Nécessite l'année de première immatriculation`.
+
+### 6.5 Graphes additionnels retenus
+
+Chaque graphe ci-dessous est **un ajout de l'agent `req-screens`**, en réponse à la demande
+explicite « tu ajoutes également tout autre graphe agrégé utile ». Chacun est justifié par ce
+qu'il révèle **et que les autres ne révèlent pas**.
+
+`EX-SCR-161` — **`G5` — Prix médian par année de première immatriculation.**
+Type : courbe en escalier de la médiane, bande interquartile P25–P75 en aire translucide, et
+barres d'effectif en fond à 20 % d'opacité sur un second axe Y à droite.
+Axes : X années (mêmes buckets que `G3`, linéaire) ; Y gauche prix (linéaire, départ à 0) ;
+Y droit effectif (linéaire, départ à 0, plafonné au maximum de `G3`).
+**Ce qu'il révèle et que les autres ne révèlent pas** : la tendance centrale *conditionnelle*
+à l'année. `G1` donne la distribution globale des prix, `G3` celle des années, mais aucun des
+deux ne dit à quel prix se négocie un millésime donné — or c'est exactement la référence
+contre laquelle un outlier se définit.
+Interactions : survol d'une année → `n`, médiane, P25, P75, min, max ; clic → pose
+`fregfrom = fregto = <année>`.
+Faible effectif : une année à `n ≤ 4` affiche ses points bruts sans bande interquartile et avec
+un marqueur creux ; une année à `n = 0` **interrompt la courbe**, sans interpolation à travers
+le trou — interpoler inventerait une donnée.
+
+`EX-SCR-162` — **`G6` — Dépréciation, base 100.**
+Type : courbe unique. Axe X : âge en années, `0` = année la plus récente comptant `n ≥ 5`,
+linéaire. Axe Y : indice du prix médian, base 100 à l'âge 0, linéaire. Une seconde série en
+pointillé donne la **perte annuelle en pourcentage** sur un axe Y droit.
+**Ce qu'il révèle** : le *taux* de perte de valeur, et non son niveau. `G5` dit que la Corsa
+2015 vaut 9 000 € ; `G6` dit qu'elle perd 11 % par an entre 3 et 6 ans puis 6 % ensuite. C'est
+la seule vue qui rende comparables deux modèles de gammes différentes, donc la seule qui
+permette d'affirmer « ce modèle décote anormalement vite ».
+Faible effectif : le graphe est **remplacé** par la mention
+`Dépréciation non calculable — il faut au moins 3 années comptant chacune 5 offres`, et non par
+une courbe à deux points. Condition mesurable, donc testable.
+
+`EX-SCR-163` — **`G7` — Densité prix × kilométrage.**
+Type : carte de densité en cellules hexagonales, palette séquentielle mono-teinte à 5 classes
+en quantiles d'effectif de cellule, légende à 5 crans avec les effectifs de bornes.
+Axes : X kilométrage linéaire ; Y prix linéaire **avec bascule logarithmique** — seul graphe à
+la proposer sur un axe de prix (`EX-SCR-17`).
+**Ce qu'il révèle** : où se trouve la *masse* du marché quand la nuée de `G4` est saturée par
+le sur-tracé, et surtout les **trous et les bimodalités** — deux amas séparés dans le plan
+prix × km signalent deux populations (typiquement deux générations du modèle), ce qu'un nuage
+opaque cache complètement.
+Interactions : survol d'une cellule → effectif, plage de prix, plage de km, prix médian ;
+clic → pose les deux intervalles de la cellule.
+Faible effectif : en dessous de `n = 40`, `G7` **n'est pas tracé** et affiche
+`Densité non pertinente en dessous de 40 offres — voir la nuée ci-dessus`. Justification du
+seuil : 40 annonces sur une grille hexagonale donnent moins de 2 annonces par cellule occupée,
+la densité n'apportant alors rien de plus que la nuée.
+
+`EX-SCR-164` — **`G8` — Écart au prix attendu (les 20 premiers outliers).**
+Type : diagramme en sucettes horizontales, une ligne par annonce, triées par écart croissant
+(les plus sous-évaluées en haut). Axe X : écart, **centré sur 0**, échelle linéaire symétrique,
+double étiquetage en euros et en pourcentage. Couleur : teinte froide pour un écart négatif
+(moins cher qu'attendu), teinte chaude pour un écart positif ; ces deux teintes sont les seules
+de la page à porter un signe, et la légende le dit.
+Le prix attendu est le prix prédit par une **régression robuste** du prix sur l'année et sur le
+logarithme du kilométrage, estimée sur le périmètre filtré courant. La méthode d'estimation
+appartient au lot D4 ; l'écran exige seulement que la méthode soit **nommée à l'écran** sous le
+titre, au format `Modèle : régression robuste prix ~ année + ln(km) — n = 312, R² = 0,71`.
+**Ce qu'il révèle** : le classement des affaires *à âge et kilométrage comparables*. Aucun
+autre graphe ne le fait : `G1` classe par prix absolu, ce qui met en tête les épaves ; `G4`
+laisse l'œil faire le travail sur un nuage de 300 points. C'est le graphe qui répond
+directement à « repérer les anomalies qui constituent des opportunités » de `00-CONTEXT.md`.
+Interactions : clic sur une sucette → ouvre l'annonce d'origine ; survol → infobulle complète
+de l'annonce, plus le prix attendu et l'écart.
+Faible effectif : `G8` **n'est pas tracé** en dessous de `n = 30` et affiche
+`Écart au prix attendu non calculable — il faut au moins 30 offres pour estimer un prix de
+référence`. Si `R² < 0,30`, le graphe est tracé mais surmonté de l'avertissement ambre
+`Le modèle explique moins de 30 % de la variance — les écarts sont peu fiables`.
+
+`EX-SCR-165` — **`G9` — Répartition par carburant.**
+Type : barres horizontales triées par effectif décroissant, une barre par valeur de
+`fuels.fuelCategory.raw`, libellées avec les libellés FR relevés de l'énumération `fuel`
+(`EX-SCR-14`). Chaque barre porte `<n> · <p> %` en bout, et le **prix médian de la classe** en
+gris à droite. Axe X : effectif, linéaire, départ à 0.
+**Ce qu'il révèle** : la composition du marché du modèle, invisible dans toute distribution
+univariée, et le décalage de prix médian entre carburants — souvent l'explication première
+d'une distribution de prix bimodale observée en `G1`.
+Interactions : clic sur une barre → pose `fuel` sur cette valeur.
+Faible effectif : une classe à `n ≤ 4` affiche son effectif mais pas son prix médian
+(`EX-SCR-33`). Le graphe est tracé dès `n ≥ 1`.
+**Barres horizontales, et non un anneau** : la comparaison de longueurs est plus précise que
+celle d'angles, et 10 secteurs d'anneau sont illisibles.
+
+`EX-SCR-166` — **`G10` — Prix par tranche de kilométrage.**
+Type : boîtes à moustaches, 5 tranches définies par les **quintiles observés** du kilométrage —
+et non par des paliers ronds, car les quintiles garantissent des effectifs comparables et donc
+des boîtes comparables. Axe X : tranches (catégoriel ordonné, bornes affichées en km) ;
+axe Y : prix, linéaire, départ à 0. Chaque boîte porte son effectif sous l'axe. Les valeurs
+au-delà de 1,5 × l'écart interquartile sont tracées comme points individuels **cliquables**
+(ouverture de l'annonce).
+**Ce qu'il révèle** : la *dispersion* conditionnelle au kilométrage, et non la seule tendance.
+`G5` et `G7` montrent où sont les prix ; `G10` montre où le marché est **incohérent** — une
+tranche à fort écart interquartile signale un segment où le prix ne s'explique pas par le
+kilométrage, donc l'endroit où chercher.
+Faible effectif : en dessous de `n = 25`, le nombre de tranches est réduit à 3 ; en dessous de
+`n = 15`, `G10` est remplacé par un nuage de points prix × km simple, avec la mention
+`Effectif insuffisant pour des boîtes à moustaches (n = 12)`.
+
+`EX-SCR-167` — **`G12` — Répartition par évaluation de prix AutoScout24.**
+Type : barre empilée horizontale unique, 4 segments : `Très bon prix`, `Bon prix`,
+`Prix correct`, `Non évalué`. Effectif et pourcentage inscrits dans chaque segment de largeur
+≥ 40 px, les autres reportés en légende.
+**Ce qu'il révèle** : le verdict de la source elle-même, disponible gratuitement dans
+`prices.public.evaluation.category`. C'est un **contrôle croisé indépendant** de notre `G8` :
+une annonce que `G8` classe très sous-évaluée alors qu'AutoScout24 ne la signale pas mérite un
+examen, et réciproquement. Aucun autre graphe n'apporte un point de vue externe au nôtre.
+Interactions : clic sur un segment → pose `pe_category`.
+Note obligatoire sous le graphe : `Évaluation calculée par AutoScout24, méthode non publiée.`
+Cette note évite qu'un utilisateur prenne ce segment pour un calcul de KYCAR.
+
+`EX-SCR-168` — **`G13` — Répartition par type de vendeur.**
+Type : deux barres horizontales (`Particulier`, `Professionnel`) portant chacune effectif,
+pourcentage et prix médian, avec l'écart de médiane affiché entre les deux en euros et en
+pourcentage.
+**Ce qu'il révèle** : un facteur de confusion majeur du prix. Sans ce graphe, un prix bas est
+interprété comme une opportunité alors qu'il traduit souvent une vente entre particuliers sans
+garantie. C'est le seul axe vendeur autorisé par R3 et par l'hypothèse H3.
+Interactions : clic → pose `custtype`.
+Faible effectif : une classe à `n ≤ 4` n'affiche ni son prix médian ni l'écart.
+
+`EX-SCR-169` — **`G14` — Prix médian par palier de puissance.**
+Type : barres verticales, paliers de 20 kW (ou de 25 ch si `powertype = hp`), prix médian en
+hauteur, effectif en étiquette au-dessus de chaque barre.
+**Ce qu'il révèle** : que la dispersion de prix d'un « même modèle » est en grande partie une
+dispersion de motorisation et de finition. `G1` n'attribue cette dispersion à rien ; `G14`
+l'attribue à la puissance et permet de ne comparer que des annonces réellement comparables.
+Faible effectif : les paliers à `n ≤ 4` sont tracés en contour pointillé, sans valeur de
+médiane. Le graphe n'est pas tracé si moins de 3 paliers comptent `n ≥ 5`.
+
+`EX-SCR-170` — **`G15` — Répartition par pays.**
+Type : barres horizontales par `location.countryCode`, avec effectif, pourcentage et prix
+médian. **Tracé uniquement si** le filtre `cy` porte plus d'une valeur, ou si le périmètre
+contient plus d'un `countryCode` distinct ; sinon le bloc est absent du DOM. Ce n'est pas un
+cas d'`ET-CHAMP-ABSENT-SOURCE` : le champ existe, c'est le graphe qui est sans objet.
+**Ce qu'il révèle** : l'écart de prix transfrontalier, principale opportunité structurelle d'un
+marché pan-européen (hypothèse H1), qu'aucune vue nationale ne peut montrer.
+
+`EX-SCR-171` — **Aucun graphe n'affiche de tendance sans son effectif.** Toute courbe, toute
+boîte, tout point agrégé porte son `n`, à l'écran ou en infobulle. Critère de recette : pour
+chaque graphe agrégé, un test vérifie la présence de l'effectif dans l'infobulle de chaque
+élément tracé.
+
+### 6.6 Graphes écartés, et pourquoi
+
+`EX-SCR-172` — Les graphes suivants ont été envisagés et **écartés**. Le motif est écrit pour
+qu'aucun développeur ni relecteur ne les rajoute par défaut.
+
+| Graphe écarté | Motif de rejet |
+|---|---|
+| **Anneau (donut) des carburants** | la comparaison d'angles est moins précise que celle de longueurs, et 10 valeurs de `fuel` produisent des secteurs illisibles. Remplacé par `G9`. |
+| **Répartition par boîte de vitesses** | **le champ n'existe pas** parmi les 40 champs relevés en §2.3 de `FINDING-allowed-surface.md`. Utile, mais l'inventer serait une faute. Alternative en `EX-SCR-218`. |
+| **Répartition par couleur extérieure** | champ absent de §2.3, et pouvoir explicatif faible sur le prix d'un modèle de grande diffusion. Double motif. |
+| **Carte choroplèthe des provinces belges** | le filtre `region` a un domaine inconnu (Z3), le code postal est tronqué à `NNxx` par contrainte RGPD, et à 20 annonces observées par modèle chaque province compterait moins de 3 offres. Reporté, sous condition explicite : table CP → province produite **et** couverture ≥ 60 %. |
+| **Évolution temporelle du prix médian** | exige plusieurs snapshots ; H4 prévoit un snapshot périodique mais aucun historique n'existe en v1. Condition de réactivation : ≥ 8 snapshots hebdomadaires consécutifs. |
+| **Jauge ou score composite « affaire »** | un indicateur unique masque quelle dimension le porte, ce qui est l'inverse de l'objet de l'application. `G8` fournit un écart décomposable à sa place. |
+| **Diagramme radar des caractéristiques** | l'ordre des axes est arbitraire et l'aire du polygone en dépend : la comparaison n'est pas reproductible. |
+| **Sankey / diagramme de flux** | il n'existe aucun flux dans la donnée : un snapshot est un état, pas une transition. |
+| **Nuage de mots sur `modelVersionInput`** | texte libre sans vocabulaire contrôlé ; le résultat est décoratif et non actionnable. |
+| **Histogrammes du CO₂ et de la consommation** | les champs existent (§2.3) mais **aucun filtre ne les expose** (Z5) : ces graphes seraient les seuls non cliquables de la page et leur lecture ne conduirait à aucune action. Les valeurs restent affichées dans l'infobulle d'annonce et dans l'écran D. Reclassé en **dette**, pas en rejet définitif. |
+| **Histogramme du nombre de propriétaires** | le champ existe (`numberOfPreviousOwnersExtended`) mais son domaine ne compte que 4 classes dont la sémantique de borne est présumée (Z2) ; l'information est portée sans perte par une colonne de l'écran D. |
+| **Histogramme des équipements** | aucun champ d'équipement dans les 40 relevés ; et la sémantique du filtre `eq` est présumée (Z1). Deux inconnues superposées. |
+
+### 6.7 États de l'écran B
+
+`EX-SCR-173` — `ET-CHARGE-INIT` : squelettes aux dimensions exactes de chaque bloc — en-tête
+statistique avec 6 pastilles de valeur, trois cadres d'histogramme de 260 px, un cadre `G4` de
+480 px, puis les cadres additionnels. **Les axes ne sont pas dessinés** dans le squelette :
+dessiner de faux axes suggérerait de fausses bornes.
+
+`EX-SCR-174` — `ET-VIDE-FILTRES` sur l'écran B : les graphes sont retirés et remplacés par le
+bloc d'`EX-SCR-26`, dont les suggestions de retrait de filtre sont ici particulièrement utiles.
+L'en-tête statistique reste affiché avec `aucune offre` et un `—` pour chaque statistique.
+Le bouton `Voir les 0 annonces` est désactivé, avec l'infobulle `Aucune annonce à lister`.
+
+`EX-SCR-175` — **Avertissement de représentativité, obligatoire sur l'écran B.** Sous le
+bandeau `C3`, une seconde ligne affiche
+`Représentativité de l'échantillon non prouvée — lire Pourquoi ?` dès que la couverture est
+< 100 %. Justification : la limite P2 de `FINDING-allowed-surface.md` établit que l'échantillon
+de 20 annonces est probablement trié par produit publicitaire (`adProduct.tier`) et qu'« un
+échantillon biaisé fausserait toute distribution ». L'écran B est **entièrement** constitué de
+distributions ; taire cet avertissement rendrait l'écran trompeur. Cette ligne n'est pas
+refermable tant que la couverture est < 100 %.
+
+`EX-SCR-176` — **Recalcul partiel interdit.** Si un graphe échoue à se calculer, les autres
+restent affichés et le graphe en échec est remplacé par un cadre de dimension identique portant
+`Calcul impossible` et un bouton `Réessayer` local. Il n'existe **aucun** cas où un changement
+de filtre laisse deux graphes sur des périmètres différents : chaque graphe porte en attribut
+de données l'empreinte du jeu de filtres qui l'a produit, et un graphe dont l'empreinte diffère
+de l'empreinte courante est rendu en `ET-CHARGE-MAJ`, jamais affiché comme valide.
+Critère de recette : test comparant les empreintes des 14 graphes après un changement de
+filtre.
+
+`EX-SCR-177` — **`ET-TROP-RESULTATS` sur l'écran B.** Seuil : 20 000 annonces individuelles.
+`G1`, `G2`, `G3`, `G5`, `G6`, `G7`, `G9`, `G10`, `G12`, `G13`, `G14` et `G15` restent calculés
+sur la **population entière** ; seuls `G4` et `G8` travaillent différemment : `G4` trace
+20 000 points échantillonnés à graine fixée, `G8` estime son modèle sur la population entière
+mais n'affiche que les 20 premiers écarts. Cette asymétrie est écrite dans l'infobulle de `G4`
+et dans celle de `G8`, pas seulement dans ce document.
+
+`EX-SCR-178` — **Notes d'exclusion par graphe.** Sous chaque graphe, une ligne de 16 px en gris
+à 60 % indique, dès que `k ≥ 1` : `<k> annonces exclues (<motif>)`. Motifs normatifs :
+`prix sur demande`, `prix absent`, `année non renseignée`, `kilométrage non renseigné`,
+`puissance non renseignée`. Le regroupement en bucket de débord n'est **pas** une exclusion et
+porte un libellé distinct : `<k> annonces regroupées dans le bucket de débord`.
+
+### 6.8 Responsive de l'écran B
+
+`EX-SCR-179` — **Régime `large` (≥ 1280 px)** : `G1`, `G2`, `G3` sur une rangée de 3 colonnes
+égales, hauteur 260 px. `G4` pleine largeur, hauteur 480 px, légendes à droite de la zone de
+tracé. `G5` + `G6` sur 2 colonnes ; `G7` + `G8` sur 2 colonnes ;
+`G9` + `G10` + `G12` + `G13` sur 4 colonnes ; `G14` + `G15` sur 2 colonnes.
+
+`EX-SCR-180` — **Régime `intermédiaire` (768–1279 px)** : `G1`, `G2`, `G3` passent sur
+2 colonnes, `G3` occupant seul la seconde rangée en pleine largeur. `G4` conserve la pleine
+largeur, sa hauteur tombe à 400 px et ses deux légendes passent **sous** la zone de tracé au
+lieu d'être à droite. Les graphes additionnels passent tous sur 2 colonnes, sauf `G8` qui reste
+en pleine largeur : ses libellés d'annonce exigent de la largeur.
+
+`EX-SCR-181` — **Régime `compact` (< 768 px)** : **1 colonne**, tous les graphes empilés ;
+hauteurs : histogrammes 200 px, `G4` 320 px, additionnels 240 px. Réorganisations imposées :
+- l'en-tête statistique passe de 3 à 5 lignes, sa rangée de boutons devenant défilable
+  horizontalement ;
+- les axes de `G1`–`G3` n'affichent plus qu'une étiquette sur trois ;
+- `G4` **désactive le brossage rectangulaire** (impraticable au doigt) et le remplace par un
+  **appui long** sur un point, qui ouvre l'infobulle en feuille basse avec un bouton
+  `Ouvrir l'annonce` explicite — un clic direct sur un point de 6 px au doigt ouvrirait des
+  liens sortants par erreur ;
+- `G8` réduit sa liste de 20 à 10 sucettes, avec un bouton `Afficher 10 de plus` ;
+- `G7` **n'est pas tracé** (une grille hexagonale de moins de 320 px de large ne porte plus
+  d'information) et affiche à sa place `Densité disponible sur écran large`.
+
+`EX-SCR-182` — **Ce qui ne se masque jamais, à aucun régime** : les trois histogrammes `G1`,
+`G2`, `G3` ; la vue `G4` ; le bandeau de couverture `C3` ; l'avertissement de
+représentativité ; le bandeau de filtres. Ce sont les éléments exigés par le commanditaire ou
+nécessaires à une lecture honnête des chiffres.
+
+`EX-SCR-183` — **Chaque graphe est défilable horizontalement dans son propre conteneur** si sa
+largeur minimale de lisibilité n'est pas atteinte (280 px pour un histogramme, 320 px pour
+`G4`, 360 px pour `G8`). Le corps de la page ne défile **jamais** horizontalement.
+
+### 6.9 Interactions transverses de l'écran B
+
+`EX-SCR-184` — **Liaison croisée (brossage et liaison).** Une sélection de brossage faite dans
+`G4`, `G7` ou `G10` met en surbrillance les mêmes annonces dans tous les autres graphes : les
+barres de `G1`–`G3` affichent la part sélectionnée en surimpression d'un accent secondaire, les
+points non sélectionnés de `G4` tombent à 15 % d'opacité, et les barres de `G9`, `G12`, `G13`
+et `G15` reçoivent un liseré proportionnel à la part sélectionnée. La surbrillance **ne modifie
+aucun agrégat affiché** : convertir la sélection en filtre est un acte explicite
+(`EX-SCR-158`).
+
+`EX-SCR-185` — **Un seul mécanisme de sélection actif à la fois.** Ouvrir un brossage dans un
+graphe annule celui d'un autre, avec une transition de 150 ms. Un compteur global
+`<n> annonces sélectionnées — Effacer` est affiché en tête de la zone principale tant qu'une
+sélection existe, et il est encodé dans l'URL (`EX-SCR-50`).
+
+`EX-SCR-186` — **Cohérence des encodages entre graphes.** Une même variable reçoit toujours le
+même encodage sur toute la page : l'année utilise la rampe `A` (`G4a`, graduations de `G5`), le
+kilométrage la rampe `B` (`G4b`, `G7`), les catégories nominales la palette qualitative `Q` de
+8 teintes (`G9`, `G12`, `G13`, `G15`), et le signe d'un écart les deux teintes divergentes de
+`G8` — utilisées nulle part ailleurs. Aucune palette n'est choisie localement par un graphe.
+
+`EX-SCR-187` — **Export.** Le menu `Exporter` propose exactement trois entrées :
+`CSV des annonces du périmètre` (une ligne par annonce, colonnes limitées aux champs
+autorisés — **aucun champ identifiant un vendeur**, cf. R3), `CSV des agrégats affichés` (une
+ligne par bucket de chaque graphe, le nom du graphe en première colonne),
+`PNG du graphe sélectionné` (2× la résolution d'affichage, titre, légende, effectif et date de
+snapshot incrustés). Chaque export porte en en-tête de fichier la date du snapshot, la chaîne
+de filtres complète et le taux de couverture. Le bouton est désactivé en `ET-PARTIEL-CACHE`
+et en `ET-CHARGE-INIT`.
+
+`EX-SCR-188` — **Accessibilité des graphes.** Chaque graphe possède : un `<h3>` visible, un
+`aria-label` résumant sa lecture (`Histogramme des prix, 14 classes, mode entre 9 000 et
+10 500 euros`), et un **tableau de données équivalent** déplié par un bouton
+`Voir les données` (buckets et effectifs, ou lignes d'annonce pour `G8`). Cette table est la
+seule voie d'accès conforme pour un lecteur d'écran ; **aucun graphe n'est livré sans elle**.
+Clavier : `Tab` atteint le graphe, les flèches parcourent buckets ou points, `Entrée` déclenche
+l'action de clic, `Échap` sort du graphe.
+
+`EX-SCR-189` — **Budget de performance de l'écran B.** Premier tracé des 3 histogrammes en
+≤ 400 ms après réception des données pour `n ≤ 20 000`. Recalcul complet des 14 graphes après
+un filtre de classe R en ≤ 300 ms pour `n ≤ 20 000` et ≤ 1 200 ms pour `n ≤ 200 000`.
+Tracé de `G4` à 60 images par seconde pendant un zoom, pour `n ≤ 5 000` points en SVG et
+`n ≤ 100 000` en canvas.
+
+`EX-SCR-190` — **Aucun graphe ne se redessine au survol d'un autre graphe.** La surbrillance de
+liaison croisée est appliquée par changement de classe ou d'opacité, sans recalcul de mise à
+l'échelle : un axe qui bouge au survol rend toute comparaison impossible.
+
+`EX-SCR-191` — **Titre de chaque graphe, texte exact** : `G1` `Offres par prix` ·
+`G2` `Offres par kilométrage` · `G3` `Offres par année` ·
+`G4` `Prix × année × kilométrage` · `G5` `Prix médian par année` ·
+`G6` `Dépréciation (base 100)` · `G7` `Densité prix × km` ·
+`G8` `Écart au prix attendu` · `G9` `Répartition par carburant` ·
+`G10` `Prix par tranche de kilométrage` · `G12` `Évaluation de prix AutoScout24` ·
+`G13` `Type de vendeur` · `G14` `Prix médian par puissance` ·
+`G15` `Répartition par pays`. Chaque titre est suivi de l'effectif du graphe entre parenthèses
+lorsque celui-ci diffère de l'effectif de l'en-tête statistique.
+
+`EX-SCR-192` — **Le numéro `G11` n'est pas attribué.** Il correspondait au graphe « effectif
+par tranche d'âge », écarté pour redondance avec `G3` combiné à `G5`. Le trou de numérotation
+est conservé pour que les références des rapports de revue restent stables.

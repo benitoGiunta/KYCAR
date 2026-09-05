@@ -33,7 +33,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 |---|---|---|---|---|
 | 1.1 Balayage des candidats | `sweep-1` | Opus / high | `docs/research/candidates-v1.md` | VALIDÉ — 66 candidats C-01…C-66, 14/14 familles couvertes |
 | 1.1b Constat sur la surface autorisée | (moi) | — | `docs/research/FINDING-allowed-surface.md` | VALIDÉ — C-14 prouvé : agrégats et échantillon d'annonces accessibles licitement |
-| 1.2 Revue de complétude 1 | `gap-review-1` | Opus / high | `docs/research/candidates-v2.md` | À FAIRE |
+| 1.2 Revue de complétude 1 | `gap-review-1` | Opus / high | `docs/research/candidates-v2.md` | VALIDÉ — 18 ajouts C-67…C-84, 3 familles nouvelles, registre à 84 candidats / 17 familles. C-67 vérifié et reclassé (voir `VERIF-C67-fdz.md`) |
 | 1.3 Revue de complétude 2 | `gap-review-2` | Opus / high | `docs/research/candidates-final.md` | À FAIRE |
 | 1.4 Investigation prouvée | `probe-A…n` | Opus ou Sonnet / high | `docs/research/probe-*.md` | À FAIRE |
 | 1.5 Audit croisé | `audit-A…n` | Sonnet / high | `docs/research/audit-*.md` | À FAIRE |
@@ -76,6 +76,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | O7 | Sémantique OU/ET du paramètre `eq` (équipements) non prouvée | Une exigence de filtrage multi-équipements serait ambiguë | 3 requêtes trancheraient, mais E5 l'interdit : à reporter en `ACTIONS-COMMANDITAIRE` |
 | O8 | Plafond de pagination contradictoire : `numberOfPages` a rendu 200 (4 000 annonces/recherche), les sources tierces annoncent 20 (400) | Dimensionne la stratégie de partitionnement pour un snapshot national (H5) | Chantier 1, phase 1.4 |
 | O5 | Slugs d'URL : **résolus pour les modèles** — `topModels[].slug` donne le slug réel, au format `<marque>-<modèle>` et non `<modèle>` | — | **RÉSOLU** par la surface autorisée |
+| O12 | Le plafond de pagination est désormais étayé par 3 sources à **4 000 annonces par recherche**, avec contournement par bande d'années | Confirme la nécessité d'un partitionnement de l'espace de recherche pour un snapshot national | Remplace O8, à confirmer en 1.4 |
 | O9 | **Représentativité de l'échantillon de 20 annonces non établie.** `adProduct.tier` suggère un tri influencé par le produit publicitaire | Un échantillon biaisé fausserait toute distribution du mode 2 — c'est la question dimensionnante du candidat C-14 | Chantier 1, phase 1.4 |
 | O10 | Mobile.de **n'appartient pas** au même groupe qu'AutoScout24 (Adevinta contre Hellman & Friedman), contrairement à ce qui avait été avancé au cadrage | Change la valeur du candidat C-42 : son API de recherche publiquement documentée n'est pas un accès privilégié à l'inventaire AS24 | Corrigé, à répercuter en 1.4 |
 | O11 | **Une SEARCH API GraphQL officielle existe** et est commercialisée via le portail concessionnaires (`searchapi@autoscout24.com`). L'affirmation initiale « aucun canal officiel de lecture » est fausse | Ouvre une voie contractuelle qui n'était pas au cadrage | Chantier 1, phase 1.4, candidat C-01 |
