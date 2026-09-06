@@ -14,12 +14,21 @@
 
 ### A.1 Inventaire des routes
 
+**Table reprise et étendue par `ARB-41` (`T-06`)** : l'annexe C ne couvrait que quatre routes sur
+six et aucun paramètre d'état d'interface. Table de remplacement, six lignes :
+
 | ID | Route | Mode | Paramètres de chemin | Rôle |
 |---|---|---|---|---|
-| EX-NAV-1 | `/` | Mode 1 — exploration descendante | aucun | Écran de survol marque/modèle. Route par défaut de l'application. |
-| EX-NAV-2 | `/modele/:makeId/:modelId` | Mode 2 — analyse d'un modèle | `makeId`, `modelId` (identifiants numériques `taxonomy.json`) | Écran de distribution pour un couple marque/modèle précis. |
+| EX-NAV-1 | `/marche` | Mode 1 — exploration descendante | aucun | Écran de survol marque/modèle. |
+| EX-NAV-2 | `/marche/:makeId-:makeSlug/:modelId-:modelSlug` | Mode 2 — analyse d'un modèle | `makeId`, `modelId` font foi ; les deux `slug` sont cosmétiques et déclenchent la redirection canonique d'`EX-SCR-140` s'ils ne correspondent pas | Écran de distribution (écran B) pour un couple marque/modèle précis. |
+| EX-NAV-2bis | `/marche/:makeId-:makeSlug/:modelId-:modelSlug/annonces` | Mode 2 — sous-vue liste | idem | Écran D — liste des annonces individuelles du modèle (`A-02`). |
+| EX-NAV-2ter | `/comparer` | — (comparaison) | aucun ; les modèles comparés sont dans `m` (`EX-NAV-10bis`) | Écran C — comparaison de modèles. |
 | EX-NAV-3 | `/recherches` | — (gestion CRUD) | aucun | Liste des recherches sauvegardées (§C.1). N'affiche aucun résultat de marché ; pure gestion. |
-| EX-NAV-4 | `/suivis` | — (gestion CRUD) | aucun | Liste des modèles suivis (§C.2), avec accès direct à `/modele/:makeId/:modelId` pour chacun. |
+| EX-NAV-4 | `/suivis` | — (gestion CRUD) | aucun | Écran F — liste des modèles suivis (§C.2), avec accès direct à la route de l'écran B pour chacun. |
+
+Les anciennes routes `/` et `/modele/:makeId/:modelId` sont conservées en **lecture seule** et
+redirigent par `replaceState` vers `/marche` et vers la route canonique de l'écran B, filtres
+conservés.
 
 **Décision — pourquoi le marque/modèle est un segment de chemin et non un paramètre de requête** :
 `makeId`/`modelId` désignent l'**identité de la page** (quel marché est observé), pas un critère de
@@ -50,113 +59,18 @@ explicite plutôt qu'un détournement d'un paramètre existant :
   marque (le modèle n'existe pas encore comme critère à ce stade). Réutiliser `mmmv` avec des
   segments modèle/version vides aurait été plus ambigu qu'un paramètre dédié.
 
-#### A.2.2 Table de correspondance — les 101 filtres relevés
+#### A.2.2 Périmètre des filtres — renvoi normatif
 
-Légende des motifs : **J1** économie de portée (ne sert aucun des deux parcours cibles, `00-CONTEXT.md`) ·
-**J2** cosmétique/marketing, non structurant pour une analyse de marché · **J3** financement/leasing,
-axe orthogonal aux deux parcours · **J4** paramètre technique interne AS24, sans objet derrière
-`DataProvider` (R2) · **J5** interdit par R3 (identifiant vendeur) · **J6** domaine non exploitable
-(zone d'ombre Z3/Z4/Z6 de `REF-filters.md`) · **J7** `atype≠C` : domaine vide pour les voitures ·
-**J8** redondant avec un filtre déjà retenu · **J9** cœur d'un des deux parcours cibles ·
-**J10** signal explicatif secondaire retenu pour l'investigation d'outliers en mode 2.
+La liste normative des filtres, leur périmètre et leur exposition sont portés par
+`data/reference/filters-scope.json`, généré et vérifié par `scripts/build-filter-scope.mjs`
+(`A-01`, `R-A01`). **Aucune table de portée n'est tenue en prose dans cette annexe.** Les exigences
+`EX-NAV-*` d'encodage s'appliquent aux **77** filtres retenus.
 
-| # | Filtre | Décision | Paramètre KYCAR | Motif |
-|---|---|---|---|---|
-| 1 | `atype` | IN (fixé) | `atype` (toujours `C`, non exposé à l'utilisateur) | J9 |
-| 2 | `mmmv` | OUT (remplacé) | — (voir `make` et routes) | J8 |
-| 3 | `cat` | OUT | — | J6 |
-| 4 | `mcat` | OUT | — | J6 |
-| 5 | `version0` | OUT | — | J1 |
-| 6 | `offer` | IN | `offer` | J9 |
-| 7 | `kwd` | IN | `kwd` | J9 |
-| 8 | `pricefrom` | IN | `pricefrom` | J9 |
-| 9 | `priceto` | IN | `priceto` | J9 |
-| 10 | `pricetype` | OUT | — | J6 |
-| 11 | `vatded` | OUT | — | J3 |
-| 12 | `superdeal` | OUT | — | J2 |
-| 13 | `pe_category` | OUT (v1) | — | J1 |
-| 14 | `financeratefrom` | OUT | — | J3 |
-| 15 | `financerateto` | OUT | — | J3 |
-| 16 | `hasleasing` | OUT | — | J3 |
-| 17 | `leasingratefrom` | OUT | — | J3 |
-| 18 | `leasingrateto` | OUT | — | J3 |
-| 19 | `lsdufrom` | OUT | — | J3 |
-| 20 | `lsduto` | OUT | — | J3 |
-| 21 | `lsyeinmifrom` | OUT | — | J3 |
-| 22 | `lstrinbo` | OUT | — | J3 |
-| 23 | `lsenbo` | OUT | — | J3 |
-| 24 | `lsavno` | OUT | — | J3 |
-| 25 | `lstagr` | OUT | — | J3 |
-| 26 | `efeg` | OUT | — | J3 |
-| 27 | `tradeIn` | OUT | — | J3 |
-| 28 | `kmfrom` | IN | `kmfrom` | J9 |
-| 29 | `kmto` | IN | `kmto` | J9 |
-| 30 | `fregfrom` | IN | `fregfrom` (libellé UI : « Année de ») | J9 |
-| 31 | `fregto` | IN | `fregto` | J9 |
-| 32 | `modelyearfrom` | OUT | — | J8 |
-| 33 | `modelyearto` | OUT | — | J8 |
-| 34 | `fuel` | IN | `fuel` | J9 |
-| 35 | `powertype` | IN | `powertype` | J10 |
-| 36 | `powerfrom` | IN | `powerfrom` | J10 |
-| 37 | `powerto` | IN | `powerto` | J10 |
-| 38 | `ccmfrom` | OUT | — | J1 |
-| 39 | `ccmto` | OUT | — | J1 |
-| 40 | `cylinders` | OUT | — | J1 |
-| 41 | `dtrain` | OUT | — | J1 |
-| 42 | `gear` | IN | `gear` | J9 |
-| 43 | `newdriver` | OUT | — | J2 |
-| 44 | `body` | IN | `body` | J9 |
-| 45 | `doorfrom` | OUT | — | J1 |
-| 46 | `doorto` | OUT | — | J1 |
-| 47 | `seatsfrom` | OUT | — | J1 |
-| 48 | `seatsto` | OUT | — | J1 |
-| 49 | `bcol` | OUT | — | J2 |
-| 50 | `ptype` | OUT | — | J2 |
-| 51 | `icol` | OUT | — | J2 |
-| 52 | `uph` | OUT | — | J2 |
-| 53 | `emclass` | OUT (v1) | — | J1 |
-| 54 | `ensticker` | OUT (v1) | — | J1 |
-| 55 | `bot` | OUT (v1) | — | J1 |
-| 56 | `erfrom` | OUT (v1) | — | J1 |
-| 57 | `erto` | OUT (v1) | — | J1 |
-| 58 | `eq` | IN | `eq` — **réserve Z1, voir EX-SRCH-12** | J10 |
-| 59 | `ustate` | IN | `ustate` | J9 |
-| 60 | `damaged_listing` | OUT | — | J6 |
-| 61 | `prevownersid` | IN | `prevownersid` | J10 |
-| 62 | `sealor` | OUT | — | J2 |
-| 63 | `custtype` | IN | `custtype` | J9 (H3) |
-| 64 | `cid` | **OUT — interdit** | — | J5 |
-| 65 | `cy` | IN | `cy` | J9 (H1) |
-| 66 | `zip` | IN | `zip` | J9 |
-| 67 | `zipr` | IN | `zipr` (dépend de `zip`) | J9 |
-| 68 | `lat` | OUT | — | J4 |
-| 69 | `lon` | OUT | — | J4 |
-| 70 | `region` | OUT | — | J6 (Z3 ; troncature régionale calculée par KYCAR lui-même à partir de `zip`, hors mécanisme de filtre) |
-| 71 | `crossborder` | OUT | — | J1 |
-| 72 | `ot_osc` | OUT | — | J1 |
-| 73 | `ocs_listing` | OUT | — | J1 |
-| 74 | `dlv_max` | OUT | — | J6 |
-| 75 | `dlv_tail` | OUT | — | J1 |
-| 76 | `adage` | OUT | — | J4 (non pertinent pour un snapshot périodique, H4) |
-| 77 | `sort` | **CONDITIONNEL** | `sort` si une sous-vue liste d'annonces existe (dépend de `draft-screens.md`) | — |
-| 78 | `desc` | CONDITIONNEL, idem | `desc` | — |
-| 79 | `page` | CONDITIONNEL, idem | `page` | — |
-| 80 | `size` | CONDITIONNEL, idem | `size` | — |
-| 81-96 | (16 filtres propres à `atype≠C` : `bedsfrom`…`grossweightto`) | OUT | — | J7 |
-| 97 | `show_nfm` | OUT | — | J4 |
-| 98 | `search_id` | OUT | — | J4 |
-| 99 | `query_id` | OUT | — | J4 |
-| 100 | `tier_rotation` | OUT | — | J4 |
-| 101 | `mmm` (legacy) | OUT | — | J8 |
-
-**Bilan** : 22 filtres retenus fermement (IN), 4 conditionnels (`sort`/`desc`/`page`/`size`, arbitrés
-par l'existence d'une sous-vue liste), 75 exclus et justifiés. Aucun filtre du catalogue n'est laissé
-sans statut, conformément au critère S4 de la phase 2.1.
-
-**Point ouvert transmis à `req-lead`** : les filtres 77-80 (tri/pagination) supposent qu'il existe,
-sous l'écran de distribution, une sous-vue listant des annonces individuelles (par exemple pour
-inspecter les outliers un par un). Cette sous-vue relève de `draft-screens.md`. Si elle n'existe pas,
-77-80 basculent en OUT (J1) et ce document doit être corrigé en conséquence lors de l'assemblage.
+> Historique : la version précédente de cette section tenait une table de portée en prose. Ce
+> découpage était un rétrécissement de périmètre non autorisé (arbitrage `A-01`) et la table
+> divergeait du fichier généré (constat `T-02` du stress-test) ; elle est donc supprimée et
+> remplacée par ce renvoi, seule source qui ne peut plus diverger puisqu'elle est vérifiée par
+> script à chaque génération.
 
 #### A.2.3 Sérialisation multi-valeurs
 
@@ -172,6 +86,16 @@ paramètre répété, aucun séparateur `|` ou `;`. Raison : une seule implémen
 (ex. `pricefrom`/`priceto`), reprenant la convention AS24. Une borne non posée par l'utilisateur n'est
 **pas émise** (pas de valeur vide, pas de `-Infinity`) : `pricefrom=5000` seul signifie « prix ≥ 5000,
 sans plafond ».
+
+Les **deux** bornes d'un intervalle sont **inclusives** : `<nom>from=a&<nom>to=b` sélectionne
+`a ≤ x ≤ b`, `<nom>from=a` seul sélectionne `x ≥ a`, `<nom>to=b` seul sélectionne `x ≤ b`. Le
+prédicat s'évalue sur le **champ canonique** du dictionnaire, dans son **unité canonique**
+(`EX-DATA-4`, et `EX-SRCH-11bis` pour la conversion d'unité d'affichage). Pour un filtre d'année
+(`fregfrom`/`fregto`, `modelyearfrom`/`modelyearto`), la comparaison porte sur l'**année
+entière** (`firstRegistrationYear`, `modelYear`), **jamais** sur
+`firstRegistrationYearMonth` : `fregto=2017` retient tous les millésimes 2017, janvier à
+décembre. Une annonce dont le champ comparé est `INCONNU` **ne satisfait aucun** prédicat
+d'intervalle et n'est jamais retenue par défaut. (`ARB-09`)
 
 #### A.2.5 Valeurs vides et valeurs par défaut
 
@@ -205,6 +129,33 @@ filtre `eq`, seul filtre à cardinalité assez grande pour déclencher ce cas en
 premier candidat à cette limite — aucune troncature silencieuse n'est appliquée : l'utilisateur voit
 toujours l'état réellement actif.
 
+#### A.2.8 Paramètres d'état d'interface
+
+**EX-NAV-10bis — table des paramètres d'état d'interface (`ARB-41`).** Distincts des paramètres de
+filtre (§A.2.1 à §A.2.7), ces paramètres encodent un état d'interface (tri, dépliage, sélection de
+brossage) et suivent néanmoins l'ordre canonique alphabétique d'`EX-NAV-9` et la règle « défaut non
+émis » d'`EX-NAV-8` :
+
+| Paramètre | Domaine | Défaut (non émis) | Entrée d'historique | Compte dans le plafond de 2 000 |
+|---|---|---|---|---|
+| `m` | liste de `<makeId>-<modelId>`, virgules, 1 à 4 entrées | absent | `pushState` | oui |
+| `g<n>log` | `1` | absent | `replaceState` | oui |
+| `grp` | liste des identifiants de groupes de filtres **dépliés**, virgules | absent (tous repliés sauf le primaire) | `replaceState` | oui |
+| `mk` | liste de `makeId` de cartes dépliées, virgules | absent | `replaceState` | oui |
+| `sort` | `offres` \| `median` \| `alpha` \| `modeles` | `offres` | `replaceState` | oui |
+| `g4v` | `a` \| `b` | `a` | `replaceState` | oui |
+| `selx` / `sely` | deux bornes numériques par axe, forme `<lo>-<hi>` | absent | `pushState` | oui |
+
+Le paramètre de tri de l'écran A s'appelle `sort` et son domaine est celui de l'écran (ordre des
+cartes-marques) : il n'a **aucun rapport** avec le paramètre `sort` d'AutoScout24, qui n'est exposé
+que sur l'écran D (§B.6) — les deux ne coexistent jamais sur la même route.
+
+La sélection de brossage du nuage de points (écran B) est encodée par les **bornes d'intervalle des
+axes du graphe** (`selx`, `sely` ci-dessus), et **non** par une empreinte : une empreinte ne
+restitue pas un sous-ensemble d'annonces. Une URL portant `selx`/`sely` restitue la même sélection de
+brossage sur tout snapshot où les axes ont un sens. Le paramètre `sel` de l'écran D porte les mêmes
+bornes, avec une sémantique de restriction d'affichage distincte (`draft-screens.md`).
+
 ### A.3 Comportement de l'historique navigateur
 
 L'enjeu : si chaque frappe ou chaque case cochée crée une entrée d'historique, le retour arrière
@@ -212,11 +163,13 @@ devient inutilisable (des dizaines d'entrées pour un seul geste de raffinement)
 n'est créée, le retour arrière du navigateur ramène l'utilisateur hors de l'application (ou à un état
 de filtres bien antérieur) au lieu d'annuler le dernier changement.
 
-**EX-NAV-12 — Décision retenue : un changement de filtre effectivement appliqué (post-debounce, voir
-§B.1) produit exactement une entrée d'historique (`pushState`), jamais plus.** Les valeurs
-intermédiaires d'un champ en cours de frappe ou d'un curseur en cours de glissement ne touchent
-jamais l'URL (elles restent dans l'état local du contrôle) : elles ne peuvent donc pas générer
-d'entrées à supprimer.
+**EX-NAV-12 — Décision retenue : une entrée d'historique est produite par changement de filtre
+appliqué **et** par les paramètres marqués `pushState` dans `EX-NAV-10bis` ; les paramètres marqués
+`replaceState` ne produisent jamais d'entrée d'historique (`ARB-41`).** Un changement de filtre
+effectivement appliqué (post-debounce, voir §B.1) produit exactement une entrée d'historique
+(`pushState`), jamais plus. Les valeurs intermédiaires d'un champ en cours de frappe ou d'un curseur
+en cours de glissement ne touchent jamais l'URL (elles restent dans l'état local du contrôle) : elles
+ne peuvent donc pas générer d'entrées à supprimer.
 
 **EX-NAV-13 — Regroupement des changements rapprochés.** Si l'utilisateur modifie plusieurs filtres
 dans une fenêtre d'inactivité de moins de **800 ms** entre deux changements (ex. cocher 4 cases
@@ -253,21 +206,98 @@ seuls `makeId`/`modelId` changent. C'est la même logique que EX-NAV-15.
 
 ### A.5 Deep-linking
 
-**EX-NAV-18** — Toute URL de la forme `/modele/:makeId/:modelId?<filtres>` doit être ouvrable
-directement (nouvel onglet, lien partagé, favori) et reproduire **exactement** l'état de distribution
-qu'elle décrit, sans dépendre d'une navigation préalable ni d'un état en mémoire. Ceci est le
-mécanisme central de partageabilité exigé par le plan (« un état de filtres doit être partageable par
-copie du lien et restaurable à l'identique ») : le rendu de l'écran est une fonction pure de l'URL, il
-n'existe aucun état de filtre qui ne soit pas représentable dans l'URL.
+**EX-NAV-18** — Toute URL de la forme `/marche/:makeId-:makeSlug/:modelId-:modelSlug?<filtres>` doit
+être ouvrable directement (nouvel onglet, lien partagé, favori) et reproduire **exactement** l'état
+de distribution qu'elle décrit, sans dépendre d'une navigation préalable ni d'un état en mémoire.
+Ceci est le mécanisme central de partageabilité exigé par le plan (« un état de filtres doit être
+partageable par copie du lien et restaurable à l'identique ») : le rendu de l'écran est une fonction
+pure de l'URL, il n'existe aucun état de filtre qui ne soit pas représentable dans l'URL.
+
+Cette pureté est bornée par `EX-NAV-10` : tout état de filtre **dont la sérialisation canonique
+tient sous 2 000 caractères** est représentable dans l'URL, et l'application refuse de construire
+un état qui n'y tient pas (`EX-NAV-11`). « Tous les filtres sont encodables » (`A-01`) signifie que
+**chacun** est encodable, non que **tous** le sont simultanément à leurs valeurs les plus larges.
+Mesure de référence : les 77 filtres retenus posés chacun à une valeur non défaut plausible occupent
+≈ 1 720 caractères, `eq` large compris ; la marge est donc réelle mais non infinie, et le cas de
+dépassement est atteignable en élargissant deux ou trois filtres multi-valeurs. Un test du lot D4
+construit l'état de filtres le plus large possible et vérifie que le refus d'`EX-NAV-11` se produit
+**avec son message**, sans troncature ni perte silencieuse. (`ARB-56`)
+
+**Limite connue du modèle de partage par URL pure.** Une valeur numérique tronquée en cours de
+valeur par un transport externe (client de messagerie, éditeur de texte) reste syntaxiquement
+valide et dans le domaine du filtre : elle n'est donc corrigée par aucune ligne de la table
+d'`EX-NAV-21` et ne déclenche aucun signalement. L'application n'a aucun moyen de la détecter et
+**n'en invente aucun** : aucune somme de contrôle, aucune signature, aucun paramètre de longueur
+n'est ajouté à l'URL, car ils allongeraient le lien — cause première du problème — et casseraient
+tout lien écrit à la main. La contre-mesure est l'**affichage systématique de la valeur** de chaque
+filtre actif dans son jeton (`EX-SCR-176`), de sorte que l'utilisateur lise `Prix : à partir de
+50 €` et non `Prix`. (`ARB-12`)
 
 ### A.6 États invalides
 
 | ID | Situation | Comportement retenu | Justification |
 |---|---|---|---|
-| EX-NAV-19 | `makeId` absent de `taxonomy.json` | Écran d'erreur dédié « marque inconnue », avec un lien vers `/` conservant les autres filtres actifs | Un lien mal formé ou une taxonomie qui a évolué entre deux snapshots ne doit pas produire un écran vide silencieux |
+| EX-NAV-19 | `makeId` absent de `taxonomy.json` | Écran d'erreur dédié « marque inconnue », avec un lien vers `/marche` conservant les autres filtres actifs | Un lien mal formé ou une taxonomie qui a évolué entre deux snapshots ne doit pas produire un écran vide silencieux |
 | EX-NAV-20 | `modelId` n'appartenant pas à `makeId` | Même écran d'erreur, message « ce modèle n'existe pas pour cette marque » | Idem — distinct du cas précédent pour que le message soit actionnable |
-| EX-NAV-21 | Valeur de filtre hors domaine (code énuméré inconnu, ex. `fuel=Z`) | La valeur inconnue est **retirée silencieusement** de l'état de filtre au chargement, l'URL est corrigée par `replaceState` (jamais `pushState`), le reste de la requête s'applique normalement | Divergence assumée par rapport au comportement AS24 (qui répond 404, `REF-filters.md` §Règles transverses) : KYCAR est un outil de liens partagés, potentiellement recopiés après une évolution du référentiel ; un échec dur casserait un lien par ailleurs valide. La correction silencieuse d'URL garantit qu'une recopie ultérieure du lien soit déjà propre |
-| EX-NAV-22 | Intervalle inversé (`pricefrom > priceto`, ou tout autre couple from/to) | Les deux bornes sont **échangées automatiquement** au chargement, une notice inline transitoire indique « valeurs de l'intervalle interverties » ; l'URL est corrigée par `replaceState` | Cohérent avec EX-NAV-21 : correction permissive plutôt que blocage, car l'intention de l'utilisateur (un intervalle, quel que soit son sens de saisie) est reconstructible sans ambiguïté |
+
+**Exception unique à `EX-NAV-20`** : `modelId = 0` est la clé réservée « Modèle non identifié »
+(`EX-DATA-72`) et **n'est jamais traitée comme un modèle inconnu**. La route
+`/marche/:makeId-:makeSlug/0-modele-non-identifie` est valide et sert l'écran B en **mode
+restreint** (`draft-screens.md`, `EX-SCR-113bis`). Toute autre valeur de `modelId` n'appartenant pas
+à `makeId` produit l'écran d'erreur. (`ARB-59`)
+
+**EX-NAV-21 — Valeur de filtre hors domaine au chargement d'une URL : une table unique de cinq
+classes de correction (`ARB-11`).**
+
+| Classe de défaut à la lecture d'une URL | Correction appliquée | Signalement |
+|---|---|---|
+| Code énuméré absent du vocabulaire (`fuel=Z`) | la valeur est **retirée** ; les autres valeurs du même filtre sont conservées ; si le filtre devient vide, il est retiré | `ET-URL-CORRIGEE` |
+| Borne numérique hors du domaine relevé | **écrêtée** à la borne du domaine (`REF-filters.md`) | `ET-URL-CORRIGEE` |
+| Borne numérique non numérique ou vide (`pricefrom=`, `pricefrom=abc`) | le paramètre est **retiré** | `ET-URL-CORRIGEE` |
+| Intervalle inversé | bornes **permutées** (`EX-NAV-22`) | `ET-URL-CORRIGEE` |
+| Paramètre inconnu de `filters-scope.json` | **ignoré** et retiré de l'URL canonique | `ET-URL-CORRIGEE` |
+
+Dans tous les cas, l'URL est réécrite par `replaceState`, jamais `pushState`, et le reste de la
+requête s'applique normalement. **Le mot « silencieusement » est supprimé** : aucune correction
+d'URL n'est silencieuse — le bandeau non bloquant `ET-URL-CORRIGEE` (`draft-screens.md`,
+`EX-SCR-38bis`) nomme le paramètre corrigé et la valeur retenue, au format
+`Paramètre « <nom> » corrigé : <nature de la correction>, valeur retenue <valeur>`.
+
+**EX-NAV-22 — Intervalle inversé reçu dans une URL au chargement, refus en saisie interactive
+(`ARB-10`).** Intervalle inversé reçu **dans une URL au chargement** (`pricefrom > priceto`, ou
+tout autre couple `from`/`to`) : les deux bornes sont **échangées**, l'URL est corrigée par
+`replaceState`, et la correction est signalée par le bandeau `ET-URL-CORRIGEE` au format
+`Paramètre « <nom> » corrigé : bornes interverties, intervalle retenu <a> – <b>`. Cette règle **ne
+s'applique qu'au chargement d'une URL** : la saisie interactive dans un contrôle d'intervalle est
+régie par `draft-screens.md` (`EX-SCR-68`), qui refuse le filtre et ne permute jamais. Les deux
+comportements sont volontairement différents et cette différence est normative — l'auteur d'une URL
+reçue n'est pas présent pour corriger sa saisie, celui qui tape dans le contrôle l'est.
+
+### A.7 Cycle de vie du snapshot
+
+**Décision (`ARB-49`) : un seul snapshot actif, acquisition au démarrage et sur action explicite,
+aucune acquisition automatique en cours de session.** Justification : l'enveloppe mémoire de
+l'application (≈ 274 Mo à `N = 10⁶`, `EX-DATA-112`) ne laisse pas la place à deux snapshots, et un
+remplacement automatique changerait les chiffres sous les yeux de l'utilisateur au milieu d'une
+analyse.
+
+**EX-NAV-23 — un seul snapshot actif.** L'application détient **un** snapshot actif à la fois. Il
+est acquis au démarrage et **remplacé** uniquement sur action explicite `Rafraîchir`, placée dans le
+jeton de snapshot (`draft-screens.md`, `EX-SCR-43`). **Aucune acquisition automatique** n'a lieu en
+cours de session : ni périodique, ni au retour de focus, ni à la navigation.
+
+**EX-NAV-24 — ce que le remplacement purge.** Au remplacement d'un snapshot : le cache LRU de
+sélections (`EX-DATA-109`) est **vidé**, le cache de jeux de données locaux (`EX-SRCH-9ter`) est
+**vidé**, les agrégats précalculés de la sélection vide sont **recalculés**, et `CompareSelection`
+(`EX-CRUD-13bis`) est **vidée**. Sont **conservées** intactes les trois entités CRUD persistées
+(recherches sauvegardées, modèles suivis, historique récent) : elles portent des URL, non des
+données de snapshot. L'état de filtres courant et la route sont conservés ; un filtre devenu sans
+effet est traité par `draft-screens.md` (`EX-SCR-101`).
+
+**EX-NAV-25 — signalement.** Après un remplacement, le bandeau non bloquant refermable `Nouvelles
+données du <date du nouveau snapshot> — la page a été recalculée` est affiché une fois. Si le
+nouveau snapshot a un `sourceKind = SYNTHETIC` différent du précédent, le signalement
+d'`EX-DATA-107` s'affiche en plus et n'est pas refermable.
 
 ---
 
@@ -293,6 +323,17 @@ découle directement de la nature analytique de l'outil (l'utilisateur explore p
 successives, cf. 00-CONTEXT.md « filtres applicables à la volée qui recalculent toute la page ») —
 un bouton de validation ajouterait une étape sans bénéfice pour ce mode d'usage.
 
+**EX-SRCH-1bis — regroupement des rafales de filtres de classe `R` (`ARB-57`).** Un contrôle de
+classe `R` (§B.2bis) s'applique immédiatement (`EX-SRCH-1`, débounce 0 ms) **tant que** moins de
+trois changements ont eu lieu dans les 300 ms écoulées. Au **troisième** changement dans cette
+fenêtre, l'application entre en mode groupé : les changements suivants sont accumulés et un
+**unique** recalcul est déclenché 200 ms après le dernier changement reçu. Un recalcul local en
+cours n'est jamais interrompu, mais **au plus un** recalcul est en attente à tout instant : un
+nouveau changement remplace le recalcul en attente au lieu de s'y ajouter — il n'existe donc jamais
+de file. Dès l'entrée en mode groupé, l'état `ET-CHARGE-LOCAL` cède la place à `ET-CHARGE-MAJ`
+(`draft-screens.md`, `EX-SCR-25`), qui **porte** un indicateur : l'interdiction d'indicateur ne vaut
+que pour un recalcul unique sous 150 ms.
+
 ### B.2 Combinaison logique
 
 **EX-SRCH-10 — Entre filtres différents : ET.** Deux filtres actifs simultanément (ex. `fuel=D` et
@@ -301,10 +342,19 @@ cohérente avec la nature de contraintes de marché indépendantes (00-CONTEXT.m
 carrosserie Y, pays Z » sont des contraintes cumulatives par construction).
 
 **EX-SRCH-11 — À l'intérieur d'un filtre multi-valeurs « attribut unique du véhicule » : OU.** Pour
-`fuel`, `body`, `gear`, `offer`, `cy`, `make`, `prevownersid` : une valeur de véhicule ne peut porter
-qu'un seul code de cet attribut à la fois (une voiture a un seul carburant), donc `fuel=B,D` signifie
-nécessairement « essence OU diesel ». Repris tel quel de `REF-filters.md` (§Z1, qui l'établit sans
-réserve pour cette classe de filtres).
+`fuel`, `body`, `gear`, `offer`, `cy`, `make`, `prevownersid` : une annonce porte **exactement un**
+code de cet attribut à la fois, y compris quand ce code est une catégorie hybride — c'est la
+structure du vocabulaire, non une propriété du véhicule, qui fonde le OU intra-filtre (`ARB-35`) —,
+donc `fuel=B,D` signifie nécessairement « essence OU diesel ». Repris tel quel de `REF-filters.md`
+(§Z1, qui l'établit sans réserve pour cette classe de filtres).
+
+**EX-SRCH-11bis — unité d'évaluation d'un prédicat (`ARB-33`).** Tout prédicat de filtre s'évalue
+sur le **champ canonique** du dictionnaire, dans son **unité canonique** (`EX-DATA-4`). Une borne
+saisie dans une unité d'affichage est convertie vers l'unité canonique **sans arrondi
+intermédiaire**, en double précision, avant comparaison. Pour `powertype = hp` :
+`powerKw ≥ borne_ch × 0,7355` et `powerKw ≤ borne_ch × 0,7355`, la constante étant celle
+d'`EX-DATA-36` (DIN 66036) et **aucune autre**. Le champ dérivé `powerHp` est un champ
+d'**affichage** et n'est jamais le membre gauche d'un prédicat.
 
 **EX-SRCH-12 — Cas `eq` (équipements) : exigence conditionnelle non tranchée, à ne pas confondre avec
 EX-SRCH-11.** `REF-filters.md` (zone d'ombre Z1) établit explicitement que la sémantique OU/ET de
@@ -330,13 +380,50 @@ comme acquis avant cette revue.
 **EX-SRCH-13** — Même réserve, de moindre ampleur, pour `sealor` (hors périmètre KYCAR de toute
 façon, §A.2.2) et `pe_category` (hors périmètre v1).
 
+### B.2bis Composantes de l'état de filtres
+
+**Décision (`ARB-42`) : l'état de filtres est scindé en deux composantes, et tout effectif est
+explicitement relatif au jeu de données local.** Sans cette scission, un filtre qui exigerait un
+rechargement de données (classe `T`) et un filtre qui s'applique en mémoire (classe `R`) n'auraient
+aucun statut distinct, alors que les deux dépendent d'un mécanisme différent (`DataProvider` pour
+les uns, calcul local pour les autres).
+
+**EX-SRCH-9bis — scission de l'état de filtres.** L'état de filtres se décompose en deux composantes
+disjointes et exhaustives : la **composante `T`**, formée des valeurs de tous les filtres de classe
+`T` (`draft-screens.md`, `EX-SCR-57`), et la **composante `R`**, formée des valeurs de tous les
+filtres de classe `R`. La composante `T` détermine le **jeu de données local** ; la composante `R`
+s'applique **en mémoire** sur ce jeu, sans aucun accès réseau.
+
+**EX-SRCH-9ter — `localDatasetKey` et acquisition.** La composante `T` est sérialisée selon la règle
+canonique d'`EX-DATA-108` et hachée en `localDatasetKey`. À chaque valeur distincte de
+`localDatasetKey` correspond **un appel `DataProvider` et un seul**, dont la réponse **remplace**
+intégralement le jeu de données local — jamais de fusion, jamais d'union avec un jeu précédent. Les
+réponses sont conservées dans un cache clefé par `(snapshotId, localDatasetKey)`, de 4 entrées au
+plus, en éviction LRU. Le **retrait** d'un filtre `T` produit une nouvelle `localDatasetKey`, donc un
+nouvel appel, servi par le cache s'il y est présent. La composante `T` vide a pour clé la chaîne
+réservée `FULL`, qui désigne le snapshot complet.
+
+**EX-SRCH-9quater — tout chiffre est relatif au jeu local.** Tout effectif, toute facette
+(`draft-screens.md`, `EX-SCR-90`), tout agrégat, tout bucket et tout verdict d'outlier est calculé
+**sur le jeu de données local courant**, jamais sur le snapshot complet quand celui-ci n'est pas le
+jeu local. Dès que la composante `T` n'est pas vide, le bandeau `C3` (`draft-screens.md`) affiche en
+outre `Jeu de données restreint par <k> filtre(s) rechargé(s) — <n> annonces`, de sorte qu'aucun
+chiffre ne soit présenté sans son périmètre.
+
+**EX-SRCH-9quinquies — décomposition de `selectionHash`.** `selectionHash` est le couple
+`(localDatasetKey, refineHash)`, où `refineHash` est le hachage canonique de la seule composante `R`.
+Le cache LRU de 32 entrées d'`EX-DATA-109` est clefé par ce couple ; une entrée dont la
+`localDatasetKey` est évincée du cache de jeux locaux est évincée avec elle. Deux états de filtres
+qui ne diffèrent que par leur composante `R` partagent donc leur jeu de données et jamais leurs
+agrégats.
+
 ### B.3 Dépendances entre filtres
 
 | ID | Filtre parent | Filtre enfant | Comportement au changement du parent |
 |---|---|---|---|
 | EX-SRCH-14 | Marque (`make` en mode 1, ou route en mode 2) | Modèle (route mode 2 uniquement) | Changer de marque en mode 2 (via un sélecteur, hors clic sur zone-modèle) **vide** le modèle : il n'existe aucune garantie qu'un `modelId` reste valide pour une nouvelle marque. L'utilisateur revient à un état « marque choisie, modèle à choisir », concrètement une redirection vers `/` avec `make` posé à la nouvelle marque. |
 | EX-SRCH-15 | `zip` | `zipr` | Si `zip` est **vidé**, `zipr` est vidé aussi (un rayon sans centre n'a pas de sens). Si `zip` change vers un **autre code postal valide**, `zipr` est **conservé** : le rayon est un réglage indépendant de la valeur précise du centre. |
-| EX-SRCH-16 | `powertype` | `powerfrom`/`powerto` | Changer d'unité (kW ↔ ch) **convertit** les bornes déjà saisies (facteur 1 kW ≈ 1,359 ch) plutôt que de les vider — l'intention de l'utilisateur (une plage de puissance) est indépendante de l'unité d'affichage. |
+| EX-SRCH-16 | `powertype` | `powerfrom`/`powerto` | Changer d'unité (kW ↔ ch) **convertit** les bornes déjà saisies plutôt que de les vider — l'intention de l'utilisateur (une plage de puissance) est indépendante de l'unité d'affichage. La conversion applique la constante unique d'`EX-DATA-36` (`1 kW = 1/0,7355 ch`) ; aucune autre valeur de facteur n'apparaît dans le corpus (`ARB-33`). |
 | EX-SRCH-17 | `fuel` | `bot`, `erfrom`, `erto` | Hors périmètre v1 (§A.2.2) : aucun comportement à spécifier. Mentionné pour mémoire si ces filtres sont réintroduits en v2. |
 
 ### B.4 Réinitialisation
@@ -344,7 +431,19 @@ façon, §A.2.2) et `pe_category` (hors périmètre v1).
 **EX-SRCH-18 — Réinitialisation globale.** Un bouton unique ramène tous les filtres IN à leur absence
 (URL sans aucun des paramètres de §A.2.2), **sans changer de route** : en mode 2, l'utilisateur reste
 sur le même modèle avec un bandeau vide, il n'est pas renvoyé en mode 1. Produit une entrée
-d'historique (EX-NAV-14).
+d'historique (EX-NAV-14). Cette règle est la seule qui s'applique : elle ne porte que sur les
+prédicats utilisateur, jamais sur les valeurs injectées vers la source (`EX-SRCH-18bis`, `ARB-30`).
+
+**EX-SRCH-18bis — valeurs injectées vers la source, distinctes de l'état de filtres (`ARB-30`).**
+L'adaptateur `DataProvider` injecte dans toute requête vers la source les valeurs `atype=C`
+(périmètre voiture, `A-01`), `ustate=A,N,U` (neuf, occasion **et accidentés**), `powertype` et
+`pricetype` dans leur unité canonique, et `cy` selon le marketplace du snapshot. Ces valeurs **ne
+sont jamais** présentées comme des filtres utilisateur, **jamais** sérialisées dans l'URL de
+l'application, **jamais** comptées dans le badge de filtres actifs, et **jamais** remises à zéro
+par une réinitialisation (globale ou par groupe).
+**`ustate=A,N,U` et non `N,U`** : `N,U` amputerait le snapshot des véhicules accidentés, dont `A-01`
+fait un facteur explicatif d'outlier de premier ordre ; l'utilisateur peut ensuite les exclure par le
+filtre `damaged_listing`, qui est un filtre utilisateur exposé.
 
 **EX-SRCH-19 — Réinitialisation par groupe.** Chaque groupe visuel du bandeau (ex. « Prix », «
 Kilométrage et année », « Motorisation », « Équipements » — le découpage exact relève de
@@ -427,7 +526,7 @@ d'annonce n'est dupliquée.
 
 | ID | Règle |
 |---|---|
-| EX-CRUD-1 | Champs : `id` (généré), `nom` (texte, 1-60 caractères, obligatoire), `url` (chemin + requête au moment de l'enregistrement), `mode` (1 ou 2, dérivé de `url`), `créée_le`, `dernier_accès_le`. |
+| EX-CRUD-1 | Champs : `id` (généré), `nom` (texte, 1-60 caractères, obligatoire), `url` (chemin + requête au moment de l'enregistrement), `mode` (1 ou 2, dérivé de `url`), `créée_le`, `dernier_accès_le`, **`effectifInitial`** (entier — l'effectif d'**annonces** de la sélection au moment de l'enregistrement, jamais un nombre de marques ni de modèles), **`snapshotInitial`** (`snapshotId` du snapshot actif à l'enregistrement), **`schemaVersion`** (`EX-CRUD-18`). `effectifInitial` et `snapshotInitial` sont **figés à la création et jamais réécrits**, y compris à l'ouverture de la recherche (`ARB-45`). |
 | EX-CRUD-2 | Validation : `nom` non vide après suppression des espaces ; aucune contrainte d'unicité (les doublons sont autorisés, un avertissement non bloquant s'affiche si un `nom` identique existe déjà). |
 | EX-CRUD-3 | Persistance : **locale uniquement** (`localStorage`/IndexedDB du navigateur) ; aucune synchronisation serveur, cohérent avec H2 (usage personnel) et l'absence de compte utilisateur. |
 | EX-CRUD-4 | Cycle de vie : création explicite (action « Enregistrer cette recherche », disponible sur les deux écrans) ; renommage possible ; **pas de modification du contenu de l'URL enregistrée** — pour changer les filtres d'une recherche sauvegardée, l'utilisateur en crée une nouvelle et supprime l'ancienne (évite une UI d'édition dédiée pour un gain marginal) ; suppression immédiate, sans corbeille, avec confirmation inline (pas de modale bloquante). |
@@ -457,20 +556,69 @@ création — sert le cas « revenir sur une exploration précédente qu'on n'a 
 | EX-CRUD-12 | Limite stricte : **10 entrées**. Au-delà, la plus ancienne est supprimée silencieusement (pas d'action utilisateur requise, pas de confirmation). |
 | EX-CRUD-13 | Seule action utilisateur possible sur cette entité : « vider l'historique » (suppression totale immédiate). Aucune création, modification ou suppression unitaire — l'historique n'est pas éditable, seulement consultable ou vidé en bloc. |
 
+### C.3bis Sélection de comparaison (entité de session)
+
+**EX-CRUD-13bis — `CompareSelection`, entité de session (`ARB-43`).**
+`{ modelKeys: liste ordonnée de couples (makeId, modelId), 0 à 4 entrées }`.
+**Portée** : l'onglet du navigateur. **Non persistée** : elle ne vit ni dans `localStorage`, ni
+dans `IndexedDB`, ni dans l'URL tant que l'utilisateur n'est pas sur `/comparer` ; elle est perdue à
+la fermeture de l'onglet, et **vidée** au remplacement du snapshot (`EX-NAV-24`).
+**Plafond unique : 4 modèles.** Au-delà, tout contrôle d'ajout est **désactivé** avec l'infobulle
+`4 modèles au maximum — retirez-en un pour en ajouter un autre` ; aucun ajout silencieux, aucun
+surnuméraire ignoré. **Ajout et retrait** sont possibles depuis : la case de comparaison d'une
+zone-modèle (écran A), le bouton `Comparer` de l'en-tête de l'écran B, et l'écran C lui-même.
+**Doublons interdits** : ajouter un couple déjà présent est sans effet. **Navigation** : la
+sélection survit à toute navigation interne, y compris un changement de route. **URL** : sur
+`/comparer`, elle est sérialisée dans `m` (`EX-NAV-10bis`) ; l'ouverture d'une URL `/comparer?m=…`
+**remplace** la sélection de session par celle de l'URL, en ignorant les entrées au-delà de la
+quatrième et en signalant l'écrêtage par `ET-URL-CORRIGEE`. La clé réservée `modelId = 0` **ne peut
+pas** entrer dans la sélection (`EX-NAV-20`).
+
 ### C.4 Export des données affichées
 
-Exporte les **agrégats actuellement visibles à l'écran**, jamais une annonce individuelle avec ses
-champs bruts (ce qui, de toute façon, ne contiendrait aucun champ interdit par R3 : la donnée
-identifiant le vendeur n'entre jamais dans le schéma KYCAR, cf. `FINDING-allowed-surface.md` §2.5).
+Exporte les **agrégats actuellement visibles à l'écran** ou une annonce individuelle limitée aux
+colonnes autorisées, jamais un champ interdit par R3 : la donnée identifiant le vendeur n'entre
+jamais dans le schéma KYCAR, cf. `FINDING-allowed-surface.md` §2.5 (`ARB-37`).
 
 | ID | Règle |
 |---|---|
 | EX-CRUD-14 | Format : CSV, encodage UTF-8 avec BOM (compatibilité Excel FR), séparateur point-virgule (convention belge/française d'Excel, où la virgule est le séparateur décimal). |
 | EX-CRUD-15 | Périmètre mode 1 : une ligne par couple marque/modèle actuellement affiché (respecte les filtres actifs), colonnes = les agrégats affichés sur la carte (nombre d'offres, fourchette de prix, fourchette d'année, fourchette de kilométrage — la liste exacte des colonnes relève de `draft-data-dictionary.md`). |
-| EX-CRUD-16 | Périmètre mode 2 : une ligne par bucket de l'histogramme actuellement affiché (prix, kilométrage ou année selon l'onglet actif), colonnes = borne basse, borne haute, effectif. Le nuage tri-dimensionnel n'est pas exporté sous forme d'image (voir EX-CRUD-17) mais ses points sous-jacents peuvent l'être sous forme de lignes (prix, année, kilométrage, indicateur outlier). |
+| EX-CRUD-16 | Périmètre mode 2 : le menu `Exporter` propose **exactement deux** entrées. (1) `CSV des annonces du périmètre` — une ligne par annonce de la sélection courante, colonnes d'`EX-DATA-123bis`, **aucun champ identifiant un vendeur** (R3). (2) `CSV des agrégats affichés` — une ligne par bucket de **chacun des trois histogrammes** imposés, le nom du graphe en première colonne. La notion d'« onglet actif » est **supprimée** : les trois histogrammes sont affichés côte à côte, il n'existe donc pas de graphe courant. Aucune entrée `PNG` : l'export d'image reste écarté par `EX-CRUD-17`. (`ARB-37`) |
 | EX-CRUD-17 | **Hors périmètre v1, explicitement écarté** : export d'image (PNG/SVG) d'un graphique. Ajoute un pipeline de rendu hors-écran sans servir directement l'un des deux parcours cibles (l'utilisateur peut faire une capture d'écran manuelle) ; à reconsidérer si le besoin est confirmé après livraison. |
 
-### C.5 Entités écartées — détail des motifs
+### C.6 Version de schéma et migration
+
+**EX-CRUD-18 — version de schéma et migration (`ARB-50`).** Chaque enregistrement persisté porte
+`schemaVersion` (entier, incrémenté à chaque changement de forme d'une entité CRUD ou du vocabulaire
+de paramètres d'URL). À la lecture :
+- `schemaVersion` égale à la version courante → l'entrée est utilisée telle quelle ;
+- `schemaVersion` inférieure et une fonction de migration nommée existe → l'entrée est migrée **en
+  mémoire**, utilisée, et **réécrite** en version courante, la réécriture étant la seule exception à
+  `EX-CRUD-4` et portant sur la forme, jamais sur l'intention des filtres ;
+- `schemaVersion` inférieure et aucune migration disponible → l'entrée est **conservée**, utilisable,
+  et marquée à l'écran `à vérifier — enregistrée par une version antérieure de l'application` ;
+- `schemaVersion` supérieure à la version courante → l'entrée est conservée, non ouvrable, et marquée
+  `enregistrée par une version plus récente`.
+
+**Aucune entrée n'est jamais supprimée silencieusement**, à aucune version. Un paramètre d'URL retiré
+du vocabulaire est traité à l'ouverture par la table de corrections d'`EX-NAV-21`, donc signalé par
+`ET-URL-CORRIGEE`.
+
+### C.7 Concurrence entre onglets
+
+**EX-CRUD-19 — concurrence entre onglets (`ARB-58`).** Toute écriture d'une entité CRUD est **relue
+juste avant d'être écrite** (lecture-vérification-écriture) : si le plafond de l'entité (`EX-CRUD-5` :
+50, `EX-CRUD-10` : 30, `EX-CRUD-12` : 10) est atteint entre la lecture initiale et l'écriture,
+l'écriture est **refusée** avec le message de plafond, jamais appliquée en dépassement. Deux
+écritures concurrentes ne peuvent jamais faire perdre une entrée existante : l'écriture porte sur
+l'entrée ajoutée ou modifiée, jamais sur la réécriture de la collection entière. Chaque onglet
+s'abonne à l'événement `storage` et **rafraîchit** sa liste affichée sans recharger la page ;
+l'écran des recherches sauvegardées et l'écran des modèles suivis affichent alors la liste à jour.
+**Justification** : `localStorage` n'offre aucune garantie transactionnelle entre onglets d'une même
+origine, et le plafond dur promis par `EX-CRUD-5` n'est pas tenable sans cette relecture.
+
+### C.8 Entités écartées — détail des motifs
 
 - **Annotations sur une annonce ou un modèle** : écarté. Une annotation liée à un `id` d'annonce
   s'appuie sur un identifiant qui n'a de sens que pour la durée d'un snapshot (H4) — au snapshot
@@ -500,12 +648,20 @@ identifiant le vendeur n'entre jamais dans le schéma KYCAR, cf. `FINDING-allowe
 
 ### D.2 Temps de réponse
 
+**EX-NFR-4bis — définition du percentile de performance (`ARB-38`).** Tout percentile de cette
+section est le **percentile de rang le plus proche supérieur** : sur l'échantillon de mesures trié,
+`p95 = x_{⌈0,95·n⌉}`, **sans interpolation**. Il est **distinct** du `Q` de type 7 utilisé pour les
+statistiques de données (`draft-data-dictionary.md`, `EX-DATA-62`), réservé aux données, jamais aux
+latences. Chaque cible est mesurée sur **au moins 100 exécutions** du geste décrit, sur le jeu de
+référence d'`EX-NFR-1` et l'appareil de référence (`draft-screens.md`, `EX-SCR-100`), **chargement à
+froid exclu**, et la campagne publie `n`, la médiane et le `p95`.
+
 | ID | Opération | Cible | Percentile |
 |---|---|---|---|
 | EX-NFR-5 | Application d'un filtre (du recalcul déclenché à l'affichage mis à jour, hors delai de debounce lui-même) | ≤ 200 ms | p95 |
 | EX-NFR-6 | Rendu d'un histogramme (prix, kilométrage ou année) jusqu'à 100 000 annonces en entrée | ≤ 300 ms | p95 |
 | EX-NFR-7 | Rendu initial du nuage tri-dimensionnel (prix × année × kilométrage) jusqu'à 5 000 points (taille attendue d'une distribution par modèle) | ≤ 500 ms | p95 |
-| EX-NFR-8 | Interaction (rotation, zoom) sur le nuage tri-dimensionnel une fois rendu | ≥ 30 images/seconde soutenues | p95 |
+| EX-NFR-8 | Interaction (rotation, zoom) sur le nuage tri-dimensionnel une fois rendu | **aucune fenêtre glissante de 1 s ne descend sous 30 images/seconde dans au moins 95 % des fenêtres** d'une rotation continue de 10 s ; la mesure publie le nombre de fenêtres, le nombre de fenêtres en défaut et le débit minimal observé (`ARB-38`) | `EX-NFR-4bis` |
 | EX-NFR-9 | Chargement initial de l'application (premier affichage utile de l'écran de mode 1) sur une connexion simulée 4G (≈ 4 Mb/s, latence 150 ms) | ≤ 2000 ms | p95 |
 
 ### D.3 Taille du bundle et budget de chargement
@@ -559,14 +715,37 @@ identifiant le vendeur n'entre jamais dans le schéma KYCAR, cf. `FINDING-allowe
 | EX-NFR-29 | Stratégie de surcharge pour la limite L6 (référentiel officiel partiellement non traduit — ex. `prevownersid` sans libellé EN pour certains codes dans `REF-filters.md`) : une table de surcharge FR **propre à KYCAR**, distincte du référentiel source, fournit un libellé français pour **chaque** code énuméré utilisé par un filtre retenu (§A.2.2). Ordre de préférence pour peupler cette table : (1) libellé fr-BE relevé si disponible, (2) traduction française du libellé en-GB relevé si le fr-BE est absent, (3) libellé forgé manuellement et marqué `[EXTRAPOLÉ]` (cohérent avec R6) si aucun des deux n'existe. |
 | EX-NFR-30 | Exigence mesurable : **0 libellé non-français** (code brut, ou libellé anglais non traduit) affiché à l'utilisateur, vérifiable par un contrôle automatisé qui énumère tous les codes de domaine effectivement utilisés par les écrans et les compare à la table de surcharge FR — toute valeur absente de cette table fait échouer le contrôle. |
 
+### D.9 Impression
+
+**EX-NFR-31 — impression (`ARB-63`).** L'impression et l'export PDF d'un écran sont **hors
+périmètre fonctionnel v1** : aucune mise en page d'impression n'est spécifiée, aucune table de
+données n'est ajoutée pour l'impression. Une feuille `@media print` **minimale** est néanmoins
+exigée, et son contenu est clos : les éléments collants (en-tête, bandeau de filtres, barre de
+synthèse) perdent leur positionnement fixe ; les bandeaux d'état et le bandeau `C3` sont imprimés ;
+le bandeau de filtres est remplacé par un résumé textuel des filtres actifs, un par ligne ; les
+contrôles interactifs ne sont pas imprimés. Tout au-delà est une dette assumée, consignée comme
+telle.
+
+> Note de numérotation : la décision `ARB-63` cite cette exigence sous l'identifiant `EX-NFR-28`.
+> Ce numéro est déjà occupé dans ce document par une exigence sans rapport (langue d'interface,
+> D.8). Conformément à la règle « ne jamais renuméroter un identifiant existant, une création prend
+> un identifiant neuf » de la méthode d'application, cette exigence reçoit l'identifiant neuf
+> **`EX-NFR-31`**, le prochain disponible du préfixe. Le contenu normatif est repris **sans
+> altération** ; seul le numéro diffère de celui écrit dans `REQ-STRESSTEST.md` § 4.3 et `ARB-63`.
+
 ---
 
 ## Annexe — Décompte des exigences de cette section
 
-| Préfixe | Nombre d'exigences |
-|---|---|
-| EX-NAV | 22 |
-| EX-SRCH | 27 |
-| EX-CRUD | 17 |
-| EX-NFR | 30 |
-| **Total** | **96** |
+| Préfixe | Nombre d'exigences | Créations phase 2.2 (`ANNEXE-C`) |
+|---|---|---|
+| EX-NAV | 28 | +6 (`EX-NAV-2bis`, `EX-NAV-2ter`, `EX-NAV-10bis`, `EX-NAV-23` à `25`) |
+| EX-SRCH | 34 | +7 (`EX-SRCH-1bis`, `EX-SRCH-9bis` à `9quinquies`, `EX-SRCH-11bis`, `EX-SRCH-18bis`) |
+| EX-CRUD | 20 | +3 (`EX-CRUD-13bis`, `EX-CRUD-18`, `EX-CRUD-19`) |
+| EX-NFR | 32 | +2 (`EX-NFR-4bis`, `EX-NFR-31`) |
+| **Total** | **114** | **+18** |
+
+> Décompte avant application de la liste `ANNEXE-C` de `reports/REQ-STRESSTEST.md` § 4.3 : EX-NAV 22,
+> EX-SRCH 27, EX-CRUD 17, EX-NFR 30, total 96. Aucun identifiant préexistant n'a été renuméroté ; les
+> 18 créations ci-dessus portent chacune un identifiant neuf ou un suffixe `bis`/`ter`/`quater`/
+> `quinquies`, conformément à la méthode d'application de la phase 2.2.

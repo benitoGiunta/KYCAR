@@ -1,0 +1,60 @@
+# applied-annexe-B — journal d'application de la liste `ANNEXE-B`
+
+**Document édité** : `docs/requirements/draft-screens.md` (annexe B), et lui seul.
+**Source des décisions** : `reports/REQ-STRESSTEST.md` § 4.2 (liste `ANNEXE-B`, 68 travaux) et
+§ 2 (texte exact des décisions `ARB-*`).
+**Contexte normatif** : `docs/requirements/ARBITRAGES-req-lead.md` (`R-A01`, `R-A05`, `R-A06`,
+règle d'autorité `A-09`), `data/reference/filters-scope.json`.
+
+**Règles suivies.** Aucune renumérotation. Toute création prend un identifiant neuf ou un suffixe
+`bis`. Les créations sont insérées par **adjacence numérique** (`EX-SCR-27bis` après `EX-SCR-27`,
+etc.) : la qualification « convention transverse » de l'arbitre décrit la **nature** de l'exigence,
+non un emplacement dans la § 1, et l'insérer en § 1 aurait rompu l'ordre numérique du document.
+
+**État initial** : 224 identifiants `EX-SCR-*` définis (`EX-SCR-1` à `EX-SCR-224`, sans trou,
+sans suffixe `bis`).
+
+| # | Décision | Exigence | Action | Statut |
+|---|---|---|---|---|
+| B-01 | `ARB-29` | `EX-SCR-27bis` | CRÉER | **APPLIQUÉ** — inséré après `EX-SCR-27`, texte de `ARB-29` mot pour mot |
+| B-02 | `ARB-65` | `EX-SCR-72bis` | CRÉER | **APPLIQUÉ** — inséré après `EX-SCR-72` ; règle générative `type` → contrôle / `group` → emplacement, table de 12 lignes, seul écart `atype` |
+| B-03 | `ARB-47` | `EX-SCR-158bis` | CRÉER | **APPLIQUÉ** — inséré après `EX-SCR-158` ; chaîne normative d'étiquetage de la base de comparaison |
+| B-04 | `ARB-11` | `EX-SCR-38bis` | CRÉER | **APPLIQUÉ** — inséré après `EX-SCR-38` ; état `ET-URL-CORRIGEE`, rang entre `ET-TROP-RESULTATS` et `C3 couverture` |
+| B-05 | `ARB-28` | `EX-SCR-124bis` | CRÉER | **APPLIQUÉ** — inséré après `EX-SCR-124` ; table unique des trois seuils de l'écran A |
+| B-06 | `ARB-59` | `EX-SCR-113bis` | CRÉER | **APPLIQUÉ** — inséré après `EX-SCR-113` ; écran B en mode « Modèle non identifié » |
+| B-07 | `ARB-44` | `EX-SCR-214bis` | CRÉER | **APPLIQUÉ** — inséré après `EX-SCR-214` ; écran F `Modèles suivis`, route `/suivis`, six états par identifiant, plafond de 30 d'`EX-CRUD-10` en en-tête |
+| B-08 | `ARB-21` | `EX-SCR-3` | MODIFIER | **APPLIQUÉ** — arrondi `EX-DATA-6`, `Math.floor` et toute troncature vers le bas interdits |
+| B-09 | `ARB-19`, `ARB-23` | `EX-SCR-4` | MODIFIER | **APPLIQUÉ** — `min === max` testé après arrondi de présentation ; le format ne choisit pas ses bornes (`displayRange` écran A, `rawRange` écrans B et D) |
+| B-10 | `ARB-22`, `ARB-23` | `EX-SCR-5` | MODIFIER | **APPLIQUÉ** — bornes de fourchette plancher-plafond avec l'exemple `10 000 – 210 100 km` ; `min === max` après arrondi |
+| B-11 | `ARB-23` | `EX-SCR-6` | MODIFIER | **APPLIQUÉ** — `min === max` après arrondi de présentation |
+| B-12 | `ARB-26` | `EX-SCR-11` | MODIFIER | **APPLIQUÉ** — départage du plus grand reste (effectif brut, puis libellé `EX-DATA-70bis`) ; substitutions typographiques appliquées en dernier |
+| B-13 | `ARB-20` | `EX-SCR-12` | MODIFIER | **APPLIQUÉ** — `P5`/`P95` entrent dans la liste normative, `P10`/`P90` en sortent avec la phrase d'exclusion |
+| B-14 | `ARB-24` | `EX-SCR-13` | MODIFIER | **APPLIQUÉ** — budgets en groupes de graphèmes étendus, aucune coupe intra-graphème |
+| B-15 | `ARB-07` | `EX-SCR-16` | MODIFIER | **APPLIQUÉ** — rapport sur les bins fermés seuls ; bascule absente du DOM sous deux bins fermés non vides |
+| B-16 | `ARB-05`, `ARB-08` | `EX-SCR-18` | MODIFIER | **APPLIQUÉ** — bornes d'histogramme déléguées à `BIN` ; `Q(V,0,01)`/`Q(V,0,99)` pour `G4`, `G7`, `G10` ; étiquettes de débordement renvoyées à `EX-DATA-79`, formes `< <borne>` / `> <borne>` supprimées |
+| B-17 | `ARB-44` | `EX-SCR-23`, `EX-SCR-29` | MODIFIER | **APPLIQUÉ** — le bouton `Exporter` désactivé est celui de la barre de synthèse de l'écran A (`EX-SCR-107`) |
+| B-18 | `ARB-57` | `EX-SCR-25` | MODIFIER | **APPLIQUÉ** — interdiction d'indicateur limitée au recalcul unique ; mode groupé `EX-SRCH-1bis` → `ET-CHARGE-MAJ` |
+| B-19 | `ARB-29` | `EX-SCR-27` | MODIFIER | **APPLIQUÉ** — `ET-VIDE-SANS-FILTRE` référencé par nom d'état (`EX-SCR-27bis`), traité comme panne |
+| B-20 | `ARB-01` | `EX-SCR-31` | MODIFIER | **APPLIQUÉ** — bandeau `C3` réécrit : trois cas (`sampleCoverage` publiable, `announcedCount` `INCONNU`, sous filtre), aucun 100 % fabriqué, `listingCount`/`announcedCount` au lieu de `n_obs`/`n_tot` |
+| B-21 | `ARB-28`, `ARB-31` | `EX-SCR-32` | MODIFIER | **APPLIQUÉ** — seuil de 40 marques et mention « 20 affichées » retirés (renvoi à `EX-SCR-124bis`), échantillon renvoyé à `SAMPLE(V, 20 000, seed)`, compteur d'outliers sur la population entière |
+| B-22 | `ARB-17`, `ARB-20` | `EX-SCR-33` | MODIFIER | **APPLIQUÉ** — `n = n_m(Σ)` explicite, quatre paliers (0 / 1-4 / 5-11 / 12-29 / ≥ 30), `P5`/`P95`, tailles de test 0…30 |
+| B-23 | `ARB-15` | `EX-SCR-36` | MODIFIER | **APPLIQUÉ** — seuil unique 250 €, `PRICE_SENTINEL_ABSOLUTE`, exclusion des statistiques et comptage dans l'effectif ; seuil de 100 € et phrase « Il reste dans l'agrégat » supprimés |
+| B-24 | `ARB-42` | `EX-SCR-37` | MODIFIER | **APPLIQUÉ** — hors ligne, jeu local = dernière `localDatasetKey` servie (`EX-SRCH-9bis`) |
+| B-25 | `ARB-32` | `EX-SCR-38` | MODIFIER | **APPLIQUÉ** — exception de `C3` non refermable hors plafond, 144 px, repliabilité bandeau par bandeau, ordre de priorité incluant `ET-URL-CORRIGEE` |
+| B-26 | `ARB-44` | `EX-SCR-42` | MODIFIER | **APPLIQUÉ** — quatre onglets `Marché`, `Comparer (n)`, `Recherches`, `Suivis (n)` |
+| B-27 | `ARB-52` | `EX-SCR-45` | MODIFIER | **APPLIQUÉ** — table des segments de fil d'Ariane par route (6 lignes) + hauteur fixe et troncature `EX-SCR-13` |
+| B-28 | `ARB-39` | `EX-SCR-46` | MODIFIER | **APPLIQUÉ** — compteur `<n> offres` sur `selectionHashWithoutTaxonomy` (`EX-DATA-110bis`) avec son infobulle |
+| B-29 | `ARB-44` | `EX-SCR-47` | MODIFIER | **APPLIQUÉ** — `Mentions` ouvre la page statique `/mentions`, hors inventaire des écrans fonctionnels |
+| B-30 | `ARB-41` | `EX-SCR-50` | MODIFIER | **APPLIQUÉ** — brossage encodé par `selx`/`sely` (bornes d'axe), jamais par empreinte |
+| B-31 | `ARB-64`, `ARB-54` | `EX-SCR-53` | MODIFIER | **APPLIQUÉ** — source unique du taux de vide (`unknownCountByField`), affichage de `duplicateValueConflictCount` |
+| B-32 | `ARB-02` | `EX-SCR-55` | MODIFIER | **APPLIQUÉ** — maquette : `[+ 92]` remplacé par `[3 filtres actifs]` ; largeur du cadre ASCII maintenue à 92 colonnes (padding illustratif ajusté) |
+| B-33 | `ARB-40` | `EX-SCR-59`, `EX-SCR-221` | MODIFIER | **APPLIQUÉ** — classe `R` de `Carrosserie` justifiée par `Model.bodyTypes` (`EX-DATA-105`), `bodyTypes` vide → aucun prédicat `body`, note `EX-SCR-178` |
+| B-34 | `ARB-65` | `EX-SCR-64`, `EX-SCR-71` | MODIFIER | **APPLIQUÉ** — `adage` retiré du `Concerne` d'`EX-SCR-64`, `cid` de celui d'`EX-SCR-71` ; mention « classe X (R3) » supprimée |
+| B-35 | `ARB-53`, `ARB-65` | `EX-SCR-67` | MODIFIER | **APPLIQUÉ** — « les 24 couples » remplacé par l'énumération nominative des **12** couples `range_min`/`range_max` de `filters-scope.json` ; contrôle à borne unique pour `lsyeinmifrom` |
+| B-36 | `ARB-10`, `ARB-11` | `EX-SCR-68` | MODIFIER | **APPLIQUÉ** — portée limitée à la saisie interactive ; écrêtage à l'arrivée par URL signalé par `ET-URL-CORRIGEE` |
+| B-37 | `ARB-33`, `ARB-35` | `EX-SCR-73` | MODIFIER | **APPLIQUÉ** — prédicat `powerfrom`/`powerto` sur le champ canonique (`EX-SRCH-11bis`) ; les codes `2`/`3` n'activent qu'un contrôle enfant et ne définissent aucun prédicat |
+| B-38 | `ARB-30` | `EX-SCR-77` | MODIFIER | **APPLIQUÉ** — `Tout effacer` retire tout prédicat utilisateur ; `atype`/`ustate`/`powertype`/`pricetype`/`cy` ne sont pas des filtres (`EX-SRCH-18bis`) |
+| B-39 | `ARB-02` | `EX-SCR-82` | MODIFIER | **APPLIQUÉ** — table réécrite en table d'exposition : colonnes `perimetre` (recopiée de `filters-scope.json`) et `exposition` ; classe `X` supprimée des 101 lignes ; contrainte `RETENU ⇒ exposition ≠ NON_EXPOSE` sauf `atype`. Décompte obtenu : 77 `RETENU` (13 `PRIMAIRE`, 60 `SECONDAIRE`, 3 `DESACTIVE`, 1 `NON_EXPOSE`) et 24 `EXCLU`. **Réserve consignée** : `ARB-02` nomme cinq filtres précédemment `X` (`atype`, `cat`, `mcat`, `page`, `size`) alors que la table en portait **huit** qui sont `RETENU` dans `filters-scope.json` — `tradeIn`, `lat`, `lon` en plus ; ces trois-là ont été traités par la règle générative d'`EX-SCR-72bis` (`SECONDAIRE`, groupe issu du champ `group`), sans jugement. La colonne `Classe` (R/T/D) des lignes anciennement `X` n'est fixée par aucune décision : elle est portée à `T` par application directe de la définition d'`EX-SCR-57` (aucun champ local), et la phrase de dérivation est inscrite dans l'exigence |
+| B-40 | `ARB-02`, `ARB-53`, `ARB-65` | `EX-SCR-83` | MODIFIER | **APPLIQUÉ** — bilan 77 / 76 / 1 / 24 ; test de complétude sur les deux colonnes et sur l'unicité du type de contrôle |
+| B-41 | `ARB-35` | `EX-SCR-84` | MODIFIER | **APPLIQUÉ** — égalité stricte de `fuelCategory`, dix cases indépendantes, texte d'aide hybrides |
+| B-42 | `ARB-02` | `EX-SCR-91` | MODIFIER | **APPLIQUÉ** — le badge compte les filtres **actifs**, format `<k> filtres actifs`, absent du DOM à `k = 0` |
