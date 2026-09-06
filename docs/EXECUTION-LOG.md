@@ -49,8 +49,12 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 2.1 Exigences | `req-lead` (coordinateur) + `req-data` / `req-screens` / `req-behaviour` | Opus max + Opus/Opus/Sonnet high | `docs/requirements/REQUIREMENTS.md` v0.9 | LIVRÉ — 447 exigences, 9 arbitrages, non gelé |
 | 2.2 Stress-test — complétude | `st-complete` | Opus / high | `reports/ST-complete.md` | VALIDÉ — 24 constats, dont 9 bloquants, tous aux frontières entre annexes |
 | 2.2 Stress-test — adverse | `st-adversarial` | Sonnet / high | `reports/ST-adversarial.md` | VALIDÉ — 18 constats sur 38 attaques simulées, dont 4 bloquants |
-| 2.2 Stress-test — ambiguïté | `st-ambiguity` | Opus / high | `reports/ST-ambiguity.md` | EN COURS — relancé après coupure par la limite de session |
-| 2.2 Arbitrage et gel v1.0 | `st-arbiter` | Opus / max | `reports/REQ-STRESSTEST.md`, REQUIREMENTS v1.0 | À FAIRE — attend les 3 rapports |
+| 2.2 Stress-test — ambiguïté | `st-ambiguity` | Opus / high | `reports/ST-ambiguity.md` | VALIDÉ — 37 constats (20 bloquants), 25 zones déclarées saines |
+| 2.2 Arbitrage | `st-arbiter` | Opus / max | `reports/REQ-STRESSTEST.md` | VALIDÉ — 79 constats → 65 décisions, 1 rejet prouvé, zéro bloquant ouvert |
+| 2.2 Application annexe A | `fix-annexe-A` | Opus / high | `reports/applied-annexe-A.md` | VALIDÉ — 39/39, 127 → 139 exigences |
+| 2.2 Application annexe B | `fix-annexe-B` | Opus / high | `reports/applied-annexe-B.md` | EN COURS — 68 travaux, la liste la plus chargée |
+| 2.2 Application annexe C | `fix-annexe-C` | Sonnet / high | `reports/applied-annexe-C.md` | VALIDÉ — 24/24, 96 → 114 exigences |
+| 2.2 Résidus + gel v1.0 | (moi) | — | REQUIREMENTS v1.0 | À FAIRE — 8 résidus à solder, voir section dédiée |
 | 2.3 Architecture | `arch-lead` | Opus / high | `docs/plans/ARCHITECTURE.md` | À FAIRE |
 | 2.4 Développement D1–D9 | `dev-D*` | voir plan 2 | code | À FAIRE |
 | 2.5 Revue de développement | `rev-D*` | Opus / Sonnet high | `reports/DEV-REVIEW.md` | À FAIRE |

@@ -58,3 +58,9 @@ sans suffixe `bis`).
 | B-40 | `ARB-02`, `ARB-53`, `ARB-65` | `EX-SCR-83` | MODIFIER | **APPLIQUÉ** — bilan 77 / 76 / 1 / 24 ; test de complétude sur les deux colonnes et sur l'unicité du type de contrôle |
 | B-41 | `ARB-35` | `EX-SCR-84` | MODIFIER | **APPLIQUÉ** — égalité stricte de `fuelCategory`, dix cases indépendantes, texte d'aide hybrides |
 | B-42 | `ARB-02` | `EX-SCR-91` | MODIFIER | **APPLIQUÉ** — le badge compte les filtres **actifs**, format `<k> filtres actifs`, absent du DOM à `k = 0` |
+| B-43 | `ARB-15` | `EX-SCR-95` | MODIFIER | **APPLIQUÉ** — deux réglages requalifiés (jamais des filtres), libellés normatifs, seuil 250 €, hors badge de filtres actifs |
+| B-44 | `ARB-19` | `EX-SCR-109` | MODIFIER | **APPLIQUÉ** — bornes neutres, `displayRange` + suffixe `(90 % des offres)`, `rawRange` en libellé secondaire `du moins cher au plus cher` ; l'étiquette littérale « prix min – prix max » disparaît du gabarit |
+| B-45 | `ARB-43` | `EX-SCR-111` | **SUPPRIMER** | **APPLIQUÉ** — contenu normatif supprimé, entrée conservée en pierre tombale portant le motif exigé par `ARB-43` (« reporter le motif »). Aucune renumérotation ; l'identifiant n'est pas réattribué, il est cité par `ST-complete.md` et par la matrice de traçabilité |
+| B-46 | `ARB-19`, `ARB-59` | `EX-SCR-113` | MODIFIER | **APPLIQUÉ** — élément 4 réécrit (`displayRange` + suffixe, `rawRange` en infobulle, bande à 72 px) ; zone-modèle `modelId = 0` cliquable vers `EX-SCR-113bis` |
+| B-47 | `ARB-01` | `EX-SCR-115`, `EX-SCR-116` | MODIFIER | **APPLIQUÉ** — indicateur piloté par `sampleCoverage` seul, tiret cadratin si `null`/`NON_APPLICABLE` ; cas requalifié `listingCount = 0 ∧ announcedCount > 0` |
+| B-48 | `ARB-43` | `EX-SCR-118`, `EX-SCR-194`, `EX-SCR-197` | MODIFIER | **APPLIQUÉ** — plafond unique de 4 (`EX-CRUD-13bis`), contrôles d'ajout désactivés, mention « surnuméraires ignorés » supprimée d'`EX-SCR-194`, écrêtage d'URL signalé par `ET-URL-CORRIGEE` |

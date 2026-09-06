@@ -2084,7 +2084,10 @@ lecture exige la largeur pleine, et la comparaison de quatre nuées superposées
 (les points de deux modèles occupent la même région du plan prix × année).
 
 `EX-SCR-197` — **Colonne vide.** Une colonne non pourvue affiche un bloc en pointillé de même
-dimension portant `+ Ajouter un modèle`, qui ouvre le sélecteur `G`.
+dimension portant `+ Ajouter un modèle`, qui ouvre le sélecteur `G`. Le contrôle est
+**désactivé** dès que la sélection atteint le plafond unique de 4 modèles
+(`EX-CRUD-13bis`), avec l'infobulle `4 modèles au maximum — retirez-en un pour en ajouter un
+autre` ; aucun ajout silencieux, aucun surnuméraire ignoré.
 
 `EX-SCR-198` — **Retrait d'un modèle.** Croix dans l'en-tête de colonne ; le retrait recalcule
 les bornes d'échelle communes et anime la fermeture de la colonne en 200 ms. Passer sous
