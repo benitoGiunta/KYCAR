@@ -204,3 +204,95 @@ buckets, méthode de `G8`).
 En cas de contradiction résiduelle non couverte par cette grille, l'arbitrage revient au coordinateur
 et s'inscrit dans ce fichier. **Aucune divergence ne se résout en silence dans le code** : c'est
 exactement le mode de défaillance que la phase 2.2 doit traquer.
+
+---
+---
+
+# Révisions des arbitrages, après stress-test
+
+Le stress-test de la phase 2.2 a produit 79 constats, dont trois visent directement des arbitrages
+de ce fichier. Ils sont traités **ici et en premier**, avant l'arbitrage général : un arbitrage
+défectueux est en entrée de plusieurs dizaines d'autres constats, et le corriger après aurait
+imposé de reprendre leur résolution.
+
+## R-A06 — `A-06` était circulaire. Reformulé.
+
+**Constat `AMB-25`, retenu comme fondé.** La règle relative que j'avais posée — « un prix est
+sentinelle s'il est inférieur à 10 % de la médiane de sa cellule » — est **logiquement circulaire** :
+la médiane est calculée sur des prix dont on vient d'exclure des sentinelles, dont l'appartenance
+dépend de cette médiane. Et je l'avais placée à l'ingestion alors que la cellule dépend de la
+sélection, donc de filtres posés bien plus tard. Les deux défauts sont réels.
+
+**Reformulation — deux drapeaux distincts, à deux étages distincts, sans rétroaction.**
+
+| Drapeau | Étage | Règle | Dépend de |
+|---|---|---|---|
+| `PRICE_SENTINEL_ABSOLUTE` | **ingestion**, une fois par annonce | `prix < 250 €` | rien d'autre que l'annonce. Déterministe, stable, calculable au moment où l'annonce entre |
+| `PRICE_IMPLAUSIBLE_IN_CELL` | **analyse**, recalculé par cellule et par sélection | `prix < 0,10 × médianeRéf(cellule)` | la cellule courante |
+
+où **`médianeRéf(cellule)` est la médiane des prix de la cellule qui ne portent PAS
+`PRICE_SENTINEL_ABSOLUTE`** — et rien d'autre. `PRICE_IMPLAUSIBLE_IN_CELL` n'entre jamais dans le
+calcul de `médianeRéf`.
+
+La circularité disparaît : un seul passage, pas de point fixe à chercher. Le calcul est
+`filtrer l'absolu → médiane → marquer le relatif`, dans cet ordre, et jamais l'inverse.
+
+**Conséquences à répercuter** : les deux drapeaux sont deux champs du dictionnaire, pas un seul.
+Les statistiques de prix excluent les deux ; l'**effectif** compte les deux (une annonce à prix
+absurde reste une offre du marché). Et parce que `PRICE_IMPLAUSIBLE_IN_CELL` dépend de la
+sélection, il relève du même régime d'étiquetage que l'arbitrage `A-07` : l'écran doit nommer la
+cellule sur laquelle le verdict est calculé.
+
+**Ce que je maintiens** : l'union des deux règles (arbitrage `A-06` initial). Le constat portait sur
+la mécanique, pas sur le principe. Deux pathologies distinctes exigent deux règles, et le
+prix-placeholder à 1 € n'est pas le prix crédible-mais-absurde-dans-son-segment.
+
+## R-A01 — `A-01` avait tranché le compte, pas le sens. Complété.
+
+**Constat `AMB-33`, retenu comme fondé.** J'ai fixé le nombre de filtres retenus (77) sans définir
+ce que « retenu » veut dire, alors que l'annexe B parle de filtres « exposés » (70). Trois lectures
+du badge de comptage du bandeau en découlent, et — plus grave — **le périmètre de contrôle du
+livrable le plus littéralement demandé par le commanditaire n'était pas déterminé**.
+
+**Trois termes, trois définitions, aucune synonymie.**
+
+| Terme | Définition | Cardinal |
+|---|---|---|
+| **`RETENU`** | Le filtre est implémenté : applicable au dataset, encodable et décodable dans l'URL, et couvert par un test | **77**, énumérés dans `data/reference/filters-scope.json` |
+| **`EXPOSÉ`** | Le filtre a un contrôle atteignable par l'utilisateur dans le bandeau, primaire ou secondaire | **doit valoir 77** |
+| **`PRIMAIRE`** | Le filtre est visible sans déplier de groupe | 9 contrôles / 13 paramètres |
+
+**Décision : `EXPOSÉ` doit être égal à `RETENU`.** La demande est « tous les filtres qui sont
+actuellement possible sur autoscout » ; un filtre implémenté mais sans contrôle serait invisible et
+donc, du point de vue de l'utilisateur, absent. L'écart de 7 est un défaut à résorber, pas une
+décision à ratifier : ces 7 filtres doivent être identifiés nommément et recevoir un contrôle.
+
+**Un seul écart admis, et il doit être déclaré** : `atype`, fixé à `C` par conception et non exposé.
+Il est `RETENU` et volontairement non `EXPOSÉ`. Toute autre asymétrie est un défaut.
+
+**Conséquence sur le badge** : il compte les filtres **actifs**, c'est-à-dire posés par
+l'utilisateur à une valeur non défaut, et jamais les filtres disponibles. Un badge qui compte les
+possibilités n'informe sur rien.
+
+## R-A05 — `A-05` n'avait pas été propagée. Portée précisée.
+
+**Constats `ADV-02`, `ADV-03` et `AMB-20`, retenus comme fondés.** J'ai décidé quelle fourchette
+s'affiche sur quel écran sans corriger les annexes, qui portent encore l'étiquette littérale
+« prix min – prix max » sur la carte-marque, et qui n'affichent `[min, max]` nulle part sur
+l'écran B. La décision était juste, l'exécution incomplète — une décision d'arbitrage non
+répercutée ne vaut rien.
+
+**Portée exacte du mot « toujours »**, qui était l'ambiguïté :
+
+| Emplacement | Fourchette | Étiquette obligatoire |
+|---|---|---|
+| Carte-marque et zone-modèle, écran A | `[p05, p95]` | « fourchette centrale (90 % des offres) », et le `[min, max]` brut en libellé secondaire |
+| En-tête de l'écran B | `[min, max]` | « du moins cher au plus cher », affichage obligatoire — c'était l'omission d'`ADV-03` |
+| Axes des histogrammes, écran B | bornes issues du binning de l'annexe A | l'axe n'est pas une fourchette : aucune étiquette de fourchette |
+| Infobulles de graphe | valeur du point ou du bucket | sans objet |
+| Écran D et export CSV | `[min, max]` | valeurs brutes, aucun écrêtage |
+
+**Règle générale qui lève l'ambiguïté** : `[p05, p95]` n'apparaît **que** sur l'écran A, et **jamais
+sans être nommé comme intervalle central**. Partout ailleurs, les valeurs sont brutes. Un intervalle
+écrêté présenté comme « la fourchette » est un mensonge par omission, et c'est précisément ce que
+`ADV-02` a relevé.
