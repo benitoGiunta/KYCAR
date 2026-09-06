@@ -64,3 +64,99 @@ sans suffixe `bis`).
 | B-46 | `ARB-19`, `ARB-59` | `EX-SCR-113` | MODIFIER | **APPLIQUÉ** — élément 4 réécrit (`displayRange` + suffixe, `rawRange` en infobulle, bande à 72 px) ; zone-modèle `modelId = 0` cliquable vers `EX-SCR-113bis` |
 | B-47 | `ARB-01` | `EX-SCR-115`, `EX-SCR-116` | MODIFIER | **APPLIQUÉ** — indicateur piloté par `sampleCoverage` seul, tiret cadratin si `null`/`NON_APPLICABLE` ; cas requalifié `listingCount = 0 ∧ announcedCount > 0` |
 | B-48 | `ARB-43` | `EX-SCR-118`, `EX-SCR-194`, `EX-SCR-197` | MODIFIER | **APPLIQUÉ** — plafond unique de 4 (`EX-CRUD-13bis`), contrôles d'ajout désactivés, mention « surnuméraires ignorés » supprimée d'`EX-SCR-194`, écrêtage d'URL signalé par `ET-URL-CORRIGEE` |
+| B-49 | `ARB-25` | `EX-SCR-119`, `EX-SCR-120`, `EX-SCR-121` | MODIFIER | **APPLIQUÉ** — `Intl.Collator` remplacé par `EX-DATA-70bis`/`70ter` ; quatre ordres totaux ; clé primaire `null` en fin d'ordre ; `modelId = 0` en dernier dans `EX-SCR-121` |
+| B-50 | `ARB-29` | `EX-SCR-126` | MODIFIER | **APPLIQUÉ** — énumération de paramètres remplacée par le renvoi à l'état `SANS-FILTRE` |
+| B-51 | `ARB-28` | `EX-SCR-127` | MODIFIER | **APPLIQUÉ** — la virtualisation ne plafonne que les cartes montées dans le DOM |
+| B-52 | `ARB-19`, `ARB-44` | `EX-SCR-142` | MODIFIER | **APPLIQUÉ** — cinquième donnée `min – max` (`rawRange.price`, étiquette `du moins cher au plus cher`, jamais masquée) ; quatrième bouton `Suivre` / `Ne plus suivre` |
+| B-53 | `ARB-05` | `EX-SCR-145`, `EX-SCR-146`, `EX-SCR-147` | MODIFIER | **APPLIQUÉ** — délégation intégrale à `BIN` ; Freedman-Diaconis, multiples de 500 €/5 000 km, plafonds de buckets et regroupement « avant `<AAAA>` » supprimés ; étiquettes de débordement renvoyées à `EX-DATA-79` |
+| B-54 | `ARB-09`, `ARB-04` | `EX-SCR-149` | MODIFIER | **APPLIQUÉ** — clic posant `hi − u` (plus brossage et `Ctrl` + clic), test d'égalité d'effectif ; prix médian du bucket issu de `GROUPSTAT` |
+| B-55 | `ARB-17` | `EX-SCR-150` | MODIFIER | **APPLIQUÉ** — `n` qualifié par sa métrique (`n_price`, `n_mileage`, `n_year`) ; la propagation nominative d'`ARB-17` a été appliquée dans le même mouvement à `EX-SCR-164`, `EX-SCR-165` et `EX-SCR-166`, que l'`ARB-17` cite expressément et que B-57/B-58 rouvraient déjà |
+| B-56 | `ARB-47` | `EX-SCR-158` | MODIFIER | **APPLIQUÉ** — infobulle de point de `G4` portée de 5 à 6 lignes, la sixième étant la chaîne d'`EX-SCR-158bis` |
+| B-57 | `ARB-04` | `EX-SCR-161` à `EX-SCR-170` | MODIFIER | **APPLIQUÉ** — un renvoi par graphe : `G5`/`G9`/`G12`/`G13`/`G15` → `GROUPSTAT` (clés `bucket d'année`, `fuelCategory`, `priceEvaluationCategory`, `sellerType`, `countryCode`), `G6` → `EX-DATA-83quinquies` + base au titre, `G7` → `EX-DATA-102bis` et retrait de **toute** mention de grille hexagonale, `G10` → `NTILE(V_mileage(Σ), 5)` avec bornes observées et indice de tranche, `G14` → `EX-DATA-83quater` |
+| B-58 | `ARB-03`, `ARB-18`, `ARB-27` | `EX-SCR-164` | MODIFIER | **APPLIQUÉ** — formule `prix ~ année + ln(km)` supprimée et remplacée par le renvoi à M2 (`EX-DATA-90` à `EX-DATA-93`) + libellé normatif mot pour mot ; mention de méthode (M1/M2) et bandeau de franchissement de seuil ; ordre par `opportunityScore` décroissant avec départage. Aucune formule de remplacement inventée (`A-09`) |
+| B-59 | `ARB-12` | `EX-SCR-176` | MODIFIER | **BLOQUÉ** — **ancre incohérente**. `ARB-12` demande d'inscrire dans `EX-SCR-176` que « le jeton d'un filtre actif affiche toujours son libellé et sa valeur ». Or `EX-SCR-176` de `draft-screens.md` porte « Recalcul partiel interdit » (empreinte de filtres par graphe, écran B) et n'a aucun rapport avec les jetons de filtre actif. L'exigence qui porte le jeton est **`EX-SCR-75`** (ligne des filtres actifs, format des jetons). Insérer la règle dans `EX-SCR-176` écraserait une exigence sans lien. **Décision requise** : re-cibler l'édition d'`ARB-12` sur `EX-SCR-75` (ou nommer l'exigence porteuse). Le même identifiant erroné figure dans l'édition d'annexe C d'`ARB-12` (`EX-NAV-18` renvoie à `EX-SCR-176`) : la correction concerne aussi l'agent `fix-annexe-C` et le coordinateur. **Aucune édition faite.** Note factuelle : le format des jetons d'`EX-SCR-75` affiche déjà la valeur dans les six formes énumérées, sauf la forme « ≥ 3 valeurs » qui affiche `Carburant : 4 valeurs` (nom + cardinal, valeurs en infobulle) |
+| B-60 | `ARB-37` | `EX-SCR-187` | MODIFIER | **APPLIQUÉ** — l'exigence ne décrit plus que l'emplacement et l'état du bouton ; entrées, libellés et périmètre renvoyés à `EX-CRUD-16`, colonnes et en-tête à `EX-DATA-123bis` ; l'entrée `PNG` disparaît de l'annexe B |
+| B-61 | `ARB-34` | `EX-SCR-184`, `EX-SCR-202` | MODIFIER | **APPLIQUÉ** — `sel` requalifié en restriction d'affichage avec l'en-tête `<n> lignes affichées sur <N>` ; bouton `Convertir la sélection en filtre` seul chemin changeant `Σ` ; `sel=<empreinte>` remplacé par `sel=<lo>-<hi>` |
+| B-62 | `ARB-06` | `EX-SCR-195`, `EX-SCR-200` | MODIFIER | **APPLIQUÉ** — bornes communes = `BIN` sur l'union des échantillons valides ; seuil `n_m < 12`, repli `échelles indépendantes` ; colonne exclue du calcul mais rendue |
+| B-63 | `ARB-51` | `EX-SCR-200`, `EX-SCR-214` | MODIFIER | **APPLIQUÉ** — six états par identifiant sur les écrans C et E, les états sans objet **déclarés** avec leur motif |
+| B-64 | `ARB-03`, `ARB-18`, `ARB-25`, `ARB-47`, `ARB-54` | `EX-SCR-203` | MODIFIER | **APPLIQUÉ** — colonne « Écart au prix attendu » renvoyée à M2 sans formule, mention de méthode, ordre total `EX-DATA-70ter`, étiquetage de cellule en infobulle de colonne, jeton `!` de `DUPLICATE_VALUE_CONFLICT`, rendu textuel des champs `*Raw` |
+| B-65 | `ARB-27` | `EX-SCR-206`, `EX-SCR-207` | MODIFIER | **APPLIQUÉ** — ordre par défaut `opportunityScore` décroissant avec départage et bascule `null` ; `P10 des écarts` défini (décile inférieur de `δ`, `EX-DATA-62`) et localisé (tout le périmètre de l'écran D, jamais les 20 lignes de `G8`), exprimé en pourcentage. L'édition d'`ARB-47` sur `EX-SCR-207` (chaîne d'étiquetage en infobulle de ligne), que la liste des 68 n'attribue à aucun travail nommé, a été portée ici puisque l'exigence était déjà ouverte |
+| B-66 | `ARB-44` | `EX-SCR-212` | MODIFIER | **APPLIQUÉ** — panneau latéral `Recherches récentes`, 10 entrées FIFO d'`EX-CRUD-11`, action unique `Vider l'historique`, aucune suppression unitaire |
+| B-67 | `ARB-45` | `EX-SCR-213` | MODIFIER | **APPLIQUÉ** — écart affiché sous condition `snapshotInitial ≠ snapshotId courant` et effectif calculable, jamais `0` ni `+ 0`, jamais un pourcentage |
+| B-68 | `ARB-46`, `ARB-43`, `ARB-25` | `EX-SCR-216` | MODIFIER | **APPLIQUÉ** — six états par identifiant (dont deux « sans objet, motif : … »), recherche sans correspondance, règle de `Appliquer`, piège de focus et ordre de tabulation, plafond de 4 remplaçant les « 12 couples », départage unique `EX-DATA-70ter` |
+
+---
+
+## Bilan
+
+| Grandeur | Valeur |
+|---|---:|
+| Travaux de la liste `ANNEXE-B` | 68 |
+| **APPLIQUÉ** | **67** |
+| **BLOQUÉ** | **1** (`B-59`) |
+| Exigences `EX-SCR-*` définies avant | 224 |
+| Exigences `EX-SCR-*` définies après | 231 |
+| Créations | 7 (`EX-SCR-27bis`, `38bis`, `72bis`, `113bis`, `124bis`, `158bis`, `214bis`) |
+| Suppressions | 1 (`EX-SCR-111`, contenu normatif supprimé, identifiant conservé en pierre tombale avec son motif) |
+| Renumérotations | **0** |
+
+## Vérifications de fin
+
+1. **Unicité des identifiants** — 231 définitions au motif `^\`EX-SCR-<id>\` — `, **231
+   identifiants distincts** : chaque identifiant est défini exactement une fois. Les occurrences
+   d'identifiant en début de ligne sans tiret cadratin sont des références en retour à la ligne,
+   pas des définitions (contrôlées une par une).
+2. **Non-renumérotation** — `EX-SCR-1` à `EX-SCR-224` sont **tous** présents après application,
+   sans trou, y compris `EX-SCR-111` (entrée de suppression). Aucun identifiant n'a changé de
+   porteur.
+3. **Formulations non mesurables** — recherche de `rapide`, `intuitif`, `moderne`, `clair`,
+   `performant`, `ergonomique`, `pertinent`, `approprié`, `significatif`, `le cas échéant`,
+   `si nécessaire` : deux occurrences seulement, **toutes deux préexistantes et hors barème** —
+   « sur fond clair comme sur fond sombre » (`EX-SCR-…`, contraste de jeton) et la ligne de la
+   matrice § 9 qui **énumère** ces mots comme critère de revue lexicale. Une occurrence a été
+   **retirée** en cours de route : « Densité non pertinente en dessous de 40 offres » est devenue
+   « Densité non calculable en dessous de 40 offres » (`EX-SCR-163`).
+4. **Formules retirées là où un renvoi était demandé** — plus aucune occurrence de
+   `régression robuste`, `prix ~ année`, `Freedman`, `quintiles observés`, `Intl.Collator`,
+   `P1 et P99`, `24 couples`, `SUSPECT_PRICE_FLOOR`, `hexagonal` (hors la phrase d'interdiction),
+   `12 couples` (hors la phrase de suppression), `surnuméraires ignorés`. `Math.floor` ne
+   subsiste que dans sa propre interdiction (`EX-SCR-3`). La seule expression de forme
+   fonctionnelle restante est le **libellé d'affichage** que `ARB-03` impose mot pour mot dans
+   `EX-SCR-164`.
+5. **Périmètre d'édition** — seuls `docs/requirements/draft-screens.md` et le présent journal ont
+   été écrits.
+
+## Propagations faites au-delà des identifiants nommés, et leur motif
+
+Trois éditions portent sur des identifiants que la liste des 68 ne nomme pas, mais qu'une
+décision appliquée rendait faux :
+
+1. `EX-SCR-48` — « les trois onglets » devient « les quatre onglets d'`EX-SCR-42` » : `B-26`
+   (`ARB-44`) porte l'en-tête à quatre onglets, et l'exigence responsive en comptait trois.
+2. `EX-SCR-181` (responsive de l'écran B) — « une grille hexagonale de moins de 320 px » devient
+   « la grille d'`EX-DATA-102bis` » : `ARB-04` demande de supprimer **toute** mention de grille
+   hexagonale pour `G7`.
+3. `EX-SCR-210` (états de l'écran D) — le libellé `C3` passe de `<n_obs>` / `<n_tot>` à
+   `<listingCount>` / `<announcedCount>` : substitution de noms de champs imposée par `ARB-01`,
+   sans changement de sens.
+
+## Résidus signalés, non édités
+
+- `EX-SCR-157` et `EX-SCR-177` mentionnent encore « échantillonnage à graine fixée » et
+  « 20 000 points » sans renvoi à `SAMPLE(V, k, seed)`. `ARB-31` n'a porté son renvoi que sur
+  `EX-SCR-32` et ces formulations ne contredisent pas `EX-DATA-100bis` (la graine y est bien
+  constante) : aucune édition faite, mention laissée au coordinateur.
+- `EX-SCR-26` (`ET-VIDE-FILTRES`, « les 3 filtres les plus restrictifs ») reçoit une édition
+  dans le texte d'`ARB-39` (§ 2.2) mais **aucun travail de la liste `ANNEXE-B` ne la porte** :
+  la liste ne rattache `ARB-39` qu'à `EX-SCR-46` (`B-28`). Édition non faite, faute de mandat.
+- **Mot « couverture » employé nu.** `EX-DATA-61bis` (créé par `ARB-01` en annexe A) interdit le
+  mot « couverture » sans qualificatif dans les quatre documents normatifs. Les trois éditions
+  d'annexe B qu'`ARB-01` prescrit (`EX-SCR-31`, `EX-SCR-115`, `EX-SCR-116`) sont faites, mais
+  `draft-screens.md` porte encore une dizaine d'emplois nus hors de ces trois exigences —
+  « bandeau de couverture », « taux de couverture du snapshot », « couverture ≥ 60 % »,
+  « la couverture est < 100 % », l'état `ET-PARTIEL-COUVERTURE`, et le nom du composant
+  `C3 couverture` que `ARB-32` emploie lui-même. Aucun travail de la liste `ANNEXE-B` ne mandate
+  ce renommage transverse, et le renommer par jugement aurait touché un nom d'état et un nom de
+  composant cités par d'autres annexes. **Aucune édition faite** ; point remonté au
+  coordinateur, qui doit dire si l'interdiction du mot nu vaut aussi pour les **noms propres**
+  d'états et de composants (`ET-PARTIEL-COUVERTURE`, `C3 couverture`).

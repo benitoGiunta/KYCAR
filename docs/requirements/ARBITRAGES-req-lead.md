@@ -296,3 +296,95 @@ répercutée ne vaut rien.
 sans être nommé comme intervalle central**. Partout ailleurs, les valeurs sont brutes. Un intervalle
 écrêté présenté comme « la fourchette » est un mensonge par omission, et c'est précisément ce que
 `ADV-02` a relevé.
+
+---
+
+# Décisions du coordinateur après application (phase 2.2, second tour)
+
+Les trois agents d'application ont remonté 7 points qu'ils ne pouvaient pas trancher sans exercer
+un jugement qui ne leur appartenait pas. Ils ont eu raison de s'arrêter : chacun est ci-dessous.
+
+## R-A10 — `ARB-12` visait la mauvaise exigence. Re-ciblée, avec une exception déclarée.
+
+**Blocage `B-59`, signalé et non contourné.** La décision `ARB-12` demandait d'inscrire dans
+`EX-SCR-176` que le jeton d'un filtre actif affiche toujours son libellé **et sa valeur**. Or
+`EX-SCR-176` porte « recalcul partiel interdit » et n'a aucun rapport avec les jetons. L'exigence
+porteuse est **`EX-SCR-75`** (ligne des filtres actifs, format des six types de jetons).
+
+**Décision** : `ARB-12` est re-ciblée sur `EX-SCR-75`. La même référence erronée figure dans
+l'édition d'annexe C — `EX-NAV-18` renvoie à `EX-SCR-176` — et doit être corrigée de même.
+
+**Exception déclarée, et c'est la vraie décision.** L'agent a relevé que `EX-SCR-75` affiche déjà la
+valeur dans cinq de ses six formes, la sixième — « ≥ 3 valeurs » — affichant `Carburant : 4 valeurs`
+avec les valeurs en infobulle. **Cette forme est maintenue telle quelle.** Étendre la règle à un
+jeton portant 8 codes de carburant ferait déborder la ligne des filtres actifs et détruirait la
+lisibilité de tous les autres jetons. La règle devient donc : *le jeton affiche son libellé et sa
+valeur, sauf au-delà de 2 valeurs où il affiche son libellé et le cardinal, les valeurs restant
+atteignables en infobulle*. L'exception est nommée dans l'exigence, pas laissée à l'implémentation.
+
+## R-A11 — Classe des filtres anciennement `X` : `T`. Ratifié.
+
+**À ratifier, remonté par `B-39`.** Aucune décision ne fixait la classe `R`/`T`/`D` des filtres qui
+sortaient de la classe `X` supprimée, alors qu'`EX-SCR-57` exige exactement une classe par filtre.
+L'agent les a portés à `T` par application directe de la définition.
+
+**Ratifié.** Ce n'est pas un choix mais une conséquence : ces filtres n'ont aucun champ correspondant
+dans les 40 champs relevés localement, donc ils ne peuvent pas être recalculés sans aller chercher
+la donnée. `T` est la seule classe compatible avec la définition d'`EX-SCR-57`. La phrase de
+dérivation écrite dans l'exigence est conservée : elle rend la classe recalculable au lieu d'être
+une valeur posée.
+
+## R-A12 — Le mot « couverture » : l'interdiction porte sur les énoncés, pas sur les identifiants.
+
+**Question ouverte par `fix-annexe-B`.** `EX-DATA-61bis` interdit le mot « couverture » employé sans
+qualificatif dans les quatre documents normatifs. Il subsiste une dizaine d'emplois, dont le nom
+d'état `ET-PARTIEL-COUVERTURE` et le nom de composant `C3 couverture` — que la décision `ARB-32`
+emploie elle-même.
+
+**Décision : les identifiants et noms de composants sont exemptés ; les énoncés ne le sont pas.**
+
+Le motif de l'interdiction était qu'une même grandeur nommée trois fois, dont deux au même seuil de
+80 %, produisait deux pastilles contradictoires. Un identifiant ne porte pas de valeur et ne peut
+donc pas contredire une mesure. Renommer en cascade `ET-PARTIEL-COUVERTURE` et `C3` casserait des
+références dans les trois rapports de stress-test pour un gain nul.
+
+**Contrainte compensatoire, obligatoire** : chaque identifiant contenant le mot doit être accompagné,
+à l'endroit où il est défini, d'une ligne disant **laquelle des trois grandeurs il désigne**. Un nom
+peut rester ambigu ; sa définition, non. C'est cette ligne qui ferme le défaut, pas le renommage.
+
+## R-A13 — Deux éditions prescrites sans travail correspondant : mandatées.
+
+**Remonté par `fix-annexe-B`.** Deux décisions prescrivaient une édition que la liste des 68 travaux
+ne rattachait à aucun travail : `ARB-39` sur `EX-SCR-26`, et `ARB-47` sur `EX-SCR-207`.
+
+**Décision** : les deux éditions sont mandatées. `ARB-47` est déjà couverte — l'agent l'a portée dans
+`B-65`, qui rouvrait la même exigence, et il a eu raison de le signaler plutôt que de le taire.
+`ARB-39` sur `EX-SCR-26` reste à appliquer et entre dans la liste des résidus.
+
+**Ce que cet écart révèle** : les listes de travaux ont été dérivées à la main des décisions, et
+deux prescriptions se sont perdues au passage. Le défaut n'est pas dans les décisions mais dans la
+traduction en travaux — même mode de défaillance que le trou sur l'entité `Snapshot` en annexe A.
+Une vérification systématique reste due : toute prescription d'édition figurant dans le corps d'une
+décision doit avoir son travail. Elle est portée en résidu `RES-9`.
+
+## R-A14 — `EX-SCR-111` en pierre tombale : ratifié.
+
+`ARB-43` demandait de supprimer `EX-SCR-111` **et d'en reporter le motif**. L'agent a supprimé le
+contenu normatif et laissé l'identifiant portant le motif, avec la mention qu'il n'est pas
+réattribué.
+
+**Ratifié.** L'identifiant est cité par `ST-complete.md` et par la matrice de traçabilité : le
+supprimer entièrement aurait cassé ces références pour économiser trois lignes. Une pierre tombale
+qui dit pourquoi l'exigence a disparu vaut mieux qu'un trou muet.
+
+## R-A15 — Corrections factuelles ratifiées
+
+- **`B-35`** — l'exigence annonçait « 24 couples » de filtres ; le fichier normatif n'en porte que
+  12, plus un paramètre isolé. L'énumération est de 12 lignes. La source générée fait foi contre la
+  prose, conformément à `T-02`.
+- **`B-39`** — la décision nommait 5 filtres sortant de la classe `X` là où la table en portait 8.
+  Résolu par la règle générative, sans jugement. Décompte final vérifié et clos :
+  **77 retenus** (13 primaires / 60 secondaires / 3 désactivés / 1 non exposé) **+ 24 exclus = 101**.
+- Trois propagations faites hors travaux nommés (nombre d'onglets, grille de `G7`, noms de champs de
+  couverture) sont **ratifiées** : la décision appliquée rendait le texte environnant faux, et le
+  laisser tel quel aurait mis l'annexe en contradiction avec elle-même.

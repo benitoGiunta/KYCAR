@@ -105,3 +105,6 @@ sont aux frontières, y compris à celles entre une exigence corrigée et son co
 | RES-6 | C | `EX-CRUD-7`/`11` citent la route héritée `/modele/:makeId/:modelId` au lieu de la canonique | Corriger la route |
 | RES-7 | C | `EX-NAV-5` renvoie à « voir tableau § A.2.2 », devenu de la prose | Corriger le renvoi |
 | RES-8 | C | Une occurrence préexistante de « navigation rapide » dans la table des candidats CRUD | Chiffrer ou reformuler |
+| RES-9 | toutes | **Vérification systématique due** : deux prescriptions d'édition figurant dans le corps d'une décision n'avaient aucun travail correspondant (`ARB-39`→`EX-SCR-26`, `ARB-64`→`EX-DATA-106`). Même mode de défaillance que le trou sur `Snapshot` : le défaut est dans la traduction décisions → travaux, pas dans les décisions | Balayer les 65 décisions et vérifier que chaque prescription d'édition a son travail |
+| RES-10 | B | `ARB-12` était ciblée sur `EX-SCR-176` au lieu de `EX-SCR-75` ; la référence croisée d'`EX-NAV-18` porte la même erreur | Appliquer `R-A10` : re-cibler, et inscrire l'exception « au-delà de 2 valeurs, libellé + cardinal » |
+| RES-11 | A, B, C | Les identifiants contenant le mot « couverture » sont exemptés de l'interdiction (`R-A12`) mais doivent porter, à leur définition, laquelle des trois grandeurs ils désignent | Ajouter la ligne de désambiguïsation à chaque définition concernée |
