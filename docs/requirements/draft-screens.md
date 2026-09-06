@@ -1317,8 +1317,8 @@ infobulle dit `couverture d'échantillon indisponible`. La mise en italique des 
 reste attachée au seul cas `sampleCoverage < 0,20`. Sans cet indicateur, l'écran présenterait
 comme une fourchette de marché ce qui n'est qu'une fourchette d'échantillon.
 
-`EX-SCR-116` — **Cas `n_obs = 0` alors que `n_tot > 0`** (prévisible : `listingsCount` est
-exhaustif par construction alors qu'aucune annonce n'a été échantillonnée). La zone-modèle
+`EX-SCR-116` — **Cas `listingCount = 0 ∧ announcedCount > 0`** (prévisible : `announcedCount`
+est exhaustif par construction alors qu'aucune annonce n'a été échantillonnée). La zone-modèle
 affiche l'effectif et, à la place des trois fourchettes, la mention unique
 `Fourchettes indisponibles — aucune annonce échantillonnée`. Le chevron reste actif : l'écran B
 affichera alors `ET-VIDE-FILTRES` avec ce même motif. **Aucun `0 – 0 €` n'est jamais affiché.**
@@ -1329,8 +1329,12 @@ pas seulement le chevron. Retour visuel : fond à 4 % de l'accent au survol, con
 2 px au clavier, et le chevron se décale de 2 px vers la droite.
 
 `EX-SCR-118` — **Case de comparaison de modèle.** Apparaît à gauche du nom au survol de la
-bande, 18 × 18 px, et ajoute le **modèle** à la sélection de l'écran C. Un clic sur la case ne
-déclenche pas la navigation (propagation arrêtée).
+bande, 18 × 18 px, et ajoute le **modèle** à la sélection de comparaison `CompareSelection`
+(`EX-CRUD-13bis`). Un clic sur la case ne déclenche pas la navigation (propagation arrêtée).
+**Plafond unique : 4 modèles.** Au-delà, la case est **désactivée** avec l'infobulle
+`4 modèles au maximum — retirez-en un pour en ajouter un autre` ; aucun ajout silencieux, aucun
+surnuméraire ignoré. Ajouter un couple déjà présent est sans effet. La clé réservée
+`modelId = 0` **ne peut pas** entrer dans la sélection (`EX-SCR-113bis`).
 
 ### 5.5 Tri, repliement, volumétrie
 
@@ -2035,8 +2039,12 @@ distributions en mémoire en naviguant d'un écran B à l'autre.
 
 `EX-SCR-194` — **Route** : `/comparer?m=<modelId>,<modelId>[,<modelId>][,<modelId>]&<filtres>`.
 **Condition d'affichage** : de 2 à 4 identifiants de modèle. Avec 1 seul, redirection vers
-l'écran B ; avec 0, redirection vers l'écran A. Au-delà de 4, les identifiants surnuméraires
-sont ignorés et un bandeau indique `<k> sélections ignorées — maximum 4`.
+l'écran B ; avec 0, redirection vers l'écran A. Le **plafond unique est de 4 modèles**
+(`EX-CRUD-13bis`) : l'ouverture d'une URL `/comparer?m=…` **remplace** la sélection de session
+par celle de l'URL, en ignorant les entrées au-delà de la quatrième et en signalant l'écrêtage
+par `ET-URL-CORRIGEE` (`EX-SCR-38bis`). La mention « les identifiants surnuméraires sont
+ignorés » et le bandeau `<k> sélections ignorées — maximum 4` sont **supprimés** : hors
+chargement d'URL, aucun ajout au-delà de 4 n'est possible, tout contrôle d'ajout étant désactivé.
 Justification du plafond 4 : à 4 colonnes en régime `large` (1 680 px de contenu), chaque
 colonne mesure 396 px, largeur en dessous de laquelle un histogramme cesse d'être lisible
 (minimum de 280 px de zone de tracé plus les axes).

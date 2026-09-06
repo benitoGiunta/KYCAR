@@ -83,3 +83,21 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | O9 | **Représentativité de l'échantillon de 20 annonces non établie.** `adProduct.tier` suggère un tri influencé par le produit publicitaire | Un échantillon biaisé fausserait toute distribution du mode 2 — c'est la question dimensionnante du candidat C-14 | Chantier 1, phase 1.4 |
 | O10 | Mobile.de **n'appartient pas** au même groupe qu'AutoScout24 (Adevinta contre Hellman & Friedman), contrairement à ce qui avait été avancé au cadrage | Change la valeur du candidat C-42 : son API de recherche publiquement documentée n'est pas un accès privilégié à l'inventaire AS24 | Corrigé, à répercuter en 1.4 |
 | O11 | **Une SEARCH API GraphQL officielle existe** et est commercialisée via le portail concessionnaires (`searchapi@autoscout24.com`). L'affirmation initiale « aucun canal officiel de lecture » est fausse | Ouvre une voie contractuelle qui n'était pas au cadrage | Chantier 1, phase 1.4, candidat C-01 |
+
+## Résidus à solder avant le gel v1.0
+
+Relevés par les agents d'application, qui ont eu pour consigne de signaler plutôt que d'inventer.
+Tous relèvent du même motif : une décision appliquée contredit de la prose préexistante qu'aucun
+travail de la liste ne visait. C'est le pendant interne du diagnostic de `st-complete` — les défauts
+sont aux frontières, y compris à celles entre une exigence corrigée et son contexte non corrigé.
+
+| # | Annexe | Résidu | Action |
+|---|---|---|---|
+| RES-1 | A | Le complément sur l'index de taxonomie est en § C.2 sans identifiant propre | Lui donner `EX-DATA-115bis` ou le rattacher formellement à `EX-DATA-115` |
+| RES-2 | A | Le repli « annonce conservée, aucun rejet » coexiste avec la colonne Validation du champ 74 `countryCode`, qui porte encore « sinon REJET » | Nommer l'exception dans le champ 74, ou restreindre le repli aux seuls codes marketplace |
+| RES-3 | A | `EX-DATA-108` porte deux phrases redondantes sur la sélection vide (`EMPTY` et `FULL:EMPTY`) | Fusionner en une seule formulation |
+| RES-4 | C | La table des candidats CRUD et le § C.8 classent encore la comparaison de modèles en « écartée », contredits par `EX-CRUD-13bis` et la route `/comparer` | Reclasser en retenue |
+| RES-5 | C | `EX-SRCH-23`/`24` et une puce d'`EX-NAV-14` décrivent encore `sort`/`desc`/`page`/`size` comme conditionnels, en citant les numéros de lignes d'une table supprimée | Supprimer la condition : l'arbitrage `A-02` a tranché |
+| RES-6 | C | `EX-CRUD-7`/`11` citent la route héritée `/modele/:makeId/:modelId` au lieu de la canonique | Corriger la route |
+| RES-7 | C | `EX-NAV-5` renvoie à « voir tableau § A.2.2 », devenu de la prose | Corriger le renvoi |
+| RES-8 | C | Une occurrence préexistante de « navigation rapide » dans la table des candidats CRUD | Chiffrer ou reformuler |
