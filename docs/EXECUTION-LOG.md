@@ -34,7 +34,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 1.1 Balayage des candidats | `sweep-1` | Opus / high | `docs/research/candidates-v1.md` | VALIDÉ — 66 candidats C-01…C-66, 14/14 familles couvertes |
 | 1.1b Constat sur la surface autorisée | (moi) | — | `docs/research/FINDING-allowed-surface.md` | VALIDÉ — C-14 prouvé : agrégats et échantillon d'annonces accessibles licitement |
 | 1.2 Revue de complétude 1 | `gap-review-1` | Opus / high | `docs/research/candidates-v2.md` | VALIDÉ — 18 ajouts C-67…C-84, 3 familles nouvelles, registre à 84 candidats / 17 familles. C-67 vérifié et reclassé (voir `VERIF-C67-fdz.md`) |
-| 1.3 Revue de complétude 2 | `gap-review-2` | Opus / high | `docs/research/candidates-final.md` | À FAIRE |
+| 1.3 Revue de complétude 2 | `gap-review-2` | Opus / high | `docs/research/candidates-final.md` | VALIDÉ — registre gelé, 92 candidats, 17 lots organisés en vagues, saturation argumentée |
 | 1.4 Investigation prouvée | `probe-A…n` | Opus ou Sonnet / high | `docs/research/probe-*.md` | À FAIRE |
 | 1.5 Audit croisé | `audit-A…n` | Sonnet / high | `docs/research/audit-*.md` | À FAIRE |
 | 1.6 Compilation et stress-test | `compile-1` | Opus / max | `docs/research/DATA-ACQUISITION-REPORT.md` | À FAIRE |
@@ -47,7 +47,10 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 2.0 Réconciliation des vocabulaires | (moi) | — | `docs/requirements/REF-vocabulary-reconciliation.md` | VALIDÉ — 8 identiques, 5 partiels, 1 sans rapport, 1 collision de codes |
 | 2.0 Données de référence | `ref-taxonomy` | Sonnet / medium-high | `docs/requirements/REF-taxonomy.md`, `data/reference/taxonomy.json` | VALIDÉ — 295 marques / 4 955 modèles voiture, ids réels, reproduit indépendamment |
 | 2.1 Exigences | `req-lead` (coordinateur) + `req-data` / `req-screens` / `req-behaviour` | Opus max + Opus/Opus/Sonnet high | `docs/requirements/REQUIREMENTS.md` v0.9 | LIVRÉ — 447 exigences, 9 arbitrages, non gelé |
-| 2.2 Stress-test des exigences | `st-complete` / `st-ambiguity` / `st-adversarial` + `st-arbiter` | Opus/Opus/Sonnet high + Opus max | `reports/REQ-STRESSTEST.md`, REQUIREMENTS v1.0 | À FAIRE |
+| 2.2 Stress-test — complétude | `st-complete` | Opus / high | `reports/ST-complete.md` | VALIDÉ — 24 constats, dont 9 bloquants, tous aux frontières entre annexes |
+| 2.2 Stress-test — adverse | `st-adversarial` | Sonnet / high | `reports/ST-adversarial.md` | VALIDÉ — 18 constats sur 38 attaques simulées, dont 4 bloquants |
+| 2.2 Stress-test — ambiguïté | `st-ambiguity` | Opus / high | `reports/ST-ambiguity.md` | EN COURS — relancé après coupure par la limite de session |
+| 2.2 Arbitrage et gel v1.0 | `st-arbiter` | Opus / max | `reports/REQ-STRESSTEST.md`, REQUIREMENTS v1.0 | À FAIRE — attend les 3 rapports |
 | 2.3 Architecture | `arch-lead` | Opus / high | `docs/plans/ARCHITECTURE.md` | À FAIRE |
 | 2.4 Développement D1–D9 | `dev-D*` | voir plan 2 | code | À FAIRE |
 | 2.5 Revue de développement | `rev-D*` | Opus / Sonnet high | `reports/DEV-REVIEW.md` | À FAIRE |
@@ -68,7 +71,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 
 | # | Point | Impact | Résolution attendue |
 |---|---|---|---|
-| O1 | ~~Texte des CGU non récupéré~~ | — | **RÉSOLU** : § 3.3 des Händler-AGB DE/AT interdit verbatim l'interrogation automatisée de la base par logiciel. Portée = contrat B2B, opposable aux signataires ; pour un tiers, le fondement est le droit *sui generis* et le robots.txt. Texte belge encore à lire, licitement sous  |
+| O1 | ~~Texte des CGU non récupéré~~ | — | **RÉSOLU** : le § 3.3 des Händler-AGB DE/AT interdit verbatim l'interrogation automatisée de la base par logiciel. Portée = contrat B2B, opposable aux signataires ; pour un tiers non signataire, le fondement est le droit *sui generis* et le `robots.txt`. Texte belge encore à lire, licitement sous `/fr/entreprise/` |
 | O2 | Voie gratuite et autonome : **partiellement tranchée**. Les agrégats et un échantillon de 20 annonces/modèle sont accessibles licitement (C-14 prouvé). L'inventaire exhaustif ne l'est pas | Le lot D9 est réalisable pour le mode 1 ; le mode 2 reste sur dataset synthétique tant que la représentativité de l'échantillon n'est pas établie | Chantier 1, phase 1.4, candidat C-14 prioritaire |
 | O3 | ~~Identifiants techniques marque/modèle inconnus~~ | — | **RÉSOLU** : ids numériques réels relevés sur `/makes` |
 | O4 | ~~Codes de paramètres d'URL du moteur de recherche non déductibles de l'API~~ | — | **RÉSOLU** : 100 paramètres relevés dans le bundle JS, et correspondance des vocabulaires établie |
