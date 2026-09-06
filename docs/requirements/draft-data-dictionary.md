@@ -39,6 +39,15 @@ nommé `fuel`** n'existe (application de la décision V1).
 | Validation | bornes de plausibilité et verdict hors bornes |
 | Si absent | `REJET` (l'annonce entière est écartée), `DÉFAUT=<v>`, `INCONNU` (valeur nulle + exclusion des agrégats concernés) |
 
+**Ordre d'application, normatif** : **Normalisation puis Validation**. Toute borne de la colonne
+Validation s'entend sur la valeur **déjà normalisée**, dans l'unité canonique d'`EX-DATA-4` et
+après l'arrondi d'`EX-DATA-6`. Les bornes sont **inclusives** sauf mention contraire explicite.
+Conséquence assumée et vérifiée champ par champ : le seuil de sentinelle devient de fait
+`priceEur ≤ 249` puisque `249,60 €` se normalise en `250 €` ; `badgeDisplacementL = 0,55` se
+normalise en `0,6` et devient valide ; `consumptionCombinedL100Km = 99,94` se normalise en `99,9`
+et devient valide. Ces trois conséquences sont voulues : une valeur qui, une fois affichée, est
+dans le domaine ne doit pas être rejetée pour un chiffre que l'application ne montre jamais.
+
 **EX-DATA-3.** Niveaux de preuve, repris de la règle R6 :
 `OBSERVÉ` = champ relevé sur une annonce réelle (`FINDING-allowed-surface.md` § 2.3) ·
 `SCHÉMA` = champ présent dans l'OpenAPI officiel mais non relevé sur une annonce ·
@@ -71,6 +80,8 @@ et `round-half-even` diffère de `round-half-up` sur un cas sur vingt aux bornes
 **NFC**, suppression des caractères de contrôle U+0000–U+001F et U+007F–U+009F, remplacement de
 toute suite d'espaces Unicode par un espace simple U+0020, `trim`. Cette normalisation est
 appliquée **avant** toute comparaison, tout hachage et toute troncature.
+Tout libellé provenant de `taxonomy.json` (`Make.label`, `Model.label`) est normalisé **NFC** au
+chargement, comme toute chaîne du modèle.
 
 ## A.1 Vocabulaires nommés
 
@@ -187,9 +198,19 @@ que l'utilisateur ne peut pas vérifier, donc invérifiable et sans valeur pour 
 d'opportunité.
 
 **EX-DATA-15.** Le couple `(snapshotId, listingId)` est la clé primaire de l'entité `Listing`.
-Un `listingId` en doublon **au sein d'un même snapshot** provoque la conservation de la première
-occurrence rencontrée dans l'ordre d'ingestion et un compteur
-`snapshot.duplicateListingCount += 1` ; l'occurrence suivante est écartée sans erreur.
+**Ordre d'ingestion, total et normatif** : les réponses de la source sont traitées dans l'ordre
+`(pageIndex croissant, positionDansPage croissante)`, où `pageIndex` est l'indice de la requête
+dans le plan d'ingestion du snapshot et `positionDansPage` le rang de l'annonce dans le tableau
+reçu. La **première** occurrence d'un `listingId` dans cet ordre est conservée ; les suivantes
+sont écartées, et le compteur `snapshot.duplicateListingCount` est incrémenté de 1 par occurrence
+écartée, sans erreur. Si deux occurrences d'un même `listingId` **diffèrent** sur l'un des champs
+`priceEur`, `priceStatus`, `mileageKm` ou `firstRegistrationYearMonth`, l'occurrence conservée
+porte `ingestFlags += DUPLICATE_VALUE_CONFLICT`, et le snapshot incrémente
+`duplicateValueConflictCount`. Les valeurs écartées ne sont pas stockées.
+**Justification** : l'ordre d'ingestion étant un artefact de collecte et non un ordre de
+fraîcheur, il ne peut pas être présenté comme un choix de la valeur la plus juste ; il est en
+revanche indispensable qu'il soit **reproductible**, et que l'annonce concernée soit distinguable
+à l'écran d'une annonce dont le prix n'a jamais varié.
 **Justification** : l'échantillonnage par modèle décrit en `FINDING-allowed-surface.md` § 2.3
 peut servir la même annonce depuis deux pages modèle voisines, et un rejet dur ferait échouer un
 snapshot pour une cause bénigne.
@@ -198,7 +219,7 @@ snapshot pour une cause bénigne.
 
 | # | Champ KYCAR | Libellé FR | Type / unité | Card. | Obl. | Source | Énum. | Normalisation | Validation | Si absent |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 7 | `priceEur` | Prix affiché | `entier` (EUR) | 0..1 | OPT | `listings[].details.prices.public.amountInEUR.raw` (OBSERVÉ) ; `OAS:Price.price` (`minimum: 1`) | — | arrondi à l'euro entier ; `.formatted` **jamais** utilisé comme source | `1 ≤ p ≤ 5 000 000` sinon REJET · `p < 250` → `ingestFlags += SUSPECT_PRICE_FLOOR` et exclusion des statistiques de prix (annonce conservée) | INCONNU → `priceStatus` déduit (# 8) |
+| 7 | `priceEur` | Prix affiché | `entier` (EUR) | 0..1 | OPT | `listings[].details.prices.public.amountInEUR.raw` (OBSERVÉ) ; `OAS:Price.price` (`minimum: 1`) | — | arrondi à l'euro entier ; `.formatted` **jamais** utilisé comme source | `p = 0` ou `p` non numérique → `priceStatus = MISSING`, `priceEur = INCONNU`, `ingestFlags += PRICE_MISSING_UNDECLARED` (**aucun rejet d'annonce**) · `p > 5 000 000` → `priceEur = INCONNU`, `ingestFlags += PRICE_OUT_OF_RANGE` (**aucun rejet d'annonce** : un véhicule de collection légitime au-dessus du plafond doit rester dans l'effectif du marché) · `1 ≤ p ≤ 5 000 000` → valide · `p < 250` → `ingestFlags += PRICE_SENTINEL_ABSOLUTE` (`EX-DATA-19`) et exclusion des statistiques de prix (annonce conservée) · **le verdict REJET est retiré du champ `priceEur`** : aucune valeur de prix ne provoque plus le rejet de l'annonce entière | INCONNU → `priceStatus` déduit (# 8) |
 | 8 | `priceStatus` | État du prix | `énum` | 1 | DER | `DÉRIVÉ` : `QUOTED` si `priceEur` connu ; `ON_REQUEST` si `priceEur` absent et `priceOnRequestOnly = true` ; `MISSING` sinon | `KYCAR_PRICE_STATUS` | — | exhaustif par construction | — |
 | 9 | `priceOnRequestOnly` | Prix sur demande | `booléen` | 1 | OPT | `listings[].details.prices.public.onRequestOnly` (OBSERVÉ) | — | — | — | DÉFAUT=`false` |
 | 10 | `isTaxDeductible` | TVA récupérable | `booléen` | 0..1 | OPT | `listings[].details.prices.public.taxDeductible` (OBSERVÉ) ; `OAS:PublicPrice.isTaxDeductible` | — | — | — | INCONNU |
@@ -583,19 +604,23 @@ d'image ni de vidéo n'est persistée.
 les URL de médias reviendrait à dupliquer le contenu de l'annonce, ce que la position sur le droit
 sui generis des bases de données cherche précisément à éviter.
 
-**EX-DATA-45 — vocabulaire `KYCAR_INGEST_FLAG`, 14 codes.**
+**EX-DATA-45 — vocabulaire `KYCAR_INGEST_FLAG`, 17 codes.**
 `UNIT_UNSUPPORTED`, `ENUM_UNKNOWN`, `MODEL_UNRESOLVED`, `REGION_UNRESOLVED`,
-`SUSPECT_PRICE_FLOOR`, `PRICE_MISSING_UNDECLARED`, `PRICE_ON_REQUEST_WITH_AMOUNT`,
-`SUSPECT_ZERO_MILEAGE`, `MILEAGE_OUT_OF_RANGE`, `POWER_OUT_OF_RANGE`, `POWER_UNIT_MISMATCH`,
-`FIRST_REG_UNPARSEABLE`, `FIRST_REG_OUT_OF_RANGE`, `VERSION_FULLY_STRIPPED`.
+`PRICE_SENTINEL_ABSOLUTE`, `PRICE_MISSING_UNDECLARED`, `PRICE_ON_REQUEST_WITH_AMOUNT`,
+`PRICE_OUT_OF_RANGE`, `SUSPECT_ZERO_MILEAGE`, `MILEAGE_OUT_OF_RANGE`, `POWER_OUT_OF_RANGE`,
+`POWER_UNIT_MISMATCH`, `FIRST_REG_UNPARSEABLE`, `FIRST_REG_OUT_OF_RANGE`,
+`VERSION_FULLY_STRIPPED`, `DUPLICATE_VALUE_CONFLICT`, `MARKETPLACE_UNMAPPED`.
+`PRICE_IMPLAUSIBLE_IN_CELL` n'appartient **pas** à ce vocabulaire : c'est un verdict d'analyse,
+jamais un drapeau d'ingestion (`R-A06`).
 Les variantes `ENUM_UNKNOWN_<VOCABULAIRE>`, `CO2_ZERO_NON_BEV`, `HYBRID_INCONSISTENT`,
 `HYBRID_CATEGORY_UNRESOLVED`, `VERSION_POWER_MISMATCH` et `YEAR_OUT_OF_RANGE` sont des
 sous-qualifications de `ENUM_UNKNOWN` et des drapeaux de champ, comptées dans le rapport
-d'ingestion mais non dans le vocabulaire à 14 codes.
+d'ingestion mais non dans le vocabulaire à 17 codes.
 
 **EX-DATA-46.** Le rapport d'ingestion d'un snapshot publie, pour chaque code de
 `KYCAR_INGEST_FLAG`, son effectif et son taux sur `listingCount`, plus le nombre d'annonces
-rejetées par motif de rejet.
+rejetées par motif de rejet. Les codes `PRICE_OUT_OF_RANGE`, `DUPLICATE_VALUE_CONFLICT` et
+`MARKETPLACE_UNMAPPED` y figurent au même titre que les autres.
 **Justification** : c'est le seul moyen vérifiable par exécution (règle R4) de constater qu'un
 adaptateur `DataProvider` s'est dégradé, et ce rapport est le critère de succès mesurable du
 lot D9.

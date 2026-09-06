@@ -77,13 +77,16 @@ Un terme, une définition. Tout emploi divergent dans une annexe est un défaut 
 | **Agrégat marque** / **agrégat modèle** | Effectif et statistiques descriptives d'une sélection groupée par marque, ou par couple marque-modèle |
 | **Bucket** | Intervalle de valeurs d'un histogramme, dont la règle de découpage est déterministe (annexe A) |
 | **Outlier** | Annonce dont le prix s'écarte significativement de sa cellule d'homogénéité, au sens de M1 ou M2 (annexe A) |
-| **Fourchette** | Intervalle affiché des valeurs observées. `[p05, p95]` sur l'écran A, `[min, max]` sur les écrans B et D (arbitrage A-05) |
+| **Fourchette** | Intervalle affiché des valeurs observées. `[P5, P95]` sur l'écran A, `[min, max]` sur les écrans B et D (arbitrage A-05, portée précisée par `R-A05`). **`[P5, P95]` n'apparaît que sur l'écran A, et jamais sans être nommé « fourchette centrale (90 % des offres) »** : un intervalle écrêté présenté comme « la fourchette » est un mensonge par omission. Les libellés de percentile s'écrivent `P5` et `P95` |
 | **Vocabulaire de recherche** | Jeu de codes du moteur de recherche public AutoScout24 (`fuel=B`) |
 | **Vocabulaire de création** | Jeu de codes de l'API officielle de création d'annonces (`FuelType=1`). **Distinct du précédent, et incompatible sur certains codes** — voir `REF-vocabulary-reconciliation.md` |
 | **Filtre `R`** | Filtre recalculable localement, sans accès réseau, en 150 ms ou moins |
 | **Filtre `T`** | Filtre exigeant un rechargement via `DataProvider` |
 | **`DataProvider`** | Interface unique par laquelle toute donnée entre dans l'application |
-| **Couverture d'échantillon** | Rapport entre le nombre d'annonces détenues et l'effectif total annoncé par la source, pour une sélection donnée |
+| **« couverture » employé seul** | **Interdit dans les quatre documents normatifs.** Trois grandeurs distinctes portaient ce nom, dont deux au même seuil de 80 % — d'où deux pastilles contradictoires pour la même zone-modèle (constats `AMB-15`, `T-01`). Le mot ne s'emploie plus qu'avec son qualificatif, parmi les trois ci-dessous |
+| **Couverture d'échantillon** (`sampleCoverage`) | `listingCount / announcedCount`. Définie aux seuls niveaux (marque) et (marque, modèle), `null` si l'effectif annoncé est inconnu. **Publiée uniquement quand l'état de filtres est vide** ; dès qu'un filtre est posé elle vaut `NON_APPLICABLE`, et aucun consommateur ne peut lui substituer une des deux autres |
+| **Couverture métrique** (`metricCoverage`) | `n_m / N` — part de la sélection sur laquelle une statistique donnée est calculable |
+| **Part de prix fermes** (`priceQuotedShare`) | `priceQuotedCount / listingCount` — porte le seuil de 0,80 de l'avertissement de prix, et lui seul |
 
 ---
 
@@ -137,7 +140,9 @@ constituent un signal ; deux méthodes qui divergent constituent une question.
 | C | Comparaison de 2 à 4 modèles | `/comparer?m=…` | ajout justifié |
 | D | Annonces du modèle, table et deeplink | `…/annonces` | ajout, requis par A-02 |
 | E | Recherches enregistrées, avec écart d'effectif servant de veille | `/recherches` | ajout justifié |
+| F | Modèles suivis | `/suivis` | ajout, requis par `EX-CRUD-9` |
 | G | Sélecteur marque/modèle — 295 marques, 4 955 modèles | modale | ajout justifié |
+| — | Mentions et méthodologie — page statique : sources, périmètre, limites connues | `/mentions` | ajout, contrepartie de la règle « aucune valeur fabriquée » |
 
 **Pas d'écran de détail d'annonce** : `00-CONTEXT.md` interdit de dupliquer le contenu source et R3
 interdit les champs vendeur. Le deeplink vers l'annonce d'origine suffit. C'est une décision, pas un oubli.
@@ -153,8 +158,20 @@ Hiérarchie à trois niveaux — 9 contrôles primaires toujours visibles couvra
 secondaires repliés par groupe, recherche de filtre. Le choix des primaires est justifié en annexe B
 par quatre critères mesurables, avec une dérogation documentée pour `gear` (arbitrage A-08).
 
-Chaque filtre porte sa classification `R` / `T` / `D` / `X` selon que son champ figure ou non parmi
-les 40 champs relevés sur la source. Bilan clos : 13 + 52 + 3 + 2 + 31 = 101.
+Trois termes, définis sans synonymie par la révision `R-A01` : **`RETENU`** = implémenté,
+applicable au dataset, encodable dans l'URL et couvert par un test (**77**, énumérés dans
+`data/reference/filters-scope.json`) · **`EXPOSÉ`** = doté d'un contrôle atteignable par
+l'utilisateur (**76**, plus `atype` comme unique écart déclaré, fixé à `C` par conception) ·
+**`PRIMAIRE`** = visible sans déplier de groupe (9 contrôles, 13 paramètres).
+
+Le badge de comptage du bandeau compte les filtres **actifs** — posés à une valeur non défaut —
+et jamais les filtres disponibles : un badge qui compte les possibilités n'informe sur rien.
+
+Chaque filtre retenu porte sa classification `R` / `T` / `D` selon le coût de son application :
+`R` recalculable localement en 150 ms ou moins, `T` exigeant un rechargement via `DataProvider`,
+`D` en dette faute de champ dans la source. La classe `X` a été supprimée : elle mélangeait les
+filtres exclus dans une classification qui ne porte que sur les retenus, ce qui produisait un
+bilan de 101 là où la section ne parle que des 77 (constat `T-02`).
 
 ---
 
@@ -173,7 +190,14 @@ comme entité persistée (couverte par l'écran C et les modèles suivis).
 ## 8. États dégradés et gestion d'erreur → **Annexe B** §états, **Annexe C** §NFR
 
 Six états spécifiés par écran : vide, chargement, erreur, résultat partiel, trop de résultats,
-champ manquant. Deux règles transverses issues des arbitrages :
+champ manquant. **Un état sans objet sur un écran donné est déclaré comme tel, avec son motif** —
+l'omission et l'inapplicabilité ne se distinguaient pas, ce qui rendait la règle invérifiable.
+
+Les seuils d'effectif sont **quatre paliers** et non un seuil unique, chacun avec ce qui est
+calculé et ce qui est masqué à ce palier ; la spécification est continue au passage de chaque
+palier, l'affichage ne saute pas (constats `ADV-06`, `ADV-07`).
+
+Deux règles transverses issues des arbitrages :
 
 - **Jamais de valeur fabriquée.** Une fourchette sans échantillon affiche « fourchettes
   indisponibles », jamais `0 – 0 €`.
@@ -189,6 +213,20 @@ réponse par opération avec percentile visé, budget de bundle, accessibilité 
 textuelle des graphes, navigateurs et résolutions, comportement en cas d'échec du `DataProvider`,
 confidentialité et rétention, stratégie de surcharge des libellés non traduits par la source
 (limite L6).
+
+**Budget de recalcul — arbitrage `P-07`, ratifié par le coordinateur.** Le stress-test a établi que
+le poste de calcul des facettes portait le budget de 450 à 540 ms, dépassant la cible publiée. Deux
+issues étaient possible : relever le budget affiché, ou séparer les postes. **Le budget est séparé,
+pas relevé** — le recalcul des **agrégats** garde sa cible de 200 ms au 95ᵉ centile, et les
+**facettes** sont différées d'au plus 100 ms après l'affichage des chiffres principaux, leurs
+compteurs affichant `…` pendant l'écart.
+
+Motif de la ratification : gonfler un budget pour qu'une mesure y entre revient à faire disparaître
+l'exigence en la satisfaisant par construction. Différer les facettes préserve l'exigence *et* sert
+mieux l'utilisateur, qui voit les chiffres qui l'intéressent d'abord. La mémoire relève du même
+principe — le total recalculé par l'arbitre est d'environ 274 Mo, soit une marge de facteur 1,9 sur
+la cible, et c'est la marge réelle qui est publiée, pas une marge confortable obtenue en oubliant un
+poste (constats `ADV-08`, `ADV-09`).
 
 ---
 
@@ -214,6 +252,7 @@ confidentialité et rétention, stratégie de surcharge des libellés non tradui
 | Dictionnaire de données | `EX-DATA-1…82` | Validation de schéma exécutable + les 8 invariants sur le dataset synthétique et sur un échantillon réel | 2.5 |
 | Agrégation et buckets | `EX-DATA-83…110` | Tests unitaires à jeux de valeurs connues, dont les cas dégénérés `n=0,1,3` | 2.5 |
 | Détection d'outliers M1/M2 | `EX-DATA-111…120` | Tests sur outliers injectés volontairement par le générateur du lot D3, plus M3 en contrôle croisé | 2.5 |
+| Méthode de `G8` — **une seule formule** | `EX-DATA-90` à `EX-DATA-93bis` | Le graphe `G8` ne porte aucune formule : il renvoie à M2. Contrôle : aucune régression n'est définie ailleurs qu'en annexe A, et le `R²` publié est celui de la passe 2 sur échelle log, `null` si la somme des carrés totaux est nulle | 2.5 |
 | Écrans et graphes | `EX-SCR-1…224` | Inspection dirigée écran par écran contre la maquette structurelle, plus les 6 états par écran | 2.5 |
 | Navigation et URL | `EX-NAV-*` | Tests aller-retour : état → URL → état, égalité stricte de la chaîne sérialisée | 2.5 |
 | Recherche et filtrage | `EX-SRCH-*` | Tests des 77 filtres, dont dépendances parent-enfant et intervalles inversés | 2.5 |
@@ -253,7 +292,7 @@ Ils sont énumérés ici pour que la phase 2.2 ne les découvre pas comme des tr
 | # | Point ouvert | Conséquence assumée |
 |---|---|---|
 | O1 | Texte exact des CGU AutoScout24 | Le positionnement juridique reste une hypothèse |
-| O7 | Sémantique OU/ET du filtre équipements (`eq`) | Défaut ET, paramétrable, affiché à l'écran (A-03). Les 3 requêtes qui trancheraient portent sur `/lst?`, interdit |
+| O7 | Sémantique OU/ET du filtre équipements (`eq`) | Défaut ET, paramétrable, affiché à l'écran (A-03). Les 3 requêtes qui trancheraient portent sur `/lst?`, interdit. **Argument quantitatif versé au dossier** (`ADV-11`, rejeté comme défaut mais conservé comme preuve de risque) : sous sémantique ET, une sélection de `eq` proche de son maximum rend un résultat vide de façon déterministe — de l'ordre de `0,5^136`. Si la preuve arrive, elle pèsera en faveur du OU |
 | O9 | **Représentativité de l'échantillon de 20 annonces par modèle** | Verrou du parcours 2. L'avertissement est **non refermable** sur l'écran B, qui n'est fait que de distributions. C-67 (données FDZ) est l'instrument de mesure candidat, pas une source produit |
 | O12 | Plafond de 4 000 annonces par recherche | Impose un partitionnement de l'espace de recherche pour tout snapshot national |
 | Dette 1 | Table des plages postales belges `[EXTRAPOLÉ]` | À confronter au fichier officiel avant le gel v1.0 |
