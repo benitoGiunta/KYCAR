@@ -41,7 +41,8 @@ définit par le fait qu'un couple marque/modèle est *ciblé*, le mode 1 par son
 
 #### A.2.1 Principe de nommage — décision et justification
 
-**EX-NAV-5** — Tout filtre retenu dans le périmètre KYCAR (voir tableau §A.2.2) conserve **le nom de
+**EX-NAV-5** — Tout filtre retenu dans le périmètre KYCAR (§A.2.2, renvoi normatif à
+`data/reference/filters-scope.json`) conserve **le nom de
 paramètre d'URL relevé sur AutoScout24** (colonne « Paramètre d'URL » de `REF-filters.md`), sans
 renommage. Trois raisons :
 1. Règle R6 — le catalogue est relevé, pas inventé ; le réutiliser tel quel évite d'introduire un
@@ -181,7 +182,8 @@ déjà nécessaire pour le recalcul (§B.1) : une seule minuterie sert les deux 
 **EX-NAV-14 — Cas toujours en `pushState`, indépendamment du regroupement** :
 - changement de route (navigation mode 1 ↔ mode 2, ou vers un autre couple marque/modèle) ;
 - réinitialisation globale ou par groupe (§B.4) ;
-- pagination, si la sous-vue liste existe (filtre 79 conditionnel).
+- pagination de la sous-vue liste d'annonces (`EX-NAV-2bis`, `EX-SRCH-23` — la sous-vue existe
+  toujours depuis `A-02`, ce n'est plus conditionnel).
 
 Raison : ce sont des actions que l'utilisateur perçoit comme des « étapes » distinctes de son
 exploration, qu'il s'attend explicitement à pouvoir annuler une par une avec le bouton précédent.
@@ -230,8 +232,9 @@ d'`EX-NAV-21` et ne déclenche aucun signalement. L'application n'a aucun moyen 
 **n'en invente aucun** : aucune somme de contrôle, aucune signature, aucun paramètre de longueur
 n'est ajouté à l'URL, car ils allongeraient le lien — cause première du problème — et casseraient
 tout lien écrit à la main. La contre-mesure est l'**affichage systématique de la valeur** de chaque
-filtre actif dans son jeton (`EX-SCR-176`), de sorte que l'utilisateur lise `Prix : à partir de
-50 €` et non `Prix`. (`ARB-12`)
+filtre actif dans son jeton (`EX-SCR-75`, re-ciblée depuis `EX-SCR-176` — sans rapport avec les
+jetons — par `R-A10`), de sorte que l'utilisateur lise `Prix : à partir de 50 €` et non `Prix`.
+(`ARB-12`)
 
 ### A.6 États invalides
 
@@ -468,19 +471,19 @@ qu'un utilisateur lise un nombre déjà obsolète comme le résultat du filtre q
 
 ### B.6 Tri et pagination
 
-**EX-SRCH-23 — Conditionnel, dépend de `draft-screens.md` (voir aussi §A.2.2, filtres 77-80).** Si
-une sous-vue « liste d'annonces individuelles » existe sous l'écran de distribution (utile pour
-inspecter un outlier ligne par ligne) : elle reprend `sort`/`desc` d'AutoScout24 tels quels, une
-pagination **côté client** (les données étant déjà chargées en mémoire pour l'agrégation, cf. §D.1)
-avec une taille de page fixe de **50 lignes**, sans paramètre `size` réglable par l'utilisateur (`size`
-reste donc hors périmètre même si `sort`/`desc`/`page` sont retenus). Si cette sous-vue n'existe pas,
-aucun tri ni pagination n'est nécessaire : les écrans agrégés (cartes, histogrammes, nuage) n'ont pas
-de notion de page.
+**EX-SRCH-23 — Tri et pagination de la sous-vue liste d'annonces (écran D).** La sous-vue « liste
+d'annonces individuelles » **existe** sous l'écran de distribution (`EX-NAV-2bis`, utile pour
+inspecter un outlier ligne par ligne) — l'arbitrage `A-02` l'a tranché, ce n'est plus une hypothèse
+conditionnelle. Elle reprend `sort`/`desc` d'AutoScout24 tels quels, une pagination **côté client**
+(les données étant déjà chargées en mémoire pour l'agrégation, cf. §D.1) avec une taille de page
+fixe de **50 lignes**, sans paramètre `size` réglable par l'utilisateur : `size` est un filtre
+`RETENU` de `data/reference/filters-scope.json`, mais reste hors périmètre du bandeau utilisateur
+pour cet usage (exposition `SECONDAIRE`, groupe `Liste d'annonces`, `ARB-02`).
 
-**EX-SRCH-24** — En l'absence de sous-vue liste, le tri des **cartes-marques** du mode 1 (ordre
-d'affichage des marques) est un besoin distinct, non couvert par le paramètre `sort` d'AutoScout24
-(qui trie des annonces, pas des marques). Ce tri relève de `draft-screens.md` (contenu et disposition
-de l'écran), pas de ce document.
+**EX-SRCH-24** — Le tri des **cartes-marques** du mode 1 (ordre d'affichage des marques) est un
+besoin distinct, non couvert par le paramètre `sort` d'AutoScout24 (qui trie des annonces, pas des
+marques) et indépendant de la sous-vue liste d'`EX-SRCH-23`. Ce tri relève de `draft-screens.md`
+(contenu et disposition de l'écran), pas de ce document.
 
 ### B.7 Sélection trop large
 
@@ -513,11 +516,11 @@ entité retenue doit réduire une friction réelle de l'un des deux parcours ; �
 | Candidat | Décision | Motif en un mot |
 |---|---|---|
 | Recherches sauvegardées | **Retenu** | partage/réutilisation d'un état de marché |
-| Modèles suivis | **Retenu** | navigation rapide entre analyses répétées |
+| Modèles suivis | **Retenu** | accès direct à un modèle sans reposer les mêmes filtres à chaque visite |
 | Historique des recherches récentes | **Retenu** | filet de sécurité, coût quasi nul |
 | Export des données affichées | **Retenu** (agrégats uniquement) | positionnement explicite « outil d'analyse » |
 | Annotations (annonce ou modèle) | **Écarté** | l'app n'est pas un CRM (00-CONTEXT.md) ; s'accroche à des identifiants d'annonces éphémères (H4) |
-| Comparaison de plusieurs modèles | **Écarté** | 3ᵉ mode non demandé ; partiellement couvert par les modèles suivis |
+| Comparaison de plusieurs modèles | **Retenu** (`RES-4`) | écran C dédié, `EX-CRUD-13bis` (`ARB-43`) et la route `/comparer` (`EX-NAV-2ter`, `ARB-41`) l'établissent ; le motif « écarté » d'origine (3ᵉ mode non demandé) a été renversé par ces deux arbitrages postérieurs |
 
 ### C.1 Recherches sauvegardées
 
@@ -540,7 +543,7 @@ porte sur le modèle, pas sur une recherche particulière).
 
 | ID | Règle |
 |---|---|
-| EX-CRUD-7 | Champs : `makeId`, `modelId`, `ajouté_le`. Pas de filtres stockés (rouvre `/modele/:makeId/:modelId` sans paramètres). |
+| EX-CRUD-7 | Champs : `makeId`, `modelId`, `ajouté_le`. Pas de filtres stockés (rouvre la route canonique de l'écran B, `/marche/:makeId-:makeSlug/:modelId-:modelSlug` (`EX-NAV-2`), sans paramètre de filtre). |
 | EX-CRUD-8 | Persistance locale uniquement, mêmes raisons que EX-CRUD-3. |
 | EX-CRUD-9 | Cycle de vie : bouton « suivre »/« ne plus suivre » directement sur l'écran de distribution (bascule, pas de formulaire) ; suppression également possible depuis `/suivis` (EX-NAV-4). |
 | EX-CRUD-10 | Limite : **30 modèles suivis**. Au-delà, ajout bloqué avec message équivalent à EX-CRUD-5. Aucune notification ni veille automatique n'est fournie (H4 : snapshot périodique, pas de flux temps réel — un mécanisme d'alerte sur nouveauté exigerait une infrastructure hors périmètre). |
@@ -552,7 +555,7 @@ création — sert le cas « revenir sur une exploration précédente qu'on n'a 
 
 | ID | Règle |
 |---|---|
-| EX-CRUD-11 | Chaque navigation vers `/` ou `/modele/:makeId/:modelId` avec un jeu de filtres différent du précédent enregistre une entrée (`url`, `visité_le`) en tête d'une liste FIFO. |
+| EX-CRUD-11 | Chaque navigation vers `/marche` ou vers la route canonique de l'écran B, `/marche/:makeId-:makeSlug/:modelId-:modelSlug` (`EX-NAV-1`, `EX-NAV-2`), avec un jeu de filtres différent du précédent enregistre une entrée (`url`, `visité_le`) en tête d'une liste FIFO. |
 | EX-CRUD-12 | Limite stricte : **10 entrées**. Au-delà, la plus ancienne est supprimée silencieusement (pas d'action utilisateur requise, pas de confirmation). |
 | EX-CRUD-13 | Seule action utilisateur possible sur cette entité : « vider l'historique » (suppression totale immédiate). Aucune création, modification ou suppression unitaire — l'historique n'est pas éditable, seulement consultable ou vidé en bloc. |
 
@@ -626,12 +629,13 @@ origine, et le plafond dur promis par `EX-CRUD-5` n'est pas tenable sans cette r
   Une annotation liée à un modèle (pas une annonce) chevaucherait la fonction déjà remplie par les
   recherches sauvegardées et les modèles suivis, sans ajouter de valeur distincte. Surtout,
   00-CONTEXT.md exclut explicitement le positionnement CRM (« Ce n'est pas un CRM concessionnaire »).
-- **Comparaison de plusieurs modèles côte à côte** : écarté pour la v1. Constituerait un troisième
-  mode d'usage non demandé par le commanditaire (qui n'en décrit que deux) et non prévu par le plan
-  (deux écrans obligatoires seulement, S6 de la phase 2.1). La liste des modèles suivis (§C.2) permet
-  déjà une comparaison informelle par navigation successive à faible coût d'implémentation ; construire
-  un écran de comparaison dédié (tableau ou graphes superposés) est une extension possible mais non
-  retenue ici, conformément à la consigne d'économie.
+- **Comparaison de plusieurs modèles côte à côte** — **reclassée `Retenu` (`RES-4`)**, n'est plus une
+  entité écartée. Motif historique de l'écart initial, pour mémoire : elle constituait un troisième
+  mode d'usage non demandé au cadrage (S6 de la phase 2.1 ne prévoyait que deux écrans obligatoires).
+  Ce motif a été **renversé** par deux arbitrages du stress-test : `ARB-43` crée l'entité de session
+  `CompareSelection` (`EX-CRUD-13bis`, § C.3bis) avec son plafond de 4 modèles, et `ARB-41` lui donne
+  une route dédiée, `/comparer` (`EX-NAV-2ter`). La fonction est donc retenue et implémentée par
+  l'écran C ; elle n'est plus détaillée ici mais en § C.3bis.
 
 ---
 

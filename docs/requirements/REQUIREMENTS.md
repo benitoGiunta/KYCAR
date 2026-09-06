@@ -1,7 +1,12 @@
 # KYCAR — Document d'exigences
 
-**Version 0.9 — soumis au stress-test de la phase 2.2. Non gelé.**
-Assemblé par le coordinateur `req-lead` le 2026-09-06.
+**Version 1.0 — GELÉ le 2026-09-06.**
+Assemblé par le coordinateur `req-lead`, éprouvé par le stress-test de la phase 2.2, et gelé après
+résolution de la totalité des constats bloquants et majeurs.
+
+Ce document est désormais la **source de vérité fonctionnelle** du chantier 2. Toute modification
+ultérieure passe par une nouvelle version et un journal d'écart : aucune décision prise en cours de
+développement ne reste dans le code sans remonter ici (règle R1 du plan 2).
 
 ---
 
@@ -12,12 +17,20 @@ vivent dans trois annexes, elles-mêmes normatives :
 
 | Annexe | Fichier | Domaine | Exigences |
 |---|---|---|---|
-| **A** | [`draft-data-dictionary.md`](draft-data-dictionary.md) | Dictionnaire de données, modèle d'agrégation, détection d'outliers, entités | 127 · `EX-DATA-1…127` |
-| **B** | [`draft-screens.md`](draft-screens.md) | Écrans, bandeau de filtres, graphes, états, responsive | 224 · `EX-SCR-1…224` |
-| **C** | [`draft-behaviour.md`](draft-behaviour.md) | Navigation, URL, recherche, CRUD, exigences non fonctionnelles | 96 · `EX-NAV/SRCH/CRUD/NFR` |
-| **Arbitrages** | [`ARBITRAGES-req-lead.md`](ARBITRAGES-req-lead.md) | 9 décisions du coordinateur, avec leur motif | A-01…A-09 |
+| **A** | [`draft-data-dictionary.md`](draft-data-dictionary.md) | Dictionnaire de données, modèle d'agrégation, détection d'outliers, entités | **140** · `EX-DATA-*` |
+| **B** | [`draft-screens.md`](draft-screens.md) | Écrans, bandeau de filtres, graphes, états, responsive | **231** · `EX-SCR-*` |
+| **C** | [`draft-behaviour.md`](draft-behaviour.md) | Navigation, URL, recherche, CRUD, exigences non fonctionnelles | **114** · `EX-NAV/SRCH/CRUD/NFR-*` |
+| **Arbitrages** | [`ARBITRAGES-req-lead.md`](ARBITRAGES-req-lead.md) | 15 décisions du coordinateur, avec leur motif | `A-01…A-09`, `R-A01`, `R-A05`, `R-A06`, `R-A10…R-A15` |
 
-**Total : 447 exigences**, identifiants uniques, aucun trou de numérotation (vérifié par script).
+**Total : 485 exigences**, identifiants uniques, aucun trou de numérotation, vérifié par script
+annexe par annexe. Un seul identifiant est en pierre tombale volontaire, `EX-SCR-111` : son contenu
+normatif est supprimé mais l'identifiant subsiste avec le motif, parce qu'il est cité par un rapport
+de stress-test et par la matrice de traçabilité.
+
+**Traçabilité de la source normative des filtres** : le périmètre des filtres n'est pas tenu en
+prose. Il est **généré** dans `data/reference/filters-scope.json` par `scripts/build-filter-scope.mjs`,
+qui échoue si la partition ne tombe pas juste — **77 retenus + 24 exclus = 101**. Aucune liste
+écrite à la main ne fait foi contre ce fichier.
 
 **Pourquoi un index et non un document unique.** Recopier ici 3 907 lignes d'annexes produirait deux
 versions de chaque exigence, qui divergeraient au premier correctif de la phase 2.6. Un document
@@ -305,4 +318,33 @@ Ils sont énumérés ici pour que la phase 2.2 ne les découvre pas comme des tr
 | Version | Date | Contenu |
 |---|---|---|
 | 0.9 | 2026-09-06 | Assemblage des 3 annexes, 447 exigences, 9 arbitrages du coordinateur. Soumis au stress-test |
-| 1.0 | — | À produire par `st-arbiter` en phase 2.2, après résolution de tous les constats bloquants et majeurs |
+| **1.0** | **2026-09-06** | **GELÉ. 485 exigences.** Voir le détail ci-dessous |
+
+### Ce qui s'est passé entre 0.9 et 1.0
+
+| Étape | Résultat |
+|---|---|
+| Stress-test à trois angles cloisonnés | **79 constats** — 24 trous (`st-complete`), 37 ambiguïtés (`st-ambiguity`), 18 attaques réussies sur 38 (`st-adversarial`) |
+| Arbitrage | **65 décisions** après fusion de 14 constats en 11 groupes · **1 rejet** motivé par preuve · **5 re-cotations**, dont 2 à la hausse |
+| Application | **130 travaux appliqués sur 131** · 1 bloqué et signalé, jamais deviné · **38 exigences créées** |
+| Résidus | **11 soldés sur 11** · balayage systématique des 65 décisions, 1 prescription manquante trouvée et appliquée |
+| Arbitrages du coordinateur | 9 initiaux, dont **3 révisés** après stress-test (`R-A01`, `R-A05`, `R-A06`) et **6 ajoutés** après application (`R-A10…R-A15`) |
+
+**Critère de gel : zéro constat bloquant ou majeur ouvert.** Satisfait. Les 10 constats mineurs sont
+tous décidés, et 8 dettes sont consignées explicitement plutôt qu'abandonnées en silence.
+
+### Les trois défauts que le stress-test a corrigés et qui auraient coûté le plus cher
+
+1. **Deux formules de régression concurrentes** pour la détection d'outliers, dont le **signe de
+   l'écart s'inversait** sur la même annonce : la même voiture était soit une bonne affaire, soit
+   surévaluée, selon l'annexe consultée. Rien ne plantait ; le classement d'affaires était faux.
+   C'était le cœur de la valeur du produit.
+2. **Trois grandeurs différentes nommées « couverture »**, dont deux au même seuil de 80 %, ce qui
+   produisait deux pastilles contradictoires pour la même zone-modèle.
+3. **Deux règles de binning concurrentes**, donnant 32 barres de 1 000 € contre 17 barres de
+   2 000 € sur le même modèle — et donc des infobulles, des clics-filtre et un export tous
+   différents.
+
+Les trois sont des **contradictions entre annexes**, aucune n'était visible depuis une seule annexe.
+C'est le diagnostic de `st-complete`, et il vaut d'être retenu pour la suite du projet :
+*chaque annexe était complète dans son domaine ; les défauts étaient à leurs frontières.*

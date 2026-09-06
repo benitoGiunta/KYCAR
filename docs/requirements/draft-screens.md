@@ -225,11 +225,14 @@ mode groupé (`EX-SRCH-1bis`), l'état passe à `ET-CHARGE-MAJ` et l'indicateur 
 `EX-SCR-26` — **`ET-VIDE-FILTRES` — zéro résultat, filtres posés.** Bloc centré, largeur
 maximale 480 px, comprenant : le titre `Aucune offre ne correspond`, une phrase indiquant le
 nombre de filtres actifs (`12 filtres actifs restreignent la recherche.`), et **la liste des
-3 filtres les plus restrictifs** avec pour chacun le nombre d'offres que son retrait
-rendrait disponibles, sous forme de boutons de retrait :
-`Prix ≤ 5 000 € — retirer (+ 1 208 offres)`. Le calcul est un « leave-one-out » sur les filtres
-de classe R uniquement ; pour les filtres de classe T le compte est remplacé par `— retirer`
-sans chiffre, et ce cas est signalé par l'absence de parenthèse, pas par une note.
+3 filtres les plus restrictifs** — ceux dont le `FacetCount` du retrait complet
+(`selectionHashWithoutFilter(filterId)`, `EX-DATA-110bis`) est le plus élevé —, sous forme de
+boutons de retrait au format normatif `retirer « <libellé> » : <k> offres de plus`, `k` étant la
+différence entre l'effectif de `selectionHashWithoutFilter(filterId)` et l'effectif courant
+(`ARB-39`). Le calcul est un « leave-one-out » sur les filtres de classe R uniquement ; pour un
+filtre de classe T, dont le retrait rechargerait le jeu de données local, le bouton affiche
+`retirer « <libellé> »` sans chiffre, et ce cas est signalé par l'absence de la mention
+« offres de plus », pas par une note séparée.
 Actions disponibles : retirer un filtre, `Réinitialiser tous les filtres`, `Enregistrer cette
 recherche` (reste actif : une recherche vide est légitime pour une veille).
 
@@ -268,8 +271,15 @@ l'en-tête (`EX-SCR-142`).
 C'est l'état **normal**, pas exceptionnel, compte tenu de la limite P1 de
 `FINDING-allowed-surface.md` (20 annonces observées par page contre un total déclaré bien
 supérieur). Il se manifeste par le **bandeau de couverture** défini en `EX-SCR-31`.
+**Désambiguïsation (`R-A12`)** : cet identifiant désigne la **couverture d'échantillon**
+(`sampleCoverage = listingCount / announcedCount`, `EX-DATA-61bis`) — jamais la couverture
+métrique (`metricCoverage_m`) ni la part de prix fermes (`priceQuotedShare`).
 
-`EX-SCR-31` — **`C3` — bandeau de couverture d'échantillon.** Quand l'état de filtres est vide
+`EX-SCR-31` — **`C3` — bandeau de couverture d'échantillon.**
+**Désambiguïsation (`R-A12`)** : le composant `C3`, y compris sous son nom usuel « `C3 couverture` »,
+désigne exclusivement la **couverture d'échantillon** (`sampleCoverage`, `EX-DATA-61bis`) — jamais
+la couverture métrique (`metricCoverage_m`) ni la part de prix fermes (`priceQuotedShare`).
+Quand l'état de filtres est vide
 (`EX-SCR-27bis`) et que `sampleCoverage` n'est pas `null`, le bandeau affiche
 `Statistiques calculées sur <listingCount> annonces observées sur <announcedCount> annoncées —
 couverture <p> %`, où `p = 100 × sampleCoverage` arrondi selon `EX-SCR-11`. Jeton vert si
@@ -841,6 +851,13 @@ jeton de 28 px de haut portant : le libellé abrégé de la valeur, et une croix
 - intervalle à une borne → `≤ 100 000 km ×` ou `≥ 2015 ×`
 - booléen → `TVA déductible ×`
 - taxonomie → un jeton par niveau, `Opel ×` et `Corsa ×`, indépendamment retirables
+
+**Le jeton d'un filtre actif affiche toujours son libellé et sa valeur** (`ARB-12`, re-ciblée sur
+cette exigence par `R-A10` — la précédente cible `EX-SCR-176` n'avait aucun rapport avec les
+jetons) ; un jeton qui n'affiche que le nom du filtre est interdit. **Exception maintenue** : au-delà
+de 2 valeurs, le jeton affiche son libellé et le **cardinal** (`Carburant : 4 valeurs`), les valeurs
+restant atteignables en infobulle — étendre l'affichage complet à un jeton portant 8 codes ferait
+déborder la ligne des filtres actifs et détruirait la lisibilité des autres jetons.
 
 `EX-SCR-76` — **Retrait individuel.** Un clic sur la croix retire **cette seule valeur** pour
 une énumération multi-valeurs (le jeton `Essence, Diesel` se scinde en deux jetons dès qu'il

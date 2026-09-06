@@ -578,7 +578,7 @@ mécaniquement tout taux d'équipement.
 
 | # | Champ KYCAR | Libellé FR | Type / unité | Card. | Obl. | Source | Énum. | Normalisation | Validation | Si absent |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 74 | `countryCode` | Pays | `chaîne(2)` ISO-3166-1 alpha-2 | 1 | OBL | `listings[].location.countryCode` (OBSERVÉ) | — | majuscules ; **traduction obligatoire** du code marketplace vers l'ISO si la source sert un code marketplace (`B`→`BE`, `D`→`DE`, `A`→`AT`, `E`→`ES`, `F`→`FR`, `I`→`IT`, `L`→`LU`, `NL`→`NL`) | 2 lettres majuscules et code ISO existant sinon REJET | REJET |
+| 74 | `countryCode` | Pays | `chaîne(2)` ISO-3166-1 alpha-2 | 1 | OBL | `listings[].location.countryCode` (OBSERVÉ) | — | majuscules ; **traduction obligatoire** du code marketplace vers l'ISO si la source sert un code marketplace (`B`→`BE`, `D`→`DE`, `A`→`AT`, `E`→`ES`, `F`→`FR`, `I`→`IT`, `L`→`LU`, `NL`→`NL`) | 2 lettres majuscules et code ISO existant sinon REJET — **exception nommée** : un code marketplace absent de la table de traduction (9ᵉ valeur non identifiée de `KYCAR_MARKETPLACE`) ne rejette pas l'annonce ; il donne `countryCode = INCONNU` + `MARKETPLACE_UNMAPPED` (`EX-DATA-40`) | REJET, sauf le cas de code marketplace non traduit ci-dessus → `INCONNU` |
 | 75 | `regionCode` | Province / région | `énum` NUTS-2 | 0..1 | DER | `DÉRIVÉ : table § A.8 appliquée au code postal transitoire, puis code postal détruit` | `KYCAR_REGION` | majuscules, 4 caractères | ∈ vocabulaire du pays sinon INCONNU + `REGION_UNRESOLVED` | INCONNU |
 | 76 | `regionName` | Libellé de la région | `chaîne(48)` | 0..1 | DER | `DÉRIVÉ : libellé de regionCode dans data/reference/regions-be.json` | — | libellé FR canonique | — | INCONNU |
 | 77 | `postalCodePrefix2` | Zone postale (2 chiffres) | `chaîne(2)` | 0..1 | DER | `DÉRIVÉ : deux premiers caractères du code postal transitoire, puis code postal détruit` | — | conservé tel quel, chiffres uniquement | 2 chiffres sinon INCONNU | INCONNU |
@@ -1634,9 +1634,10 @@ utilisateur ne doit jamais pouvoir confondre une distribution générée avec un
 les 16 premiers caractères hexadécimaux du SHA-256 de la sérialisation canonique de l'état de
 filtres — filtres triés par identifiant KYCAR croissant, valeurs multiples triées par ordre
 croissant de leur code, filtres à leur valeur par défaut omis, paires jointes par `;` sous la forme
-`identifiant=valeur`. La sélection vide a pour hachage la chaîne réservée `EMPTY`.
-`selectionHash` est publié sous la forme `<localDatasetKey>:<refineHash>`
-(`EX-SRCH-9quinquies`) ; la sélection vide a pour hachage `FULL:EMPTY`.
+`identifiant=valeur`. `selectionHash` est publié sous la forme `<localDatasetKey>:<refineHash>`
+(`EX-SRCH-9quinquies`), où `refineHash` est le hachage de la seule composante `R` par cette même
+règle de canonisation — la chaîne réservée `EMPTY` désignant sa valeur vide. La sélection
+globalement vide (aucun filtre `T` ni `R`) a donc pour hachage la chaîne réservée `FULL:EMPTY`.
 **Justification** : la même règle de canonisation sert de clé de cache, de clé d'entité calculée et
 de base de l'URL partageable, donc deux états de filtres sémantiquement identiques ne peuvent pas
 produire deux caches ni deux liens différents.
@@ -1771,7 +1772,7 @@ découle.
 | `IDX_PRICE_SORTED` | `priceEur` | `Int32Array` d'indices de ligne triée par prix croissant | bornes de prix, top-N, quantiles de la sélection vide | 4 Mo |
 | `BITSET_FUEL`, `BITSET_BODY`, `BITSET_REGION`, `BITSET_COUNTRY`, `BITSET_TRANSMISSION` | colonne énumérée | un bitset par valeur du vocabulaire, 1 bit par ligne | intersection des filtres énumérés sans balayage | 125 Ko par valeur, ≈ 5,4 Mo au total |
 
-**Index de la taxonomie.** La taxonomie statique (`Make`, `Model`, `EX-DATA-105`) porte en outre un
+**EX-DATA-115bis — index de la taxonomie.** La taxonomie statique (`Make`, `Model`, `EX-DATA-105`) porte en outre un
 index par **`bodyTypes`** : pour chaque code de `KYCAR_BODY_TYPE`, l'ensemble des couples
 `(makeId, modelId)` dont `Model.bodyTypes` contient ce code. Cet index est la **condition** de la
 classe `R` du filtre primaire `Carrosserie` sur l'écran A (`EX-SCR-59`, `EX-SCR-221`) : sans lui,

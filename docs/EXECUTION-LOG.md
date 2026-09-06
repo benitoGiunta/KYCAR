@@ -3,7 +3,7 @@
 État d'avancement des deux chantiers. Ce fichier est la **source de vérité de l'avancement** :
 il doit permettre de reprendre le travail sans aucun contexte conversationnel.
 
-Dernière mise à jour : 2026-09-06 (référentiel officiel relevé)
+Dernière mise à jour : 2026-09-06 — **document d'exigences gelé en v1.0, 485 exigences**
 
 ## Conventions
 
@@ -46,7 +46,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 2.0 Données de référence | `ref-filters` | Opus / high | `docs/requirements/REF-filters.md`, `data/reference/filters.json` | VALIDÉ — 101 filtres / 100 paramètres d'URL, 36 énumérations, 0 extrapolé |
 | 2.0 Réconciliation des vocabulaires | (moi) | — | `docs/requirements/REF-vocabulary-reconciliation.md` | VALIDÉ — 8 identiques, 5 partiels, 1 sans rapport, 1 collision de codes |
 | 2.0 Données de référence | `ref-taxonomy` | Sonnet / medium-high | `docs/requirements/REF-taxonomy.md`, `data/reference/taxonomy.json` | VALIDÉ — 295 marques / 4 955 modèles voiture, ids réels, reproduit indépendamment |
-| 2.1 Exigences | `req-lead` (coordinateur) + `req-data` / `req-screens` / `req-behaviour` | Opus max + Opus/Opus/Sonnet high | `docs/requirements/REQUIREMENTS.md` v0.9 | LIVRÉ — 447 exigences, 9 arbitrages, non gelé |
+| 2.1 Exigences | | VALIDÉ — assemblé, puis gelé en v1.0 après stress-test |
 | 2.2 Stress-test — complétude | `st-complete` | Opus / high | `reports/ST-complete.md` | VALIDÉ — 24 constats, dont 9 bloquants, tous aux frontières entre annexes |
 | 2.2 Stress-test — adverse | `st-adversarial` | Sonnet / high | `reports/ST-adversarial.md` | VALIDÉ — 18 constats sur 38 attaques simulées, dont 4 bloquants |
 | 2.2 Stress-test — ambiguïté | `st-ambiguity` | Opus / high | `reports/ST-ambiguity.md` | VALIDÉ — 37 constats (20 bloquants), 25 zones déclarées saines |
@@ -54,9 +54,9 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 2.2 Application annexe A | `fix-annexe-A` | Opus / high | `reports/applied-annexe-A.md` | VALIDÉ — 39/39, 127 → 139 exigences |
 | 2.2 Application annexe B | `fix-annexe-B` | Opus / high | `reports/applied-annexe-B.md` | VALIDÉ — 67/68, 224 → 231 exigences, 1 bloqué et signalé (`R-A10`) |
 | 2.2 Application annexe C | `fix-annexe-C` | Sonnet / high | `reports/applied-annexe-C.md` | VALIDÉ — 24/24, 96 → 114 exigences |
-| 2.2 Résidus | `fix-residus` | Sonnet / high | `reports/applied-residus.md` | EN COURS — 11 résidus, dont la vérification systématique `RES-9` |
-| 2.2 Gel v1.0 | (moi) | — | REQUIREMENTS v1.0 | À FAIRE — après les résidus |
-| 2.3 Architecture | `arch-lead` | Opus / high | `docs/plans/ARCHITECTURE.md` | À FAIRE |
+| 2.2 Résidus | `fix-residus` | Sonnet / high | `reports/applied-residus.md` | LIVRÉ — 11/11 résidus soldés, 0 bloqué. Balayage `RES-9` : 65/65 décisions vérifiées, 3 prescriptions manquantes trouvées sur 2 emplacements (`EX-DATA-106` déjà réparé par le coordinateur avant ce passage ; `EX-SCR-26`/`ARB-39` appliqué ici). Annexe A : 139 → 140 exigences (+`EX-DATA-115bis`). Annexes B (231) et C (114) inchangées en compte |
+| 2.2 Gel v1.0 | (moi) | — | REQUIREMENTS v1.0 | VALIDÉ — 485 exigences, zéro bloquant ou majeur ouvert, 8 dettes consignées |
+| 2.3 Architecture |  | Opus / high |  | EN COURS |
 | 2.4 Développement D1–D9 | `dev-D*` | voir plan 2 | code | À FAIRE |
 | 2.5 Revue de développement | `rev-D*` | Opus / Sonnet high | `reports/DEV-REVIEW.md` | À FAIRE |
 | 2.6 Remédiation | `fix-lead` + `fix-*` | Opus high + Sonnet high | `reports/REMEDIATION.md` | À FAIRE |
