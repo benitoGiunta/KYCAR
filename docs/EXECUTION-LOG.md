@@ -68,7 +68,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 
 | # | Point | Impact | Résolution attendue |
 |---|---|---|---|
-| O1 | Texte exact des CGU AutoScout24 non récupéré | Positionnement juridique reste une hypothèse | Chantier 1, phase 1.4 |
+| O1 | ~~Texte des CGU non récupéré~~ | — | **RÉSOLU** : § 3.3 des Händler-AGB DE/AT interdit verbatim l'interrogation automatisée de la base par logiciel. Portée = contrat B2B, opposable aux signataires ; pour un tiers, le fondement est le droit *sui generis* et le robots.txt. Texte belge encore à lire, licitement sous  |
 | O2 | Voie gratuite et autonome : **partiellement tranchée**. Les agrégats et un échantillon de 20 annonces/modèle sont accessibles licitement (C-14 prouvé). L'inventaire exhaustif ne l'est pas | Le lot D9 est réalisable pour le mode 1 ; le mode 2 reste sur dataset synthétique tant que la représentativité de l'échantillon n'est pas établie | Chantier 1, phase 1.4, candidat C-14 prioritaire |
 | O3 | ~~Identifiants techniques marque/modèle inconnus~~ | — | **RÉSOLU** : ids numériques réels relevés sur `/makes` |
 | O4 | ~~Codes de paramètres d'URL du moteur de recherche non déductibles de l'API~~ | — | **RÉSOLU** : 100 paramètres relevés dans le bundle JS, et correspondance des vocabulaires établie |

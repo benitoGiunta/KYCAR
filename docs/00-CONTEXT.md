@@ -48,9 +48,23 @@ sont posées et devront être invalidées explicitement si elles sont fausses :
 
 Ce point est traité comme un **risque assumé et documenté**, pas comme un obstacle résolu.
 
-- **CGU AutoScout24** : le texte exact n'a pas pu être récupéré. Hypothèse par défaut, alignée
-  sur l'ensemble des marketplaces comparables : *l'extraction automatisée est contractuellement
-  interdite*. À confirmer.
+- **CGU AutoScout24 — l'hypothèse est confirmée, avec une précision de portée.**
+  Relevé le 2026-09-06 : les *Händler-AGB* (conditions générales professionnelles) allemandes et
+  autrichiennes sont publiques, et leur § 3.3 range explicitement parmi les usages abusifs
+  « **die automatisierte Abfrage der Datenbank mittels Software** » — l'interrogation automatisée
+  de la base de données au moyen d'un logiciel. L'extraction automatisée est donc bien
+  contractuellement interdite : ce n'est plus une hypothèse.
+  **Précision qui compte** : ce texte est un contrat B2B. Il lie les concessionnaires qui l'ont
+  signé. Il ne s'applique pas *directement* à un tiers non signataire, pour qui les régimes
+  opposables sont plutôt les conditions générales du site grand public (non encore relevées), le
+  droit *sui generis* des bases de données, et le  comme expression documentée de la
+  volonté de l'éditeur. La conclusion pratique est inchangée — l'extraction automatisée est
+  interdite par l'éditeur, et il l'écrit — mais le fondement juridique diffère selon qu'on a
+  signé ou non.
+  Le texte **belge** n'a pas encore été lu, et il est atteignable licitement : les préfixes
+   et  sont sous directive .
+  Sources : [Händler-AGB DE](https://www.autoscout24.de/unternehmen/haendler-agb/) ·
+  [Händler-AGB AT](http://about.autoscout24.com/de-at/as24_b2b_agb.aspx)
 - **Droit sui generis des bases de données (Directive 96/9/CE)** : l'extraction d'une partie
   substantielle d'une base protégée est un acte réservé au producteur de la base. Une extraction
   massive et systématique de l'inventaire AutoScout24 tombe dans le champ du droit.
