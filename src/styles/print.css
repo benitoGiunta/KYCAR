@@ -1,0 +1,64 @@
+/**
+ * KYCAR - minimal print stylesheet (EX-NFR-31 / ARB-63).
+ *
+ * Printing/PDF export of a screen is explicitly out of functional scope for v1: no print layout
+ * is designed, no data table is added for print. What follows is the closed list the requirement
+ * DOES mandate, no more:
+ *
+ *   1. Sticky elements (header, filter bar, summary bar) lose their fixed/sticky positioning.
+ *   2. Status banners and the C3 summary bar ARE printed.
+ *   3. The filter bar is replaced by a plain textual summary of active filters, one per line.
+ *   4. Interactive controls are never printed.
+ *
+ * Everything beyond this is acknowledged debt (see `EX-NFR-31` in
+ * docs/requirements/draft-behaviour.md D.9), not silently dropped.
+ *
+ * CONTRACT FOR D5-D8 (the screens do not exist yet in D1, so this file only fixes the class
+ * names later lots must use - do not invent parallel ones):
+ *   - `.app-header`, `.filter-bar`, `.summary-bar`   -> the three sticky regions of rule 1.
+ *   - `.status-banner`, `.summary-bar-c3`            -> always printed per rule 2 (still subject
+ *                                                       to `.no-print` if a given instance is
+ *                                                       purely decorative - see below).
+ *   - `.print-filter-summary`                        -> hidden on screen, shown in print; D5
+ *                                                       populates it with one line per active
+ *                                                       filter (label: value) as plain text.
+ *   - `.no-print`                                     -> generic escape hatch for anything that
+ *                                                       must never reach paper (controls, menus).
+ */
+
+@media print {
+  .app-header,
+  .filter-bar,
+  .summary-bar {
+    position: static !important;
+    top: auto !important;
+  }
+
+  .status-banner,
+  .summary-bar-c3 {
+    display: block !important;
+  }
+
+  .filter-bar {
+    display: none;
+  }
+
+  .print-filter-summary {
+    display: block;
+    white-space: pre-line;
+  }
+
+  button,
+  input,
+  select,
+  textarea,
+  [role='button'],
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Hidden on screen; only ever shown by the `@media print` rule above. */
+.print-filter-summary {
+  display: none;
+}
