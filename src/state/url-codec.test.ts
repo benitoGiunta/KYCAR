@@ -18,8 +18,13 @@ function sampleValueFor(filterId: string): FilterValue | undefined {
   const d = FILTER_DEFS.find((x) => x.id === filterId);
   if (!d || d.nonExposed) return undefined;
   switch (d.scopeType) {
-    case 'enum_single':
-      return d.options?.[0]?.code;
+    case 'enum_single': {
+      // Choisit une option qui N'EST PAS la valeur par défaut (EX-NAV-8) : sinon le filtre
+      // serait légitimement omis par le codec, et le test de complétude ci-dessous (chaque
+      // filtre exposé apparaît dans la requête) se tromperait de diagnostic.
+      const nonDefault = d.options?.find((o) => o.code !== d.defaultValue);
+      return nonDefault?.code ?? d.options?.[0]?.code;
+    }
     case 'enum_multi':
       return d.options ? d.options.slice(0, Math.min(2, d.options.length)).map((o) => o.code) : undefined;
     case 'range_min':
@@ -71,6 +76,15 @@ describe('serializeQuery — ordre canonique (EX-NAV-9)', () => {
     expect(serializeQuery({ priceFrom: 5000, priceTo: 20000 })).toBe('pricefrom=5000&priceto=20000');
   });
 
+  it('omet automatiquement les défauts NON-absence connus du registre (EX-NAV-8, powertype/sort/ustate)', () => {
+    // Ces trois filtres ont un défaut qui N'EST PAS l'absence (contrairement à l'immense majorité
+    // des 77) : `FILTER_DEFAULTS` doit les omettre sans que l'appelant n'ait à les répéter.
+    expect(serializeQuery({ powerType: 'kw' })).toBe('');
+    expect(serializeQuery({ sortTypes: 'standard' })).toBe('');
+    expect(serializeQuery({ hadAccident: 'N,U' })).toBe('');
+    expect(serializeQuery({ powerType: 'hp' })).toBe('powertype=hp');
+  });
+
   it('omet un filtre à sa valeur par défaut, jamais réécrit vide (EX-NAV-8)', () => {
     const withDefault = serializeQuery(
       { sortTypes: 'standard', fuelType: 'B' },
@@ -85,6 +99,11 @@ describe('serializeQuery — ordre canonique (EX-NAV-9)', () => {
     const q = serializeQuery({ fuelType: 'B' }, { sort: 'median', mk: ['9'] });
     // fuel < mk < sort
     expect(q).toBe('fuel=B&mk=9&sort=median');
+  });
+
+  it('ne sérialise jamais un filtre de classe D, quelle que soit sa valeur (EX-SCR-57)', () => {
+    expect(serializeQuery({ hadAccidentNew: 'include' })).toBe('');
+    expect(serializeQuery({ hadAccidentNew: 'include', fuelType: 'B' })).toBe('fuel=B');
   });
 
   it('encode les caractères réservés d’un champ texte libre, jamais la virgule séparatrice de code', () => {
@@ -157,7 +176,9 @@ describe('aller-retour état → URL → état, aux 77 filtres (critère de succ
     const selection = fullSelection();
     const query = serializeQuery(selection);
     const params = new Set(parseRawQuery(query).map((e) => e.param));
-    const exposedNonDerived = FILTER_DEFS.filter((d) => !d.nonExposed);
+    // Classe D exclue : jamais sérialisée dans l'URL par construction (EX-SCR-57), quelle que
+    // soit sa valeur — ce n'est pas une perte, c'est la règle.
+    const exposedNonDerived = FILTER_DEFS.filter((d) => !d.nonExposed && d.cls !== 'D');
     for (const d of exposedNonDerived) {
       expect(params.has(d.param), `paramètre absent : ${d.id} (${d.param})`).toBe(true);
     }

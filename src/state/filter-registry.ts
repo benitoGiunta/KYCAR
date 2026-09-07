@@ -31,7 +31,7 @@
  * uniquement (pas sur le champ `group` brut, sciemment resupplanté).
  */
 
-import type { EnumOption, FilterDef, NumericDomain } from './filter-types';
+import type { EnumOption, FilterDef, FilterValue, NumericDomain } from './filter-types';
 
 /* ================================================================================================
  * Groupes visuels (EX-SCR-93 — ordre normatif, stable, indépendant des filtres actifs)
@@ -459,7 +459,7 @@ export const FILTER_DEFS: readonly FilterDef[] = [
 
   // --- Motorisation ------------------------------------------------------------------------------
   def({ id: 'fuelType', param: 'fuel', label: 'Carburant', group: 'motorisation', scopeType: 'enum_multi', control: 'checkbox-list', cls: 'R', primary: true, options: FUEL_OPTS }),
-  def({ id: 'powerType', param: 'powertype', label: 'Unité de puissance', group: 'motorisation', scopeType: 'enum_single', control: 'radio-segmented', cls: 'R', options: POWER_TYPE_OPTS }),
+  def({ id: 'powerType', param: 'powertype', label: 'Unité de puissance', group: 'motorisation', scopeType: 'enum_single', control: 'radio-segmented', cls: 'R', options: POWER_TYPE_OPTS, defaultValue: 'kw' }),
   def({ id: 'powerFrom', param: 'powerfrom', label: 'Puissance de', group: 'motorisation', scopeType: 'range_min', control: 'range-pair', cls: 'R', pairedWith: 'powerTo', dependencies: ['powerType'], numericDomain: POWER_DOMAIN }),
   def({ id: 'powerTo', param: 'powerto', label: 'Puissance à', group: 'motorisation', scopeType: 'range_max', control: 'range-pair', cls: 'R', pairedWith: 'powerFrom', dependencies: ['powerType'], numericDomain: POWER_DOMAIN }),
   def({ id: 'engineMotorSizeFrom', param: 'ccmfrom', label: 'Cylindrée de', group: 'motorisation', scopeType: 'range_min', control: 'range-pair', cls: 'T', pairedWith: 'engineMotorSizeTo', numericDomain: ENGINE_SIZE_DOMAIN, unit: 'cm3' }),
@@ -491,8 +491,8 @@ export const FILTER_DEFS: readonly FilterDef[] = [
   def({ id: 'equipment', param: 'eq', label: 'Équipement', group: 'equipements', scopeType: 'enum_multi', control: 'panel-search-multi', cls: 'T', options: EQUIPMENT_OPTS, semanticsWarning: 'EQ_AND_PRESUMED' }),
 
   // --- État et historique --------------------------------------------------------------------------
-  def({ id: 'hadAccident', param: 'ustate', label: 'Véhicule accidenté (BE/EU)', group: 'etat_historique', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', options: USAGE_STATE_OPTS }),
-  def({ id: 'hadAccidentNew', param: 'damaged_listing', label: 'Véhicule accidenté (variante récente)', group: 'etat_historique', scopeType: 'enum_single', control: 'radio-segmented', cls: 'D', options: DAMAGED_LISTING_OPTS, disabledReason: 'Rejeté par le marketplace belge (newAccidentFilter = false)' }),
+  def({ id: 'hadAccident', param: 'ustate', label: 'Véhicule accidenté (BE/EU)', group: 'etat_historique', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', options: USAGE_STATE_OPTS, defaultValue: 'N,U' }),
+  def({ id: 'hadAccidentNew', param: 'damaged_listing', label: 'Véhicule accidenté (variante récente)', group: 'etat_historique', scopeType: 'enum_single', control: 'radio-segmented', cls: 'D', options: DAMAGED_LISTING_OPTS, defaultValue: 'exclude', disabledReason: 'Rejeté par le marketplace belge (newAccidentFilter = false)' }),
   def({ id: 'numberOfOwners', param: 'prevownersid', label: 'Nombre de propriétaires précédents', group: 'etat_historique', scopeType: 'enum_single', control: 'select-indifferent', cls: 'R', options: NUMBER_OF_OWNERS_OPTS, semanticsWarning: 'AT_MOST_PRESUMED' }),
   def({ id: 'seals', param: 'sealor', label: "Label / programme d'occasion certifiée", group: 'etat_historique', scopeType: 'enum_multi', control: 'checkbox-list', cls: 'T', dependencies: ['makesModelsVariants'], options: SEALS_OPTS }),
 
@@ -515,12 +515,12 @@ export const FILTER_DEFS: readonly FilterDef[] = [
   def({ id: 'smyleTail', param: 'dlv_tail', label: 'Élargir aux offres livrables', group: 'fraicheur', scopeType: 'boolean', control: 'boolean-toggle', cls: 'T', booleanTrueCode: '1' }),
 
   // --- Tri (écrans A et D — jamais coexistants, EX-NAV-10bis) -------------------------------------------
-  def({ id: 'sortTypes', param: 'sort', label: 'Critère de tri', group: 'tri', scopeType: 'enum_single', control: 'select-indifferent', cls: 'R', options: SORT_TYPES_OPTS }),
-  def({ id: 'descType', param: 'desc', label: 'Sens du tri', group: 'tri', scopeType: 'enum_single', control: 'radio-segmented', cls: 'R', dependencies: ['sortTypes'], options: DESC_TYPE_OPTS }),
+  def({ id: 'sortTypes', param: 'sort', label: 'Critère de tri', group: 'tri', scopeType: 'enum_single', control: 'select-indifferent', cls: 'R', options: SORT_TYPES_OPTS, defaultValue: 'standard' }),
+  def({ id: 'descType', param: 'desc', label: 'Sens du tri', group: 'tri', scopeType: 'enum_single', control: 'radio-segmented', cls: 'R', dependencies: ['sortTypes'], options: DESC_TYPE_OPTS, defaultValue: '0' }),
 
   // --- Liste d'annonces (écran D uniquement) -----------------------------------------------------------
-  def({ id: 'page', param: 'page', label: 'Page', group: 'liste_annonces', scopeType: 'number', control: 'number-field', cls: 'T', numericDomain: PAGE_DOMAIN }),
-  def({ id: 'pageSize', param: 'size', label: 'Taille de page', group: 'liste_annonces', scopeType: 'number', control: 'number-field', cls: 'T', numericDomain: PAGE_SIZE_DOMAIN }),
+  def({ id: 'page', param: 'page', label: 'Page', group: 'liste_annonces', scopeType: 'number', control: 'number-field', cls: 'T', numericDomain: PAGE_DOMAIN, defaultValue: 1 }),
+  def({ id: 'pageSize', param: 'size', label: 'Taille de page', group: 'liste_annonces', scopeType: 'number', control: 'number-field', cls: 'T', numericDomain: PAGE_SIZE_DOMAIN, defaultValue: 20 }),
 ];
 
 /* ================================================================================================
@@ -534,6 +534,17 @@ export const FILTER_BY_PARAM: ReadonlyMap<string, FilterDef> = new Map(FILTER_DE
 export const EXPOSED_FILTER_DEFS: readonly FilterDef[] = FILTER_DEFS.filter((d) => d.nonExposed !== true);
 
 export const PRIMARY_FILTER_DEFS: readonly FilterDef[] = FILTER_DEFS.filter((d) => d.primary);
+
+/**
+ * Valeurs par défaut « non-absence » (`EX-NAV-8`), à passer en `options.defaults`/`filterDefaults`
+ * au codec de hachage (D2) et au codec d'URL (D5) pour que les filtres qui ont une valeur par
+ * défaut NON vide (ex. `powertype=kw`, `sort=standard`) soient omis quand ils la portent, et pas
+ * seulement les filtres dont le défaut est l'absence (l'immense majorité, déjà couverte par
+ * l'absence de clé).
+ */
+export const FILTER_DEFAULTS: Readonly<Record<string, FilterValue>> = Object.fromEntries(
+  FILTER_DEFS.filter((d) => d.defaultValue !== undefined).map((d) => [d.id, d.defaultValue!]),
+);
 
 /** Filtres de classe D (désactivés, jamais sérialisés) — exactement 3 (EX-SCR-83). */
 export const DISABLED_FILTER_IDS: ReadonlySet<string> = new Set(

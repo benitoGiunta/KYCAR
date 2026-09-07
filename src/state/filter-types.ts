@@ -101,6 +101,13 @@ export interface FilterDef {
   readonly unit?: string;
   /** Code émis quand un booléen est actif (presque toujours `"1"`). Absent hors type `boolean`. */
   readonly booleanTrueCode?: string;
+  /**
+   * Valeur par défaut du filtre quand elle N'EST PAS l'absence (`filters.json#default`), ex.
+   * `powertype` par défaut `"kw"`, `sort` par défaut `"standard"`. Jamais émise dans l'URL
+   * (`EX-NAV-8`) — distincte des filtres dont le défaut EST l'absence (immense majorité), qui
+   * n'ont pas besoin de ce champ : l'absence de clé dans `SelectionState` suffit déjà.
+   */
+  readonly defaultValue?: FilterValue;
   /** Motif d'infobulle pour un filtre de classe `D` (`EX-SCR-74`). */
   readonly disabledReason?: string;
   readonly semanticsWarning?: SemanticsWarning;

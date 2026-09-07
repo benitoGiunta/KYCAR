@@ -19,7 +19,7 @@
  */
 
 import { compareCode } from '../types/selection';
-import { FILTER_DEFS, FILTER_BY_PARAM } from './filter-registry';
+import { FILTER_DEFAULTS, FILTER_DEFS, FILTER_BY_PARAM } from './filter-registry';
 import type { FilterValue, SelectionState } from './filter-types';
 
 /** Plafond `EX-NAV-10` : longueur maximale de l'URL complète (origine + chemin + requête). */
@@ -100,6 +100,10 @@ const RAW_PASSTHROUGH_IDS: ReadonlySet<string> = new Set(['makesModelsVariants']
 function serializeFilterPair(filterId: string, value: FilterValue): { param: string; encoded: string } | null {
   const def = FILTER_DEFS.find((d) => d.id === filterId);
   if (def === undefined) return null; // filtre inconnu du registre : jamais sérialisé
+  // Classe D : « contrôle présent, disabled, non sérialisé dans l'URL » (EX-SCR-57). Garde de
+  // défense en profondeur — un filtre désactivé ne devrait jamais atteindre `selection`, mais le
+  // codec ne fait pas confiance à l'appelant pour cette règle normative.
+  if (def.cls === 'D') return null;
   const codes = toSortedCodes(value);
   if (codes.length === 0) return null;
   const raw = RAW_PASSTHROUGH_IDS.has(filterId);
@@ -141,9 +145,13 @@ export function serializeQuery(
   options: SerializeQueryOptions = {},
 ): string {
   const pairs: Array<{ param: string; encoded: string }> = [];
+  // EX-NAV-8 s'applique aussi aux défauts qui NE SONT PAS l'absence (`powertype=kw`, `sort=standard`,
+  // `ustate=N,U`…) : `FILTER_DEFAULTS` les couvre par défaut ; un appelant peut substituer sa propre
+  // table (tests, ou une politique différente), jamais l'inverse silencieusement.
+  const filterDefaults = options.filterDefaults ?? FILTER_DEFAULTS;
 
   for (const [filterId, value] of Object.entries(selection)) {
-    if (options.filterDefaults && equalsDefault(value, options.filterDefaults[filterId])) continue;
+    if (equalsDefault(value, filterDefaults[filterId])) continue;
     const pair = serializeFilterPair(filterId, value);
     if (pair !== null) pairs.push(pair);
   }
