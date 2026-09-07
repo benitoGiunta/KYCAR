@@ -797,3 +797,236 @@ que le commanditaire ouvre un compte Google.
 
 **Inconnues restantes** : nombre d'URL `autoscout24.be` par crawl ; existence de pages secondaires
 au-delà de la racine ; contenu réel de `payload` pour ces pages.
+
+---
+
+## Questions falsifiables
+
+Les cinq questions du mandat, dans l'ordre, avec verdict et preuve.
+
+### Q1 — « Wayback contient assez de captures de pages d'offre pour reconstruire une série temporelle de prix. »
+
+**VRAIE.** 620 355 captures de pages d'offre, dont 529 269 en HTTP 200, portant sur **131 287
+annonces distinctes**. **35 025** d'entre elles ont au moins deux jours de capture distincts,
+20 546 au moins trois, 12 953 au moins cinq. Filtrées sur la qualité : **7 629** annonces à au
+moins 3 points sur au moins 30 jours, **2 692** à au moins 5 points sur au moins 60 jours.
+Intervalle médian entre deux captures d'une même annonce : **1 jour**.
+
+Et la reconstruction n'est pas seulement possible en principe : elle est **exhibée**. L'annonce
+`ff6d1319-85be-4e8e-bdf0-bb08d5570e6f` passe de **1 550 €** (capture du 2019-07-18) à **999 €**
+(capture du 2021-01-25) à kilométrage inchangé, soit **−35,5 % en 18 mois**.
+
+*Preuve* : J03, J04, J06 ; calculs sur les index CDX complets, rejouables.
+
+*Réserve, et elle est de fond* : la question portait sur la **capacité**, et la réponse est oui. Elle
+ne portait pas sur la **représentativité**, et la réponse y serait non : 131 287 annonces sur neuf
+ans contre ~113 000 vivantes à un instant t, avec un biais de sélection non mesuré dont les trois
+annonces les plus capturées — Audi RS6, Audi RS3, BMW 730 — donnent une idée de la direction.
+
+### Q2 — « urlscan.io conserve des DOM post-JS de pages d'annonces, `__NEXT_DATA__` intact. »
+
+**FAUSSE, et doublement.**
+
+Premier volet, le corpus : `page.domain:autoscout24.be` → `total: 0`.
+`page.domain:www.autoscout24.be` → 0. `page.domain:autoscout24.de` → 0. Contrôle positif
+`page.domain:github.com` → 10 000, ce qui prouve que l'API répond et que le champ est le bon.
+Les 44 correspondances de `domain:autoscout24.be` sont des pages **tierces** — garages belges et
+domaines d'hameçonnage typosquattés — et non des pages AutoScout24.
+
+Second volet, l'accès : `GET https://urlscan.io/dom/<uuid>/` → **HTTP 403**,
+`{"warning": "You're not logged in!"}`. Même avec un corpus, il faudrait un compte.
+
+*Preuve* : J20, J21.
+
+### Q3 — « Common Crawl garde une couverture exploitable sur les crawls antérieurs à la directive `CCBot`. »
+
+**VRAIE, et la mesure est nette dans les deux sens.**
+
+| Crawl | Position par rapport à la directive | Pages d'offre en HTTP 200 | Pages `/lst` en HTTP 200 |
+|---|---|---|---|
+| `CC-MAIN-2020-34` | antérieur | ≥ 57 | 326 |
+| `CC-MAIN-2023-50` | antérieur | **760** | 1 095 |
+| `CC-MAIN-2025-26` | antérieur | **978** | 964 |
+| `CC-MAIN-2026-34` | **postérieur** | **0** | **0** |
+
+Le crawl d'août 2026 ne contient plus que **1 152 pages en HTTP 200, toutes sous les 17 préfixes
+`Allow:`** du nouveau groupe d'agents d'IA — `fr/voiture` 361, `nl/auto` 334, `fr/informer` 227,
+`nl/informeren` 191, `robots.txt` 27, et quatre autres marginales. CCBot applique la directive à la
+lettre, dès le premier crawl postérieur.
+
+**Découverte incidente qui pèse plus que la question posée** : la directive est **beaucoup plus
+récente** que le registre ne le supposait. Le `robots.txt` d'AutoScout24 Belgique ne comportait
+**aucun** groupe d'agents d'IA au **2025-12-16** (version archivée auto-datée `#MH, 16.12.2025`),
+ni au 2025-06, ni au 2024-09, ni au 2024-05, ni au 2023-09, ni au 2023-01. Le groupe
+`GPTBot / ClaudeBot / CCBot / …` **et ses 17 `Allow:`** ont donc été ajoutés **entre le 2025-12-16
+et le 2026-09-06**, date du relevé de `FINDING-allowed-surface.md`.
+
+*Preuve* : J11, J12, J18.
+
+### Q4 — « La requête HTTP Archive tient dans le palier gratuit de 1 To. »
+
+**VRAIE pour une requête ciblée, FAUSSE pour une requête naïve.** La distinction est le résultat.
+
+- `crawl.pages` est **partitionnée et clusterisée** (`date`, `client`, `is_root_page`, `rank`,
+  `page`). Une requête qui se limite à ces colonnes coûte **≈ 1 Go pour un mois complet**, soit
+  **0,1 % du palier gratuit de 1 To**. Largement gratuit.
+- La table pèse **≈ 30 To par mois de crawl**. Un `SELECT *` coûte donc ≈ **29 To hors palier**,
+  soit **≈ 181 $ pour une seule requête** au tarif on-demand de 6,25 $/To.
+- `crawl.requests`, qui porte les corps de réponse, pèse **≈ 199 To par mois de crawl**. Toute
+  requête qui les touche sans filtre de partition est hors de portée du palier.
+
+Le risque de coût est donc **réel mais entièrement gouverné par la rédaction de la requête**, et un
+`--dry_run` le chiffre avant exécution. **Aucune requête n'a été émise** : `bq` et `gcloud` sont
+absents de la machine d'exécution.
+
+*Preuve* : J22, J23.
+
+### Q5 — « Soumettre soi-même une URL AS24 à urlscan constituerait un contournement du `robots.txt` par tiers interposé. » *(question juridique, axe A11)*
+
+**VRAIE.** L'argument complet, développé dans les deux sens, figure à la section
+« Question juridique de la soumission à un tiers ». En résumé du raisonnement :
+
+- le `robots.txt` **n'est pas** une norme juridique et **n'oblige pas** un donneur d'ordre : sur ce
+  terrain, l'antithèse gagne ;
+- mais le groupe d'agents d'IA ajouté fin 2025 est une **réservation de droits lisible par machine
+  au sens de l'article 4(3) de la directive (UE) 2019/790**, et cette réservation est opposable à
+  **l'acteur de la fouille**, pas au *user-agent*. Elle **survit intégralement** à un changement de
+  route de récupération ;
+- nous serions la **cause *but-for*** et le bénéficiaire unique de la récupération ; l'interposition
+  d'un tiers crée un instrument, pas un auteur intermédiaire.
+
+La ligne de partage n'est donc pas *qui émet la requête*, mais **lire une archive qui existe** —
+licite sur l'axe `robots.txt`, A11 = 3/5 pour le résiduel *sui generis* et RGPD — contre
+**provoquer la naissance d'une archive** — contournement, A11 = 4/5.
+
+**Conséquence opérationnelle, plus large que `C-71`** : l'interdiction du lot n'est pas seulement de
+requêter `autoscout24.be`, c'est de **provoquer** une requête vers `autoscout24.be` par quelque
+intermédiaire que ce soit. Le *Save Page Now* de l'Internet Archive tombe sous la même règle. Nous
+ne pouvons donc **pas densifier** la série de prix de `C-53` : uniquement lire ce que l'archive
+contient déjà. **Aucune soumission n'a été exécutée.**
+
+---
+
+## ACTIONS-COMMANDITAIRE
+
+| # | Action | Qui | Effort | Coût | Ce que cela débloque |
+|---|---|---|---|---|---|
+| **AC-J1** | **Relever la date exacte d'ajout du groupe d'agents d'IA au `robots.txt`.** Wayback n'a aucune capture après le 2026-01-31, et E5 interdit d'interroger la source. Voie : demander la date à AutoScout24, ou consulter un miroir tiers de `robots.txt`. | commanditaire | 0,5 j | 0 € | Fixe la frontière du corpus Common Crawl exploitable, et date le fait juridique qui fonde E5. **Prérequis de la note A11 de plusieurs autres lots.** |
+| **AC-J2** | **Ouvrir un compte Google Cloud** (palier gratuit, sans facturation activée) et exécuter **d'abord** `bq query --dry_run` puis, si et seulement si l'estimation est inférieure à 10 Go, la requête ciblée : `SELECT date, client, page, rank FROM httparchive.crawl.pages WHERE date = '<mois>' AND page LIKE '%autoscout24.be%'`. **Ne jamais interroger `payload` ni `crawl.requests` sans `--dry_run` préalable.** | commanditaire | 0,5 j | **0 €** dans le palier (≈ 1 Go attendu) | Lève le seul `[NON VÉRIFIÉ]` matériel de `C-72` : présence et nombre d'URL `autoscout24.be`, et existence de pages secondaires. |
+| **AC-J3** | **Fournir une clé d'API d'index** — Brave *Search* (5 $ de crédit mensuel, **carte bancaire requise même sur le plan gratuit**) ou SerpApi (250 recherches/mois gratuites). | commanditaire | 0,25 j | 0 € puis 5 $/1 000 req (Brave) ou 25 → 3,75 $/1 000 (SerpApi) | Rend `C-55` instruisible : compter les URL d'offres réellement indexées et mesurer l'énumérabilité par requêtes `site:` partitionnées. **C'est la seule voie du lot qui découvre des annonces vivantes.** |
+| **AC-J4** | **Lire les CGU du fournisseur d'index choisi**, en particulier toute clause interdisant la constitution d'une base à partir des résultats. C'est le point dirimant de `C-55`, plus que son prix. | commanditaire (juridique) | 0,5 j | 0 € | Fixe la note A11 de `C-55` sur preuve contractuelle et non par argument. |
+| **AC-J5** | **Décider si le rapatriement du corpus Wayback est autorisé** : ≈ **53 Go** et ≈ 529 000 requêtes vers `web.archive.org` pour la totalité des captures d'offre, ou ≈ 24 Go et ≈ 238 000 requêtes pour le seul sous-ensemble à série. Aucune requête vers AutoScout24. **Excède R3, donc hors de portée de l'agent.** Un lot d'amorçage utile tient en **1 959 requêtes ≈ 1 h** : les captures quotidiennes de `/fr/lst`, qui donnent la série d'inventaire BE. | commanditaire | décision | 0 € (bande passante) | Transforme `C-53` d'une dépendance en un actif détenu, et neutralise le risque A12. |
+| **AC-J6** | **Trancher au niveau juridique la conclusion de la section « Question juridique »**, en particulier l'interdiction du *Save Page Now* de Wayback et de toute soumission à un scanner tiers. Le présent rapport conclut par le raisonnement ; la décision appartient au commanditaire. | commanditaire (juridique) | 1 j | 0 € | Verrouille ou libère la possibilité de **densifier** la série de prix. En l'état, elle est verrouillée. |
+| **AC-J7** | **Ne pas créer de compte urlscan.io.** Recommandation d'inaction : le corpus étant vide, un compte gratuit ne débloquerait qu'un accès DOM à des scans qui n'existent pas. | — | 0 | 0 € | Évite une action inutile que la fiche `candidates-v2.md` listait en `ACTIONS-COMMANDITAIRE`. |
+
+---
+
+## Conformité
+
+### E5 — aucune requête sur `www.autoscout24.be` ni `.com`
+
+**Attesté : 0 requête.** Aucune sonde du lot n'a visé un domaine AutoScout24, ni sur un préfixe
+interdit, ni sur l'un des 17 préfixes autorisés. Les URL AutoScout24 qui apparaissent dans ce
+rapport sont toutes des **chaînes de caractères** figurant dans un index tiers, ou des chemins
+passés en argument à `web.archive.org`, jamais une cible réseau. Le `robots.txt` d'AutoScout24
+lui-même n'a été lu que dans ses **versions archivées** par l'Internet Archive.
+
+**Aucune soumission** n'a été faite à urlscan.io, au *Save Page Now* de l'Internet Archive, ni à
+aucun autre service susceptible de provoquer une requête vers AutoScout24. La question juridique a
+été tranchée **avant** toute action, conformément au mandat.
+
+### E1 / R2 — aucun compte, aucun credential
+
+**Attesté.** Aucun compte créé, aucun identifiant saisi, aucune clé d'API utilisée ou demandée.
+Les trois candidats qui exigeaient une inscription ont été traités en **mode documentaire** et
+renvoyés en `ACTIONS-COMMANDITAIRE` :
+
+- `C-72` — HTTP Archive : `bq` et `gcloud` absents, aucun compte Google → AC-J2 ;
+- `C-55` — Brave et SerpApi : clé requise, carte bancaire requise chez Brave → AC-J3 ;
+- `C-71` — urlscan.io : `/dom/` répond HTTP 403 aux anonymes → AC-J7, avec recommandation de
+  **ne pas** créer le compte.
+
+### Aucune requête facturable
+
+**Attesté.** `command -v bq` et `command -v gcloud` ne renvoient rien ; `bq version` répond
+`command not found` (J22). **Aucune requête BigQuery n'a été émise, ni en `--dry_run` ni a
+fortiori en mode facturé.** Le chiffrage de coût de la section HTTP Archive est **entièrement
+documentaire**, appuyé sur `har.fyi` et sur le tarif public on-demand de BigQuery. Aucun autre
+service payant n'a été appelé : les pages de tarifs de Brave et de SerpApi ont été **lues**, pas
+utilisées.
+
+### R3 — pas d'extraction de masse
+
+**Attesté.** Le lot a **compté** des captures par l'index — un index d'URL n'est pas du contenu — et
+n'a récupéré que **23 documents de contenu** au total :
+
+- 4 pages d'offre d'époques différentes (2017, 2019, 2021, 2026) ;
+- 11 pages d'offre pour encadrer la migration Next.js (7 semestres de 2022 à 2025, 4 mois de 2021) ;
+- 1 page de recherche `/lst` ;
+- 6 versions archivées du `robots.txt` ;
+- 1 DOM urlscan, refusé par un HTTP 403 — donc 0 octet de contenu.
+
+Aucune annonce n'a été stockée dans le dépôt. Les fichiers d'index et les 23 documents résident
+dans le scratchpad de session, hors du dépôt. **Aucune donnée personnelle n'a été recopiée dans ce
+rapport hormis deux occurrences citées comme preuve du risque RGPD** — `seller.contactName` — dont
+la présence dans le corpus archivé est précisément le constat à porter au dossier.
+
+### Compte de requêtes par domaine
+
+| Domaine | Requêtes | Détail |
+|---|---|---|
+| `web.archive.org` | **37** | 15 requêtes d'index CDX + 22 récupérations de document (16 pages, 6 `robots.txt`) |
+| `index.commoncrawl.org` | **13** | 1 `collinfo.json` + 4 sondes de forme (dont 1 HTTP 502) + 4 `showNumPages` + 4 index complets |
+| `urlscan.io` | **10** | 9 requêtes de recherche + 1 `/dom/` (HTTP 403) |
+| `har.fyi` | **2** | lecture documentaire |
+| `httparchive.org` | **1** | lecture documentaire de la FAQ |
+| `brave.com` | **1** | lecture documentaire des tarifs |
+| `serpapi.com` | **1** | lecture documentaire des tarifs |
+| **`www.autoscout24.be`** | **0** | — |
+| **`www.autoscout24.com`** | **0** | — |
+| **Total** | **65** | plafond du mandat : 70 |
+
+### Taux de cellules `[NON VÉRIFIÉ]` (critère S3 : ≤ 25 % par candidat)
+
+| Candidat | Cellules `[NON VÉRIFIÉ]` | Taux | Conforme |
+|---|---|---|---|
+| `C-53` | 0 sur 14 (réserves partielles sur A4 pour les pays hors BE et A6 pour le seuil de *throttling*) | **0 %** | oui |
+| `C-54` | 1 sur 14 (A3, non rejoué sur un WARC) | **7,1 %** | oui |
+| `C-55` | 3 sur 14 (A5, A13 partiel, A14) | **21,4 %** | oui |
+| `C-71` | 1 sur 14 (A8, cause du zéro) | **7,1 %** | oui |
+| `C-72` | 3 sur 14 (A4, A5, A13 partiel) | **21,4 %** | oui |
+
+### R6 — aucune conclusion sur un lot voisin
+
+Trois constats de ce rapport concernent d'autres lots. Ils sont **signalés comme éléments à
+instruire par le lot compétent**, et non conclus ici :
+
+- **`LOT-A` / `C-14`** : le crawl `CC-MAIN-2026-34` est un miroir public de la surface autorisée
+  (1 152 pages en HTTP 200 sous les 17 préfixes `Allow:`) — une partie du contenu de `C-14` est
+  donc obtenable **sans requêter AutoScout24**. À évaluer par le lot A.
+- **`LOT-C`** : `numberOfPages = 200` est lu **dans le payload lui-même** d'une capture archivée du
+  2026-01-01, ce qui borne toute recherche à ≈ 4 000 annonces. C'est un élément de preuve pour la
+  troisième question falsifiable du `LOT-C`, à valider par lui.
+- **`LOT-M`** : les 44 correspondances de `domain:autoscout24.be` chez urlscan.io fournissent un
+  échantillon de sites de garages belges pointant vers AutoScout24. À exploiter par le lot M.
+
+### Reproduction
+
+```bash
+# Compte des captures de pages d'offre (2 requetes, ~116 Mo)
+curl -s "https://web.archive.org/cdx/search/cdx?url=www.autoscout24.be/fr/offres/&matchType=prefix&output=json&fl=timestamp,original,statuscode,mimetype,length" -o fr.json
+curl -s "https://web.archive.org/cdx/search/cdx?url=www.autoscout24.be/nl/aanbod/&matchType=prefix&output=json&fl=timestamp,original,statuscode,mimetype,length" -o nl.json
+
+# Preuve de la serie de prix (2 requetes)
+curl -sL "https://web.archive.org/web/20190718153029id_/https://www.autoscout24.be/fr/offres/ford-escort-cabrio-michael-schumacher-edition-1-hand-essence-mauve-ff6d1319-85be-4e8e-bdf0-bb08d5570e6f" | grep -o '<meta name="description" content="[^"]*"'
+curl -sL "https://web.archive.org/web/20210125142540id_/https://www.autoscout24.be/nl/aanbod/ford-escort-cabrio-michael-schumacher-edition-1-hand-benzine-paars-ff6d1319-85be-4e8e-bdf0-bb08d5570e6f" | grep -o '<meta name="description" content="[^"]*"'
+
+# Directive CCBot : avant / apres (2 requetes)
+curl -sL "https://web.archive.org/web/20260101id_/https://www.autoscout24.be/robots.txt" | grep -ci ccbot   # -> 0
+curl -s "https://index.commoncrawl.org/CC-MAIN-2026-34-index?url=autoscout24.be%2F*&output=json&limit=100000" | grep -c '/fr/offres/'  # -> 0
+curl -s "https://index.commoncrawl.org/CC-MAIN-2025-26-index?url=autoscout24.be%2F*&output=json&limit=100000" | grep -c '/fr/offres/'  # -> 612 en fr
+
+# Corpus urlscan vide, avec controle positif (2 requetes)
+curl -s "https://urlscan.io/api/v1/search/?q=page.domain%3Aautoscout24.be&size=100"   # -> "total": 0
+curl -s "https://urlscan.io/api/v1/search/?q=page.domain%3Agithub.com&size=100"       # -> "total": 10000
+```
