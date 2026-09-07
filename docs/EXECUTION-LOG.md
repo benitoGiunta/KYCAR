@@ -35,8 +35,9 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 1.1b Constat sur la surface autorisée | (moi) | — | `docs/research/FINDING-allowed-surface.md` | VALIDÉ — C-14 prouvé : agrégats et échantillon d'annonces accessibles licitement |
 | 1.2 Revue de complétude 1 | `gap-review-1` | Opus / high | `docs/research/candidates-v2.md` | VALIDÉ — 18 ajouts C-67…C-84, 3 familles nouvelles, registre à 84 candidats / 17 familles. C-67 vérifié et reclassé (voir `VERIF-C67-fdz.md`) |
 | 1.3 Revue de complétude 2 | `gap-review-2` | Opus / high | `docs/research/candidates-final.md` | VALIDÉ — registre gelé, 92 candidats, 17 lots organisés en vagues, saturation argumentée |
-| 1.4 Investigation — vague 1 | probe-A / probe-B / probe-E / probe-F / probe-J | Opus high x4 + Sonnet med-high | docs/research/probe-LOT-*.md | EN COURS — 5 lots des 17, ceux qui decident |
-| 1.4 Investigation — vagues 2 et 3 | probe-C/D/G/H/I/M/N + probe-K/L/O/P/Q | a definir | idem | A FAIRE — 12 lots restants |
+| 1.4 Investigation — vague 1 | `probe-A` / `probe-B` / `probe-E` / `probe-F` / `probe-J` | Opus high ×4 + Sonnet med-high | `docs/research/probe-LOT-*.md` | EN COURS — 5 lots sur 17, ceux qui décident |
+| 1.4 Investigation — vague 2 | `probe-C` / `D` / `G` / `H` / `I` / `M` / `N` | à définir | idem | À FAIRE — 7 lots de substitution et de contournement |
+| 1.4 Investigation — vague 3 | `probe-K` / `L` / `O` / `P` / `Q` | à définir | idem | À FAIRE — 5 lots documentaires et institutionnels |
 | 1.5 Audit croisé | `audit-A…n` | Sonnet / high | `docs/research/audit-*.md` | À FAIRE |
 | 1.6 Compilation et stress-test | `compile-1` | Opus / max | `docs/research/DATA-ACQUISITION-REPORT.md` | À FAIRE |
 
@@ -57,7 +58,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 2.2 Application annexe C | `fix-annexe-C` | Sonnet / high | `reports/applied-annexe-C.md` | VALIDÉ — 24/24, 96 → 114 exigences |
 | 2.2 Résidus | `fix-residus` | Sonnet / high | `reports/applied-residus.md` | LIVRÉ — 11/11 résidus soldés, 0 bloqué. Balayage `RES-9` : 65/65 décisions vérifiées, 3 prescriptions manquantes trouvées sur 2 emplacements (`EX-DATA-106` déjà réparé par le coordinateur avant ce passage ; `EX-SCR-26`/`ARB-39` appliqué ici). Annexe A : 139 → 140 exigences (+`EX-DATA-115bis`). Annexes B (231) et C (114) inchangées en compte |
 | 2.2 Gel v1.0 | (moi) | — | REQUIREMENTS v1.0 | VALIDÉ — 485 exigences, zéro bloquant ou majeur ouvert, 8 dettes consignées |
-| 2.3 Architecture | `arch-lead` | Opus / high | `docs/plans/ARCHITECTURE.md` | EN COURS |
+| 2.3 Architecture | `arch-lead` | Opus / high | `docs/plans/ARCHITECTURE.md` | À FAIRE — non lancé |
 | 2.4 Développement D1–D9 | `dev-D*` | voir plan 2 | code | À FAIRE |
 | 2.5 Revue de développement | `rev-D*` | Opus / Sonnet high | `reports/DEV-REVIEW.md` | À FAIRE |
 | 2.6 Remédiation | `fix-lead` + `fix-*` | Opus high + Sonnet high | `reports/REMEDIATION.md` | À FAIRE |
