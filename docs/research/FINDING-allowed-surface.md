@@ -90,7 +90,11 @@ Trois choses en découlent :
    par l'autre.
 2. `slug` donne le **vrai slug d'URL**, ce qui lève le point ouvert O5 pour les modèles atteignables
    par cette voie. Le format est `<marque>-<modèle>`, pas `<modèle>` — d'où le 404 sur `corsa`.
-3. `listingsCount` est un **agrégat par modèle**, exactement la granularité du mode 1 de KYCAR.
+3. ~~`listingsCount` est un agrégat par modèle~~ — **FAUX, corrigé par `probe-LOT-A.md`** :
+   `listingsCount` est **inerte**, il vaut `0` pour les 32 modèles Opel. Ce n'est pas l'agrégat du
+   mode 1. Le vrai agrégat par modèle est `listings.metadata.totalItems`, obtenu en ouvrant la page
+   du modèle (1 281 pour Opel Corsa). L'agrégat par marque est `totalItems` sur la page marque, et
+   la racine `/fr/voiture/` porte le total national — **121 710** annonces, mesuré en une requête.
 
 ### 2.2 — Fourchettes de prix : `priceInfo`
 
@@ -136,8 +140,8 @@ d'abstraction coexistent dans la donnée, et l'exigence V1 (deux champs distinct
 
 ### 2.5 — Alerte RGPD confirmée par la donnée
 
-`seller.contactName` contient un **nom de personne physique** (relevé : « Youssef Yaghzar »,
-vendeur professionnel). Le champ existe et est servi. La règle R3 — aucune colonne pour les
+`seller.contactName` contient un **nom de personne physique** (relevé sur un vendeur professionnel,
+nom anonymisé dans ce dépôt). Le champ existe et est servi. La règle R3 — aucune colonne pour les
 identifiants vendeur dans le schéma KYCAR — n'est donc pas une précaution théorique : c'est le
 filtre qui empêchera cette donnée d'entrer. L'adaptateur `DataProvider` devra **écarter ces champs
 à l'ingestion**, pas au stockage.

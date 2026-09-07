@@ -276,3 +276,50 @@ ce lot.
 **Valeur residuelle** : ces publications restent utilisables comme **reference de benchmark** (ordres de grandeur de NLL/MAPE sur la tarification VO), mais pas comme source de donnees.
 
 **Inconnues restantes** : localisation exacte et statut de disponibilite de AS24-CH/AS24-DE (l'article source original n'a pas pu etre relu, 403).
+
+---
+
+## Questions falsifiables
+
+Les 5 questions prioritaires assignees au lot par `candidates-final.md` (section LOT-I), avec
+verdict et niveau de preuve :
+
+| # | Question | Verdict | Preuve |
+|---|---|---|---|
+| 1 | « Au moins un dataset telechargeable sans compte couvre la Belgique. » | **FAUSSE**, en l'etat des verifications possibles | Le seul jeu telechargeable sans compte (C-39, Zenodo) revendique une couverture « multi-marches europeens » sans liste de pays confirmee ; aucune mention explicite de la Belgique retrouvee. C-67 (le seul jeu a couverture geo prouvee) est Allemagne seule. |
+| 2 | « Un dataset couvre au moins 20 des 40 champs cibles et se reconcilie avec la taxonomie officielle. » | **VRAIE pour C-67** (38/40 avec les champs decisifs prix/km/annee/carburant/CP/marque/modele), **VRAIE SOUS RESERVE pour C-39/C-38 `clkmuhammed`** (60+ champs annonces mais schema non verifie faute de telechargement), **FAUSSE pour `ander289386`** (9 champs seulement) | Lecture integrale des PDF FDZ (C-67) ; metadonnees WebSearch (C-38/C-39) |
+| 3 | « C-67 permet de chiffrer la deformation d'un echantillon de 20 annonces triees par produit publicitaire, par rapport a la distribution vraie. » | **PARTIELLEMENT FAUSSE** — voir verdict detaille en section C-67 : mesure du biais agrege possible (prix/km/annee/marque/modele), mais **imputation specifique au produit publicitaire impossible** faute de marqueur de mise en avant dans les 38 variables | Lecture integrale des deux FDZ Data Description (V1 et V2), section 2.1 « Data Source », citation verbatim |
+| 4 | « Les licences autorisent un usage analytique interne (H2) et non seulement la recherche. » | **FAUSSE pour C-67** (scientifique exclusivement, convention obligatoire) ; **VRAIE pour C-39** (licence MIT, usage libre) mais **contrebalancee par la provenance non tracable** (le MIT declare par le republieur ne purge pas un eventuel probleme de droit sui generis en amont) ; `[NON VÉRIFIÉ]` pour les autres jeux Kaggle | Lecture PDF FDZ ; page Zenodo |
+| 5 | « Aucun de ces jeux n'a moins de 6 mois. » | **VRAIE, dans le sens defavorable** — aucun jeu telechargeable sans compte n'est frais : C-39/C-38 `clkmuhammed` date du 08/11/2025 (deja hors fenetre de 6 mois au 07/09/2026), `ander289386` s'arrete en 2021, C-67 V2 s'arrete au 12/2024. Tous violent H4 pour un usage productif continu. | Dates de depot et periodes couvertes, verifiees a la source pour chaque jeu |
+
+---
+
+## ACTIONS-COMMANDITAIRE
+
+| Action | Ce qu'elle permettrait | Cout / demarches |
+|---|---|---|
+| Demander une convention d'acces FDZ Ruhr pour RWI-GEO-CARMKT (C-67) | Mesurer effectivement, sur donnees reelles allemandes, la deformation de l'echantillon de 20 annonces par modele du parcours 2 (axes prix/kilometrage/annee/marque/modele) — calibration de la methode, pas alimentation du produit | Formulaire de demande (description de projet, duree, departement demandeur) aupres du FDZ Ruhr ; **eligibilite incertaine** car reservee aux chercheurs d'institutions scientifiques — KYCAR en usage personnel/interne (H2) n'est probablement pas eligible sans rattachement academique du commanditaire ; si eligible, gratuit mais delai administratif non estime (non publie) |
+| Creer un compte Kaggle pour telecharger les 5 jeux de C-38 | Valider effectivement le schema complet de `clkmuhammed` (60+ champs), `promptcloud`, `mexwell` et `huseyincenik` (actuellement `[NON VÉRIFIÉ]` faute de rendu JS accessible sans compte) | Creation de compte gratuite (email), quelques minutes ; a faire realiser par le commanditaire au titre de R2 |
+| Contacter les auteurs de ProbSAINT / TabResFlow (Volkswagen Financial Services, Universite de Hildesheim) pour demander l'acces au jeu B2C ou a un jeu derive anonymise | Verifier si un sous-ensemble publiable existe (peu probable — donnee proprietaire d'entreprise), ou a defaut obtenir des points de repere chiffres supplementaires pour la validation du moteur d'agregation | Demarche de contact academique, issue incertaine, delai non estimable |
+
+---
+
+## Conformite
+
+- **E5** (aucune requete vers `www.autoscout24.be` ni `.com`) : **respecte**. Aucune requete de cette
+  sonde ne vise un domaine `autoscout24.be` ou `autoscout24.com` — toutes les requetes visent
+  `rwi-essen.de`, `econstor.eu`, `github.com`, `zenodo.org`, `kaggle.com`, `huggingface.co`,
+  `arxiv.org`, `medium.com`, `data.world`, et des moteurs de recherche generalistes.
+- **E1 / R2** (aucun compte cree, aucun credential saisi) : **respecte**. Les jeux Kaggle et l'acces
+  FDZ Ruhr qui exigent un compte ou une convention n'ont pas ete franchis ; ils sont consignes en
+  `ACTIONS-COMMANDITAIRE`.
+- **R3** (pas d'extraction de masse, plafond 50 requetes) : **respecte**. Aucun fichier volumineux
+  n'a ete telecharge (le CSV Zenodo de 548,6 Mo a ete documente via sa fiche, jamais telecharge).
+  Seuls deux PDF de documentation officielle (469 Ko et 210 Ko) ont ete lus integralement — ce sont
+  des documents descriptifs, pas des extractions de donnees.
+- **Compte de requetes final : 34 requetes sur un plafond de 50** (17 WebFetch de pages, 3 WebFetch
+  de PDF lus integralement via Read, 14 WebSearch). Le detail figure dans le Journal de preuve en
+  tete de document.
+- **R1** (zero guessing) : chaque affirmation chiffree de ce document porte une source citee dans
+  le journal de preuve ; les volumetries de jeux non telecharges (C-39, C-38) sont marquees
+  `documente` et non `prouve`, conformement a R4.

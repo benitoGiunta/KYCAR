@@ -520,3 +520,280 @@ plus que le prix.
 Le rendement de ce candidat n'est pas le prix, c'est la **découverte d'URL** : il fournit une liste
 d'identifiants d'annonces vivantes que ni Wayback ni Common Crawl ne peuvent donner, et qu'aucun
 sitemap n'offre puisqu'il n'y a pas de directive `Sitemap:` (`FINDING`, P6).
+
+---
+
+## Question juridique de la soumission à un tiers
+
+> « Soumettre soi-même une URL AutoScout24 à urlscan constituerait-il un contournement du
+> `robots.txt` par tiers interposé ? »
+
+Question non technique, à trancher sur l'axe A11. **Aucune soumission n'a été exécutée**, ni à
+urlscan, ni au *Save Page Now* de l'Internet Archive, ni à aucun autre service de capture — la
+question devait être tranchée d'abord. Elle l'est ci-dessous.
+
+Elle n'est pas académique dans ce lot : `C-71` n'a **aucun** scan public d'AutoScout24 (section
+urlscan). La soumission n'est donc pas une commodité, c'est **le seul chemin** par lequel le
+candidat pourrait exister. La réponse à cette question est donc son verdict.
+
+### Thèse — oui, c'est un contournement
+
+1. **L'article 4(3) de la directive (UE) 2019/790 s'adresse à l'acteur, pas au robot.** Le groupe
+   `GPTBot / ClaudeBot / Google-Extended / Applebot-Extended / CCBot` suivi de `Disallow: /` et de
+   17 `Allow:` est une **réservation de droits lisible par machine** au sens de l'article 4(3),
+   c'est-à-dire un *opt-out* à l'exception de fouille de textes et de données. Cette réservation
+   n'est pas opposable à un *user-agent*, elle est opposable à **l'usage** : la fouille. Le
+   bénéficiaire de la fouille, ici, ce serait nous. Changer de route de récupération ne change pas
+   qui fouille. C'est l'argument le plus fort, et il ne dépend pas de la valeur normative du
+   `robots.txt`.
+2. **Nous serions la cause *but-for* de la requête.** Sans notre soumission, aucune requête n'est
+   émise vers l'URL en cause. Le scanner d'urlscan n'agirait pas de son propre chef sur une page
+   d'offre belge — la preuve empirique en est qu'il ne l'a jamais fait en 800 millions de scans.
+   L'interposition d'un tiers ne crée pas d'auteur intermédiaire : elle crée un instrument.
+3. **Le raisonnement de la CJEU dans `Innoweb` (C-202/12) regarde l'effet économique, pas la
+   route.** Un métamoteur qui interroge la base d'autrui « en temps réel » a été jugé la
+   *réutiliser*, bien qu'il n'en stockât rien. Le juge a suivi le résultat — mettre à disposition
+   le contenu de la base d'autrui — et non le trajet technique. Un scanner tiers piloté par nous
+   est, dans cette logique, notre outil.
+4. **Le droit *sui generis* du producteur de base de données** (directive 96/9/CE, art. 7, transposé
+   au livre XI du Code de droit économique belge) couvre l'« extraction » **et** la
+   « réutilisation » d'une partie substantielle. L'extraction est attribuée à celui qui l'organise.
+   Le fait que le transfert matériel soit accompli par un tiers non averti ne déplace pas
+   l'imputation.
+5. **Un test d'intention élémentaire suffit à disqualifier la manœuvre** : nous chercherions le
+   tiers *parce que* la voie directe nous est fermée. C'est la définition d'un contournement.
+   L'abus de droit, en droit belge des obligations, sanctionne précisément l'usage d'une faculté
+   dans un but étranger à sa destination.
+
+### Antithèse — non, ce n'en est pas un
+
+1. **`robots.txt` n'est pas une norme juridique.** La RFC 9309 se qualifie elle-même de protocole
+   d'exclusion *volontaire*. Elle n'attache d'obligation qu'au comportement du client qu'elle
+   nomme dans le champ `User-agent`. Le scanner d'urlscan est un agent distinct, avec son propre
+   *user-agent* et sa propre politique ; qu'il honore ou non le `robots.txt` d'une cible est **sa**
+   décision de conformité, pas la nôtre. Nous, nous n'émettons aucune requête vers AutoScout24.
+2. **Une soumission unitaire n'est pas un crawl.** Le protocole régit l'exploration automatisée.
+   Une soumission déclenche **une** récupération d'**une** URL, ce que le service documente comme
+   l'équivalent d'une visite de navigateur. Or une visite humaine de page d'offre est manifestement
+   permise : la page est publique, servie sans authentification, et AutoScout24 la monétise. Sous
+   R3, notre volumétrie serait de l'ordre de quelques unités.
+3. **Aucune mesure technique de protection n'est franchie.** Pas de mot de passe, pas de péage, pas
+   de défi Akamai résolu, pas de cookie `_abck` forgé. Le `robots.txt` est **déclaratoire, non
+   protecteur** : il n'est donc pas une MTP au sens de l'article 6 de la directive 2001/29, et
+   l'article 550bis du Code pénal belge — accès non autorisé à un système informatique — suppose le
+   franchissement d'un obstacle d'accès, absent ici.
+4. **L'exception de l'article 3 de la directive 2019/790** — fouille aux fins de recherche
+   scientifique par un organisme de recherche — n'est pas invocable par KYCAR, mais elle rappelle
+   que la réservation de l'article 4(3) ne rend pas l'acte *illicite en soi* : elle le fait
+   simplement sortir de l'exception, ce qui ne mord que si l'usage constitue par ailleurs une
+   reproduction protégée. Un prix, un kilométrage et une date d'immatriculation sont des
+   **données factuelles non protégeables** prises isolément.
+5. **Le service tiers assume publiquement sa politique.** Si urlscan choisit d'ignorer un
+   `robots.txt`, ce choix l'engage. Nous ne pouvons pas être tenus responsables de la politique de
+   conformité d'un opérateur indépendant sur la seule base d'une soumission d'URL.
+
+### Ce qui départage, et la conclusion
+
+Les deux thèses ne portent pas sur le même objet, et c'est ce qui permet de trancher. L'antithèse
+est solide **sur le terrain du `robots.txt` lui-même** : non, le `robots.txt` d'AutoScout24 ne nous
+oblige pas *nous*, il oblige des *user-agents*, et nous n'en pilotons aucun. La thèse est solide
+**sur un autre terrain** : celui de la réservation de fouille de l'article 4(3), qui est adressée à
+l'exploitant de la fouille et non au robot, et qui survit intégralement à un changement de route.
+
+**La ligne de partage n'est donc pas « qui émet la requête » mais « lire une archive qui existe »
+contre « provoquer la naissance d'une archive ».**
+
+- **Lire une archive préexistante** (`C-53`, `C-54`, `C-72`) : nous n'émettons aucune requête vers
+  AutoScout24 et nous n'en causons aucune. La constitution de l'archive est le fait propre de
+  l'archiveur et relève de sa conformité. Notre exposition résiduelle est **en aval** — droit *sui
+  generis* sur la réutilisation d'une partie substantielle, et RGPD sur `seller.contactName` — et
+  elle n'a rien à voir avec le `robots.txt`.
+- **Soumettre nous-mêmes une URL** : nous devenons la cause unique et le bénéficiaire unique d'une
+  récupération portant sur une ressource que la réservation de l'article 4(3) nous ferme, dans un
+  but de fouille. La route est différente, l'acte réservé est le même.
+
+**Conclusion : oui.** Soumettre soi-même une URL AutoScout24 à urlscan — ou au *Save Page Now* de
+l'Internet Archive, ou à tout service équivalent — **constitue un contournement de la réservation
+portée par le `robots.txt`, par tiers interposé.** Pas parce que le `robots.txt` serait
+juridiquement contraignant en lui-même : il ne l'est pas. Mais parce que le groupe d'agents d'IA
+ajouté entre décembre 2025 et septembre 2026 est une **réservation de fouille opposable à l'acteur
+de la fouille**, et que la route de récupération est indifférente à cette opposabilité.
+
+**Notation A11 qui en découle, et qui est reprise dans les tableaux de candidats :**
+
+| Acte | A11 | Mécanisme juridique nommé |
+|---|---|---|
+| Lire l'index CDX ou l'index Common Crawl | **1 / 5** | aucun acte réservé : métadonnées d'URL, aucun contenu |
+| Lire des snapshots existants et en extraire des faits (prix, km, date) | **3 / 5** | droit *sui generis*, art. 7 dir. 96/9 et livre XI CDE : réutilisation d'une partie substantielle d'une base ; RGPD sur `seller.contactName` |
+| Lire des snapshots de `/lst`, chemin en `Disallow` pour `*` depuis au moins 2023 | **3 / 5** | même mécanisme ; la méconnaissance de la directive est le fait de l'archiveur, pas le nôtre, et il n'existe pas en matière civile de règle du « fruit de l'arbre empoisonné » |
+| **Soumettre une URL à un scanner tiers** | **4 / 5** | contournement de la réservation art. 4(3) dir. 2019/790 par tiers interposé ; imputation de l'extraction à l'organisateur |
+| Crawler nous-mêmes hors des 17 préfixes autorisés | **5 / 5** | violation directe de la réservation, plus les CGU |
+
+**Règle opérationnelle à porter au rapport final** : dans tout le `LOT-J`, l'interdiction n'est pas
+seulement de requêter `autoscout24.be` — c'est de **provoquer** une requête vers `autoscout24.be`,
+par quelque intermédiaire que ce soit. Le *Save Page Now* de Wayback tombe sous cette règle
+exactement comme urlscan, et cela retire au candidat `C-53` toute possibilité de **densifier** la
+série de prix : nous ne pouvons que lire ce que l'archive contient déjà.
+
+---
+
+## Candidats
+
+Notation : `prouvé` = sortie de commande dans le journal ci-dessus ; `documenté` = source citée ;
+`estimé` = calcul explicite ; `[NON VÉRIFIÉ]` = non établi.
+
+### C-53 — Wayback Machine : index CDX + snapshots — **VIABLE**
+
+| Axe | Valeur | Preuve |
+|---|---|---|
+| **A1** Coût d'amorçage | **0 €**. Aucun compte, aucune clé, aucune inscription. 37 requêtes émises sans authentification. | prouvé (J01–J15) |
+| **A2** Coût récurrent | **0 € / 1 000 annonces** et **0 € / mois**. Le seul coût est le temps machine et la bande passante entrante : les captures d'offre pèsent 51 à 155 Ko chacune, soit ≈ **53 Go** pour les 529 269 captures en HTTP 200. | prouvé (tailles mesurées) |
+| **A3** Couverture champs | **37 / 40** sur les pages d'offre de l'ère Next.js (2022-01 →), avec 262 à 547 feuilles scalaires dans `listingDetails`. **7 / 40** sur l'ère antérieure via `<title>` + `<meta description>`. Pages `/lst` : **65 feuilles par annonce**, 19 annonces par page. Non retrouvés : `colour`, `emissionClass` ; `sellerType` couvert par `seller.type`. | prouvé (J09, J15) |
+| **A4** Couverture géo | **Belgique**, prouvé par `pageQuery.cy = "B"` et `location.countryCode = "BE"`. Les autres domaines nationaux d'AutoScout24 sont adressables par la même mécanique — non mesuré ici. | prouvé pour BE ; `[NON VÉRIFIÉ]` pour les autres pays |
+| **A5** Latence | CDX : **0,58 s** pour un `showNumPages`, **1,71 s** p50 pour une page d'index, 12,3 s pour 291 366 lignes (54,9 Mo). Snapshots : p50 ≈ **1,9 s** (mesures : 1,31 / 1,37 / 2,39 / 4,99 s sur 4 fetches, plus 12 autres du même ordre). **Durée d'un « snapshot BE » complet** : les 529 269 captures d'offre à 1,9 s ≈ **279 h en séquentiel**, ≈ 70 h à 4 requêtes parallèles. Le sous-ensemble utile (les ~238 000 captures des 35 025 annonces à série) ≈ **126 h**, ≈ 31 h à 4 parallèles. La série d'inventaire quotidien (1 959 captures de `/fr/lst`) ≈ **1 h**. | prouvé (temps `curl`) puis estimé par extrapolation explicite |
+| **A6** Débit / quota | **37 requêtes émises sur `web.archive.org`, dont 22 récupérations de snapshot, sans un seul 429 ni blocage.** Aucun plafond dur documenté publiquement pour l'API CDX. L'Internet Archive pratique un *throttling* dont le seuil n'est pas publié. | prouvé pour 37 req ; **`[NON VÉRIFIÉ]`** pour le seuil |
+| **A7** Stabilité technique | **4 / 5**. L'archive est immuable par nature : un snapshot déjà pris ne change plus, donc un parseur qui fonctionne aujourd'hui fonctionnera demain sur les mêmes données. Le coût de maintenance est reporté sur la **diversité des formats** : trois générations de `listingDetails` (29 / 37 / 43 clés) plus l'ère pré-Next.js exigent **quatre** parseurs, pas un. | argumenté sur J09 |
+| **A8** Résistance anti-bot | **Non concerné.** Akamai n'est jamais rencontré : aucune requête vers AutoScout24. Le seul obstacle possible est le *throttling* de l'Internet Archive. | prouvé |
+| **A9** Effort d'intégration | **6 à 9 jours-homme** pour un adaptateur `DataProvider` : 1 j pour l'énumération CDX, 1 j pour le téléchargement à débit contrôlé et la reprise, **3 à 4 j pour les quatre parseurs** et leur réconciliation en un schéma unique, 1 j pour la jointure bilingue par UUID, 1 à 2 j pour le rattachement `410` / `createdTimestampWithOffset`. | estimé |
+| **A10** Coût de maintenance | **0,25 à 0,5 j-h / mois**. L'archive ne casse pas ; seule l'ère courante peut introduire une génération de payload supplémentaire, au rythme constaté d'environ une par 18 mois. | argumenté |
+| **A11** Exposition juridique | **3 / 5**. Voir la section juridique. Mécanismes nommés : droit *sui generis* du producteur de base de données (art. 7 dir. 96/9/CE, livre XI CDE) pour la réutilisation d'une partie substantielle ; RGPD sur `seller.contactName`, présent dans le corpus archivé et donc à écarter **à l'ingestion**. Aucune exposition sur l'axe `robots.txt` tant que l'on se borne à lire l'existant. **Le *Save Page Now* est interdit** par la conclusion de la section juridique. | argumenté |
+| **A12** Autonomie | **Partiel.** Dépendance à un tiers unique, une organisation à but non lucratif, qui peut ralentir, restreindre ou retirer des contenus sur demande. Le trou d'archivage de mai 2026 (129 captures contre ~50 000 les mois voisins) et la décroissance de juin à septembre 2026 sont la démonstration mesurée de cette dépendance. Mitigation : la donnée est **rapatriable en une fois** — une fois 53 Go copiés, plus aucune dépendance. | prouvé (distribution mensuelle) |
+| **A13** Plafond de volumétrie | **131 287 annonces distinctes historiques** (borne dure, le corpus est fini) ; **35 025** exploitables en série ; **1 661 799** captures de pages de recherche portant 19-20 annonces chacune. Par jour, le plafond est celui du *throttling*, non du corpus. Ne se rafraîchit pas : c'est un stock, pas un flux. | prouvé |
+| **A14** Fraîcheur atteignable | **Délai de 1 à 2 jours pour les pages `/lst`** — capture du 2026-09-02 disponible, sonde du 2026-09-07 — et **1 jour pour les pages d'offre** (capture la plus récente : 2026-09-06 13:14 UTC). Mais la fraîcheur est **subie** : elle dépend de la cadence d'un tiers, et nous ne pouvons pas la provoquer sans violer la conclusion juridique. Compatible avec H4 (« snapshot périodique acceptable ») **si** la cadence de l'archiveur se maintient — ce que rien ne garantit. | prouvé pour le délai, argumenté pour la fiabilité |
+
+**Verdict : `VIABLE`** — mais pas pour ce que le registre attendait. Viable comme **source
+d'historique** : panel longitudinal de 35 025 annonces, série quasi quotidienne de l'inventaire BE
+total sur 1 959 jours, et durée de vie d'annonce sur 2 270 cas. **Non viable comme source
+d'inventaire courant** : le stock est un stock, il ne se rafraîchit qu'au bon vouloir d'un tiers, et
+son biais de sélection est fort et non mesuré.
+
+**Inconnues restantes** : seuil de *throttling* de l'Internet Archive ; support de l'en-tête
+`Range` (qui diviserait par ~100 le coût de lecture des pages pré-2022) ; représentativité du panel
+face au parc belge réel — mesurable par croisement avec `LOT-Q` ; lisibilité du compteur
+d'inventaire dans les captures `/lst` antérieures à 2022.
+
+### C-54 — Common Crawl : index + WARC — **VIABLE SOUS CONDITION**
+
+| Axe | Valeur | Preuve |
+|---|---|---|
+| **A1** Coût d'amorçage | **0 €** via `index.commoncrawl.org` (13 requêtes, aucune authentification). L'index columnaire sur S3 et l'accès Athena supposent un compte AWS → hors R2. | prouvé pour l'index HTTP |
+| **A2** Coût récurrent | **0 € / 1 000 annonces**, **0 € / mois** par l'index HTTP et les récupérations WARC par `Range` sur `data.commoncrawl.org`. Par Athena, le coût AWS serait à chiffrer — hors périmètre R2. | documenté |
+| **A3** Couverture champs | **37 / 40 attendus**, par identité de payload avec `C-53` : ce sont les mêmes pages d'offre du même site aux mêmes époques. **Non rejoué sur un WARC dans cette sonde** — le plafond de 70 requêtes a été consacré à la question dimensionnante de la profondeur historique. | **`[NON VÉRIFIÉ]`**, documenté par identité de source |
+| **A4** Couverture géo | Belgique prouvée (`autoscout24.be` présent dans 4 crawls sur 4). Les autres domaines nationaux relèvent de la même mécanique. | prouvé pour BE |
+| **A5** Latence | **p50 ≈ 4,2 s** par requête d'index (mesures : 0,77 / 0,87 / 3,07 / 3,34 / 4,23 / 5,50 / 6,30 s). Durée d'un balayage complet des ~100 crawls de l'ère `/fr/offres/` : ≈ **7 min** pour l'index seul ; la récupération de ~100 000 pages WARC est du même ordre que `C-53` rapporté au volume, soit ≈ **50 h en séquentiel**. | prouvé puis estimé |
+| **A6** Débit / quota | 13 requêtes émises, **1 échec transitoire HTTP 502 nginx** (J19), rejoué avec succès. Aucun quota dur publié ; le service demande de la modération. Taux d'échec observé : **1 / 13 = 7,7 %** — un client doit donc réessayer. | prouvé |
+| **A7** Stabilité technique | **5 / 5**. Les crawls publiés sont figés et versionnés (`CC-MAIN-AAAA-SS`), l'index est rejouable à l'identique, et le corpus est citable dans un rapport. C'est le seul candidat du lot dont une mesure est **reproductible par un tiers à l'octet près**. | argumenté |
+| **A8** Résistance anti-bot | **Non concerné.** Aucune requête vers AutoScout24. | prouvé |
+| **A9** Effort d'intégration | **4 à 6 j-h**, dont 2 à 3 j de parseurs **réutilisables tels quels depuis `C-53`** : mêmes payloads, même schéma cible. En pratique, un adaptateur `C-53` déjà écrit se branche sur Common Crawl pour ≈ **1,5 j** de plus. | estimé |
+| **A10** Coût de maintenance | **0,1 j-h / mois**. Un nouveau crawl paraît tous les deux mois ; l'intégration est un ajout de collection à une liste. | argumenté |
+| **A11** Exposition juridique | **2 / 5** — **le plus faible du lot pour une source de contenu**, et c'est son principal mérite. Common Crawl **respecte le `robots.txt`**, ce que ce rapport prouve directement : le crawl d'août 2026 ne contient plus que les 17 préfixes `Allow:`. Les crawls antérieurs à l'ajout du groupe d'agents d'IA (2025-12-16 au plus tôt) ont donc été **collectés en conformité avec le `robots.txt` de leur époque**, et cette conformité est publiquement vérifiable. Reste le droit *sui generis* en aval et le RGPD, comme pour `C-53`. | prouvé (J18) puis argumenté |
+| **A12** Autonomie | **Partiel**, avec la même mitigation que `C-53` : le corpus est rapatriable. Dépendance à une fondation à but non lucratif, mais les crawls passés restent publiés et les copies miroir S3 existent. |  documenté |
+| **A13** Plafond de volumétrie | **0 page d'offre** pour tout crawl postérieur à la directive. **978** (juin 2025), **760** (déc. 2023), **≥ 57** (août 2020) pour les crawls antérieurs, plus 964 et 1 095 pages `/lst` — soit ≈ 19 000 et 21 000 lignes d'annonces sur ces deux crawls. Extrapolé aux ~100 crawls de l'ère `/fr/offres/` : ordre de **quelques dizaines de milliers de pages d'offre**, à confirmer crawl par crawl. **Le plafond est décroissant et désormais nul : le corpus ne s'enrichira plus.** | prouvé sur 4 crawls, extrapolation marquée comme telle |
+| **A14** Fraîcheur atteignable | **Nulle pour les annonces.** Le dernier crawl exploitable date de **décembre 2025 au plus tard** (dernière version du `robots.txt` sans groupe d'IA), et le crawl d'août 2026 rend 0 page d'offre. Pour les pages de la surface autorisée, la fraîcheur est de l'ordre de **3 semaines** (crawl du 2026-08-07 au 08-19, index consulté le 2026-09-07). Incompatible avec H4 pour l'inventaire. | prouvé |
+
+**Verdict : `VIABLE SOUS CONDITION`.** La condition n'est pas technique, elle est **temporelle** :
+le candidat n'est viable que sur les crawls antérieurs à l'ajout du groupe d'agents d'IA, et ce
+corpus est **définitivement clos**. Sa valeur propre est la **conformité prouvée et citable**, ce
+qu'aucune autre source de contenu du registre n'offre : c'est le corpus à utiliser pour tout ce qui
+doit être défendable, et la référence d'étalonnage des parseurs de `C-53`. Sa valeur volumétrique
+est marginale — un facteur ~10 sous Wayback.
+
+**Bénéfice inattendu, et il dépasse le lot** : le crawl `CC-MAIN-2026-34` est un **miroir public de
+la surface autorisée** — 1 152 pages en HTTP 200, toutes sous les 17 préfixes `Allow:`, aucune
+autre. Il constitue une **validation externe et indépendante** de la lecture de
+`FINDING-allowed-surface.md`, et un moyen d'obtenir une partie du contenu de `C-14` **sans émettre
+une seule requête vers AutoScout24**. À signaler au `LOT-A`.
+
+**Inconnues restantes** : intégrité de `__NEXT_DATA__` dans un WARC (non rejoué) ; volume exact
+cumulé sur les ~100 crawls ; date exacte du dernier crawl exploitable.
+
+### C-55 — Index des moteurs via API — **NON VIABLE en l'état (R2)**
+
+| Axe | Valeur | Preuve |
+|---|---|---|
+| **A1** Coût d'amorçage | **Bloquant sous R2.** Brave : compte **et carte bancaire requise** même pour le plan gratuit. SerpApi : compte requis, 250 recherches/mois gratuites. Aucun palier utilisable sans inscription. **0 requête émise.** | documenté (J25) |
+| **A2** Coût récurrent | Brave : **5,00 $ / 1 000 requêtes**, ≈ **0,23 € / 1 000 URL découvertes** à 20 résultats par requête ; **≈ 780 € / mois** pour un rafraîchissement quotidien BE. SerpApi : de 25,00 à 3,75 $ / 1 000 recherches selon le palier ; ≈ **0,035 € / 1 000 URL** et **≈ 253 € / mois** (plan Big Data, 100 résultats par recherche). | documenté puis calculé (R5) |
+| **A3** Couverture champs | **7 / 40** — et le chiffre est **prouvé**, non supposé : les *snippets* reprennent `<title>` et `<meta description>`, dont ce rapport a établi le contenu exact sur quatre époques (modèle, ville, carrosserie, prix, kilométrage, première immatriculation, carburant). | prouvé indirectement (section 6) |
+| **A4** Couverture géo | Tout pays indexé par le moteur ; `site:autoscout24.be` cible la Belgique, `site:autoscout24.de` l'Allemagne, etc. | documenté |
+| **A5** Latence | `[NON VÉRIFIÉ]` — aucune requête émise (R2). Les deux fournisseurs annoncent des SLA de l'ordre de quelques centaines de ms ; non mesuré. Durée d'un snapshot BE : 5 650 requêtes Brave à ~0,5 s ≈ **47 min**, ou 1 130 requêtes SerpApi ≈ 10 min — **estimation non mesurée**. | `[NON VÉRIFIÉ]` |
+| **A6** Débit / quota | Brave : **50 req/s** sur le plan *Search*, 2 req/s sur *Answers*. SerpApi : plafond mensuel par palier, pas de plafond par seconde publié. | documenté |
+| **A7** Stabilité technique | **3 / 5**. L'API est stable, mais le **contenu** de l'index ne l'est pas : nous ne contrôlons ni ce qui est indexé, ni quand il est désindexé, ni le plafond de pagination par requête. | argumenté |
+| **A8** Résistance anti-bot | **Le fournisseur absorbe tout** : c'est son propre index qui répond, jamais AutoScout24. Aucun contact avec Akamai. | documenté |
+| **A9** Effort d'intégration | **2 à 3 j-h** pour l'appel et le parsing des *snippets*, **plus 3 à 5 j-h** pour la stratégie de **partitionnement de requêtes** sans laquelle l'énumération est plafonnée. Total **5 à 8 j-h**. | estimé |
+| **A10** Coût de maintenance | **0,5 j-h / mois** : suivi des évolutions du format de *snippet* et des plafonds de pagination. | argumenté |
+| **A11** Exposition juridique | **2 / 5**. Le groupe d'agents d'IA du `robots.txt` **ne vise pas** Googlebot ni Bingbot : l'indexation des pages d'offre est licite et perdure. Nous lisons un index tiers licitement constitué. Restent les CGU du fournisseur d'API — qui interdisent fréquemment la reconstitution d'une base à partir des résultats : **clause à lire avant tout engagement**, et c'est le vrai point de vigilance. | argumenté |
+| **A12** Autonomie | **Non.** Double dépendance : au fournisseur d'API, qui facture et peut couper, et au moteur, qui décide de ce qui est indexé. | documenté |
+| **A13** Plafond de volumétrie | Brave gratuit : **1 000 requêtes/mois** ≈ 20 000 URL/mois. Le plafond réel n'est pas le quota mais **la non-énumérabilité d'un index** : une requête `site:` ne rend que quelques centaines de résultats, quel qu'en soit le nombre total. **`[NON VÉRIFIÉ]` et dimensionnant.** | documenté pour le quota, `[NON VÉRIFIÉ]` pour l'énumérabilité |
+| **A14** Fraîcheur atteignable | Fraîcheur de l'index du moteur : typiquement quelques jours à quelques semaines pour une page de détail, non contractuelle. `[NON VÉRIFIÉ]` pour AutoScout24 spécifiquement. | `[NON VÉRIFIÉ]` |
+
+**Verdict : `NON VIABLE` en l'état, par R2** — l'inscription et, chez Brave, la carte bancaire, sont
+des conditions d'entrée que l'agent ne peut pas franchir. Le candidat n'est pas *invalide* : il
+redevient instruisible dès que le commanditaire fournit une clé. Son rendement propre n'est pas la
+donnée mais la **découverte d'URL d'annonces vivantes** — la seule voie du lot qui en produise,
+puisqu'il n'existe aucune directive `Sitemap:` (`FINDING`, P6). En cela il est **complémentaire** de
+`C-53` et `C-54`, qui ne connaissent que le passé.
+
+**Inconnues restantes** : énumérabilité réelle d'un index par requêtes `site:` partitionnées ;
+texte des CGU sur la reconstitution de base ; nombre effectif d'URL d'offres indexées.
+
+### C-71 — urlscan.io — **NON VIABLE**
+
+| Axe | Valeur | Preuve |
+|---|---|---|
+| **A1** Coût d'amorçage | 0 € pour la recherche anonyme. **Mais l'accès au DOM exige un compte** → bloquant sous R2. | prouvé (J20, J21) |
+| **A2** Coût récurrent | Sans objet : **le corpus est vide**. 0 € / 1 000 annonces parce que 0 annonce. | prouvé |
+| **A3** Couverture champs | **0 / 40.** Aucun scan public dont la page finale soit `autoscout24.be`. | prouvé (J20) |
+| **A4** Couverture géo | **Aucune.** `page.domain:autoscout24.be` → 0 ; `page.domain:autoscout24.de` → 0. Aucun domaine national d'AutoScout24 n'a de scan public. | prouvé |
+| **A5** Latence | Recherche anonyme : réponse immédiate, non chronométrée précisément. Sans objet pour un corpus vide. | prouvé (HTTP 200 sur 8 requêtes) |
+| **A6** Débit / quota | Recherche anonyme fonctionnelle sur 9 requêtes ; quotas anonymes non publiés. Quotas annoncés pour un compte gratuit : 5 000 scans et 1 000 recherches (source : fiche `candidates-v2.md`, non revérifiée ici). | prouvé pour 9 req ; `[NON VÉRIFIÉ]` pour les quotas |
+| **A7** Stabilité technique | **1 / 5** — un corpus vide n'a pas de stabilité. La syntaxe de recherche a par ailleurs des restrictions dures : les jokers en tête et les expressions régulières sont refusés par un HTTP 403. | prouvé |
+| **A8** Résistance anti-bot | **Le scanner l'absorberait** s'il scannait. Hypothèse non testée : que le zéro observé soit précisément le fait d'Akamai bloquant le scanner. | `[NON VÉRIFIÉ]` |
+| **A9** Effort d'intégration | **Sans objet** — rien à intégrer. Pour mémoire, 2 à 3 j-h si un corpus existait. | estimé |
+| **A10** Coût de maintenance | Sans objet. | — |
+| **A11** Exposition juridique | **4 / 5** — la note la plus élevée du lot. Le seul moyen de faire exister le corpus est de **soumettre les URL nous-mêmes**, ce que la section juridique conclut être un **contournement de la réservation de l'art. 4(3) par tiers interposé**. | argumenté |
+| **A12** Autonomie | **Non.** Dépendance totale à un tiers commercial, pour un corpus qui n'existe pas. | prouvé |
+| **A13** Plafond de volumétrie | **0 annonce.** | prouvé |
+| **A14** Fraîcheur atteignable | **Sans objet** : aucune donnée, à aucune date. | prouvé |
+
+**Verdict : `NON VIABLE`**, sur **trois** causes indépendantes et cumulatives : le corpus attendu
+est vide (mesuré, avec contrôle positif) ; l'accès au DOM est fermé aux anonymes (HTTP 403) ; et la
+seule voie de constitution du corpus est juridiquement fermée par la conclusion de la section
+juridique. **Aucune des trois n'est levable par un effort technique.**
+
+**Sous-produit à conserver** : les 44 correspondances de `domain:autoscout24.be` sont une liste de
+sites de garages belges pointant vers AutoScout24 — un échantillon prêt à l'emploi pour le
+`LOT-M` — et une liste de domaines d'hameçonnage typosquattant la marque, sans intérêt pour KYCAR
+mais à ne pas confondre avec la source.
+
+**Inconnues restantes** : la cause du zéro (Akamai contre absence d'intérêt des scanneurs) ; ce que
+contiendrait un DOM post-JS d'AutoScout24 s'il existait. Les deux sont **intestables sans
+soumission**, donc closes.
+
+### C-72 — HTTP Archive / BigQuery — **NON VIABLE pour l'inventaire, dominé pour A7**
+
+| Axe | Valeur | Preuve |
+|---|---|---|
+| **A1** Coût d'amorçage | **Compte Google requis** → bloquant sous R2. `bq` et `gcloud` absents de la machine : **aucune requête n'a pu être émise**. Facturation activée non nécessaire pour rester dans le palier gratuit. | prouvé (J22), documenté (J23) |
+| **A2** Coût récurrent | Palier gratuit **1 To/mois**. Requête ciblée sur les colonnes de clustering : **≈ 1 Go/mois**, soit **0,1 % du palier — gratuit**. Requête touchant `payload` ou `crawl.requests` : **30 To et 199 To par mois de crawl**, soit **≈ 181 $ pour un seul `SELECT *`** sur `crawl.pages` à 6,25 $/To hors palier. **€ / 1 000 annonces : non calculable — la table ne contient pas d'annonces.** | documenté (J23) puis calculé |
+| **A3** Couverture champs | **0 / 40 champs d'annonce.** Le crawl est un crawl de pages d'entrée (« does not crawl the website's other pages »), issu du Chrome UX Report. Pour la **structure**, la colonne `payload` porte le HTML et donc `__NEXT_DATA__`. | documenté (J24) |
+| **A4** Couverture géo | Toute origine présente dans CrUX, donc `autoscout24.be` comme `.de`, `.nl`, etc. **Présence effective non vérifiée** : elle exige la requête, donc le compte. | `[NON VÉRIFIÉ]` |
+| **A5** Latence | `[NON VÉRIFIÉ]` — aucune requête émise. Ordre de grandeur BigQuery pour ~1 Go : quelques secondes. Un « snapshot BE » n'a pas de sens ici : la table rend 1 à 2 lignes par mois de crawl. | `[NON VÉRIFIÉ]` |
+| **A6** Débit / quota | **1 To de données traitées par mois** ; le débit n'est pas la contrainte, le volume balayé l'est. | documenté |
+| **A7** Stabilité technique | **5 / 5** intrinsèquement — jeu public, mensuel, versionné, requêtable en SQL. Mais **dominé sur son propre terrain** : ce rapport a daté la migration Next.js à cinq semaines près (J08) et compté trois générations de `listingDetails` (J09) **sans compte Google et sans BigQuery**. | argumenté |
+| **A8** Résistance anti-bot | **Non concerné.** | documenté |
+| **A9** Effort d'intégration | **1 à 2 j-h** pour une requête SQL et son export. Aucun adaptateur `DataProvider` : la source ne sert pas d'annonces. | estimé |
+| **A10** Coût de maintenance | **0,1 j-h / mois**. | argumenté |
+| **A11** Exposition juridique | **1 / 5** — la plus faible du lot. Jeu de données public, financé et hébergé par Google, expressément destiné à la recherche ; les pages retenues sont des pages d'entrée, et la surface d'entrée d'AutoScout24 est en `Allow` pour `*`. | argumenté |
+| **A12** Autonomie | **Non.** Dépendance à Google Cloud pour l'exécution, et à HTTP Archive pour la publication. | documenté |
+| **A13** Plafond de volumétrie | **De l'ordre de 1 à 2 lignes par mois de crawl** — une page d'entrée × deux profils client (desktop, mobile). Le schéma comporte une colonne `is_root_page`, ce qui suggère que des pages secondaires sont crawlées depuis 2022 et que la FAQ est en retard ; **le nombre effectif d'URL `autoscout24.be` par crawl reste `[NON VÉRIFIÉ]`**, et c'est exactement ce qu'un `--dry_run` puis une requête ciblée à ~1 Go établiraient gratuitement. | documenté ; `[NON VÉRIFIÉ]` pour le compte |
+| **A14** Fraîcheur atteignable | **Mensuelle**, avec un décalage de publication de quelques jours à quelques semaines. Compatible avec H4 dans l'absolu, mais sans objet : il n'y a pas d'annonces à rafraîchir. | documenté |
+
+**Verdict : `NON VIABLE` pour l'inventaire** — la table ne contient pas d'annonces, par construction
+du crawl et non par accident. **Dominé pour l'axe A7** par `C-53`, qui rend la même information de
+structure, sur une profondeur plus fine, sans compte et sans risque de facturation.
+**`[NON VÉRIFIÉ]` unique et cheap à lever** : la présence et le nombre d'URL `autoscout24.be` par
+crawl, à établir par un `--dry_run` puis une requête ciblée d'environ 1 Go — donc gratuitement, dès
+que le commanditaire ouvre un compte Google.
+
+**Inconnues restantes** : nombre d'URL `autoscout24.be` par crawl ; existence de pages secondaires
+au-delà de la racine ; contenu réel de `payload` pour ces pages.

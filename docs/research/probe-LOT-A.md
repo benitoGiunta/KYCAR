@@ -389,7 +389,7 @@ faux de façon crédible.
 | **4 min 38 s** | `corsa_fr_1` (01:17:48, `MISS`) contre `corsa_ctl` (01:22:26, `STALE`) | recouvrement **15/20**, soit **5 annonces nouvelles** → deux générations de rendu circulent, dont l'union fait 25 |
 | **6 à 14 min**, 10 rendus dont **3 `MISS` francs** (`cr_4`, `late_a`) | 8 tirages `?kycar=1…8` + `late_a` + `late_b` | **+0 annonce nouvelle**. Un rendu **frais** reproduit le même vivier de 25 : le plafond est **une règle de sélection du backend**, pas un hasard de cache. |
 | **locale `nl-BE`** (`/nl/auto/opel/opel-corsa/`, `totalItems` 1 282) | contre l'union `fr-BE` de 25 | recouvrement **14/20**, soit **6 annonces nouvelles** → **union bilingue = 31 annonces, 2,42 % des 1 281**. La seconde langue est une voie de rendu distincte et élargit le vivier de 24 %. |
-| **~24 h** | le vendeur « Youssef Yaghzar », relevé le 2026-09-06 par `FINDING-allowed-surface.md` sur `/fr/voiture/opel/`, est **toujours servi** le 2026-09-07, passé de la position 0 à la position 1 | rotation **partielle** : l'ordre bouge, la composition persiste |
+| **~24 h** | l'annonce d'un vendeur professionnel (« vendeur-α », nom anonymisé), relevée le 2026-09-06 par `FINDING-allowed-surface.md` sur `/fr/voiture/opel/`, est **toujours servie** le 2026-09-07, passée de la position 0 à la position 1 | rotation **partielle** : l'ordre bouge, la composition persiste |
 
 La rotation observée relève du **ré-ordonnancement, pas du ré-échantillonnage**.
 Le mandat propose de rappeler la même URL à plusieurs heures d'intervalle pour voir si l'échantillon
@@ -1211,7 +1211,7 @@ Les données collectées ne constituent pas une extraction : **au total 74 annon
 donnée n'a été persistée dans le dépôt : les corps HTML et JSON bruts sont dans le scratchpad de
 session. Aucun champ identifiant de vendeur (`seller.contactName`, `seller.companyName`,
 `seller.id`) n'est reproduit dans ce rapport, **à une exception assumée** : le nom
-« Youssef Yaghzar », déjà publié dans `FINDING-allowed-surface.md`, est cité au § V.7 parce qu'il
+un vendeur professionnel (nom anonymisé, désigné « vendeur-α »), déjà publié dans `FINDING-allowed-surface.md`, est cité au § V.7 parce qu'il
 constitue l'unique mesure de rotation à 24 h dont ce lot dispose. Point à signaler pour le nettoyage
 RGPD du dépôt (règle R3 de `00-CONTEXT.md`) : **deux documents du dépôt portent désormais ce nom**,
 et ils devraient l'un et l'autre l'anonymiser une fois la mesure consignée.
