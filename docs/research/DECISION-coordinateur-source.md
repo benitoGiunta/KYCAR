@@ -32,9 +32,9 @@ coordinateur le 2026-09-07 : `GET /l/auto-s/`, HTTP 200, `totalResultCount = 100
 par page, aucune signature Akamai / DataDome / Cloudflare), et **≥ 25 des 40 champs cibles** par
 annonce, y compris le type de vendeur (H3), la région, la norme Euro belge et l'URL Car-Pass.
 
-C'est une voie **gratuite, autonome, licite et sans anti-bot** vers un marché belge de l'occasion
-réel et de volume comparable à AutoScout24 (~100 k contre ~121 k annonces BE). `marktplaats.nl`
-(même pile Adevinta) étend le modèle aux Pays-Bas avec le même adaptateur.
+C'est une voie **gratuite, autonome, licite et sans anti-bot** vers les **agrégats** d'un marché
+belge de l'occasion réel et de volume comparable à AutoScout24 (~100 k contre ~121 k annonces BE).
+`marktplaats.nl` (même pile Adevinta) étend le modèle aux Pays-Bas avec le même adaptateur.
 
 **Vérification de conformité faite par le coordinateur** : le `robots.txt` de 2dehands ne porte
 aucune règle interdisant `/l/auto-s/` ; les seuls `Disallow` pertinents visent les listings de
@@ -42,11 +42,58 @@ profils (`/u/*/*/l/*`) et l'API interne (`/lrp/api/*`, dont `/lrp/api/search`), 
 explicitement laissés de côté. La discipline appliquée à AutoScout24 vaut pour 2dehands : on lit ce
 qui est autorisé, pas l'API interne.
 
-## La décision
+## CORRECTION MAJEURE — mon premier jugement était prématuré (audit 1.5)
 
-**La source de production de KYCAR passe d'AutoScout24 à 2dehands.be (Belgique) et marktplaats.nl
-(Pays-Bas), via leur surface `__NEXT_DATA__` autorisée.** AutoScout24 reste présent au dossier à
-trois titres seulement, tous non contraignants :
+**La première rédaction de cette décision présentait 2dehands comme la source de production du
+mode 2 (les distributions). C'était faux, et l'audit croisé de la phase 1.5 l'a démontré. Je le
+corrige sans détour, parce que c'est une erreur de coordinateur, pas d'agent.**
+
+`audit-1` a noté que je n'avais jamais appliqué à 2dehands le protocole de biais qui avait fermé le
+mode 2 sur AutoScout24 — j'avais vérifié le compte, la licéité et l'absence d'anti-bot, mais **pas
+la représentativité de l'échantillon accessible**. Je l'ai mesuré moi-même le 2026-09-07, et le
+résultat est sans appel :
+
+- **La pagination licite est plafonnée** : `maxAllowedPageNumber = 167` × 30 = **~5 010 annonces
+  atteignables**, pas 100 186. Le reste n'est accessible que par l'API interne `/lrp/api/`, interdite.
+- **L'échantillon accessible est massivement promu** : page 1, **29/30 DAGTOPPER** (annonces payantes
+  mises en avant) ; page 50, **28/30 DAGTOPPER**. Le flux organique exige, là aussi, l'API interne
+  interdite.
+
+**C'est le même mode de défaillance que sur AutoScout24** : la surface licite ne sert qu'un
+échantillon biaisé par le produit publicitaire. 2dehands ne *résout* donc pas le mode 2 — il le
+*déplace*. Toute distribution construite sur les ~5 010 annonces paginables serait fausse de la
+même façon, et de façon crédible.
+
+### Ce qui tient, et ce qui ne tient pas
+
+| Mode | Sur 2dehands (surface licite) | Verdict |
+|---|---|---|
+| **Mode 1** — agrégats : nombre d'offres par marque/modèle, fourchettes | `totalResultCount` est exhaustif par construction, comme sur AutoScout24 | **ACQUIS**, licite, gratuit |
+| **Mode 2** — distributions fines, détection d'outliers | seul un échantillon de ~5 010 annonces, ~95 % promues, est accessible licitement | **NON ACQUIS** — même biais qu'AutoScout24 |
+
+### Conclusion corrigée du chantier 1
+
+Il n'existe, sur **aucune** des sources testées (AutoScout24 ni 2dehands), de voie **gratuite,
+autonome et licite** vers un échantillon **non biaisé** d'annonces individuelles — le matériau du
+mode 2. Les deux portails n'exposent librement que des agrégats plus un échantillon promu.
+
+Le mode 2 exige donc l'un de :
+1. **un fournisseur payant** (`LOT-F`, médiane ~1,31 €/1 000 annonces après correction d'audit) — à
+   condition que ses CGU et le droit *sui generis* le permettent ;
+2. **un canal contractuel** (SEARCH API AutoScout24, ou accord 2dehands/Adevinta) ;
+3. **le dataset synthétique** pour la mécanique du mode 2 en développement et démonstration, le
+   temps qu'une des deux voies ci-dessus soit financée.
+
+**Score d'audit de 2dehands comme source mode 2 : 58/100.** Score comme socle mode 1 : élevé.
+
+## La décision (révisée après audit)
+
+**Pour le mode 1 (agrégats), la source de production passe à 2dehands.be (Belgique) et
+marktplaats.nl (Pays-Bas), via leur surface `__NEXT_DATA__` autorisée** — c'est acquis, licite et
+gratuit. **Pour le mode 2 (distributions), aucune source gratuite et licite ne fournit un
+échantillon non biaisé** ; il est construit sur le **dataset synthétique** (clairement étiqueté
+`SYNTHETIC`, exigence `EX-DATA-107`) jusqu'à financement d'un fournisseur payant ou d'un accord
+contractuel. AutoScout24 reste présent au dossier à trois titres seulement, tous non contraignants :
 
 1. **Source du référentiel de classification** — la taxonomie marque/modèle et les énumérations,
    relevées via l'API officielle ouverte (`listing-creation.api`), restent valables comme
