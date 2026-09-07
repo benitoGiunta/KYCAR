@@ -42,8 +42,8 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 1.4 vague 1 — `LOT-J` archives | `probe-J` | Opus / high | `docs/research/probe-LOT-J.md` | VALIDÉ — **série de prix reconstructible** (620k captures) ; directive anti-IA récente (post 2025-12) ; soumission d'archive = contournement TDM |
 | 1.4 vague 2 — `LOT-CD` payloads front | `probe-CD` | Sonnet / high | `docs/research/probe-LOT-CD.md` | VALIDÉ — 0 requête AS24 ; mécanique de dichotomie chiffrée (N buckets = N requêtes) |
 | 1.4 vague 2 — `LOT-I` datasets | `probe-I` | Sonnet / med-high | `docs/research/probe-LOT-I.md` | VALIDÉ — C-67 mesure le biais agrégé mais pas sa cause publicitaire ; provenance sévère |
-| 1.4 vague 2 — `LOT-G/H/M/N` | `probe-GH` / `probe-M` / `probe-N` | à lancer | idem | EN COURS |
-| 1.4 vague 3 — `LOT-K/L/O/P/Q` | `probe-K` / `probe-LO` / `probe-PQ` | à lancer | idem | EN COURS |
+| 1.4 vagues 2-3 — batch 1 | `probe-K` / `probe-N` / `probe-LO` | Sonnet/Opus/Sonnet | `probe-LOT-{K,N,LO}.md` | EN COURS — relancés après coupure simultanée par la limite de session |
+| 1.4 vagues 2-3 — batch 2 | `probe-M` / `probe-GH` / `probe-PQ` | Opus/Sonnet/Sonnet | `probe-LOT-{M,GH,PQ}.md` | EN ATTENTE — lancés après le batch 1 pour éviter un nouveau mur simultané |
 | 1.5 Audit croisé | `audit-A…n` | Sonnet / high | `docs/research/audit-*.md` | À FAIRE |
 | 1.6 Compilation et stress-test | `compile-1` | Opus / max | `docs/research/DATA-ACQUISITION-REPORT.md` | À FAIRE |
 
