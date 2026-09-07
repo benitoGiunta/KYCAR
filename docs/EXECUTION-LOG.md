@@ -43,7 +43,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 1.4 vague 2 — `LOT-CD` payloads front | `probe-CD` | Sonnet / high | `docs/research/probe-LOT-CD.md` | VALIDÉ — 0 requête AS24 ; mécanique de dichotomie chiffrée (N buckets = N requêtes) |
 | 1.4 vague 2 — `LOT-I` datasets | `probe-I` | Sonnet / med-high | `docs/research/probe-LOT-I.md` | VALIDÉ — C-67 mesure le biais agrégé mais pas sa cause publicitaire ; provenance sévère |
 | 1.4 Investigation vagues 2-3 | probe-{M,N,CD,GH,I,K,LO,PQ} | Opus/Sonnet | probe-LOT-*.md | VALIDE — 12 lots restants instruits, 17/17 au total |
-| 1.5 Audit croisé | `audit-A…n` | Sonnet / high | `docs/research/audit-*.md` | À FAIRE |
+| 1.5 Audit croisé | `audit-{decisif,juridique,economie}` | Sonnet / high | `docs/research/audit-cluster-*.md` | VALIDÉ — 3 clusters. Juridique : 3 limites tiennent (5/5). Économie : 2 corrections chiffrées (dénominateur 40, médiane ~1,31 €/1000). Décisif : mon jugement sur 2dehands était prématuré → `DECISION-coordinateur-source.md` corrigée (mode 2 NON acquis, même biais publicitaire) |
 | 1.6 Compilation et stress-test | `compile-1` | Opus / max | `docs/research/DATA-ACQUISITION-REPORT.md` | À FAIRE |
 
 ## Chantier 2 — Application d'agrégation
@@ -63,7 +63,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 2.2 Application annexe C | `fix-annexe-C` | Sonnet / high | `reports/applied-annexe-C.md` | VALIDÉ — 24/24, 96 → 114 exigences |
 | 2.2 Résidus | `fix-residus` | Sonnet / high | `reports/applied-residus.md` | LIVRÉ — 11/11 résidus soldés, 0 bloqué. Balayage `RES-9` : 65/65 décisions vérifiées, 3 prescriptions manquantes trouvées sur 2 emplacements (`EX-DATA-106` déjà réparé par le coordinateur avant ce passage ; `EX-SCR-26`/`ARB-39` appliqué ici). Annexe A : 139 → 140 exigences (+`EX-DATA-115bis`). Annexes B (231) et C (114) inchangées en compte |
 | 2.2 Gel v1.0 | (moi) | — | REQUIREMENTS v1.0 | VALIDÉ — 485 exigences, zéro bloquant ou majeur ouvert, 8 dettes consignées |
-| 2.3 Architecture | `arch-lead` | Opus / high | `docs/plans/ARCHITECTURE.md` | À FAIRE — non lancé |
+| 2.3 Architecture | `arch-lead` | Opus / high | `docs/plans/ARCHITECTURE.md`, `docs/plans/DataProvider.ts` | VALIDÉ — pile 100 % client justifiée (274 Mo < 512, ×1,9) ; `DataProvider.ts` compile sous `tsc --strict` (0 erreur), mode 1 obligatoire / mode 2 optionnel + garde `servesMode2`, filtrage R3 par construction ; budget 200 ms tenu (170 ms synchrones, facettes différées, mode 2 élagué) ; graphe D1–D9 acyclique ; 3 tensions frontière annexe A/B signalées (§9 : « rotation » G4, plafond 5 000 vs 20 000, marge EX-NFR-9) → à traiter en 2.6 |
 | 2.4 Développement D1–D9 | `dev-D*` | voir plan 2 | code | À FAIRE |
 | 2.5 Revue de développement | `rev-D*` | Opus / Sonnet high | `reports/DEV-REVIEW.md` | À FAIRE |
 | 2.6 Remédiation | `fix-lead` + `fix-*` | Opus high + Sonnet high | `reports/REMEDIATION.md` | À FAIRE |
