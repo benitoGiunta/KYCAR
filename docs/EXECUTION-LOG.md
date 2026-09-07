@@ -35,7 +35,8 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 1.1b Constat sur la surface autorisée | (moi) | — | `docs/research/FINDING-allowed-surface.md` | VALIDÉ — C-14 prouvé : agrégats et échantillon d'annonces accessibles licitement |
 | 1.2 Revue de complétude 1 | `gap-review-1` | Opus / high | `docs/research/candidates-v2.md` | VALIDÉ — 18 ajouts C-67…C-84, 3 familles nouvelles, registre à 84 candidats / 17 familles. C-67 vérifié et reclassé (voir `VERIF-C67-fdz.md`) |
 | 1.3 Revue de complétude 2 | `gap-review-2` | Opus / high | `docs/research/candidates-final.md` | VALIDÉ — registre gelé, 92 candidats, 17 lots organisés en vagues, saturation argumentée |
-| 1.4 Investigation prouvée | `probe-A…n` | Opus ou Sonnet / high | `docs/research/probe-*.md` | À FAIRE |
+| 1.4 Investigation — vague 1 | probe-A / probe-B / probe-E / probe-F / probe-J | Opus high x4 + Sonnet med-high | docs/research/probe-LOT-*.md | EN COURS — 5 lots des 17, ceux qui decident |
+| 1.4 Investigation — vagues 2 et 3 | probe-C/D/G/H/I/M/N + probe-K/L/O/P/Q | a definir | idem | A FAIRE — 12 lots restants |
 | 1.5 Audit croisé | `audit-A…n` | Sonnet / high | `docs/research/audit-*.md` | À FAIRE |
 | 1.6 Compilation et stress-test | `compile-1` | Opus / max | `docs/research/DATA-ACQUISITION-REPORT.md` | À FAIRE |
 
