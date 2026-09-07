@@ -35,9 +35,15 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 1.1b Constat sur la surface autorisée | (moi) | — | `docs/research/FINDING-allowed-surface.md` | VALIDÉ — C-14 prouvé : agrégats et échantillon d'annonces accessibles licitement |
 | 1.2 Revue de complétude 1 | `gap-review-1` | Opus / high | `docs/research/candidates-v2.md` | VALIDÉ — 18 ajouts C-67…C-84, 3 familles nouvelles, registre à 84 candidats / 17 familles. C-67 vérifié et reclassé (voir `VERIF-C67-fdz.md`) |
 | 1.3 Revue de complétude 2 | `gap-review-2` | Opus / high | `docs/research/candidates-final.md` | VALIDÉ — registre gelé, 92 candidats, 17 lots organisés en vagues, saturation argumentée |
-| 1.4 Investigation — vague 1 | `probe-A` / `probe-B` / `probe-E` / `probe-F` / `probe-J` | Opus high ×4 + Sonnet med-high | `docs/research/probe-LOT-*.md` | EN COURS — 5 lots sur 17, ceux qui décident |
-| 1.4 Investigation — vague 2 | `probe-C` / `D` / `G` / `H` / `I` / `M` / `N` | à définir | idem | À FAIRE — 7 lots de substitution et de contournement |
-| 1.4 Investigation — vague 3 | `probe-K` / `L` / `O` / `P` / `Q` | à définir | idem | À FAIRE — 5 lots documentaires et institutionnels |
+| 1.4 vague 1 — `LOT-A` surface autorisée | `probe-A` | Opus / high | `docs/research/probe-LOT-A.md` | VALIDÉ — **échantillon 20 annonces biaisé, p<10⁻²⁰ ; mode 2 inutilisable en l'état, O9 fermé**. C-14 viable sous condition (agrégats oui, distributions non) |
+| 1.4 vague 1 — `LOT-B` hôtes et binaires | `probe-B` | Opus / high | `docs/research/probe-LOT-B.md` + `DECISION-coordinateur-LOT-B.md` | VALIDÉ — pas d'hôte de recherche sans auth ; verrou GraphQL documenté mais accès = ligne rouge (accès non autorisé) |
+| 1.4 vague 1 — `LOT-E` code tiers | `probe-E` | Opus / high | `docs/research/probe-LOT-E.md` | VALIDÉ — faisabilité technique prouvée en prod (808k annonces, sans proxy), mais A11 la condamne. A7 mesuré : NEXT_DATA 4/5, DOM 1/5 |
+| 1.4 vague 1 — `LOT-F` fournisseurs | `probe-F` | Sonnet / med-high | `docs/research/probe-LOT-F.md` | VALIDÉ — delta AS24 confirmé (auto-api.com), médiane ~1,94 €/1000 annonces, coût non limitant |
+| 1.4 vague 1 — `LOT-J` archives | `probe-J` | Opus / high | `docs/research/probe-LOT-J.md` | VALIDÉ — **série de prix reconstructible** (620k captures) ; directive anti-IA récente (post 2025-12) ; soumission d'archive = contournement TDM |
+| 1.4 vague 2 — `LOT-CD` payloads front | `probe-CD` | Sonnet / high | `docs/research/probe-LOT-CD.md` | VALIDÉ — 0 requête AS24 ; mécanique de dichotomie chiffrée (N buckets = N requêtes) |
+| 1.4 vague 2 — `LOT-I` datasets | `probe-I` | Sonnet / med-high | `docs/research/probe-LOT-I.md` | VALIDÉ — C-67 mesure le biais agrégé mais pas sa cause publicitaire ; provenance sévère |
+| 1.4 vague 2 — `LOT-G/H/M/N` | `probe-GH` / `probe-M` / `probe-N` | à lancer | idem | EN COURS |
+| 1.4 vague 3 — `LOT-K/L/O/P/Q` | `probe-K` / `probe-LO` / `probe-PQ` | à lancer | idem | EN COURS |
 | 1.5 Audit croisé | `audit-A…n` | Sonnet / high | `docs/research/audit-*.md` | À FAIRE |
 | 1.6 Compilation et stress-test | `compile-1` | Opus / max | `docs/research/DATA-ACQUISITION-REPORT.md` | À FAIRE |
 
