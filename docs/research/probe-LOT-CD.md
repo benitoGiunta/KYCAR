@@ -545,9 +545,3 @@ propres à chaque candidat listées dans `candidates-v1.md`.
 
 *Fin du document. Compteur final de requêtes tierces : **17 / 50**. Aucune requête vers un domaine
 `autoscout24.*` n'a été émise par cet agent, sur aucun TLD.*
-
----
-
-## ACTIONS-COMMANDITAIRE
-
-*(à remplir)*

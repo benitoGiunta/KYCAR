@@ -143,3 +143,136 @@ ce lot.
   reclassement deja acte.
 - **Acces** : convention de donnees signee obligatoire, reserve aux chercheurs d'institutions
   scientifiques, usage non commercial — confirme sur les deux versions, aucun assouplissement.
+
+---
+
+## Inventaire des datasets
+
+| Nom | Source | Provenance verifiable | Volumetrie | Periode | Perimetre geo | Licence | Acces | Verdict d'exploitabilite |
+|---|---|---|---|---|---|---|---|---|
+| RWI-GEO-CARMKT V2 (C-67) | FDZ Ruhr / RWI, partenariat officiel AS24 | **OUI** — partenariat nomme, DOI, documentation officielle complete | ~30,8M annonces (population complete) | 01/2019-12/2024 | Allemagne seule (FR/IT nommes sans date ; BE absente) | Scientific Use File, non commercial, convention obligatoire | Convention signee + affiliation institutionnelle | **Instrument de validation methodologique uniquement** — non viable comme source produit |
+| `autoscout24_dataset_20251108.csv` (C-39, Zenodo) | Individu communautaire (« Çelik, Muhammed ») | **NON** — « collected from public listings », aucune methode, aucune periode, aucun TLD source precise | ~120 000 annonces, 60+ champs | Snapshot unique, depose 18/11/2025 (deja > 6 mois au 07/09/2026) | Multi-marches europeens revendiques, non confirme (pas de liste de pays) | MIT | Telechargement direct sans compte | **VIABLE SOUS CONDITION** pour prototypage isole, jamais comme reference |
+| `clkmuhammed/autoscout24-car-listings-dataset` (C-38, Kaggle) | Meme auteur que ci-dessus, republie sur Kaggle | **NON** — identique au jeu Zenodo, meme provenance non verifiable | ~120 000 annonces | Idem Zenodo | Idem Zenodo | Non confirmee | Compte Kaggle requis pour telechargement | **VIABLE SOUS CONDITION**, identique a C-39 (memes reserves) — ne pas compter deux fois dans un tableau de decision |
+| `ander289386/cars-germany` (C-38, Kaggle) | Auteur individuel, demo produit ZenRows.com | **OUI, partiellement** — outil de scraping nomme, mais jeu explicitement qualifie de « faux advertisement » demonstratif | 46 405 lignes, **9 champs seulement** | 2011-2021 | Allemagne | Non precisee | Compte Kaggle requis | **NON VIABLE** — fraicheur nulle (H4 violee), schema trop pauvre (pas de code postal, pas de date de creation) |
+| `promptcloud/autoscout-automotive-data` (C-38, Kaggle) | PromptCloud (prestataire commercial de scraping) | `[NON VÉRIFIÉ]` — prestataire identifie, methode/periode/perimetre non retrouves sans rendu JS ; mirroir data.world **ferme** (13/07/2026) | Non determine | Non determine | Non determine | Non determine | Compte Kaggle requis | `[NON VÉRIFIÉ]` — a re-qualifier si l'acces Kaggle est obtenu (ACTIONS-COMMANDITAIRE) |
+| `mexwell/autoscout-data` (C-38, Kaggle) | Auteur individuel | `[NON VÉRIFIÉ]` — page bloquee au rendu JS, aucune description indexee retrouvee | Non determine | Non determine | Non determine | Non determine | Compte Kaggle requis | `[NON VÉRIFIÉ]` |
+| `huseyincenik/as24-cars` (C-38, Kaggle) | Auteur individuel | `[NON VÉRIFIÉ]` — aucune fiche indexee retrouvee | Non determine | Non determine | Non determine | Non determine | Compte Kaggle requis | `[NON VÉRIFIÉ]` |
+| Hugging Face Datasets (C-40) | — | N/A — **aucun jeu n'existe** | — | — | — | — | — | **NON VIABLE** — question falsifiable tranchee FAUSSE (0 resultat pour « autoscout24 », 1 faux positif sans rapport pour « autoscout ») |
+| Jeu B2C ProbSAINT / TabResFlow (C-83) | Volkswagen Financial Services (proprietaire), sources multiples dont autoscout24 et mobile.de | **OUI pour la source déclarée, NON pour l'accès** — méthode d'agrégation interne non publiée, jeu jamais depose publiquement | ~2M (ProbSAINT, 07/2018-08/2022) puis 2 239 473 (TabResFlow, 02/2022-02/2024) | Voir ci-dessus | Allemagne (extension IT/ES/CZ evoquee pour le deploiement du modele, pas pour le jeu) | Propriétaire VWFS, non publique | Aucun — donnee interne d'entreprise | **NON VIABLE** — ne peut pas etre une source d'acquisition ; utile uniquement comme reference de benchmark academique (NLL/MAPE publies) |
+| `AutoScout24-CH` / `AutoScout24-DE` nommes par l'article Medium (C-83) | Non identifie au-dela de l'article (403 sur re-verification) | `[NON VÉRIFIÉ]` — aucun depot public retrouve malgre recherche ciblee | 119 414 / 558 295 annonces (chiffres non re-verifies) | Non precisee | Suisse / Allemagne | Non determinee | Non determine | **NON VIABLE en l'etat** — aucune trace de disponibilite publique |
+
+---
+
+## Candidats
+
+### C-67 — FDZ Ruhr / RWI-GEO-CARMKT (instrument de validation, pas source produit)
+
+| Axe | Valeur | Niveau de preuve |
+|---|---|---|
+| A1 Cout d'amorcage | 0 € (mais cout en demarches de convention + affiliation institutionnelle) | documente |
+| A2 Cout recurrent | Sans objet comme canal produit — usage prevu en one-shot pour calibration, pas de flux BE | documente |
+| A3 Couverture champs | 38 variables documentees ; prix/km/annee/carburant/code postal/marque/modele presents ; **aucun marqueur de mise en avant publicitaire ni de position** | prouve |
+| A4 Couverture geo | Allemagne seule ; France et Italie nommees sans date ; Belgique absente de toute annonce | prouve |
+| A5 Latence | Sans objet — livraison de fichier en bloc, pas d'API | non applicable |
+| A6 Debit / quota | Sans objet — livraison sur convention, pas de requetes | documente |
+| A7 Stabilite technique | Sans objet (pas un endpoint) ; stabilite documentaire forte (deux versions, memes 38 champs) | argumente |
+| A8 Resistance anti-bot | Non concerne — canal contractuel direct AS24 -> RWI | prouve |
+| A9 Effort d'integration | Quelques jours-homme d'analyse statistique une fois le fichier obtenu ; aucune integration `DataProvider` (ce n'est pas un canal produit) | estime |
+| A10 Cout de maintenance | Nul en usage ponctuel ; un recalibrage periodique impliquerait une nouvelle demande d'acces | argumente |
+| A11 Exposition juridique | Faible si la convention est respectee, mais **KYCAR n'est pas un usage de recherche scientifique** au sens du contrat — l'eligibilite meme de l'acces est incertaine (2/5) | argumente |
+| A12 Autonomie | Dependance totale a un tiers (RWI) pour l'acces et son renouvellement — **dependant** | documente |
+| A13 Plafond de volumetrie | Aucun plafond ; jeu complet (~30,8M lignes V2) | prouve |
+| A14 Fraicheur atteignable | Nulle pour un usage produit (V2 s'arrete 12/2024, versions espacees de plusieurs mois) ; non pertinente pour un usage de calibration ponctuelle | argumente |
+
+**Verdict : VIABLE SOUS CONDITION**, mais uniquement dans son role reclasse d'instrument de mesure du biais (rattache a O9), jamais comme source d'alimentation du produit (motif deja tranche par VERIF-C67-fdz.md, confirme et precise ici).
+
+**Inconnues restantes** : eligibilite reelle de KYCAR (usage personnel/interne, H2) au regime "recherche scientifique" exige par la convention RWI ; delai et cout reels d'obtention d'une convention pour un porteur sans affiliation academique.
+
+### C-39 — Zenodo `autoscout24_dataset_20251108.csv`
+
+| Axe | Valeur | Niveau de preuve |
+|---|---|---|
+| A1 Cout d'amorcage | 0 € | prouve |
+| A2 Cout recurrent | 0 € / 1000 annonces (fichier statique gratuit) ; pas de flux recurrent — snapshot unique | documente |
+| A3 Couverture champs | 60+ champs annonces (id, description, ratings, prix, devise...) ; detail exact non obtenu (R3 : pas de telechargement du fichier de 548,6 Mo) | `[NON VÉRIFIÉ]` partiel |
+| A4 Couverture geo | « Multiple European markets » revendique, codes pays presents mais liste non confirmee ; presence belge non etablie | `[NON VÉRIFIÉ]` |
+| A5 Latence | Sans objet — fichier statique | non applicable |
+| A6 Debit / quota | Telechargement unique, 548,6 Mo | documente |
+| A7 Stabilite technique | Sans objet ; risque de disparition si l'auteur retire le depot (mono-contributeur) | argumente |
+| A8 Resistance anti-bot | Non concerne (fichier deja constitue) | prouve |
+| A9 Effort d'integration | Faible si le schema se confirme a la lecture, mais alourdi par la necessite de re-valider chaque champ faute de documentation | estime |
+| A10 Cout de maintenance | Eleve a terme : aucune garantie de mise a jour, tout recalage impose une nouvelle collecte par l'auteur original | argumente |
+| A11 Exposition juridique | **Provenance non tracable** = risque que le jeu source lui-meme resulte d'une extraction non autorisee d'AS24 (droit sui generis) ; republier ou s'appuyer dessus transfere ce risque a KYCAR (3/5) | argumente |
+| A12 Autonomie | Dependant d'un contributeur communautaire unique sans garantie de continuite | documente |
+| A13 Plafond de volumetrie | Fixe a ~120 000 lignes (pas de mecanisme d'actualisation) | prouve |
+| A14 Fraicheur atteignable | Figee au 08/11/2025 ; deja superieure a 6 mois au 07/09/2026 — **H4 (fraicheur) violee** pour un usage productif | prouve |
+
+**Verdict : VIABLE SOUS CONDITION** — utilisable uniquement comme jeu de prototypage jetable pour tester le moteur d'agregation, jamais comme reference de validation ni comme source produit, en raison de la provenance non tracable.
+
+**Inconnues restantes** : liste exacte des pays couverts ; methode de collecte reelle ; conformite de la collecte originelle au droit sui generis d'AS24 (question qui rejaillit sur KYCAR en cas de reutilisation).
+
+### C-38 — Datasets Kaggle AutoScout24 (5 fiches)
+
+| Axe | Valeur | Niveau de preuve |
+|---|---|---|
+| A1 Cout d'amorcage | 0 € (mais necessite un compte Kaggle -> R2/E1, `ACTIONS-COMMANDITAIRE`) | documente |
+| A2 Cout recurrent | 0 € / 1000 annonces ; aucun jeu n'offre de flux recurrent | documente |
+| A3 Couverture champs | Tres variable : 9 champs pour `ander289386` (pauvre) a 60+ pour `clkmuhammed` (riche mais non verifie) | prouve/mixte |
+| A4 Couverture geo | Allemagne pour la quasi-totalite des fiches identifiees ; aucune couverture belge etablie | documente |
+| A5 Latence | Sans objet | non applicable |
+| A6 Debit / quota | Telechargement de fichiers statiques, tailles variables | documente |
+| A7 Stabilite technique | Sans objet ; risque de retrait par l'auteur, comme toute la famille Kaggle | argumente |
+| A8 Resistance anti-bot | Non concerne | prouve |
+| A9 Effort d'integration | Faible a moyen selon le jeu retenu | estime |
+| A10 Cout de maintenance | Eleve : aucun de ces jeux n'est mis a jour selon un calendrier publie | argumente |
+| A11 Exposition juridique | Variable : `ander289386` documente sa methode (scraping via outil demo) donc traçable mais tout aussi expose au droit sui generis qu'un scraping direct ; les autres sont opaques (3/5 en moyenne) | argumente |
+| A12 Autonomie | Dependant de comptes individuels Kaggle, aucune garantie de perennite | documente |
+| A13 Plafond de volumetrie | De 46 405 (`ander289386`) a ~120 000 (`clkmuhammed`) lignes selon le jeu | prouve |
+| A14 Fraicheur atteignable | Mauvaise a nulle : le jeu le plus documente (`ander289386`) s'arrete en 2021 ; le plus recent (`clkmuhammed`) date de fin 2025 mais deja hors fenetre de 6 mois | prouve |
+
+**Verdict : VIABLE SOUS CONDITION** pour un usage de prototypage strictement interne et non republie ; le telechargement effectif exige un compte Kaggle, donc relève de `ACTIONS-COMMANDITAIRE` (R2). Aucun de ces jeux ne satisfait a la fois provenance verifiable, fraicheur et couverture belge.
+
+**Inconnues restantes** : contenu exact de `promptcloud/autoscout-automotive-data`, `mexwell/autoscout-data` et `huseyincenik/as24-cars` (pages bloquees au rendu JS pour un fetch non authentifie ; nécessiteraient soit un compte Kaggle, soit l'API Kaggle avec cle).
+
+### C-40 — Hugging Face Datasets
+
+| Axe | Valeur | Niveau de preuve |
+|---|---|---|
+| A1 Cout d'amorcage | Sans objet — aucun jeu n'existe | prouve |
+| A2 Cout recurrent | Sans objet | prouve |
+| A3 Couverture champs | Sans objet | prouve |
+| A4 Couverture geo | Sans objet | prouve |
+| A5 Latence | Sans objet | prouve |
+| A6 Debit / quota | Sans objet | prouve |
+| A7 Stabilite technique | Sans objet | prouve |
+| A8 Resistance anti-bot | Sans objet | prouve |
+| A9 Effort d'integration | Sans objet | prouve |
+| A10 Cout de maintenance | Sans objet | prouve |
+| A11 Exposition juridique | Sans objet | prouve |
+| A12 Autonomie | Sans objet | prouve |
+| A13 Plafond de volumetrie | Sans objet | prouve |
+| A14 Fraicheur atteignable | Sans objet | prouve |
+
+**Verdict : NON VIABLE.** Question falsifiable tranchee : recherche « autoscout24 » sur le Hub renvoie 0 resultat ; recherche « autoscout » renvoie un unique faux positif (`Auto-Scout/replaybot-storage`, un depot de stockage de bot de rejeu sans rapport). Aucun jeu AutoScout24, belge ou europeen, n'existe sur Hugging Face a ce jour.
+
+**Inconnues restantes** : aucune — candidat clos.
+
+### C-83 — Jeux academiques nommes (AS24-CH, AS24-DE, ProbSAINT/TabResFlow)
+
+| Axe | Valeur | Niveau de preuve |
+|---|---|---|
+| A1 Cout d'amorcage | Sans objet — donnee propriétaire, aucun acces possible | prouve |
+| A2 Cout recurrent | Sans objet | prouve |
+| A3 Couverture champs | 64-65 variables documentees dans les papiers (prix, kilometrage, annee de mise en circulation, type de carburant, duree d'annonce...) — riche sur le papier, mais **inaccessible** | prouve (sur le papier) |
+| A4 Couverture geo | Allemagne (jeu ProbSAINT/TabResFlow) ; Suisse/Allemagne pour AS24-CH/AS24-DE (non re-verifie) | documente |
+| A5 a A10 | Sans objet — aucune voie d'acces, donc aucun de ces axes n'est mesurable en pratique | non applicable |
+| A11 Exposition juridique | Sans objet pour KYCAR (aucun acces possible, donc aucun risque transfere) | argumente |
+| A12 Autonomie | Sans objet | non applicable |
+| A13 Plafond de volumetrie | ~2M a 2,24M enregistrements *dans la publication*, mais 0 accessible pour KYCAR | prouve (sur le papier) |
+| A14 Fraicheur atteignable | Sans objet — jeu propriétaire non disponible, jamais actualisable par KYCAR | prouve |
+
+**Verdict : NON VIABLE** comme voie d'acquisition. Le jeu utilise par ProbSAINT et TabResFlow est confirme, par lecture integrale des deux papiers, comme **une donnee proprietaire Volkswagen Financial Services**, agregeant plusieurs plateformes (autoscout24, mobile.de, "among others") et jamais deposee publiquement. Les jeux `AS24-CH` / `AS24-DE` cites par l'article Medium n'ont pu etre re-verifies (403) ni retrouves dans un depot public malgre recherche ciblee.
+
+**Valeur residuelle** : ces publications restent utilisables comme **reference de benchmark** (ordres de grandeur de NLL/MAPE sur la tarification VO), mais pas comme source de donnees.
+
+**Inconnues restantes** : localisation exacte et statut de disponibilite de AS24-CH/AS24-DE (l'article source original n'a pas pu etre relu, 403).
