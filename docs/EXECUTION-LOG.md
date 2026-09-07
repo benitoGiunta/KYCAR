@@ -3,7 +3,7 @@
 État d'avancement des deux chantiers. Ce fichier est la **source de vérité de l'avancement** :
 il doit permettre de reprendre le travail sans aucun contexte conversationnel.
 
-Dernière mise à jour : 2026-09-07 — **phase 1.4 complète, 17/17 lots ; source du produit déplacée vers 2dehands**
+Dernière mise à jour : 2026-09-07 — **Chantier 1 CLOS (1.1→1.6 VALIDÉ), rapport de décision livré. Chantier 2 : 2.0→2.3 VALIDÉ, prêt pour 2.4 (dév D1–D9, non lancé — attend feu vert commanditaire)**
 
 ## Conventions
 
@@ -44,7 +44,7 @@ testés par les agents. Chaque option concernée est renvoyée dans la section
 | 1.4 vague 2 — `LOT-I` datasets | `probe-I` | Sonnet / med-high | `docs/research/probe-LOT-I.md` | VALIDÉ — C-67 mesure le biais agrégé mais pas sa cause publicitaire ; provenance sévère |
 | 1.4 Investigation vagues 2-3 | probe-{M,N,CD,GH,I,K,LO,PQ} | Opus/Sonnet | probe-LOT-*.md | VALIDE — 12 lots restants instruits, 17/17 au total |
 | 1.5 Audit croisé | `audit-{decisif,juridique,economie}` | Sonnet / high | `docs/research/audit-cluster-*.md` | VALIDÉ — 3 clusters. Juridique : 3 limites tiennent (5/5). Économie : 2 corrections chiffrées (dénominateur 40, médiane ~1,31 €/1000). Décisif : mon jugement sur 2dehands était prématuré → `DECISION-coordinateur-source.md` corrigée (mode 2 NON acquis, même biais publicitaire) |
-| 1.6 Compilation et stress-test | `compile-1` | Opus / max | `docs/research/DATA-ACQUISITION-REPORT.md` | À FAIRE |
+| 1.6 Compilation et stress-test | `compile-1` | Opus / max | `docs/research/DATA-ACQUISITION-REPORT.md` | VALIDÉ — rapport de décision final. Réponse commanditaire : inventaire AS24 gratuit+autonome+licite = NON (3 murs). Tableau maître 85 candidats / 14 axes, 0 cellule vide. 5 zones d'ombre stress-testées (aucune ne renverse la conclusion ; ZO-5 seule vigilance sur le primaire mode 1). Reco 3 niveaux par mode. Corrections d'audit intégrées (dénom. 40, médiane ~1,31 €/1000, mode 2 vide gratuit, juridique 5/5). S6 : mode 1 NON VIDE (2dehands/marktplaats), mode 2 VIDE → D9 sur synthétique jusqu'à financement. RGPD OK, ligne rouge Mashery en AC-12 |
 
 ## Chantier 2 — Application d'agrégation
 
