@@ -186,14 +186,70 @@ puis D8. D9 est branché dès que le chantier 1 conclut, et reste facultatif.
 
 ## Phase 2.7 — Vérification finale (séquentiel, 1 agent)
 
-- **Agent `final-check`** — **Opus**, effort **max**, indépendant des phases précédentes.
-- **Mission** : reprendre `REQUIREMENTS.md` v1.0 exigence par exigence et statuer sur l'application
-  livrée. Lancer l'application, exercer les deux parcours utilisateurs cibles de bout en bout.
+- **Agent `final-check`** — **Fable** (E2 levée le 2026-09-08 ; Opus dans le plan initial), effort
+  **max**, indépendant des phases précédentes.
+- **Mission** : reprendre `REQUIREMENTS.md` **v1.1** (v1.0 gelée + amendements 2.6 tracés) exigence
+  par exigence et statuer sur l'application livrée. Lancer l'application, exercer les deux parcours utilisateurs cibles de bout en bout.
 - **Livrable** : `reports/FINAL-VERIFICATION.md` — matrice exigence → statut → preuve.
 - **Critères de succès** :
   - S1 — 100 % des exigences reçoivent un statut `COUVERTE` / `PARTIELLE` / `NON COUVERTE` / `HORS PÉRIMÈTRE`.
   - S2 — les deux parcours cibles sont exercés et leur déroulé est journalisé.
   - S3 — le taux de couverture est chiffré et les écarts sont nommés un par un.
+
+## Phase 2.8 — Remédiation post-vérification et levée des dettes (extension du 2026-09-08)
+
+Ajoutée au plan à la demande du commanditaire (« les trois prochaines phases ») : la phase 2.7 juge,
+elle ne corrige pas ; la 2.8 traite ce qu'elle a jugé et solde les dettes de 2.6 qui ne dépendent
+d'aucune décision ni source externe.
+
+- **Coordinateur `fix-lead`** (session, Fable/high) : trie la matrice `FINAL-VERIFICATION.md`
+  (`PARTIELLE`, `NON COUVERTE`) et les constats de la recette 2.9a, forme des clusters par
+  répertoires disjoints (mêmes rôles `fix-*` qu'en 2.6), arbitre.
+- **Entrées** : (1) exigences `PARTIELLE`/`NON COUVERTE` de 2.7 hors `HORS PÉRIMÈTRE` ; (2) constats
+  de la recette navigateur 2.9a ; (3) dettes de 2.6 **levables en interne** : `DR-034` (GROUPSTAT/NTILE/
+  paliers/R² dans le worker, `EX-DATA-83bis`), `DR-082` (colonne TVA : champ `taxDeductible` ajouté à
+  l'interface et à l'ingestion, à la manière de D-01/D-02), `DR-114` (verdicts `INSUFFICIENT_*`,
+  annexe A amendée), `DR-105` (E15–E17 dans le garde R3, `EX-DATA-49` étendue), `DR-132`, `DR-134`,
+  `DR-143`, `DR-147`, `resultCount` du bandeau. **Restent dettes externes** : `DR-104` (AC-01,
+  juridique), `DR-112` (source Statbel/bpost, E5), O15 (`bodyTypes` absent du référentiel).
+- **Règle de preuve** : identique à 2.6 (sonde d'échec d'abord, `it.fails` retourné en `it` quand la
+  dette est levée, aucune sonde modifiée sans justification écrite).
+- **Livrable** : `reports/REMEDIATION-2.8.md` (même format que `REMEDIATION.md`), vérifié par un
+  `fix-verify` indépendant.
+- **Critères de succès** :
+  - S1 — zéro exigence `NON COUVERTE` et zéro `PARTIELLE` sans dette motivée par une décision.
+  - S2 — chaque correction prouvée par exécution (sonde ou test E2E).
+  - S3 — aucune régression : `npm test` (unitaire + sondes), `npm run test:e2e`, budgets.
+  - S4 — les dettes restantes sont exclusivement externes (décision ou source hors dépôt), nommées.
+
+## Phase 2.9 — Recette navigateur (extension du 2026-09-08)
+
+Ce que 2.5–2.7 n'ont pas pu vérifier sans navigateur (contraste au rendu, ordre de focus, `EX-NFR-6`,
+`EX-NFR-16` axe-core, impression, responsive réel, `EX-NFR-9` en 4G simulée) l'est ici, sur le
+**build de production** servi par `vite preview`, avec Playwright et le Chromium préinstallé de
+l'environnement (`playwright.config.ts`, `tests/e2e/`). `@playwright/test` et `@axe-core/playwright`
+sont des dépendances **de test uniquement** (`ARCHITECTURE.md` §8 n° 15), absentes du bundle.
+
+- **2.9a — harnais (PARALLÈLE à 2.7)** — agent `e2e-harness`, **Opus/high**, en worktree :
+  configuration, fixtures, et une suite E2E qui couvre : les deux parcours cibles P1/P2 de bout en
+  bout avec assertions sur les valeurs affichées ; axe-core WCAG 2.1 A/AA sur A, B, D, C, E, F, G,
+  `/mentions` (`EX-NFR-16`) ; navigation 100 % clavier du bandeau et de l'écran G (`EX-NFR-14`) ;
+  responsive 360/768/1280 (`EX-NFR-18`, dégradation G4 `EX-NFR-19`) ; impression (`emulateMedia
+  print`, `EX-NFR-31`) ; `EX-NFR-9` sous limitation réseau 4G (CDP) ; `EX-NFR-7`/`8` mesurés par
+  `requestAnimationFrame` réel ; concurrence inter-onglets (deux contextes, `EX-CRUD-19`/ADV-13) ;
+  partage d'URL (`EX-NAV-18` : même URL, même rendu). Chaque écart = constat pour 2.8.
+- **2.9b — recette finale (SÉQUENTIEL, après 2.8)** — agent `acceptance`, **Fable/max** : relance
+  toute la suite E2E sur le build final, produit `reports/ACCEPTANCE.md` (matrice exigence
+  navigateur → test → résultat → capture), et statue.
+- **Critères de succès** :
+  - S1 — `npm run test:e2e` vert sur les trois projets (desktop, tablet, mobile).
+  - S2 — zéro violation axe-core A/AA sur les huit surfaces ; toute exception est nommée et motivée.
+  - S3 — `EX-NFR-9` ≤ 2 000 ms en 4G simulée, `EX-NFR-7`/`8` tenus au rAF, mesurés et cités.
+  - S4 — les deux parcours cibles journalisés avec captures.
+
+**Livraison (hors plan, sur décision explicite du commanditaire)** : fusion de
+`claude/kycar-project-ffcplk` dans `main`, tag `v0.1.0`. Aucune fusion vers `main` n'est faite
+sans cet accord (`CLAUDE.md` §1.3).
 
 ---
 
@@ -222,3 +278,5 @@ puis D8. D9 est branché dès que le chantier 1 conclut, et reste facultatif.
 | G4 après chaque lot de dev | build vert, tests verts, exigences tracées |
 | G5 après 2.6 | zéro problème bloquant ou majeur ouvert |
 | G6 après 2.7 | matrice de couverture complète et chiffrée |
+| G7 après 2.8 | zéro `NON COUVERTE`, zéro `PARTIELLE` sans dette motivée ; dettes restantes exclusivement externes |
+| G8 après 2.9 | E2E verts sur 3 projets, 0 violation axe A/AA, budgets navigateur tenus, `ACCEPTANCE.md` livré |

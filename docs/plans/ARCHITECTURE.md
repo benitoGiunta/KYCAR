@@ -598,6 +598,7 @@ postérieur dans l'ordre topologique `D1 < D2 < {D3,D4,D5,D9} < {D6,D7} < D8`.
 | 19 | IndexedDB + `localStorage` + `storage` | `EX-CRUD-3`/`18`/`19`, `EX-NFR-22`/`24` | local, migrable, concurrent |
 | 20 | `DataProvider` : mode 1 obligatoire / mode 2 optionnel | S2, R2, `EX-DATA-107`, chantier 1 | 3 implémentations, source invisible |
 | 21 | Filtrage R3 à l'ingestion dans l'adaptateur | `P-2`, `EX-NFR-26`, R3 | le champ vendeur n'entre jamais |
+| 22 | `@playwright/test` + `@axe-core/playwright` en **devDependencies** (phase 2.9, ajout du 2026-09-08) | `EX-NFR-6`/`7`/`8`/`9`/`14`/`16`/`18`/`19`/`31` — vérifiables uniquement dans un navigateur réel | outillage de recette, hors bundle (aucun import depuis `src/`), Chromium préinstallé de l'environnement via `executablePath` |
 
 ---
 

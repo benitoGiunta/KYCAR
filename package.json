@@ -14,13 +14,17 @@
     "test:perf": "vitest run --config vitest.perf.config.ts",
     "size": "node tools/check-bundle-size.mjs",
     "test:review": "tsc --noEmit -p tsconfig.review.json && vitest run --config vitest.review.config.ts",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "preact": "^10.29.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@preact/preset-vite": "^2.10.6",
     "@types/node": "^22.20.1",
     "eslint": "^10.10.0",

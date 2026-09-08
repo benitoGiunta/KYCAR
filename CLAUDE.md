@@ -181,7 +181,25 @@ justification écrite dans le rapport du correcteur, jamais en silence.
 
 ### 4.4 Phase 2.7 — vérification finale (PLAN-2 §2.7)
 
-Un seul agent `final-check`, **Fable/max**, indépendant des phases précédentes, lancé sur feu vert.
+Un seul agent `final-check`, **Fable/max**, indépendant des phases précédentes : `src/` en lecture
+seule, écrit `reports/FINAL-VERIFICATION.md`. Il peut lancer l'application (`npm run dev` port 5173
+ou `vite preview` port 4173) et le navigateur de recette (Playwright, §4.6) pour exercer les parcours.
+
+### 4.5 Phase 2.8 — remédiation post-vérification (PLAN-2 §2.8, extension du 2026-09-08)
+
+Même mécanique que 2.6 : coordinateur = fix-lead, clusters `fix-*` par répertoires disjoints en
+worktrees, sonde d'échec d'abord, `fix-verify` indépendant → `reports/REMEDIATION-2.8.md`. Entrées :
+matrice 2.7 (`PARTIELLE`/`NON COUVERTE`), constats de la recette 2.9a, dettes 2.6 levables en interne.
+Une sonde `it.fails` dont la dette est levée redevient `it`.
+
+### 4.6 Phase 2.9 — recette navigateur (PLAN-2 §2.9, extension du 2026-09-08)
+
+Playwright + Chromium préinstallé, sur le build de production (`playwright.config.ts`, `tests/e2e/`,
+`npm run test:e2e`, port 4180). **2.9a** `e2e-harness` Opus/high en worktree, **en parallèle de 2.7**
+(ports distincts : 2.7 sur 5173/4173, 2.9a sur 4180) ; **2.9b** `acceptance` Fable/max après 2.8 →
+`reports/ACCEPTANCE.md`. Dépendances de test uniquement (`ARCHITECTURE.md` §8), jamais importées
+depuis `src/`. Le navigateur se lance par `executablePath` (détection dans la config) : jamais
+`playwright install`.
 
 ---
 
@@ -194,6 +212,7 @@ npm test              # suite unitaire (615) PUIS sondes de revue promues (798) 
 npm run test:unit     # suite unitaire seule
 npm run test:review   # sondes de revue seules (8 dettes consignées en it.fails annoté, jamais skip)
 npm run size          # bundle initial < 300 Ko gzip
+npm run test:e2e      # recette navigateur (build de prod + Chromium préinstallé), 3 projets
 ```
 
 Pièges d'environnement (worktrees, `node_modules`, timeouts) et contraintes E1, E3–E5 : voir
