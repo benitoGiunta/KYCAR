@@ -21,8 +21,16 @@
 import type { ListingColumnBatch, OutlierVerdict } from '../types/index';
 import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED, yearFromYearMonth } from './flags';
 import { quantileFromSorted } from './quantiles';
-import { modelIndexKey } from './index-build';
 import { decodeListingId } from './uuid';
+
+/**
+ * Clés composites ENTIÈRES des cellules (point chaud mesuré à N = 100 000 : allouer une chaîne
+ * `makeId:modelId` — et `…|year` — PAR ligne dominait le coût). Même encodage que `IDX_MODEL`.
+ * `makeId ∈ Int16`, `modelId < 2²¹`, `year < 4096` ⇒ toutes les clés tiennent bien sous 2⁵³.
+ */
+const MODEL_KEY_STRIDE = 2097152;
+const cellC2 = (makeId: number, modelId: number): number => makeId * MODEL_KEY_STRIDE + modelId;
+const cellC1 = (c2: number, year: number): number => c2 * 4096 + year;
 
 /* ---- Constantes de méthode (EX-DATA-88/90/92) ------------------------------------------------- */
 const TUKEY_K = 1.5;
@@ -241,11 +249,11 @@ export function detectOutliers(
   const qvpRows: number[] = [];
   let priceQuotedCount = 0;
 
-  // Regroupements de ln(prix) par cellule (M1) et de points F par cellule (M2).
-  const c1Ln = new Map<string, number[]>();
-  const c2Ln = new Map<string, number[]>();
+  // Regroupements de ln(prix) par cellule (M1) et de points F par cellule (M2). Clés entières.
+  const c1Ln = new Map<number, number[]>();
+  const c2Ln = new Map<number, number[]>();
   const c3Ln: number[] = [];
-  const c2F = new Map<string, { rows: number[]; y: number[]; year: number[]; mileage: number[] }>();
+  const c2F = new Map<number, { rows: number[]; y: number[]; year: number[]; mileage: number[] }>();
   const c3F = { rows: [] as number[], y: [] as number[], year: [] as number[], mileage: [] as number[] };
 
   for (let i = 0; i < n; i++) {
@@ -260,7 +268,7 @@ export function detectOutliers(
     const ln = Math.log(price);
     const makeId = batch.makeId[row] as number;
     const modelId = batch.modelId[row] as number;
-    const c2Key = modelIndexKey(makeId, modelId);
+    const c2Key = cellC2(makeId, modelId);
 
     const ym = batch.firstRegistrationYearMonth[row] as number;
     const yearValid = isYearValid(ym);
@@ -270,8 +278,7 @@ export function detectOutliers(
 
     // M1 : cellules C1 / C2 / C3.
     if (yearValid) {
-      const c1Key = `${c2Key}|${year}`;
-      pushTo(c1Ln, c1Key, ln);
+      pushTo(c1Ln, cellC1(c2Key, year), ln);
     }
     pushTo(c2Ln, c2Key, ln);
     c3Ln.push(ln);
@@ -294,16 +301,20 @@ export function detectOutliers(
     }
   }
 
-  // Fences M1 par cellule (lazy).
-  const m1FenceCache = new Map<string, M1Fence>();
-  const fenceOf = (map: Map<string, number[]>, key: string): M1Fence | null => {
+  // Fences M1 par cellule (lazy), un cache par niveau de cellule.
+  const c1FenceCache = new Map<number, M1Fence>();
+  const c2FenceCache = new Map<number, M1Fence>();
+  const fenceOf = (
+    map: Map<number, number[]>,
+    cache: Map<number, M1Fence>,
+    key: number,
+  ): M1Fence | null => {
     const arr = map.get(key);
     if (arr === undefined || arr.length < MIN_M1) return null;
-    const cacheKey = `${map === c1Ln ? '1' : '2'}:${key}`;
-    let f = m1FenceCache.get(cacheKey);
+    let f = cache.get(key);
     if (f === undefined) {
       f = computeM1Fence(arr);
-      m1FenceCache.set(cacheKey, f);
+      cache.set(key, f);
     }
     return f;
   };
@@ -314,8 +325,8 @@ export function detectOutliers(
   };
 
   // Fits M2 par cellule (lazy).
-  const m2FitCache = new Map<string, M2Fit>();
-  const fitC2 = (key: string): M2Fit => {
+  const m2FitCache = new Map<number, M2Fit>();
+  const fitC2 = (key: number): M2Fit => {
     let fit = m2FitCache.get(key);
     if (fit === undefined) {
       const f = c2F.get(key);
@@ -346,7 +357,7 @@ export function detectOutliers(
     const ln = Math.log(price);
     const makeId = batch.makeId[row] as number;
     const modelId = batch.modelId[row] as number;
-    const c2Key = modelIndexKey(makeId, modelId);
+    const c2Key = cellC2(makeId, modelId);
     const ym = batch.firstRegistrationYearMonth[row] as number;
     const yearValid = isYearValid(ym);
     const year = yearValid ? yearFromYearMonth(ym) : 0;
@@ -355,14 +366,14 @@ export function detectOutliers(
     let m1Fence: M1Fence | null = null;
     let m1Level: 'MODEL_YEAR' | 'MODEL' | 'SELECTION' | null = null;
     if (yearValid) {
-      const f = fenceOf(c1Ln, `${c2Key}|${year}`);
+      const f = fenceOf(c1Ln, c1FenceCache, cellC1(c2Key, year));
       if (f) {
         m1Fence = f;
         m1Level = 'MODEL_YEAR';
       }
     }
     if (m1Fence === null) {
-      const f = fenceOf(c2Ln, c2Key);
+      const f = fenceOf(c2Ln, c2FenceCache, c2Key);
       if (f) {
         m1Fence = f;
         m1Level = 'MODEL';
@@ -428,9 +439,10 @@ export function detectOutliers(
     const opportunityScore = m2Evaluated ? -(m2Z as number) : m1Evaluated ? -(zIqr as number) : null;
     if (m1Low || m2Low) flaggedLowRow.add(row);
 
-    const listingId = decodeListingId(batch.listingId, row);
-
+    // Décodage PARESSEUX : l'UUID canonique n'est construit que pour les lignes réellement signalées
+    // (≈ quelques milliers), non pour chaque annonce à prix affiché (point chaud à N = 100 000).
     if (m1Low || m1High) {
+      const listingId = decodeListingId(batch.listingId, row);
       m1FlaggedIds.add(listingId);
       const flags = [m1Low ? FLAG_M1_LOW : FLAG_M1_HIGH];
       if (agreeLow) flags.push(FLAG_AGREE_LOW);
@@ -449,6 +461,7 @@ export function detectOutliers(
       });
     }
     if (m2Low || m2High) {
+      const listingId = decodeListingId(batch.listingId, row);
       m2FlaggedIds.add(listingId);
       const flags = [m2Low ? FLAG_M2_LOW : FLAG_M2_HIGH];
       if (agreeLow) flags.push(FLAG_AGREE_LOW);
@@ -483,7 +496,7 @@ export function detectOutliers(
   };
 }
 
-function pushTo(map: Map<string, number[]>, key: string, value: number): void {
+function pushTo(map: Map<number, number[]>, key: number, value: number): void {
   let arr = map.get(key);
   if (arr === undefined) {
     arr = [];
