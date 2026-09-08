@@ -1,149 +1,149 @@
 /**
- * KYCAR — Échantillonnage déterministe du nuage G4 (lot D7, EX-DATA-100/100bis/101)
+ * KYCAR — Échantillonnage déterministe du nuage G4 (lot D7, EX-DATA-99/100/100bis/101/103)
  * =================================================================================================
  * Le nuage G4 trace AU PLUS `K = 5 000` points (EX-DATA-100, plafond dur ; les seuils de 20 000 de
- * l'annexe B sont du code mort — ARCHITECTURE §9.2). L'échantillon est :
- *   - DÉTERMINISTE et REPRODUCTIBLE (EX-DATA-101) : aucun aléa non graine, la vue est identique d'une
- *     session à l'autre ;
- *   - INVARIANT À LA PERMUTATION des lignes d'entrée (EX-DATA-100bis) : deux ordres d'entrée
- *     différents produisent le MÊME échantillon, octet à octet ;
- *   - NON BIAISÉ : la clé de tirage est dérivée du `listingId` (UUID v4, indépendant des trois axes
- *     prix/année/km) via le brouilleur `xoshiro128**` à graine constante `0x4B594341` (ARCHITECTURE
- *     §4.2). Le `listingId` n'ayant aucune corrélation avec les axes, le sous-échantillon est neutre.
- *   - Les OUTLIERS sont CONSERVÉS INTÉGRALEMENT (EX-DATA-100/101) : ils échappent au sous-tirage.
+ * l'annexe B sont code mort — ARCHITECTURE §9.2, tension signalée). L'échantillon est déterministe,
+ * reproductible et INVARIANT À LA PERMUTATION des lignes d'entrée (EX-DATA-100bis, critère de succès
+ * n°4). Cette implémentation suit l'ALGORITHME OPÉRATIONNEL d'EX-DATA-101, qui est concret et
+ * testable octet à octet :
+ *
+ *   si n_e ≤ K            : tracer Elig entier, trié par listingId croissant
+ *   sinon si |A| ≥ K      : tracer les K outliers de plus grand |opportunityScore|
+ *                            (égalités départagées par listingId croissant), puis réordonner par
+ *                            listingId ; outlierTruncated = vrai
+ *   sinon                 : tracer A entier ; B = Elig \ A trié par listingId ; pas = |B|/q réel ;
+ *                            tracer B[plancher(j·pas)] pour j ∈ [0, q[ ; q = K − |A|
+ *   (sortie toujours réordonnée par listingId croissant avant transmission)
+ *
+ * DIVERGENCE DE SOURCE SIGNALÉE (non corrigée) : EX-DATA-101 spécifie un pas régulier sur `listingId`
+ * « sans générateur pseudo-aléatoire ni graine », tandis qu'EX-DATA-100bis spécifie un mélange
+ * `xoshiro128**` à graine `0x4B594341` + Fisher-Yates. Les deux sont en TENSION. On implémente
+ * EX-DATA-101 (pas régulier) : il est le seul énoncé procédural complet, il est trivialement
+ * reproductible et invariant à la permutation (il trie par `listingId` avant de sous-tirer), et c'est
+ * la variante que la clause de déterminisme d'EX-DATA-82 rend testable. La graine constante est
+ * conservée ci-dessous pour la traçabilité et l'affichage d'EX-DATA-103. Écart remonté au rapport de
+ * lot pour arbitrage 2.6.
  *
  * Module PUR (aucune globale DOM/Worker) : testable octet à octet hors navigateur.
  */
 
 import { compareListingId } from '../../engine/uuid';
 
-/** Graine constante du brouilleur d'échantillonnage (ARCHITECTURE §4.2 : `0x4B594341` = "KYCA"). */
+/** Graine constante nommée par EX-DATA-100bis (`0x4B594341` = « KYCA »). Conservée pour EX-DATA-103. */
 export const SCATTER_SAMPLING_SEED = 0x4b594341;
 
 /** Plafond dur de points tracés (EX-DATA-100). Les 20 000 de l'annexe B sont code mort (§9.2). */
 export const SCATTER_MAX_POINTS = 5000;
 
-/**
- * Brouilleur `xoshiro128**` (Blackman & Vigna) réduit à une clé déterministe par `listingId`.
- *
- * On n'a PAS besoin d'un flux pseudo-aléatoire ordonné : il faut une CLÉ pseudo-aléatoire STABLE et
- * indépendante de la position pour chaque annonce, afin que le tri par clé soit invariant à la
- * permutation. L'état 128 bits est initialisé à partir de la graine constante, puis les 16 octets de
- * l'UUID sont absorbés par le scrambler `**` de xoshiro ; la sortie finale est la clé de tirage.
- */
-function scatterKey(bytes: Uint8Array, row: number): number {
-  const base = row * 16;
-  // État initial dérivé de la graine (splitmix32 sur la graine → 4 mots de 32 bits).
-  let s0 = mix32(SCATTER_SAMPLING_SEED ^ 0x9e3779b9);
-  let s1 = mix32(s0 ^ 0x85ebca6b);
-  let s2 = mix32(s1 ^ 0xc2b2ae35);
-  let s3 = mix32(s2 ^ 0x27d4eb2f);
-
-  const rotl = (x: number, k: number): number => ((x << k) | (x >>> (32 - k))) >>> 0;
-  const step = (): number => {
-    // xoshiro128** : sortie = rotl(s1 * 5, 7) * 9.
-    const out = (Math.imul(rotl(Math.imul(s1, 5) >>> 0, 7), 9) >>> 0);
-    const t = (s1 << 9) >>> 0;
-    s2 = (s2 ^ s0) >>> 0;
-    s3 = (s3 ^ s1) >>> 0;
-    s1 = (s1 ^ s2) >>> 0;
-    s0 = (s0 ^ s3) >>> 0;
-    s2 = (s2 ^ t) >>> 0;
-    s3 = rotl(s3, 11);
-    return out;
-  };
-
-  // Absorption des 16 octets de l'UUID : chaque octet perturbe l'état avant un pas.
-  for (let i = 0; i < 16; i++) {
-    s0 = (s0 ^ ((bytes[base + i] as number) + 1)) >>> 0;
-    step();
-  }
-  // Deux pas de finalisation pour diffuser complètement.
-  step();
-  return step();
-}
-
-/** Diffuseur splitmix32 (initialisation d'état déterministe à partir de la graine). */
-function mix32(x: number): number {
-  let z = (x + 0x9e3779b9) >>> 0;
-  z = (Math.imul(z ^ (z >>> 16), 0x21f0aaad) >>> 0) >>> 0;
-  z = (Math.imul(z ^ (z >>> 15), 0x735a2d97) >>> 0) >>> 0;
-  return (z ^ (z >>> 15)) >>> 0;
-}
-
-/** Entrée de l'échantillonnage : les lignes éligibles et le prédicat d'outlier. */
+/** Entrée de l'échantillonnage. Les lignes sont supposées DÉJÀ éligibles (EX-DATA-99). */
 export interface ScatterSampleInput {
-  /** Lignes candidates (déjà élaguées + raffinées) à considérer pour le nuage. */
-  readonly rows: Int32Array | readonly number[];
+  /** Ensemble éligible `Elig` (EX-DATA-99) : lignes candidates au tracé. */
+  readonly eligible: Int32Array | readonly number[];
   /** Octets bruts des `listingId` (`ListingColumnBatch.listingId`), 16 par ligne. */
   readonly listingId: Uint8Array;
-  /** Vrai si la ligne est un outlier (à conserver intégralement). */
+  /** Appartenance de la ligne à `A` (outlier signalé : `outlierFlags ∩ {LOW/HIGH_*} ≠ ∅`). */
   readonly isOutlier: (row: number) => boolean;
+  /** `opportunityScore` de la ligne (départage du cas `|A| ≥ K`), `null` si non évalué. */
+  readonly opportunityScore?: (row: number) => number | null;
   /** Plafond de points tracés (défaut `SCATTER_MAX_POINTS`). */
   readonly maxPoints?: number;
 }
 
-/** Résultat de l'échantillonnage. */
+/** Résultat de l'échantillonnage, avec les compteurs d'EX-DATA-103. */
 export interface ScatterSampleResult {
-  /** Lignes retenues, triées par `listingId` (ordre total, stable, EX-DATA-118). */
+  /** Lignes tracées, triées par `listingId` croissant (ordre total EX-DATA-118). */
   readonly rows: Int32Array;
-  /** Nombre d'outliers conservés (sous-ensemble de `rows`). */
-  readonly outlierCount: number;
-  /** Nombre de lignes éligibles avant sous-tirage. */
+  /** Effectif éligible `n_e`. */
   readonly eligibleCount: number;
-  /** Vrai si un sous-tirage a été appliqué (éligibles > plafond). */
+  /** Nombre de points effectivement tracés. */
+  readonly plottedCount: number;
+  /** Nombre total d'outliers éligibles `|A|`. */
+  readonly outlierCount: number;
+  /** Nombre d'outliers effectivement tracés. */
+  readonly outlierPlottedCount: number;
+  /** Vrai si un sous-tirage a été appliqué (`n_e > K`). */
   readonly sampled: boolean;
+  /** Vrai si des outliers signalés n'ont PAS pu être tracés (`|A| ≥ K`, EX-DATA-103). */
+  readonly outlierTruncated: boolean;
+}
+
+/** Trie une liste de lignes par `listingId` croissant (octet à octet), sans muter l'entrée. */
+function sortByListingId(rows: readonly number[], listingId: Uint8Array): number[] {
+  return [...rows].sort((a, b) => compareListingId(listingId, a, b));
 }
 
 /**
- * Échantillonne les lignes du nuage G4 (EX-DATA-100/100bis/101).
- *
- * 1. Partition outliers / non-outliers.
- * 2. Les outliers sont TOUS conservés (jamais sous-tirés).
- * 3. Le budget restant (`K − #outliers`) est rempli par les non-outliers de plus petite clé de
- *    tirage (`scatterKey`), départage par `listingId`. Comme la clé ne dépend que du `listingId`, le
- *    résultat est invariant à l'ordre d'entrée.
- * 4. La sortie est triée par `listingId` : ordre de rendu stable et sortie testable octet à octet.
+ * Échantillonne les lignes du nuage G4 selon EX-DATA-101.
+ * Invariant à la permutation : chaque branche trie par `listingId` (ordre total indépendant de
+ * l'ordre d'entrée) avant tout sous-tirage, et la sortie est re-triée par `listingId`.
  */
 export function sampleScatter(input: ScatterSampleInput): ScatterSampleResult {
   const { listingId, isOutlier } = input;
-  const maxPoints = input.maxPoints ?? SCATTER_MAX_POINTS;
-  const src = input.rows;
-  const n = src.length;
+  const scoreOf = input.opportunityScore ?? (() => null);
+  const K = input.maxPoints ?? SCATTER_MAX_POINTS;
+  const src = input.eligible;
+  const nE = src.length;
 
-  const outliers: number[] = [];
-  const others: number[] = [];
-  for (let i = 0; i < n; i++) {
+  const A: number[] = [];
+  const B: number[] = [];
+  for (let i = 0; i < nE; i++) {
     const row = src[i] as number;
-    if (isOutlier(row)) outliers.push(row);
-    else others.push(row);
+    if (isOutlier(row)) A.push(row);
+    else B.push(row);
   }
 
-  const budget = Math.max(0, maxPoints - outliers.length);
-  let keptOthers: number[];
-  let sampled = false;
-  if (others.length <= budget) {
-    keptOthers = others;
-  } else {
-    sampled = true;
-    // Tri par (clé de tirage, listingId) : sélection des `budget` plus petites clés. Le départage par
-    // listingId garantit un ordre total même en cas d'égalité de clé (extrêmement rare).
-    const keyed = others.map((row) => ({ row, key: scatterKey(listingId, row) }));
-    keyed.sort((a, b) => (a.key - b.key) || compareListingId(listingId, a.row, b.row));
-    keptOthers = keyed.slice(0, budget).map((e) => e.row);
+  // Cas 1 : tout tient sous le plafond.
+  if (nE <= K) {
+    const rows = Int32Array.from(sortByListingId([...A, ...B], listingId));
+    return {
+      rows,
+      eligibleCount: nE,
+      plottedCount: rows.length,
+      outlierCount: A.length,
+      outlierPlottedCount: A.length,
+      sampled: false,
+      outlierTruncated: false,
+    };
   }
 
-  const result = new Int32Array(outliers.length + keptOthers.length);
-  let cursor = 0;
-  for (const row of outliers) result[cursor++] = row;
-  for (const row of keptOthers) result[cursor++] = row;
-  // Ordre final déterministe : tri total par listingId (indépendant de la partition).
-  const sortedRows = Array.from(result).sort((a, b) => compareListingId(listingId, a, b));
+  // Cas 2 : les outliers seuls saturent le plafond → K meilleurs |opportunityScore|.
+  if (A.length >= K) {
+    const ranked = [...A].sort((a, b) => {
+      const sa = Math.abs(scoreOf(a) ?? 0);
+      const sb = Math.abs(scoreOf(b) ?? 0);
+      if (sb !== sa) return sb - sa; // |score| décroissant
+      return compareListingId(listingId, a, b); // départage listingId croissant
+    });
+    const chosen = ranked.slice(0, K);
+    const rows = Int32Array.from(sortByListingId(chosen, listingId));
+    return {
+      rows,
+      eligibleCount: nE,
+      plottedCount: rows.length,
+      outlierCount: A.length,
+      outlierPlottedCount: rows.length,
+      sampled: true,
+      outlierTruncated: true,
+    };
+  }
 
+  // Cas 3 : A entier + pas régulier sur B (trié par listingId).
+  const Bsorted = sortByListingId(B, listingId);
+  const q = K - A.length;
+  const step = Bsorted.length / q; // réel, non arrondi (EX-DATA-101)
+  const picked: number[] = [];
+  for (let j = 0; j < q; j++) {
+    const idx = Math.floor(j * step);
+    picked.push(Bsorted[idx] as number);
+  }
+  const rows = Int32Array.from(sortByListingId([...A, ...picked], listingId));
   return {
-    rows: Int32Array.from(sortedRows),
-    outlierCount: outliers.length,
-    eligibleCount: n,
-    sampled,
+    rows,
+    eligibleCount: nE,
+    plottedCount: rows.length,
+    outlierCount: A.length,
+    outlierPlottedCount: A.length,
+    sampled: true,
+    outlierTruncated: false,
   };
 }
