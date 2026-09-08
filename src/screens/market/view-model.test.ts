@@ -381,3 +381,49 @@ describe('buildMakeCardViewModel — résumé et modelCount (EX-DATA-71, D8-02/D
     expect(vm.modelZones).toHaveLength(0);
   });
 });
+
+describe('D8-10 — coverageWarning / samplingBias (EX-DATA-68), provider réel seulement', () => {
+  it('buildModelZoneViewModel : `coverageWarning.<métrique>` posé sur la CentralRange correspondante, jamais ailleurs', () => {
+    const agg = modelAgg({
+      modelId: 11,
+      listingCount: 200,
+      price: range({ p05: 8900, p95: 32500, n: 200 }),
+      year: range({ p05: 2010, p95: 2025, n: 200 }),
+      mileage: range({ p05: 12000, p95: 240000, n: 200 }),
+      coverageWarning: { price: true, year: false, mileage: false },
+    });
+    const zone = buildModelZoneViewModel(agg, GOLF, 200, false);
+    expect(zone.price.coverageWarning).toBe(true);
+    expect(zone.year.coverageWarning).toBeUndefined();
+    expect(zone.mileage.coverageWarning).toBeUndefined();
+  });
+
+  it('buildModelZoneViewModel : `samplingBias` absent par défaut (provider synthétique), publié tel quel quand présent', () => {
+    const withoutBias = buildModelZoneViewModel(modelAgg({ modelId: 11, listingCount: 5 }), GOLF, 5, false);
+    expect(withoutBias.samplingBias).toBeUndefined();
+    const withBias = buildModelZoneViewModel(modelAgg({ modelId: 11, listingCount: 5, samplingBias: true }), GOLF, 5, false);
+    expect(withBias.samplingBias).toBe(true);
+  });
+
+  it('buildMakeCardViewModel : `coverageWarning`/`samplingBias` de la MARQUE se retrouvent sur la carte', () => {
+    const agg = makeAgg({
+      listingCount: 100,
+      price: range({ p05: 8900, p95: 32500, n: 100 }),
+      year: range({ p05: 2010, p95: 2025, n: 100 }),
+      coverageWarning: { price: false, year: true, mileage: false },
+      samplingBias: true,
+    });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.price.coverageWarning).toBeUndefined();
+    expect(card.year.coverageWarning).toBe(true);
+    expect(card.samplingBias).toBe(true);
+  });
+});

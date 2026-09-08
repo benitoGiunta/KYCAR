@@ -119,6 +119,9 @@ export interface CentralRange {
    * (pas `listingCount`) est `'trop-faible'` ou `'reduite'` (`n` compris entre 1 et 11) — paliers
    * uniques pour toute l'application, y compris l'écran A. `undefined` sinon (rien à signaler). */
   readonly lowSampleToken?: string;
+  /** `EX-DATA-68` (D8-10) — `coverageWarning.<métrique>` du provider RÉEL : la couverture métrique
+   * de ce bloc est sous le seuil, affiché seulement quand présent (jamais inventé). */
+  readonly coverageWarning?: boolean;
 }
 
 const CENTRAL_RANGE_CAPTION = 'fourchette centrale (90 % des offres)';
@@ -143,6 +146,12 @@ function lowSampleRange(n: number, min: number | null, max: number | null, forma
     return { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false, lowSampleToken: `n = ${n}` };
   }
   return { label: format(min, max), caption: LOW_SAMPLE_CAPTION, available: true, lowSampleToken: `n = ${n}` };
+}
+
+/** `EX-DATA-68` (D8-10) — pose `coverageWarning: true` sur une `CentralRange` déjà construite, sans
+ * toucher aux autres décisions (label/caption/jeton). `undefined`/`false` : aucun changement. */
+function withCoverageWarning(range: CentralRange, warning: boolean | undefined): CentralRange {
+  return warning === true ? { ...range, coverageWarning: true } : range;
 }
 
 function priceCentralRange(price: MetricRange): CentralRange {
@@ -199,6 +208,9 @@ export interface ModelZoneViewModel {
   readonly coverageLevel: CoverageDiscLevel;
   readonly coverageTooltip: string;
   readonly italicizeRanges: boolean;
+  /** `EX-DATA-68` (D8-10) — l'échantillon de ce modèle est signalé BIAISÉ par le provider RÉEL.
+   * `undefined` = non renseigné (provider synthétique, ou source qui ne le calcule pas). */
+  readonly samplingBias?: boolean;
   /** `EX-SCR-113` #9 : jamais 0 pour un effectif > 0 (`EX-SCR-134`). */
   readonly relativeShareRatio: number;
   /** `EX-SCR-128` : effectif strictement inférieur à 3. */
@@ -248,15 +260,16 @@ export function buildModelZoneViewModel(
     offerCountBare: formatInteger(agg.listingCount),
     ariaLabel: `${label}, ${formatOfferCount(agg.listingCount)}`,
     rangesAvailable,
-    price: rangesAvailable ? priceCentralRange(agg.price) : UNAVAILABLE_RANGE,
+    price: rangesAvailable ? withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price) : UNAVAILABLE_RANGE,
     priceRawTooltip: rangesAvailable ? priceRawRangeTooltip(agg.price) : undefined,
-    year: rangesAvailable ? yearCentralRange(agg.year) : UNAVAILABLE_RANGE,
-    mileage: rangesAvailable ? mileageCentralRange(agg.mileage) : UNAVAILABLE_RANGE,
+    year: rangesAvailable ? withCoverageWarning(yearCentralRange(agg.year), agg.coverageWarning?.year) : UNAVAILABLE_RANGE,
+    mileage: rangesAvailable ? withCoverageWarning(mileageCentralRange(agg.mileage), agg.coverageWarning?.mileage) : UNAVAILABLE_RANGE,
     medianLabel,
     coverage,
     coverageLevel: coverageDiscLevel(coverage),
     coverageTooltip: coverageDiscTooltip(coverage, agg.listingCount, model?.announcedCount ?? null),
     italicizeRanges: shouldItalicizeRanges(coverage),
+    samplingBias: agg.samplingBias,
     relativeShareRatio,
     isSparse: isSparseModel(agg.listingCount),
     rawMetrics: { price: agg.price, year: agg.year, mileage: agg.mileage },
@@ -288,6 +301,9 @@ export interface MakeCardViewModel {
   readonly year: CentralRange;
   readonly coverage: SampleCoverage;
   readonly coverageLevel: CoverageDiscLevel;
+  /** `EX-DATA-68` (D8-10) — l'échantillon de cette marque est signalé BIAISÉ par le provider RÉEL.
+   * `undefined` = non renseigné (provider synthétique, ou source qui ne le calcule pas). */
+  readonly samplingBias?: boolean;
   /** Toutes les zones-modèles, triées (`EX-SCR-121`), sparse filtrées si demandé (`EX-SCR-128`). */
   readonly modelZones: readonly ModelZoneViewModel[];
   readonly hiddenSparseCount: number;
@@ -377,11 +393,12 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
       : (agg.price.p50 !== null
           ? `${modelCountLabel} modèles · médiane ${formatPrice(agg.price.p50)}`
           : `${modelCountLabel} modèles · médiane non calculable`),
-    price: priceCentralRange(agg.price),
+    price: withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price),
     priceRawTooltip: priceRawRangeTooltip(agg.price),
-    year: yearCentralRange(agg.year),
+    year: withCoverageWarning(yearCentralRange(agg.year), agg.coverageWarning?.year),
     coverage: sampleCoverageOf(agg.listingCount, opts.make?.announcedCount ?? null, opts.hasUserFilters),
     coverageLevel: coverageDiscLevel(sampleCoverageOf(agg.listingCount, opts.make?.announcedCount ?? null, opts.hasUserFilters)),
+    samplingBias: agg.samplingBias,
     modelZones: allZones,
     hiddenSparseCount,
     visibleModelZones,

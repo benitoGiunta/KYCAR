@@ -144,6 +144,34 @@ describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-
     expect(checkboxAnywhere).toHaveLength(1);
   });
 
+  // D8-10 (EX-DATA-68) : `coverageWarning`/`samplingBias`, publiés par le PROVIDER RÉEL seulement,
+  // doivent être rendus quand présents — absents par défaut (fixture synthétique), sans rien afficher.
+  it('D8-10 — coverageWarning affiche un avertissement sur la fourchette concernée quand présent, rien sinon', () => {
+    const withWarning = ModelZone({
+      zone: baseZone({ price: { label: '9 000 – 15 000 €', caption: 'fourchette centrale (90 % des offres)', available: true, coverageWarning: true } }),
+      onSelect: () => undefined,
+      isInCompareSelection: false,
+      compareAtCapacity: false,
+    }) as unknown as VNode;
+    expect(collectText(withWarning)).toContain('⚠');
+
+    const withoutWarning = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
+    expect(collectText(withoutWarning)).not.toContain('⚠');
+  });
+
+  it('D8-10 — samplingBias affiche la mention « échantillon possiblement biaisé » quand présent, rien sinon', () => {
+    const withBias = ModelZone({
+      zone: baseZone({ samplingBias: true }),
+      onSelect: () => undefined,
+      isInCompareSelection: false,
+      compareAtCapacity: false,
+    }) as unknown as VNode;
+    expect(collectText(withBias)).toContain('échantillon possiblement biaisé');
+
+    const withoutBias = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
+    expect(collectText(withoutBias)).not.toContain('biaisé');
+  });
+
   it('la barre de part relative (EX-SCR-113 #9) porte aria-hidden="true" (redondance visuelle uniquement, EX-SCR-113)', () => {
     const vnode = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
     const bars = findAll(vnode, (n) => typeof n.props.class === 'string' && (n.props.class as string).includes('share-bar') && !(n.props.class as string).includes('fill'));

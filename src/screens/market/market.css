@@ -250,6 +250,16 @@
   font-weight: 600;
 }
 
+/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil / échantillon biaisé (provider réel). */
+.kycar-market-coverage-warning {
+  color: #b3261e;
+}
+.kycar-market-sampling-bias {
+  display: block;
+  font-size: 0.75rem;
+  color: #b3261e;
+}
+
 .kycar-market-card-footer {
   min-height: 40px;
   display: flex;

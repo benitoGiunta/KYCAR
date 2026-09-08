@@ -87,9 +87,17 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
             <span class="kycar-market-zone-price" title={zone.price.caption}>
               {zone.price.label}
               {zone.price.available ? ` (${zone.price.caption})` : ''}
+              {/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil, provider réel seulement. */}
+              {zone.price.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
             </span>
-            <span class="kycar-market-zone-year" title={zone.year.caption}>{zone.year.label}</span>
-            <span class="kycar-market-zone-mileage" title={zone.mileage.caption}>{zone.mileage.label}</span>
+            <span class="kycar-market-zone-year" title={zone.year.caption}>
+              {zone.year.label}
+              {zone.year.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
+            </span>
+            <span class="kycar-market-zone-mileage" title={zone.mileage.caption}>
+              {zone.mileage.label}
+              {zone.mileage.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
+            </span>
             <span class="kycar-market-zone-median">{zone.medianLabel}</span>
             {/* `EX-SCR-33`/`134` (D8-06/FV-09) : jeton ambre `n = <n>` — un seul jeton pour les trois
                 fourchettes, elles partagent le même effectif de métrique sous ce palier. */}
@@ -97,6 +105,10 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
               <span class="kycar-market-low-sample-token" title="effectif réduit — percentiles désactivés">
                 {zone.price.lowSampleToken ?? zone.year.lowSampleToken ?? zone.mileage.lowSampleToken}
               </span>
+            ) : null}
+            {/* `EX-DATA-68` (D8-10) : échantillon signalé biaisé par le provider réel. */}
+            {zone.samplingBias === true ? (
+              <span class="kycar-market-sampling-bias" role="note">échantillon possiblement biaisé</span>
             ) : null}
           </div>
         ) : (

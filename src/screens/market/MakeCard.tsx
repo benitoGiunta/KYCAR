@@ -75,16 +75,28 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
             <>
               {card.price.label} ({card.price.caption})
               {card.priceRawTooltip !== undefined ? <span title={card.priceRawTooltip}> · {card.priceRawTooltip}</span> : null}
+              {/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil, provider réel seulement. */}
+              {card.price.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
             </>
           ) : (
             '—'
           )}
-          {card.year.available ? <span> · {card.year.label}</span> : null}
+          {card.year.available ? (
+            <span>
+              {' '}
+              · {card.year.label}
+              {card.year.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
+            </span>
+          ) : null}
           {/* `EX-SCR-33` (D8-06/FV-09) : même jeton ambre qu'en zone-modèle, au niveau de la carte. */}
           {card.price.lowSampleToken ?? card.year.lowSampleToken ? (
             <span class="kycar-market-low-sample-token" title="effectif réduit — percentiles désactivés">
               {card.price.lowSampleToken ?? card.year.lowSampleToken}
             </span>
+          ) : null}
+          {/* `EX-DATA-68` (D8-10) : échantillon signalé biaisé par le provider réel. */}
+          {card.samplingBias === true ? (
+            <span class="kycar-market-sampling-bias" role="note">échantillon possiblement biaisé</span>
           ) : null}
         </div>
       </div>
