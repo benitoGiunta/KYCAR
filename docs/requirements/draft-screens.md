@@ -617,9 +617,11 @@ comportement d'exécution et son rendu :
 | Classe | Définition | Comportement | Rendu |
 |---|---|---|---|
 | **R** — recalculable | le champ sous-jacent figure dans les 40 champs relevés en §2.3 de `FINDING-allowed-surface.md` | recalcul **local**, `ET-CHARGE-LOCAL`, ≤ 150 ms, aucun appel réseau | contrôle normal |
-| **T** — transmis | aucun champ local ne porte l'information ; le filtre ne peut être appliqué que par le `DataProvider` | nouvel appel, `ET-CHARGE-MAJ`, débounce 400 ms | contrôle normal + jeton `T` en infobulle : `Filtre appliqué à la source — recharge les données` |
+| **T** — transmis | aucun champ local ne porte l'information ; le filtre ne peut être appliqué que par le `DataProvider` | nouvel appel, `ET-CHARGE-MAJ`, débounce **selon le type de contrôle** (annexe C, table `EX-SRCH-1…8`, autorité sur les mécanismes — pas un délai unique pour la classe) | contrôle normal + jeton `T` en infobulle : `Filtre appliqué à la source — recharge les données` |
 | **D** — désactivé documenté | filtre relevé mais **non activable** sur les marketplaces relevés | contrôle présent, `disabled`, non sérialisé dans l'URL | opacité 45 % + infobulle donnant le motif relevé |
 | **X** — hors périmètre | filtre sans objet pour KYCAR | **absent du DOM** | listé en §4.7 avec son motif |
+
+[amendée 2.6 — D-19]
 
 `EX-SCR-58` — La distinction R / T est **observable** : le jeton `T` doit être présent sur tous
 les filtres de classe T et sur aucun filtre de classe R. Critère de recette : compter les
@@ -859,10 +861,12 @@ restant atteignables en infobulle — étendre l'affichage complet à un jeton p
 déborder la ligne des filtres actifs et détruirait la lisibilité des autres jetons.
 
 `EX-SCR-76` — **Retrait individuel.** Un clic sur la croix retire **cette seule valeur** pour
-une énumération multi-valeurs (le jeton `Essence, Diesel` se scinde en deux jetons dès qu'il
-dépasse 2 valeurs, précisément pour rendre le retrait unitaire possible), et **les deux bornes**
-pour un intervalle. Retirer un jeton de taxonomie de niveau supérieur retire aussi ses
-descendants, avec la notification d'`EX-SCR-73`.
+une énumération à 1 ou 2 valeurs, et **les deux bornes** pour un intervalle. Retirer un jeton de
+taxonomie de niveau supérieur retire aussi ses descendants, avec la notification d'`EX-SCR-73`.
+**Au-delà de 2 valeurs**, le jeton reste unique et porte le cardinal (`EX-SCR-75`, exception
+maintenue) : le retrait unitaire est rendu possible par l'**infobulle/popover** du jeton, qui
+liste chaque valeur avec sa propre croix de retrait ; chaque cible de retrait — croix de jeton ou
+croix d'infobulle — porte `removesCodes`, la liste des codes qu'elle retire. [amendée 2.6 — D-10]
 
 `EX-SCR-77` — **`Tout effacer`.** Bouton textuel qui **retire tout prédicat utilisateur** : à
 l'issue de l'action, aucun filtre n'est appliqué au jeu de données local et l'URL ne porte aucun
@@ -1047,9 +1051,9 @@ source`. Aucune de ces sémantiques n'est utilisée pour un calcul d'agrégat lo
 ### 4.8 Comportement, retours visuels et désactivations
 
 `EX-SCR-86` — **Application immédiate.** Tout changement de filtre s'applique sans bouton
-`Rechercher`. Aucune validation différée. Pour les champs de saisie textuelle et numérique, le
-déclenchement a lieu au `blur`, à `Entrée`, ou après 400 ms d'inactivité de frappe, le premier
-des trois. Pour les cases, radios et interrupteurs, au `change`.
+`Rechercher`. Aucune validation différée. Pour les champs de saisie **numérique**, le
+déclenchement a lieu au `blur`, à `Entrée`, ou après **500 ms** d'inactivité de frappe (`EX-SRCH-4`),
+le premier des trois. Pour les cases, radios et interrupteurs, au `change`. [amendée 2.6 — D-19]
 
 `EX-SCR-87` — **Retour visuel de chaque contrôle.** Au survol : fond à 4 % de la couleur
 d'accent. Au focus clavier : contour de 2 px de la couleur d'accent, décalé de 2 px, visible
@@ -1735,12 +1739,15 @@ nuage. Aucune graine n'est affichée — `EX-DATA-101` n'en emploie aucune (`EX-
 - **Brossage rectangulaire** (glisser dans la zone de tracé) → sélectionne un sous-ensemble
   d'annonces. La sélection **n'est pas un filtre** : elle met en surbrillance les mêmes
   annonces dans `G1`, `G2`, `G3`, `G7`, `G8` et `G10` (liaison croisée, `EX-SCR-184`), affiche
-  un compteur `<n> annonces sélectionnées` et propose deux boutons :
-  `Filtrer sur cette sélection` (convertit la sélection en filtres d'intervalle) et
-  `Voir ces annonces` (écran D restreint à la sélection).
+  un compteur `<n> annonces sélectionnées` et propose **un bouton et un lien** :
+  le bouton `Convertir la sélection en filtre` (`EX-SCR-184`, le **seul** chemin qui change la
+  sélection `Σ`) et le lien `Voir ces annonces`, vers l'écran D restreint à la sélection par le
+  paramètre d'état d'interface `sel` (`EX-NAV-10bis`), qui **ne change pas** `Σ`.
 - **Zoom** : boutons `+`, `−` et `Réinitialiser` explicites, plus `Maj` + glisser pour un zoom
   rectangulaire. Aucun zoom molette (`EX-SCR-149`).
 - **`Échap`** → annule la sélection de brossage.
+
+[amendée 2.6 — D-26]
 
 `EX-SCR-158bis` — **Étiquetage obligatoire de la base de comparaison.** Tout élément qui affiche
 un verdict d'outlier, un écart au prix attendu, un `opportunityScore` ou un liseré dérivé de
@@ -2123,17 +2130,19 @@ peut être retiré du périmètre par `req-lead` sans casser les parcours cibles
 courte de modèles candidats, et sans écran de comparaison l'utilisateur doit tenir plusieurs
 distributions en mémoire en naviguant d'un écran B à l'autre.
 
-`EX-SCR-194` — **Route** : `/comparer?m=<modelId>,<modelId>[,<modelId>][,<modelId>]&<filtres>`.
-**Condition d'affichage** : de 2 à 4 identifiants de modèle. Avec 1 seul, redirection vers
-l'écran B ; avec 0, redirection vers l'écran A. Le **plafond unique est de 4 modèles**
-(`EX-CRUD-13bis`) : l'ouverture d'une URL `/comparer?m=…` **remplace** la sélection de session
-par celle de l'URL, en ignorant les entrées au-delà de la quatrième et en signalant l'écrêtage
-par `ET-URL-CORRIGEE` (`EX-SCR-38bis`). La mention « les identifiants surnuméraires sont
-ignorés » et le bandeau `<k> sélections ignorées — maximum 4` sont **supprimés** : hors
+`EX-SCR-194` — **Route** :
+`/comparer?m=<makeId>-<modelId>,<makeId>-<modelId>[,<makeId>-<modelId>][,<makeId>-<modelId>]&<filtres>`
+— format `<makeId>-<modelId>` par entrée, encodage sur lequel l'annexe C fait autorité
+(`EX-NAV-10bis`). **Condition d'affichage** : de 2 à 4 identifiants de modèle. Avec 1 seul,
+redirection vers l'écran B ; avec 0, redirection vers l'écran A. Le **plafond unique est de
+4 modèles** (`EX-CRUD-13bis`) : l'ouverture d'une URL `/comparer?m=…` **remplace** la sélection
+de session par celle de l'URL, en ignorant les entrées au-delà de la quatrième et en signalant
+l'écrêtage par `ET-URL-CORRIGEE` (`EX-SCR-38bis`). La mention « les identifiants surnuméraires
+sont ignorés » et le bandeau `<k> sélections ignorées — maximum 4` sont **supprimés** : hors
 chargement d'URL, aucun ajout au-delà de 4 n'est possible, tout contrôle d'ajout étant désactivé.
 Justification du plafond 4 : à 4 colonnes en régime `large` (1 680 px de contenu), chaque
 colonne mesure 396 px, largeur en dessous de laquelle un histogramme cesse d'être lisible
-(minimum de 280 px de zone de tracé plus les axes).
+(minimum de 280 px de zone de tracé plus les axes). [amendée 2.6 — D-13]
 
 ```
 +==========================================================================================+
@@ -2298,8 +2307,9 @@ d'étiquetage de la base de comparaison d'`EX-SCR-158bis`, suivie de la mention 
 (M1 / M2). Aucune autre mise en forme conditionnelle : au-delà d'un critère, un tableau coloré
 n'est plus lisible.
 
-`EX-SCR-208` — **Volumétrie.** Rendu virtualisé au-delà de 200 lignes, au plus 60 lignes
-montées. Aucune pagination numérotée. Compteur permanent `<n> annonces` en pied de tableau.
+`EX-SCR-208` — **Volumétrie.** **Pagination client de 50 lignes par page**, paramètre d'état
+d'interface `page` porté par l'URL (`EX-NAV-10bis`) et lu/écrit par l'écran D. Compteur permanent
+`<n> annonces` en pied de tableau. [amendée 2.6 — D-27]
 
 `EX-SCR-209` — **Responsive de l'écran D.** En `intermédiaire`, les colonnes `Année-modèle`,
 `Conso.`, `CO₂` et `TVA` sont masquées et accessibles par un dépliement de ligne (chevron en
