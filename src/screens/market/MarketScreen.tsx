@@ -41,7 +41,7 @@ import {
 import { sortMakeRows, type MakeSortField, type SortDirection, type SortableMakeRow } from './sort';
 import { SummaryBar } from './SummaryBar';
 import type { RestrictiveFilterHint, ScreenAState } from './state';
-import { buildMakeCardViewModel, type MakeCardViewModel } from './view-model';
+import { buildMakeCardViewModel, marketModelCardinal, type MakeCardViewModel } from './view-model';
 import './market.css';
 
 /** `EX-SCR-20`/`135`/`136`/`137` — les trois régimes responsives de l'écran A. */
@@ -295,9 +295,11 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
       const visibleCards =
         isNoFilter && !props.showAllMakesRequested ? cards.slice(0, NO_FILTER_TEASER_MAKE_COUNT) : cards.slice(0, props.loadedMakeCount || cards.length);
       const totalOfferCount = data.makeAggregates.reduce((sum, a) => sum + a.listingCount, 0);
-      const totalModelCount = new Set(
-        [...data.modelAggregatesByMake.values()].flatMap((v) => (v === 'unavailable' ? [] : v.filter((m) => m.modelId !== 0).map((m) => m.modelId))),
-      ).size;
+      // `ACC-05` / `D8-42` — le cardinal des modèles vient de `marketModelCardinal` (`view-model.ts`),
+      // qui le lit sur les agrégats de MARQUE (`MakeAggregate.modelCount`, `D8-10`) et rend `null`
+      // tant qu'il n'est pas connu. Le comptage local qui était ici valait `0` pendant les ~0,5 à
+      // 0,7 s de chargement des agrégats MODÈLE : « 0 modèles » affiché comme un fait mesuré.
+      const totalModelCount = marketModelCardinal(data.makeAggregates, data.modelAggregatesByMake);
       const makesWithResults = data.makeAggregates.filter((a) => a.listingCount > 0).length;
       const c3 = buildC3Banner({
         listingCount: data.snapshotListingCount,

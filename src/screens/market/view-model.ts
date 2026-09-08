@@ -411,3 +411,51 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
     modelsUnavailable,
   };
 }
+
+/* ================================================================================================
+ * Cardinal des modèles du marché — EX-SCR-106, D8-02, ACC-05
+ * ============================================================================================== */
+
+/**
+ * `ACC-05` / `D8-42` (`EX-SCR-106`, `EX-SCR-132`, `D8-02` « jamais 0 par défaut, — tant que la
+ * donnée manque ») — cardinal « modèles » de la barre de synthèse, ou `null` quand il n'est pas
+ * ENCORE connu.
+ *
+ * Deux sources, dans cet ordre :
+ *   1. `MakeAggregate.modelCount` (publié par le provider, `D8-10`) : disponible dès les agrégats
+ *      de MARQUE, donc dès le premier affichage utile. Les modèles n'appartiennent qu'à une marque
+ *      (`makeId` + `modelId` sont la clé de la taxonomie) : la somme par marque est donc le nombre
+ *      de modèles distincts de la sélection, sans dédoublonnage.
+ *   2. Repli, si aucun agrégat de marque ne publie ce cardinal : le nombre de modèles distincts des
+ *      agrégats MODÈLE déjà chargés.
+ * Aucune des deux ne répond ⇒ `null` : la barre affiche « — modèles ». C'est exactement l'écart de
+ * la recette 2.9b — le cardinal était recompté sur la map d'agrégats modèle, chargée ~0,5 à 0,7 s
+ * APRÈS le marché (boucle d'inactivité, `EX-NFR-9`), et `new Set([]).size` valait `0` pendant tout
+ * cet intervalle : un zéro par défaut, affiché comme un fait mesuré.
+ *
+ * Un `0` RENDU par cette fonction est donc toujours un zéro MESURÉ (une marque dont toutes les
+ * annonces sont à `modelId = 0`, cf. `aggregate.ts`), jamais une donnée manquante.
+ */
+export function marketModelCardinal(
+  makeAggregates: readonly MakeAggregate[],
+  modelAggregatesByMake: ReadonlyMap<number, readonly ModelAggregate[] | 'unavailable'>,
+): number | null {
+  let published: number | null = 0;
+  for (const agg of makeAggregates) {
+    if (agg.modelCount === null || agg.modelCount === undefined) {
+      published = null;
+      break;
+    }
+    published += agg.modelCount;
+  }
+  if (published !== null && makeAggregates.length > 0) return published;
+
+  const distinct = new Set<number>();
+  let anyLoaded = false;
+  for (const rows of modelAggregatesByMake.values()) {
+    if (rows === 'unavailable') continue;
+    anyLoaded = true;
+    for (const row of rows) if (row.modelId !== MODEL_ID_UNRESOLVED) distinct.add(row.modelId);
+  }
+  return anyLoaded ? distinct.size : null;
+}

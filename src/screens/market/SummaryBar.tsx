@@ -6,12 +6,26 @@
  */
 import type { JSX } from 'preact';
 
-import { formatInteger, formatOfferCount } from './format';
+import { MISSING_VALUE, formatInteger, formatOfferCount } from './format';
 import { MAKE_SORT_FIELD_LABEL, type MakeSortField, type SortDirection } from './sort';
+
+/**
+ * `ACC-15` / `D8-42` (`EX-SCR-1`..`4`, `EX-SCR-106`) — cardinal ACCORDÉ : « 1 marque », « 2
+ * marques », « 0 modèle ». En français le singulier couvre 0 et 1 ; le pluriel commence à 2.
+ * `formatOfferCount` porte déjà la même règle pour les offres (et « aucune offre » à 0).
+ */
+function cardinal(n: number, singular: string, plural = `${singular}s`): string {
+  return `${formatInteger(n)} ${n > 1 ? plural : singular}`;
+}
 
 export interface SummaryBarProps {
   readonly makeCount: number;
-  readonly modelCount: number;
+  /**
+   * `ACC-05` / `D8-42` (`D8-02`, `EX-SCR-132`) — `null` = cardinal PAS ENCORE connu : la barre rend
+   * « — modèles », jamais `0`. Un `0` reçu ici est un zéro MESURÉ et s'affiche comme tel.
+   * Source : `marketModelCardinal` (`view-model.ts`).
+   */
+  readonly modelCount: number | null;
   readonly offerCount: number;
   /** `EX-SCR-106` : si différent de `makeCount` (population affichée < population filtrée). */
   readonly displayedMakeCount?: number;
@@ -43,6 +57,8 @@ const SORT_FIELDS: readonly MakeSortField[] = ['offres', 'median', 'alpha', 'mod
 
 export function SummaryBar(props: SummaryBarProps): JSX.Element {
   const compact = props.regime === 'compact';
+  // `ACC-05` — cardinal des modèles : « — modèles » tant que la donnée manque (`D8-02`).
+  const modelCardinal = props.modelCount === null ? null : cardinal(props.modelCount, 'modèle');
   return (
     <div class="kycar-market-summary-bar summary-bar">
       <div class="kycar-market-summary-counts">
@@ -50,17 +66,15 @@ export function SummaryBar(props: SummaryBarProps): JSX.Element {
           '0 marque · 0 modèle · aucune offre'
         ) : (
           <>
-            {formatInteger(props.makeCount)} marques
-            {!compact ? (
-              <>
-                {' '}
-                · {formatInteger(props.modelCount)} modèles
-              </>
-            ) : null}{' '}
+            {cardinal(props.makeCount, 'marque')}
+            {!compact ? <> · {modelCardinal ?? `${MISSING_VALUE} modèles`}</> : null}{' '}
             · {formatOfferCount(props.offerCount)}
             {props.partialCache === true ? <abbr title="chiffres issus du cache (mode dégradé)">&nbsp;*</abbr> : null}
             {props.displayedMakeCount !== undefined && props.displayedMakeCount !== props.makeCount ? (
-              <span class="kycar-muted"> — {formatInteger(props.displayedMakeCount)} marques affichées</span>
+              <span class="kycar-muted">
+                {' '}
+                — {cardinal(props.displayedMakeCount, 'marque affichée', 'marques affichées')}
+              </span>
             ) : null}
           </>
         )}

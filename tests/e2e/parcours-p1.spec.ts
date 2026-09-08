@@ -294,4 +294,63 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     const firstSummary = await page.locator('.kycar-market-card-summary').first().innerText();
     expect(parseInteger(firstSummary)).toBeGreaterThan(0);
   });
+
+  /**
+   * `ACC-05` / `D8-42` (`EX-SCR-106`, `EX-SCR-132`, `D8-02` : « jamais 0 par défaut, — tant que la
+   * donnée manque »). La recette 2.9b a mesuré « 0 modèles » pendant 486 à 691 ms avant le cardinal
+   * réel, à chaque chargement : le test `E2E-04` ci-dessus l'attend par `expect.poll` et ne voyait
+   * donc pas la valeur transitoire. Ici, un `MutationObserver` posé AVANT la navigation enregistre
+   * TOUS les textes successifs de la barre : aucun ne doit annoncer un cardinal à zéro.
+   */
+  test('ACC-05 — la barre de synthèse n’affiche jamais « 0 modèles » avant le cardinal réel (EX-SCR-106)', async ({
+    page,
+  }, testInfo) => {
+    test.skip(regimeOf(testInfo) === 'compact', 'le cardinal « modèles » est absent par contrat en régime compact (EX-SCR-135)');
+
+    // Échantillonnage à CHAQUE image (`requestAnimationFrame`), posé avant tout script de la page :
+    // une valeur transitoire de 486 à 691 ms (mesure de la recette) laisse ~30 à 40 échantillons.
+    // Les répétitions consécutives sont écartées : seuls les CHANGEMENTS de texte sont conservés.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __kycarSummarySamples?: string[] };
+      const samples: string[] = [];
+      w.__kycarSummarySamples = samples;
+      const sample = (): void => {
+        const el = document.querySelector('.kycar-market-summary-counts');
+        const text = el === null ? null : (el.textContent ?? '');
+        if (text !== null && text !== samples[samples.length - 1] && samples.length < 2_000) samples.push(text);
+        requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+
+    await openMarket(page, P1_QUERY);
+    // Fenêtre d'observation couvrant largement le chargement des agrégats MODÈLE (~0,5 à 0,7 s).
+    await expect
+      .poll(async () => (await readMarketSummary(page)).models ?? 0, { timeout: 30_000 })
+      .toBeGreaterThan(0);
+    await page.waitForTimeout(1_500);
+
+    const samples = await page.evaluate(
+      () => (window as unknown as { __kycarSummarySamples?: string[] }).__kycarSummarySamples ?? [],
+    );
+    const zeros = samples.filter((s) => /(^|\D)0\s?modèles?/u.test(s.replace(/[\u202f\u00a0]/gu, ' ')));
+    mesure(testInfo, 'ACC-05 — échantillons de la barre de synthèse', `${samples.length} rendus, ${zeros.length} à « 0 modèles »`);
+    expect(samples.length).toBeGreaterThan(0);
+    expect(zeros).toEqual([]);
+  });
+
+  /**
+   * `ACC-15` / `D8-42` (`EX-SCR-1`..`4`, `EX-SCR-106`) — « 1 marques · 69 modèles · 280 offres » :
+   * le pluriel n'était pas accordé quand une seule marque est retenue.
+   */
+  test('ACC-15 — les cardinaux de la barre de synthèse s’accordent en nombre (EX-SCR-106)', async ({ page }, testInfo) => {
+    await openMarket(page, '?mmmv=74');
+    const summary = await readMarketSummary(page);
+    mesure(testInfo, 'ACC-15 — barre de synthèse à une seule marque', summary.raw.replace(/\n/g, ' '));
+    expect(summary.makes).toBe(1);
+    expect(summary.raw).not.toMatch(/\b1 marques\b/u);
+    expect(summary.raw).toMatch(/\b1 marque\b/u);
+    if (summary.models !== null && summary.models === 1) expect(summary.raw).not.toMatch(/\b1 modèles\b/u);
+    if (summary.offers === 1) expect(summary.raw).not.toMatch(/\b1 offres\b/u);
+  });
 });
