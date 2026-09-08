@@ -709,6 +709,13 @@ apparaît, comme nom de propriété, de colonne, de clé JSON ou de paramètre, 
 schéma de persistance ou un jeu de données du dépôt.
 **Justification** : c'est la traduction du critère de succès S5 générique des lots de dev en
 vérification exécutable, telle qu'exigée par R4.
+**Note (D-14)** : les paramètres de requête utilisateur `zip` (alias `location`), `lat` et `lon`
+sont **exclus du périmètre retenu** de `data/reference/filters-scope.json`, avec le motif
+`R3_DONNEE_PERSONNELLE` — même traitement que `cid` (E14). Ce sont des **paramètres d'entrée de
+recherche**, distincts des champs d'adresse ou de géolocalisation *stockés* dans une annonce (E8,
+E11) : R3 les exclut aussi de ce rôle. Aucun filtre géographique fin n'existe en 2.6 ; le pays et
+la région restent disponibles. Le test de balayage exigé par la présente exigence couvre les trois
+paramètres. [amendée 2.6 — D-14]
 
 ## A.8 Code postal → région : table de correspondance belge
 
@@ -1158,6 +1165,12 @@ code de clé croissant.
 sans fonction unique, chaque développeur choisit sa méthode de quantile par groupe et son
 traitement des classes inconnues, et les chiffres cessent d'être reproductibles — ce qu'`A-09`
 interdit.
+**Dette consignée (2.6, D-17)** : `GROUPSTAT`/`NTILE` ne sont **pas** implémentées dans le moteur
+du worker en 2.6 — cette exigence n'est **pas tenue au sens strict** (protocole worker), motif mis
+en dette plutôt qu'en correction : aucune valeur affichée n'est fausse, le calcul équivalent est
+fait sur le thread principal en 78,6 ms p50 pour un budget de 300 ms (`EX-SCR-189`), et le coût
+d'un module moteur complet plus l'extension du protocole worker dépasse le budget de la
+remédiation 2.6. Reportée en 2.7.
 
 **EX-DATA-83ter — `NTILE(V, k)`, tranches de rang.** Soit `V^↑ = x_1 ≤ … ≤ x_n` l'échantillon
 valide trié et `k ≥ 2`. La tranche `t ∈ [1, k]` contient les rangs `i` tels que
@@ -1631,9 +1644,14 @@ d'application, qui a eu raison de ne pas l'ajouter de sa propre initiative.
 - `unknownCountByField` — pour chaque champ, le nombre d'annonces dont la valeur est absente ou
   inconnue. C'est ce qui rend la **couverture métrique** auditable plutôt que déclarative.
 **EX-DATA-107.** `sourceKind` est obligatoire et affiché dans l'interface dès qu'il vaut
-`SYNTHETIC`.
+`SYNTHETIC`. **Ce n'est pas un champ porté par `AggregateResult` ni par `ListingColumnBatch`**
+(interfaces gelées en 2.3, non amendées pour ce motif) : l'application l'obtient par la méthode
+`describe()` du `DataProvider` ouvert, mise en regard du `snapshotId` que chaque objet servi porte
+déjà — ce couple `describe()` + `snapshotId` suffit à identifier sans ambiguïté la provenance
+d'un résultat affiché, sans qu'aucune entité calculée n'ait à porter elle-même l'étiquette.
 **Justification** : le lot D3 produit un dataset synthétique avec outliers injectés, et un
 utilisateur ne doit jamais pouvoir confondre une distribution générée avec un marché réel.
+[amendée 2.6 — D-24]
 
 **EX-DATA-108 — `selectionHash`.** Toute entité calculée est clefée par `selectionHash` :
 les 16 premiers caractères hexadécimaux du SHA-256 de la sérialisation canonique de l'état de

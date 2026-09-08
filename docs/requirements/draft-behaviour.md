@@ -233,22 +233,30 @@ Cette pureté est bornée par `EX-NAV-10` : tout état de filtre **dont la séri
 tient sous 2 000 caractères** est représentable dans l'URL, et l'application refuse de construire
 un état qui n'y tient pas (`EX-NAV-11`). « Tous les filtres sont encodables » (`A-01`) signifie que
 **chacun** est encodable, non que **tous** le sont simultanément à leurs valeurs les plus larges.
-Mesure de référence : les 77 filtres retenus posés chacun à une valeur non défaut plausible occupent
-≈ 1 720 caractères, `eq` large compris ; la marge est donc réelle mais non infinie, et le cas de
-dépassement est atteignable en élargissant deux ou trois filtres multi-valeurs. Un test du lot D4
-construit l'état de filtres le plus large possible et vérifie que le refus d'`EX-NAV-11` se produit
-**avec son message**, sans troncature ni perte silencieuse. (`ARB-56`)
+Mesure de référence (chiffre corrigé, la conclusion normative est inchangée) : les 77 filtres
+retenus posés chacun à une valeur non défaut plausible occupent **827 caractères** ; à la largeur
+maximale de chaque énumération, **1 535 caractères** (mesure pathologique) et **1 649 caractères**
+sur les 73 filtres sérialisables du lot D5 — les filtres énumérés seuls, même à leur largeur
+maximale, **n'atteignent donc jamais** le plafond de 2 000. La marge est réelle mais non infinie :
+le dépassement est atteignable par les champs libres ou structurés (`kwd`, `mmmv`), pas par les
+seuls filtres énumérés. Un test du lot D4 construit l'état de filtres le plus large possible et
+vérifie que le refus d'`EX-NAV-11` se produit **avec son message**, sans troncature ni perte
+silencieuse. (`ARB-56`) [amendée 2.6 — T-r]
 
-**Limite connue du modèle de partage par URL pure.** Une valeur numérique tronquée en cours de
-valeur par un transport externe (client de messagerie, éditeur de texte) reste syntaxiquement
-valide et dans le domaine du filtre : elle n'est donc corrigée par aucune ligne de la table
-d'`EX-NAV-21` et ne déclenche aucun signalement. L'application n'a aucun moyen de la détecter et
-**n'en invente aucun** : aucune somme de contrôle, aucune signature, aucun paramètre de longueur
-n'est ajouté à l'URL, car ils allongeraient le lien — cause première du problème — et casseraient
-tout lien écrit à la main. La contre-mesure est l'**affichage systématique de la valeur** de chaque
-filtre actif dans son jeton (`EX-SCR-75`, re-ciblée depuis `EX-SCR-176` — sans rapport avec les
-jetons — par `R-A10`), de sorte que l'utilisateur lise `Prix : à partir de 50 €` et non `Prix`.
-(`ARB-12`)
+**Limite connue du modèle de partage par URL pure, de portée plus étroite qu'annoncé auparavant.**
+Une valeur numérique tronquée en cours de valeur par un transport externe (client de messagerie,
+éditeur de texte) qui **sort du domaine relevé, ou devient non numérique**, est **rattrapée et
+signalée** : c'est exactement la classe « borne numérique hors du domaine relevé » (écrêtée) ou
+« borne numérique non numérique ou vide » (retirée) d'`EX-NAV-21`, avec son
+`ET-URL-CORRIGEE`. **Seule reste indétectable la troncature qui retombe dans le domaine du
+filtre** — un nombre coupé qui reste syntaxiquement valide et plausible : elle n'est corrigée par
+aucune ligne de la table d'`EX-NAV-21` et ne déclenche aucun signalement. L'application n'a aucun
+moyen de la détecter et **n'en invente aucun** : aucune somme de contrôle, aucune signature, aucun
+paramètre de longueur n'est ajouté à l'URL, car ils allongeraient le lien — cause première du
+problème — et casseraient tout lien écrit à la main. La contre-mesure est l'**affichage
+systématique de la valeur** de chaque filtre actif dans son jeton (`EX-SCR-75`, re-ciblée depuis
+`EX-SCR-176` — sans rapport avec les jetons — par `R-A10`), de sorte que l'utilisateur lise
+`Prix : à partir de 50 €` et non `Prix`. (`ARB-12`) [amendée 2.6 — T-s]
 
 ### A.6 États invalides
 
@@ -459,8 +467,12 @@ sont jamais** présentées comme des filtres utilisateur, **jamais** sérialisé
 l'application, **jamais** comptées dans le badge de filtres actifs, et **jamais** remises à zéro
 par une réinitialisation (globale ou par groupe).
 **`ustate=A,N,U` et non `N,U`** : `N,U` amputerait le snapshot des véhicules accidentés, dont `A-01`
-fait un facteur explicatif d'outlier de premier ordre ; l'utilisateur peut ensuite les exclure par le
-filtre `damaged_listing`, qui est un filtre utilisateur exposé.
+fait un facteur explicatif d'outlier de premier ordre. **`damaged_listing` reste en classe `D`**
+— désactivé, motif relevé « rejeté par le marketplace belge » (`newAccidentFilter = false`,
+`supportsDamagedOption = false`, R6) — comme `ustate`, `powertype`, `cy` et `atype`, tous marqués
+`nonExposed` au sens de la présente exigence. **Conséquence assumée : en 2.6, aucun contrôle
+utilisateur ne permet d'exclure les annonces accidentées** ; cette absence est consignée comme
+**dette produit**, non comme un défaut à corriger dans ce cycle. [amendée 2.6 — D-15]
 
 **EX-SRCH-19 — Réinitialisation par groupe.** Chaque groupe visuel du bandeau (ex. « Prix », «
 Kilométrage et année », « Motorisation », « Équipements » — le découpage exact relève de
@@ -625,16 +637,22 @@ du vocabulaire est traité à l'ouverture par la table de corrections d'`EX-NAV-
 
 ### C.7 Concurrence entre onglets
 
-**EX-CRUD-19 — concurrence entre onglets (`ARB-58`).** Toute écriture d'une entité CRUD est **relue
-juste avant d'être écrite** (lecture-vérification-écriture) : si le plafond de l'entité (`EX-CRUD-5` :
-50, `EX-CRUD-10` : 30, `EX-CRUD-12` : 10) est atteint entre la lecture initiale et l'écriture,
-l'écriture est **refusée** avec le message de plafond, jamais appliquée en dépassement. Deux
-écritures concurrentes ne peuvent jamais faire perdre une entrée existante : l'écriture porte sur
-l'entrée ajoutée ou modifiée, jamais sur la réécriture de la collection entière. Chaque onglet
-s'abonne à l'événement `storage` et **rafraîchit** sa liste affichée sans recharger la page ;
-l'écran des recherches sauvegardées et l'écran des modèles suivis affichent alors la liste à jour.
+**EX-CRUD-19 — concurrence entre onglets (`ARB-58`).** **Une clé `localStorage` par entrée**
+(`kycar:<collection>/<id>`), plus **une clé d'index ordonné** par collection (la liste des `id`
+dans l'ordre d'affichage) : `mutate` **n'écrit jamais que l'entrée touchée et l'index**, jamais la
+collection entière — c'est la seule façon dont deux onglets peuvent écrire sans se faire perdre
+mutuellement une entrée. Toute écriture est **relue juste avant d'être écrite**
+(lecture-vérification-écriture) : si le plafond de l'entité (`EX-CRUD-5` : 50, `EX-CRUD-10` : 30,
+`EX-CRUD-12` : 10) est atteint entre la lecture initiale et l'écriture, l'écriture est **refusée**
+avec le message de plafond, jamais appliquée en dépassement. Chaque onglet s'abonne à l'événement
+`storage` et **réconcilie** sa liste affichée (entrée + index) sans recharger la page ; l'écran des
+recherches sauvegardées et l'écran des modèles suivis affichent alors la liste à jour. Aucun
+`navigator.locks` : la relecture-vérification-écriture par entrée suffit et reste disponible sur
+les quatre navigateurs cibles sans dépendance supplémentaire.
 **Justification** : `localStorage` n'offre aucune garantie transactionnelle entre onglets d'une même
-origine, et le plafond dur promis par `EX-CRUD-5` n'est pas tenable sans cette relecture.
+origine, et le plafond dur promis par `EX-CRUD-5` n'est pas tenable sans cette relecture ; une
+collection réécrite en bloc à chaque mutation ferait perdre l'entrée qu'un autre onglet vient
+d'ajouter entre la lecture et l'écriture. [amendée 2.6 — D-16]
 
 ### C.8 Entités écartées — détail des motifs
 
