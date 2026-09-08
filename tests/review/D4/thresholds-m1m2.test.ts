@@ -1,8 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import { AggregationDataset } from '../../../src/engine/kernel';
 import { decodeListingId } from '../../../src/engine/uuid';
-import { OUTLIER_FLAG_VALUES } from '../../../src/types/index';
+import type { OutlierVerdict } from '../../../src/types/index';
+import { isNotEvaluableOutlierCode, OUTLIER_FLAG_VALUES } from '../../../src/types/index';
 import { cellRows, makeBatch, type RowSpec } from './helpers';
+
+/**
+ * AMENDEMENT D8-09 (justification D-31 / D8-19, décision `FIX-LEAD-DECISIONS-2.8.md`) — deux sondes
+ * de ce fichier exigeaient « AUCUN verdict » sous `n = 12`. Elles décrivaient le moteur d'AVANT
+ * D8-09, qui n'émettait aucun verdict de non-évaluabilité : `R-D4-05`, juste en dessous, mesure
+ * précisément que c'était un DÉFAUT au regard d'`EX-DATA-85/86/95`. Depuis D8-09, une annonce non
+ * évaluable porte un verdict `INSUFFICIENT_DATA` / `INSUFFICIENT_SPREAD` — « aucune anomalie
+ * détectée » et « anomalie non évaluable » ne peuvent plus être confondues.
+ *
+ * Le FAIT que ces deux sondes mesurent est inchangé et reste asserté tel quel : sous 12 annonces,
+ * AUCUNE détection n'a lieu (`outlierEvaluatedCount = 0`, aucun drapeau `M1_*` / `M2_*` posé, aucune
+ * annonce signalée). Seule la forme « le tableau des verdicts est vide » est remplacée par « aucun
+ * verdict de DÉTECTION », qui est ce qu'elles voulaient dire.
+ */
+
+/** Verdicts de DÉTECTION : ceux qui ne portent aucun code de non-évaluabilité (D8-09). */
+function detectionVerdicts(verdicts: readonly OutlierVerdict[]): readonly OutlierVerdict[] {
+  return verdicts.filter((v) => !v.flags.some((f) => isNotEvaluableOutlierCode(f)));
+}
+
+/** Verdicts de NON-ÉVALUABILITÉ portant le code demandé (D8-09). */
+function notEvaluableVerdicts(verdicts: readonly OutlierVerdict[], code: string): readonly OutlierVerdict[] {
+  return verdicts.filter((v) => v.flags.includes(code));
+}
 
 /**
  * Revue D4 — seuils d'effectif M1 (n ≥ 12) / M2 (|F| ≥ 30) : ADV-06 (n = 10/11 → décision ARB-17 :
@@ -28,20 +53,26 @@ function run(n: number) {
 }
 
 describe('ADV-06 / ARB-17 — n = 11 : aucune détection ; n = 12 : M1 seule', () => {
-  it('n = 11 : evaluated = 0, notEvaluated = 11, aucun verdict ; les statistiques restent calculées (le masquage 5 ≤ n ≤ 11 relève de l’écran)', () => {
+  it('n = 11 : evaluated = 0, notEvaluated = 11, aucun verdict de DÉTECTION (11 verdicts INSUFFICIENT_DATA depuis D8-09) ; les statistiques restent calculées (le masquage 5 ≤ n ≤ 11 relève de l’écran)', () => {
     const { result } = run(11);
     expect(result.selectionStats.priceQuotedCount).toBe(11);
     expect(result.selectionStats.outlierEvaluatedCount).toBe(0);
     expect(result.selectionStats.outlierNotEvaluatedCount).toBe(11);
-    expect(result.outlierVerdicts).toEqual([]);
+    // AMENDEMENT D8-09 : `toEqual([])` → aucun verdict de DÉTECTION. Le fait mesuré (rien n'est
+    // détecté sous 12) est intact ; les 11 verdicts émis DISENT la non-évaluabilité (EX-DATA-95).
+    expect(detectionVerdicts(result.outlierVerdicts)).toEqual([]);
+    expect(notEvaluableVerdicts(result.outlierVerdicts, 'INSUFFICIENT_DATA')).toHaveLength(11);
+    expect(result.outlierVerdicts.every((v) => v.opportunityScore === null)).toBe(true);
     expect(result.selectionStats.price.p50).not.toBeNull();
     expect(result.selectionStats.price.p05).not.toBeNull();
   });
 
-  it('n = 1..11 : jamais de verdict, evaluated = 0 pour chaque effectif', () => {
+  it('n = 1..11 : jamais de verdict de DÉTECTION, evaluated = 0 pour chaque effectif (et n verdicts INSUFFICIENT_DATA depuis D8-09)', () => {
     for (let n = 1; n <= 11; n++) {
       const { result } = run(n);
-      expect(result.outlierVerdicts.length).toBe(0);
+      // AMENDEMENT D8-09 : `length === 0` → aucun verdict de DÉTECTION, même intention.
+      expect(detectionVerdicts(result.outlierVerdicts).length).toBe(0);
+      expect(notEvaluableVerdicts(result.outlierVerdicts, 'INSUFFICIENT_DATA')).toHaveLength(n);
       expect(result.selectionStats.outlierEvaluatedCount).toBe(0);
       expect(result.selectionStats.outlierNotEvaluatedCount).toBe(n);
     }
@@ -59,10 +90,10 @@ describe('ADV-06 / ARB-17 — n = 11 : aucune détection ; n = 12 : M1 seule', (
     expect(result.outlierVerdicts.some((x) => x.method === 'M2')).toBe(false);
   });
 
-  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
-  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
-  // DETTE DR-114 / D-45 : verdicts INSUFFICIENT_* exigeraient d étendre un vocabulaire gelé (6 → 8 codes) ; à instruire en 2.7 avec l annexe A.
-  it.fails('R-D4-05 — n = 11 : EX-DATA-85/86/95 exigent un verdict INSUFFICIENT_DATA par annonce non évaluable ; le moteur n’en émet aucun et le vocabulaire gelé D2 ne contient pas ce code', () => {
+  // Dette DR-114 / D-45 LEVÉE par D8-09 : le vocabulaire gelé porte les 8 codes (étape 0) et le
+  // moteur émet un verdict par annonce non évaluable. La sonde repasse en `it` dans le commit même
+  // de la correction (D8-19), SANS qu'aucune de ses assertions soit touchée.
+  it('R-D4-05 — n = 11 : EX-DATA-85/86/95 exigent un verdict INSUFFICIENT_DATA par annonce non évaluable [défaut relevé en 2.5 : le moteur n’en émettait aucun et le vocabulaire gelé D2 ne contenait pas ce code — LEVÉ par D8-09]', () => {
     const { result } = run(11);
     const codes = OUTLIER_FLAG_VALUES.map((v) => v.code);
     console.log(`[vocab KYCAR_OUTLIER_FLAG] ${codes.join(', ')}`);

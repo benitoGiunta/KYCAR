@@ -23,7 +23,14 @@ import type {
 } from '../types/index';
 import { aggregate } from './aggregate';
 import { densityGrid, type IneligibleBreakdown } from './density';
-import { detectOutliers, M3_EMPTY, type M3Control } from './outliers';
+import {
+  detectOutliers,
+  M3_EMPTY,
+  type M3Control,
+  type OutlierEvaluationCounters,
+} from './outliers';
+import { computeGroupStats } from './group-stats';
+import { sampleScatter } from './scatter';
 import { selectionImplausibleThreshold } from './implausible';
 import { buildIndexes, type DatasetIndexes } from './index-build';
 import { compilePredicates, type RefinePredicate, type TaxonomyScope } from './predicates';
@@ -57,6 +64,26 @@ export type OutliersSkippedReason = 'UNPRUNED_SELECTION';
  * verdicts M2 calculés sur une régression à `C₃ = 10⁵` lignes hors élagage (R-D4-12).
  */
 export const OUTLIER_UNPRUNED_MAX_ROWS = 25_000;
+
+/**
+ * Motif typé d'omission des statistiques D8-07 (`GROUPSTAT`, `NTILE`, paliers, indice de
+ * dépréciation, statistiques de cellule, échantillon du nuage).
+ */
+export type StatsSkippedReason = 'UNPRUNED_SELECTION';
+
+/**
+ * Plafond de lignes au-delà duquel les statistiques D8-07 ne sont PAS calculées sur une sélection
+ * non élaguée — le MÊME que celui de la détection d'outliers, et pour la même raison.
+ *
+ * Ces statistiques servent l'écran B, qui est un écran de mode 2 TOUJOURS ÉLAGUÉ (décision O17,
+ * `m ≈ 10³`) : sur ce chemin elles coûtent une fraction de milliseconde. Sur une sélection NON
+ * élaguée à `N = 10⁵`, elles coûtent (mesure du banc `recalc.perf.test.ts`, §4 du rapport) un ordre
+ * de grandeur de plus que tout le reste du recalcul — neuf regroupements plus un tri de 10⁵
+ * `listingId` octet à octet —, sur un recalcul qui dépasse déjà les 200 ms d'`EX-NFR-5` sans elles
+ * (567 ms, O17). Les calculer là serait dépenser le budget pour un écran qui ne les lit pas. Au-delà
+ * du plafond, les six champs sont absents et `statsSkipped` DIT pourquoi.
+ */
+export const STATS_UNPRUNED_MAX_ROWS = OUTLIER_UNPRUNED_MAX_ROWS;
 
 /** Sélection telle que la voit le moteur : hachage publié + scope de taxonomie (T) + prédicats (R). */
 export interface EngineSelection {
@@ -124,6 +151,20 @@ export interface RecalcResult {
   readonly cellStats?: readonly CellStat[];
   /** Échantillon déterministe du nuage G4 et ses compteurs (EX-DATA-99..103). */
   readonly sample?: ScatterSampleSummary;
+
+  /**
+   * D8-07 — motif d'omission des six champs ci-dessus, ou `null` s'ils sont tous renseignés.
+   * Une absence SILENCIEUSE se lirait comme « aucun groupe », c'est-à-dire comme un résultat
+   * légitime vide (ce qu'`EX-NFR-23` proscrit) : le motif est donc publié à côté.
+   */
+  readonly statsSkipped?: StatsSkippedReason | null;
+
+  /**
+   * D8-09 — ventilation de l'évaluabilité des annonces à prix affiché : `evaluated`, les deux
+   * compteurs `INSUFFICIENT_*`, et les deux motifs qui ne donnent lieu à AUCUN verdict.
+   * `EX-DATA-95` interdit de confondre « aucune anomalie détectée » et « non évaluable ».
+   */
+  readonly outlierEvaluation?: OutlierEvaluationCounters;
 }
 
 /** Résultat du calcul de facettes (différé). */
@@ -207,6 +248,27 @@ export class AggregationDataset {
     const density = densityGrid(batch, scan.rows, snapshotId, selectionHash, implausibleThreshold);
     this.lastYearMarginal = density.yearBucketCountByIndex;
 
+    // ---- D8-07 : statistiques par groupe, de cellule et échantillon du nuage (dette D-17 levée) --
+    // Même garde de budget que M1/M2 (EX-NFR-5, O17) : l'écran B qui les lit est TOUJOURS élagué.
+    const statsSkipped: StatsSkippedReason | null =
+      scan.pruned || scan.rows.length <= STATS_UNPRUNED_MAX_ROWS ? null : 'UNPRUNED_SELECTION';
+    const stats =
+      statsSkipped === null
+        ? {
+            ...computeGroupStats(batch, scan.rows, implausibleThreshold),
+            cellStats: outliers === null ? [] : outliers.cellStats,
+            // `Elig` d'EX-DATA-99 est celui de la grille de densité : un seul ensemble éligible pour
+            // la nuée, la densité et leurs compteurs (D-05).
+            sample: sampleScatter({
+              eligible: density.eligibleRows,
+              listingId: batch.listingId,
+              isOutlier: (row) => outliers !== null && outliers.flaggedRows.has(row),
+              scoreOf: (row) => (outliers === null ? null : (outliers.scoreByRow.get(row) ?? null)),
+            }),
+            statsSkipped: null,
+          }
+        : { statsSkipped };
+
     const selectionStats: SelectionStats = {
       snapshotId,
       selectionHash,
@@ -241,6 +303,8 @@ export class AggregationDataset {
       pruned: scan.pruned,
       implausibleThreshold,
       implausibleInCellExcluded: agg.implausibleInCellExcluded,
+      ...stats,
+      outlierEvaluation: outliers === null ? undefined : outliers.evaluation,
     };
   }
 
