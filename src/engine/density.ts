@@ -44,6 +44,12 @@ export interface DensityResult {
   readonly cells: readonly DensityCell[];
   /** Effectif éligible `n_e`. */
   readonly eligibleCount: number;
+  /**
+   * Les lignes ÉLIGIBLES elles-mêmes, dans l'ordre de balayage (D8-07). Publiées pour que
+   * l'échantillonnage du nuage G4 (`EX-DATA-101`) travaille sur le MÊME ensemble `Elig` que la
+   * grille de densité, sans refaire une passe d'éligibilité qui pourrait en diverger.
+   */
+  readonly eligibleRows: Int32Array;
   /** Motifs de non-éligibilité ventilés (EX-DATA-99). */
   readonly ineligible: IneligibleBreakdown;
   /** Effectif par bin d'année (marginal), pour l'invariant I7. */
@@ -111,7 +117,13 @@ export function densityGrid(
   const ineligible: IneligibleBreakdown = { noPrice, noYear, noMileage, suspectValue };
   const eligibleCount = eligRows.length;
   if (eligibleCount === 0) {
-    return { cells: [], eligibleCount: 0, ineligible, yearBucketCountByIndex: new Map() };
+    return {
+      cells: [],
+      eligibleCount: 0,
+      eligibleRows: new Int32Array(0),
+      ineligible,
+      yearBucketCountByIndex: new Map(),
+    };
   }
 
   const yearBin = bin(eligYear, YEAR_BIN_PARAMS);
@@ -142,5 +154,11 @@ export function densityGrid(
     a.yearBinIndex !== b.yearBinIndex ? a.yearBinIndex - b.yearBinIndex : a.mileageBinIndex - b.mileageBinIndex,
   );
 
-  return { cells, eligibleCount, ineligible, yearBucketCountByIndex: yearMarginal };
+  return {
+    cells,
+    eligibleCount,
+    eligibleRows: Int32Array.from(eligRows),
+    ineligible,
+    yearBucketCountByIndex: yearMarginal,
+  };
 }
