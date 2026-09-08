@@ -16,6 +16,8 @@
  * (EX-DATA-42) : seuls les identifiants et coordonnées exactes le sont.
  */
 
+import type { IngestFlagCode } from './vocabularies';
+
 /** Un problème de validation. */
 export interface ValidationIssue {
   readonly path: string;
@@ -284,6 +286,35 @@ export const LISTING_NUMERIC_BOUNDS: Readonly<Record<string, NumericBound>> = {
   seatCount: { min: 1, max: 99, sentinel: null },
   imageCount: { min: 0, max: 50, sentinel: null },
 };
+
+/**
+ * Drapeau d'ingestion (`KYCAR_INGEST_FLAG`, EX-DATA-45) à poser quand un champ numérique sort de
+ * son domaine validé. Table UNIQUE : `LISTING_NUMERIC_BOUNDS` dit ce qu'est le domaine,
+ * celle-ci dit comment l'ingestion le SIGNALE. Les champs qu'EX-DATA-45 ne nomme pas
+ * (`co2EmissionsGPerKm`, `consumptionCombinedL100Km`, portes, places, images) n'y figurent pas :
+ * hors domaine ils deviennent INCONNU sans drapeau nommé (aucun code ne serait inventé).
+ */
+export const LISTING_BOUND_INGEST_FLAG: Readonly<Record<string, IngestFlagCode>> = {
+  priceEur: 'PRICE_OUT_OF_RANGE',
+  mileageKm: 'MILEAGE_OUT_OF_RANGE',
+  powerKw: 'POWER_OUT_OF_RANGE',
+  modelYear: 'FIRST_REG_OUT_OF_RANGE',
+};
+
+/**
+ * Vrai si `value` tient dans le domaine validé du champ (annexe A). La sentinelle d'inconnu du
+ * champ, quand elle existe, n'est jamais soumise aux bornes (EX-DATA-120). Un champ que l'annexe A
+ * ne borne pas est accepté tel quel.
+ *
+ * D-47 : c'est la SEULE lecture des bornes de plausibilité — l'ingestion des deux providers et le
+ * banc `patho` l'appellent, aucun d'eux ne recopie `min`/`max`.
+ */
+export function isWithinListingBound(field: string, value: number): boolean {
+  const bound = LISTING_NUMERIC_BOUNDS[field];
+  if (bound === undefined) return true;
+  if (bound.sentinel !== null && value === bound.sentinel) return true;
+  return value >= bound.min && value <= bound.max;
+}
 
 /**
  * Longueurs maximales de chaîne du dictionnaire (annexe A # 2, 20, 21, 22, 45), en points de code.

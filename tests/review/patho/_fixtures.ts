@@ -16,6 +16,8 @@ import { AggregationDataset } from '../../../src/engine/index';
 import type { RecalcResult } from '../../../src/engine/index';
 import { ENUM_UNKNOWN_BYTE, NUMERIC_UNKNOWN, STRINGS_PER_ROW } from '../../../src/types/sentinels';
 import { INGEST_FLAG_VALUES, PRICE_STATUS_VALUES } from '../../../src/types/vocabularies';
+import { LISTING_BOUND_INGEST_FLAG, isWithinListingBound } from '../../../src/types/validation';
+import { cleanModelVersion } from '../../../src/types/shared-rules';
 import type {
   AggregateResult,
   DataProvider,
@@ -75,6 +77,35 @@ export interface RowSpec {
   readonly listingIdBytes?: Uint8Array;
   /** [listingUrl, modelVersionRaw, modelVersionClean, fuelSourceLabelRaw, trimTokens]. */
   readonly strings?: readonly string[];
+}
+
+/** Rang de `modelVersionClean` dans les 5 chaînes par ligne (`DataProvider.ts`). */
+const STRING_FIELD_MODEL_VERSION_CLEAN = 2;
+
+/**
+ * Étape d'INGESTION du banc (D-47) : une colonne numérique bornée par l'annexe A qui reçoit une
+ * valeur hors domaine devient INCONNU et porte son drapeau d'ingestion (EX-DATA-45), exactement
+ * comme le font les deux providers. Les bornes et le drapeau viennent de `src/types` : ce module
+ * n'en recopie aucun. Une sonde peut donc encore DÉCRIRE une valeur aberrante — elle mesure alors
+ * ce que la chaîne réelle en fait, et non ce qu'un lot non conforme au contrat gelé produirait.
+ */
+function ingestBounded(
+  field: 'mileageKm' | 'powerKw',
+  value: number,
+  row: number,
+  flags: Uint32Array,
+): number {
+  if (value === NUMERIC_UNKNOWN || isWithinListingBound(field, value)) return value;
+  const code = LISTING_BOUND_INGEST_FLAG[field];
+  if (code !== undefined) flags[row] = ((flags[row] as number) | (1 << ingestBitIndex(code))) >>> 0;
+  return NUMERIC_UNKNOWN;
+}
+
+/** Rang (= numéro de bit) d'un code de drapeau d'ingestion dans le vocabulaire gelé. */
+function ingestBitIndex(code: string): number {
+  const i = INGEST_FLAG_VALUES.findIndex((v) => v.code === code);
+  if (i < 0) throw new Error(`drapeau d'ingestion inconnu : ${code}`);
+  return i;
 }
 
 export interface BuildBatchOptions {
@@ -148,6 +179,8 @@ export function buildBatch(specs: readonly RowSpec[], options: BuildBatchOptions
     const s = specs[row] as RowSpec;
     listingId.set(s.listingIdBytes ?? defaultListingId(row), row * 16);
 
+    ingestFlags[row] = s.ingestFlags ?? 0;
+
     makeId[row] = s.makeId ?? 1;
     modelId[row] = s.modelId ?? 101;
 
@@ -155,13 +188,13 @@ export function buildBatch(specs: readonly RowSpec[], options: BuildBatchOptions
     priceEur[row] = price === null ? NUMERIC_UNKNOWN : price;
     priceStatus[row] = s.priceStatus ?? (price === null ? PS_MISSING : PS_QUOTED);
 
-    mileageKm[row] = encNum(s.mileageKm, 60000);
+    mileageKm[row] = ingestBounded('mileageKm', encNum(s.mileageKm, 60000), row, ingestFlags);
 
     const year = s.year === undefined ? 2018 : s.year;
     firstRegistrationYearMonth[row] = year === null ? NUMERIC_UNKNOWN : 12 * year + ((s.month ?? 6) - 1);
     modelYear[row] = encNum(s.modelYear, year === null ? NUMERIC_UNKNOWN : year);
 
-    powerKw[row] = encNum(s.powerKw, 85);
+    powerKw[row] = ingestBounded('powerKw', encNum(s.powerKw, 85), row, ingestFlags);
     co2EmissionsGPerKmX10[row] = 1200;
     consumptionCombinedL100KmX10[row] = 55;
     electricRangeKm[row] = NUMERIC_UNKNOWN;
@@ -185,11 +218,16 @@ export function buildBatch(specs: readonly RowSpec[], options: BuildBatchOptions
     previousOwnerCount[row] = 1;
     imageCount[row] = 8;
     booleanFlags[row] = 0;
-    ingestFlags[row] = s.ingestFlags ?? 0;
 
     const base = s.strings ?? [`https://patho.local/l/${row}`, '', '', '', ''];
     const five: string[] = [];
     for (let f = 0; f < STRINGS_PER_ROW; f += 1) five.push(base[f] ?? '');
+    // ADV-17 / ARB-61, D-47 : `modelVersionClean` est par DÉFINITION la sortie de
+    // `cleanModelVersion` (EX-DATA-29 étape 6, chaîne(80)). Un provider conforme ne peut pas écrire
+    // autre chose dans cette colonne ; le banc applique donc la même règle D2, sans la recopier.
+    five[STRING_FIELD_MODEL_VERSION_CLEAN] = cleanModelVersion(
+      five[STRING_FIELD_MODEL_VERSION_CLEAN] as string,
+    );
     perRowStrings.push(five);
   }
 

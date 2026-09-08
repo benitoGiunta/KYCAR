@@ -36,6 +36,8 @@ import { ENUM_UNKNOWN_BYTE, NUMERIC_UNKNOWN } from '../../types/sentinels';
 import { cleanModelVersion } from '../../types/shared-rules';
 import { isPriceSentinelAbsolute, PRICE_SENTINEL_ABSOLUTE_EUR } from '../../types/shared-rules';
 import { INGEST_FLAG_BIT, INGEST_FLAG_VALUES, setIngestFlag } from '../../types/vocabularies';
+import type { IngestFlagCode } from '../../types/vocabularies';
+import { LISTING_BOUND_INGEST_FLAG, isWithinListingBound } from '../../types/validation';
 import type { ListingColumnBatch } from '../DataProvider';
 import {
   AD_TIER_WEIGHTS,
@@ -194,6 +196,13 @@ const BIT_MODEL_UNRESOLVED = INGEST_FLAG_BIT.MODEL_UNRESOLVED;
 const BIT_SUSPECT_ZERO_MILEAGE = INGEST_FLAG_BIT.SUSPECT_ZERO_MILEAGE;
 const BIT_PRICE_MISSING_UNDECLARED = INGEST_FLAG_BIT.PRICE_MISSING_UNDECLARED;
 const BIT_PRICE_SENTINEL_ABSOLUTE = INGEST_FLAG_BIT.PRICE_SENTINEL_ABSOLUTE;
+
+/**
+ * Colonnes numériques dont l'annexe A borne le domaine ET qu'EX-DATA-45 sait signaler (D-47).
+ * `firstRegistrationYearMonth` n'y figure pas : sa borne porte sur l'ANNÉE, pas sur le mois-année
+ * stocké, et le générateur ne produit que des années de son propre catalogue.
+ */
+const BOUNDED_COLUMNS = ['priceEur', 'mileageKm', 'powerKw', 'modelYear'] as const;
 const round50 = (x: number): number => Math.round(x / 50) * 50;
 
 /* ================================================================================================
@@ -908,10 +917,25 @@ function generateCore(options: GenerateOptions): CoreDataset {
 
   // EX-DATA-19(1) / EX-DATA-60 (DR-001) : le drapeau de sentinelle absolue est posé À L'INGESTION,
   // APRÈS l'injection des outliers — un `M1_LOW` à 150 € est exactement le cas visé par ARB-15.
+  //
+  // D-47 : la MÊME passe applique les bornes de plausibilité de l'annexe A (`isWithinListingBound`,
+  // symbole unique de D2, jamais recopié ici). Une valeur hors domaine devient INCONNU et porte son
+  // drapeau d'ingestion (EX-DATA-45) — y compris quand c'est l'injection d'aberrations qui l'a
+  // produite. Sur le jeu par défaut ce contrôle ne déclenche pas (les tirages sont déjà bornés) :
+  // il rend l'invariant OBSERVABLE au lieu de le laisser reposer sur la construction.
   for (let i = 0; i < count; i += 1) {
     if (isPriceSentinelAbsolute(cols.priceEur[i] as number)) {
       cols.ingestFlags[i] = setIngestFlag(cols.ingestFlags[i] as number, 'PRICE_SENTINEL_ABSOLUTE');
       flagCounts[BIT_PRICE_SENTINEL_ABSOLUTE] = (flagCounts[BIT_PRICE_SENTINEL_ABSOLUTE] as number) + 1;
+    }
+    for (const field of BOUNDED_COLUMNS) {
+      const col = cols[field] as { [k: number]: number };
+      const value = col[i] as number;
+      if (value === NUMERIC_UNKNOWN || isWithinListingBound(field, value)) continue;
+      col[i] = NUMERIC_UNKNOWN;
+      const bit = INGEST_FLAG_BIT[LISTING_BOUND_INGEST_FLAG[field] as IngestFlagCode];
+      cols.ingestFlags[i] = (cols.ingestFlags[i] as number) | ((1 << bit) >>> 0);
+      flagCounts[bit] = (flagCounts[bit] as number) + 1;
     }
   }
 
