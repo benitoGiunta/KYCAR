@@ -19,7 +19,14 @@ import {
   RAMP_B_MILEAGE,
   MILEAGE_CLIP_KM,
   mileageDiameter,
+  priceGridEdges,
+  priceBoundsFromGrid,
+  gridBucketIndex,
+  januaryTicks,
+  linearTicks,
   type AxisBounds,
+  type AxisTick,
+  type GridBucket,
   type Viewport,
 } from './scatter-model';
 import { drawScatter, type Canvas2DLike, type ScatterVariant } from './scatter-render';
@@ -65,6 +72,12 @@ export interface ScatterCloudProps {
    * quelle en `data-selection` sur le `<figure>` (même contrat que `GraphFrame`, pas de dépendance
    * directe puisque G4 se peint lui-même). */
   readonly dataSelection?: string;
+  /** `EX-SCR-153` (D8-31) — grille de `G1` (`RecalcResult.priceHistogram`) : `G4a` doit porter
+   * « exactement les mêmes bornes et les mêmes buckets » que l'histogramme des prix, faute de quoi
+   * les deux graphes ne se lisent plus l'un sur l'autre. Absente : repli sur `Q(0,01)`/`Q(0,99)` des
+   * points tracés (`EX-SCR-18`), c'est-à-dire le comportement d'avant D8-31 — jamais une borne
+   * inventée, mais l'alignement n'est alors pas garanti (voir le rapport de lot). */
+  readonly priceBuckets?: readonly GridBucket[];
 }
 
 /** Bornes d'année / km observées (pour normaliser les rampes couleur). `hasAnyYear` (DR-086) est
@@ -123,21 +136,31 @@ export function ScatterCloud(props: ScatterCloudProps) {
     [width, height, props.degraded],
   );
 
-  // Rangs d'empilement pour G4a (Y = effectif dans le bucket de prix, EX-SCR-151).
+  // `EX-SCR-153` (D8-31) — bornes et buckets de `G1`, quand l'hôte les fournit.
+  const gridEdges = useMemo(
+    () => (props.priceBuckets ? priceGridEdges(props.priceBuckets) : []),
+    [props.priceBuckets],
+  );
+  const gridBounds = useMemo(() => priceBoundsFromGrid(gridEdges), [gridEdges]);
+
+  // Rangs d'empilement pour G4a (Y = effectif dans le bucket de prix, EX-SCR-151). `EX-SCR-153` :
+  // les buckets sont CEUX DE G1 dès que la grille est fournie — un `BIN` refait sur les seuls points
+  // ÉCHANTILLONNÉS (`sampleScatter`) produirait sa propre largeur de bin, donc un empilement qui ne
+  // correspondrait plus barre pour barre à l'histogramme des prix.
   const stackRankByRow = useMemo(() => {
     if (effectiveVariant !== 'stack') return undefined;
-    const prices = props.points.map((p) => p.priceEur);
-    const priceBins = bin(prices, PRICE_BIN_PARAMS);
+    const useGrid = gridEdges.length >= 2;
+    const priceBins = useGrid ? null : bin(props.points.map((p) => p.priceEur), PRICE_BIN_PARAMS);
     const rankByBin = new Map<number, number>();
     const map = new Map<number, number>();
     for (const p of props.points) {
-      const bi = binIndexOf(p.priceEur, priceBins);
+      const bi = useGrid ? gridBucketIndex(p.priceEur, gridEdges) : binIndexOf(p.priceEur, priceBins!);
       const r = rankByBin.get(bi) ?? 0;
       map.set(p.row, r);
       rankByBin.set(bi, r + 1);
     }
     return map;
-  }, [props.points, effectiveVariant]);
+  }, [props.points, effectiveVariant, gridEdges]);
 
   const maxStack = useMemo(() => {
     if (stackRankByRow === undefined) return 1;
@@ -154,7 +177,9 @@ export function ScatterCloud(props: ScatterCloudProps) {
       x = q01q99(props.points.map((p) => p.mileageKm));
       y = q01q99(props.points.map((p) => p.priceEur));
     } else if (effectiveVariant === 'stack') {
-      x = q01q99(props.points.map((p) => p.priceEur));
+      // `EX-SCR-153` : bornes de `G1` (première borne du premier bucket fermé, dernière du dernier),
+      // et non `Q(0,01)`/`Q(0,99)` des points — sinon les deux axes de prix ne coïncident pas.
+      x = gridBounds ?? q01q99(props.points.map((p) => p.priceEur));
       y = { lo: 0, hi: maxStack };
     } else {
       x = q01q99(props.points.map((p) => p.regYearMonth));
@@ -163,7 +188,7 @@ export function ScatterCloud(props: ScatterCloudProps) {
     const zx: AxisBounds = { lo: x.lo, hi: x.lo + (x.hi - x.lo) * zoom };
     const zy: AxisBounds = { lo: y.lo, hi: y.lo + (y.hi - y.lo) * zoom };
     return { xB: zx, yB: zy };
-  }, [props.points, effectiveVariant, props.degraded, maxStack, zoom]);
+  }, [props.points, effectiveVariant, props.degraded, maxStack, zoom, gridBounds]);
 
   const selectedRows = useMemo(() => {
     if (props.brushX === null && props.brushY === null) return null;
@@ -172,6 +197,34 @@ export function ScatterCloud(props: ScatterCloudProps) {
   }, [props.points, props.brushX, props.brushY, effectiveVariant, props.degraded]);
 
   const proj = useMemo(() => makeProjector(vp, xB, yB), [vp, xB, yB]);
+
+  /**
+   * `EX-SCR-153` (D8-31) — GRADUATIONS des deux axes, seule trace lisible (et inspectable) des
+   * échelles réellement projetées, le tracé lui-même étant un canvas :
+   *   - `G4a` : X = les bornes de buckets de `G1` (grille `BIN`), Y = effectif LINÉAIRE depuis 0 ;
+   *   - `G4b` : X = 1ᵉʳ janvier de chaque année (`firstRegistrationYearMonth ≡ 0 [12]`), Y = prix ;
+   *   - régime dégradé (`EX-NFR-19`) : X = kilométrage, Y = prix, tous deux linéaires.
+   * Les deux échelles sont LINÉAIRES en toutes circonstances : `EX-SCR-153` interdit toute échelle
+   * logarithmique dans `G4` (elle romprait la correspondance visuelle avec `G1` et `G3`).
+   */
+  const axes = useMemo((): { readonly x: readonly AxisTick[]; readonly y: readonly AxisTick[] } => {
+    const withinX = (v: number): boolean => v >= xB.lo - 1e-9 && v <= xB.hi + 1e-9;
+    if (props.degraded) {
+      return { x: linearTicks(xB, 5, formatKm), y: linearTicks(yB, 5, formatPrice) };
+    }
+    if (effectiveVariant === 'stack') {
+      const edges = gridEdges.filter(withinX);
+      const every = Math.max(1, Math.ceil(edges.length / 6));
+      const x: readonly AxisTick[] =
+        edges.length >= 2
+          ? edges.map((v, i) => ({ value: v, label: i % every === 0 ? formatPrice(v) : '' }))
+          : linearTicks(xB, 5, formatPrice);
+      const steps = Math.max(2, Math.min(5, Math.round(yB.hi) + 1));
+      return { x, y: linearTicks(yB, steps, (v) => String(Math.round(v))) };
+    }
+    const years = Math.max(1, Math.floor(xB.hi / 12) - Math.ceil(xB.lo / 12) + 1);
+    return { x: januaryTicks(xB, Math.max(1, Math.ceil(years / 8))), y: linearTicks(yB, 5, formatPrice) };
+  }, [props.degraded, effectiveVariant, gridEdges, xB, yB]);
 
   // Position ÉCRAN d'un point, cohérente avec `drawScatter` (X = rang en G4a, X = km en dégradé).
   const screenPosOf = (p: ScatterPoint): { x: number; y: number } => {
@@ -367,6 +420,57 @@ export function ScatterCloud(props: ScatterCloudProps) {
           onMouseLeave={onPointerLeave}
           onKeyDown={onKeyDown}
         />
+        {/* Graduations (EX-SCR-153) — calque SVG au-dessus du canvas, sans interception d'événement.
+            `aria-hidden` : la lecture non visuelle passe par la table des points (EX-NFR-15), un axe
+            gradué n'y ajouterait qu'un flot de nombres. Les attributs `data-axis`/`data-scale`/
+            `data-tick` portent l'échelle et les bornes effectivement projetées. */}
+        <svg
+          class="kycar-scatter-axes"
+          viewBox={`0 0 ${vp.width} ${vp.height}`}
+          aria-hidden="true"
+          style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+        >
+          <g data-axis="x" data-scale="linear">
+            {axes.x.map((t) => (
+              <g key={`x${t.value}`}>
+                <line
+                  data-tick={t.value}
+                  x1={proj.x(t.value)}
+                  x2={proj.x(t.value)}
+                  y1={vp.height - vp.padBottom}
+                  y2={vp.height - vp.padBottom + 4}
+                  stroke="currentColor"
+                  stroke-width={0.5}
+                />
+                {t.label !== '' ? (
+                  <text x={proj.x(t.value)} y={vp.height - vp.padBottom + 15} text-anchor="middle" font-size="9">
+                    {t.label}
+                  </text>
+                ) : null}
+              </g>
+            ))}
+          </g>
+          <g data-axis="y" data-scale="linear">
+            {axes.y.map((t) => (
+              <g key={`y${t.value}`}>
+                <line
+                  data-tick={t.value}
+                  x1={vp.padLeft - 4}
+                  x2={vp.padLeft}
+                  y1={proj.y(t.value)}
+                  y2={proj.y(t.value)}
+                  stroke="currentColor"
+                  stroke-width={0.5}
+                />
+                {t.label !== '' ? (
+                  <text x={vp.padLeft - 6} y={proj.y(t.value) + 3} text-anchor="end" font-size="9">
+                    {t.label}
+                  </text>
+                ) : null}
+              </g>
+            ))}
+          </g>
+        </svg>
         {dragRect ? (
           <div
             class="kycar-brush-rect"

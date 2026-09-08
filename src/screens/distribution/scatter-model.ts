@@ -239,3 +239,92 @@ export function makeProjector(vp: Viewport, xB: AxisBounds, yB: AxisBounds): Pro
     yOut: (value) => value < yB.lo || value > yB.hi,
   };
 }
+
+/* ---- Grille de G1 et graduations d'axe (EX-SCR-153) ------------------------------------------- */
+
+/** Graduation d'axe : la valeur en DONNÉE (position) et son étiquette (vide = graduation non
+ * étiquetée, pour ne pas surcharger un axe qui porte beaucoup de bornes). */
+export interface AxisTick {
+  readonly value: number;
+  readonly label: string;
+}
+
+/** Bucket de distribution, réduit à ce dont l'axe a besoin (`DistributionBucket` du moteur). */
+export interface GridBucket {
+  readonly lowerBound: number;
+  readonly upperBound: number;
+  readonly open: boolean;
+}
+
+/**
+ * `EX-SCR-153` — bornes des buckets FERMÉS de `G1`, dans l'ordre croissant : `n + 1` valeurs pour
+ * `n` buckets. Les bins de DÉBORDEMENT (`open`) sont écartés : leurs bornes sont infinies et
+ * `EX-SCR-18` les fait porter sur la bordure de la zone de tracé, jamais sur l'axe.
+ * Tableau vide si la grille ne porte aucun bucket fermé (histogramme vide).
+ */
+export function priceGridEdges(buckets: readonly GridBucket[]): readonly number[] {
+  const closed = buckets.filter((b) => !b.open);
+  if (closed.length === 0) return [];
+  const edges = closed.map((b) => b.lowerBound);
+  edges.push((closed[closed.length - 1] as GridBucket).upperBound);
+  return edges;
+}
+
+/** `EX-SCR-153` — bornes d'axe de `G4a` : celles de `G1`, jamais recalculées sur les points tracés
+ * (les deux graphes doivent « se lire l'un sur l'autre »). `null` si la grille est vide. */
+export function priceBoundsFromGrid(edges: readonly number[]): AxisBounds | null {
+  if (edges.length < 2) return null;
+  const lo = edges[0] as number;
+  const hi = edges[edges.length - 1] as number;
+  return lo < hi ? { lo, hi } : null;
+}
+
+/**
+ * `EX-SCR-153` — rang du bucket d'un prix DANS LA GRILLE DE G1 (0 = premier bucket fermé), écrêté
+ * aux bords : une valeur sous la première borne compte dans le premier bucket, au-dessus de la
+ * dernière dans le dernier (`EX-SCR-18` : jamais supprimée). `-1` si la grille est vide.
+ */
+export function gridBucketIndex(price: number, edges: readonly number[]): number {
+  if (edges.length < 2) return -1;
+  const last = edges.length - 2;
+  if (price < (edges[0] as number)) return 0;
+  if (price >= (edges[edges.length - 1] as number)) return last;
+  let lo = 0;
+  let hi = last;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (price >= (edges[mid] as number)) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}
+
+/**
+ * `EX-SCR-153` — graduations ANNUELLES au 1ᵉʳ janvier d'un axe de `firstRegistrationYearMonth`
+ * (`12 · année + (mois − 1)`, donc le 1ᵉʳ janvier de l'année `Y` vaut exactement `12 · Y`). Toutes
+ * les années des bornes sont produites (l'exigence dit « annuelles ») ; `labelEvery` ne commande
+ * que l'ÉTIQUETAGE, pour qu'un axe de 30 ans reste lisible sans perdre une graduation.
+ */
+export function januaryTicks(bounds: AxisBounds, labelEvery = 1): readonly AxisTick[] {
+  const firstYear = Math.ceil(bounds.lo / 12);
+  const lastYear = Math.floor(bounds.hi / 12);
+  const ticks: AxisTick[] = [];
+  const step = Math.max(1, labelEvery);
+  for (let y = firstYear, i = 0; y <= lastYear; y++, i++) {
+    ticks.push({ value: y * 12, label: i % step === 0 ? String(y) : '' });
+  }
+  return ticks;
+}
+
+/** `EX-SCR-153` — graduations d'un axe LINÉAIRE : `count` valeurs à pas constant, bornes incluses
+ * (axe d'effectif de `G4a` depuis 0, axe des prix de `G4b`). */
+export function linearTicks(bounds: AxisBounds, count = 5, format: (v: number) => string = String): readonly AxisTick[] {
+  const n = Math.max(2, Math.floor(count));
+  const step = (bounds.hi - bounds.lo) / (n - 1);
+  const ticks: AxisTick[] = [];
+  for (let i = 0; i < n; i++) {
+    const value = bounds.lo + step * i;
+    ticks.push({ value, label: format(value) });
+  }
+  return ticks;
+}

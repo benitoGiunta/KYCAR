@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import type { SelectionInput } from '../../../src/types/index';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -27,6 +28,7 @@ vi.mock('preact/hooks', () => ({
 const { DistributionScreen } = await import('../../../src/screens/distribution/DistributionScreen');
 const { EMPTY_UI_STATE } = await import('../../../src/screens/distribution/url-state');
 const { fixture, withCountryCodes, deepRender, findAll, byType, visibleTextOf, textOf } = await import('./_helpers');
+const { clearMetricFilters } = await import('../../../src/screens/distribution/histogram-model');
 
 const NOOP = (): void => {};
 // D8-25 (D-31) : `fixture()` seul produit un périmètre à UN SEUL `countryCode` (`generateSyntheticDataset`
@@ -54,6 +56,21 @@ function renderScreen(overrides: Record<string, unknown> = {}): unknown {
       ...overrides,
     } as never),
   );
+}
+
+/** Arbre NON rendu en profondeur : les props passées aux composants enfants (`Histogram`,
+ * `ScatterCloud`, …) ne survivent pas à `deepRender`, qui les invoque et les remplace par leur
+ * sortie. Nécessaire pour prouver le CÂBLAGE d'une prop de rappel (`D8-27`). */
+function screenVNode(overrides: Record<string, unknown> = {}): unknown {
+  return DistributionScreen({
+    batch: f.batch,
+    recalc: f.recalc,
+    rows: f.rows,
+    ui: EMPTY_UI_STATE,
+    onUiChange: NOOP,
+    makeModelName: 'Volkswagen Golf',
+    ...overrides,
+  } as never);
 }
 
 const tree = renderScreen();
@@ -523,5 +540,40 @@ describe('D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17, D8
     const worst = samples[samples.length - 1] as number;
     console.log(`[EX-SCR-189] n=20000 modèles des 14 graphes : p50=${p50.toFixed(1)} ms, pire=${worst.toFixed(1)} ms`);
     expect(worst).toBeLessThanOrEqual(300);
+  });
+});
+
+/* ------------------------------------------------------------------------------------------------
+ * `D8-27` (`REMEDIATION-2.8` §7.4) — le câblage `onClearFilter` posé au commit `90a9eea` n'était
+ * couvert par AUCUNE exécution : les trois lignes citées dans `histogrammes.test.ts` prouvent le
+ * composant `Histogram` appelé DIRECTEMENT, avec la prop fournie par le test, jamais que l'écran B
+ * la fournit. Sonde écrite d'abord (D-32) : rouge sur `3435456` (avant câblage), verte sur `HEAD`.
+ * ---------------------------------------------------------------------------------------------- */
+describe('D7 · écran B — retrait de filtre par double-clic sur G1–G3 (EX-SCR-149, D8-27)', () => {
+  it('R-D7-2.8-01 — EX-SCR-149 : `DistributionScreen` câble `onClearFilter` sur G1/G2/G3, et l’appeler RETIRE le filtre de la métrique (toutes bornes `undefined`)', () => {
+    const applied: SelectionInput[] = [];
+    const shallow = screenVNode({ onApplyFilters: (p: SelectionInput) => applied.push(p) });
+
+    for (const [graphId, metric] of [
+      ['G1', 'price'],
+      ['G2', 'mileage'],
+      ['G3', 'year'],
+    ] as const) {
+      const hist = findAll(shallow, (n) => n.props['graphId'] === graphId)[0];
+      expect(hist, `${graphId} absent de l’arbre`).toBeDefined();
+      expect(typeof hist?.props['onClearFilter'], `${graphId} sans onClearFilter`).toBe('function');
+      (hist?.props['onClearFilter'] as (m: 'price' | 'year' | 'mileage') => void)(metric);
+    }
+
+    // `clearMetricFilters` pose `undefined` sur les DEUX bornes de la métrique — un RETRAIT, jamais
+    // une valeur. `toStrictEqual` (et non `toEqual`) : seul lui distingue une clé présente à
+    // `undefined` d'une clé absente, ce qui est précisément l'enjeu ici.
+    expect(applied).toStrictEqual([
+      clearMetricFilters('price'),
+      clearMetricFilters('mileage'),
+      clearMetricFilters('year'),
+    ]);
+    expect(applied.map((p) => Object.keys(p).length)).toEqual([2, 2, 2]);
+    expect(applied.every((p) => Object.values(p).every((v) => v === undefined))).toBe(true);
   });
 });

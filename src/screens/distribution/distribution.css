@@ -107,6 +107,20 @@
   margin-bottom: var(--space-1);
 }
 
+/* `EX-SCR-17` (D8-31) — graduations de l'axe des prix de G7, sous la carte de densité : une liste
+   horizontale de bornes, du prix le plus bas au plus haut, qui rend LISIBLE le changement d'échelle
+   (linéaire ↔ logarithmique) au lieu de le laisser deviner à la déformation des cellules. */
+.kycar-heatmap-priceaxis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
 .kycar-scatter-controls {
   display: flex;
   flex-wrap: wrap;
@@ -221,3 +235,30 @@
     margin-top: var(--space-1);
   }
 }
+
+/* `EX-SCR-153` (D8-31) — calque des graduations de G4, superposé au canvas : couleur de texte
+   atténuée (les axes ne doivent pas concurrencer les points), aucun événement intercepté. */
+.kycar-scatter-axes {
+  color: var(--color-text-muted);
+  fill: var(--color-text-muted);
+}
+
+/* `EX-SCR-174`/`EX-SCR-26` (D8-31) — bloc `ET-VIDE-FILTRES` de l'écran B : bloc CENTRÉ, largeur
+   maximale 480 px (`EX-SCR-26`), qui prend la place des 14 graphes retirés. */
+.kycar-screen-b-empty {
+  max-width: 480px;
+  margin: var(--space-3) auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.kycar-screen-b-empty-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+}
+

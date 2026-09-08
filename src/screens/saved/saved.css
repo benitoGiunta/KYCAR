@@ -1,0 +1,49 @@
+/**
+ * KYCAR — Écran E « Recherches enregistrées » (EX-SCR-212/213/214, D8-31)
+ * =================================================================================================
+ * Présentation PROPRE À L'ÉCRAN : hauteur normative de la carte et troncature de la description.
+ * La mise en page générale de l'écran (grille liste + panneau latéral) reste dans `src/app/app.css`,
+ * qui possède la coquille ; ce fichier ne redéfinit rien de ce qui s'y trouve.
+ */
+
+/* `EX-SCR-212` — « liste verticale de cartes de 96 px, une par recherche ». `min-height` plutôt
+   qu'une hauteur fixe : une carte doit pouvoir grandir (confirmation de suppression en ligne,
+   badge de schéma) sans jamais tronquer une valeur affichée. */
+.kycar-saved-row {
+  min-height: 96px;
+}
+
+.kycar-saved-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.kycar-saved-scope {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* `EX-SCR-212` — « la description générée des filtres actifs (tronquée à 2 lignes) » : troncature
+   par le moteur de rendu (`-webkit-line-clamp`, largement implémenté par les navigateurs cibles),
+   jamais par un découpage de la chaîne — un point de coupe en caractères couperait au milieu d'un
+   libellé de filtre. Le texte complet reste accessible par l'attribut `title`. */
+.kycar-saved-description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* `EX-SCR-213` — écart positif en teinte FROIDE, écart négatif en gris (jamais un rouge d'alerte :
+   un marché qui se contracte n'est pas une erreur). */
+.kycar-saved-delta--up {
+  color: var(--color-primary);
+}
+
+.kycar-saved-delta--down {
+  color: var(--color-text-muted);
+}
