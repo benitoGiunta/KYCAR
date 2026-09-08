@@ -224,6 +224,33 @@ export async function brushScatter(page: Page, graphId = 'G4'): Promise<void> {
   await page.mouse.up();
 }
 
+/**
+ * Vrai si au moins une règle CSS EFFECTIVEMENT chargée cible le fragment de sélecteur donné. Sert à
+ * distinguer « la règle ne s'applique pas » de « la feuille n'a jamais été livrée dans le bundle » —
+ * un fichier `.css` qu'aucun module n'importe est simplement absent du build Vite, sans erreur.
+ */
+export async function hasCssRuleFor(page: Page, selectorFragment: string): Promise<boolean> {
+  return page.evaluate((fragment) => {
+    const visit = (rules: CSSRuleList): boolean => {
+      for (const rule of Array.from(rules)) {
+        const style = rule as CSSStyleRule;
+        if (typeof style.selectorText === 'string' && style.selectorText.includes(fragment)) return true;
+        const grouping = rule as CSSGroupingRule;
+        if (grouping.cssRules && visit(grouping.cssRules)) return true;
+      }
+      return false;
+    };
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        if (sheet.cssRules && visit(sheet.cssRules)) return true;
+      } catch {
+        // Feuille d'une autre origine : inaccessible. Il n'y en a aucune ici (tout est de même origine).
+      }
+    }
+    return false;
+  }, selectorFragment);
+}
+
 /* ================================================================================================
  * Focus, clavier
  * ============================================================================================== */
