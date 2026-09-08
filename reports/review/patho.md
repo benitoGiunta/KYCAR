@@ -209,10 +209,11 @@ Invariants **I1, I2, I4, I5, I8** vérifiés sur six jeux ; **I6** vérifié par
    `ST-complete`/`ST-ambiguity` dont la décision `ARB` est testable).
 3. **Conformes : 34 cas.** Volumétrie (0, 1, 100 cellules, 50 000, 200 000), invariants I1/I2/I4/I5/I8
    sur six jeux, `BIN`, corrections d'URL, rafales `R`, `eq` 136, plafond d'URL, R2/R3/E5.
-4. **Non conformes : 11 cas** — prix 1 €, prix 10⁷, prix implausible en cellule, km négatif,
-   puissance 0, doublons (×3), filtre `T` ignoré, conversion ch→kW, `ustate` exposé.
-5. **Partiellement conformes : 4 cas** — `modelId = 0` (outliers), variance nulle (compteur),
-   `n = 5..11` à l'écran, lien tronqué (jeton).
+4. **Non conformes : 13 cas** — prix 1 €, prix 10⁷, prix implausible en cellule, km négatif,
+   puissance 0, `n = 11` à l'écran, doublons (×3), version 300 car., filtre `T` ignoré,
+   `ustate` exposé, conversion ch→kW.
+5. **Partiellement conformes : 4 cas** — variance nulle (compteur), `modelId = 0` (cellule
+   d'outliers), lien tronqué (jeton), clic sur une barre (`ARB-09` non câblé).
 6. **Non vérifiables : 2** — en-tête `min – max` de l'écran B et bandeau de bascule M1→M2 (rendu
    composant, environnement `node`) ; budget `EX-NFR-5` sur 10⁶ (extrapolé, hypothèse E4).
 7. **17 constats** : **7 BLOQUANT** (`R-PATHO-01`, `-03`, `-09`, `-10`, `-12`, `-15`, `-17`),

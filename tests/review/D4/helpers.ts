@@ -12,6 +12,8 @@
  * Aucun réseau. Import uniquement depuis `src/` en chemin relatif.
  */
 
+import v8 from 'node:v8';
+import vm from 'node:vm';
 import type { ListingColumnBatch } from '../../../src/types/index';
 import { ENUM_UNKNOWN_BYTE, NUMERIC_UNKNOWN } from '../../../src/types/index';
 import {
@@ -277,6 +279,35 @@ export function cellRows(
     });
   }
   return out;
+}
+
+/* ---- Mesure mémoire déterministe ------------------------------------------------------------- */
+
+let gcFn: (() => void) | null = null;
+
+/**
+ * GC complet forcé, sans dépendre d'une option de lancement : active `--expose-gc` à chaud via V8 et
+ * récupère `gc` dans un contexte neuf (technique standard Node). Deux passes pour vider aussi les
+ * objets à finalisation différée.
+ */
+export function forceGc(): void {
+  if (gcFn === null) {
+    const existing = (globalThis as unknown as { gc?: () => void }).gc;
+    if (typeof existing === 'function') gcFn = existing;
+    else {
+      v8.setFlagsFromString('--expose-gc');
+      gcFn = vm.runInNewContext('gc') as () => void;
+    }
+  }
+  gcFn();
+  gcFn();
+}
+
+/** `heapUsed + arrayBuffers` après GC forcé, en octets : la mémoire réellement retenue par le processus V8. */
+export function retainedBytes(): number {
+  forceGc();
+  const m = process.memoryUsage();
+  return m.heapUsed + m.arrayBuffers;
 }
 
 /** Percentile empirique (rang plafonné) d'un tableau de durées — rapport de latence. */
