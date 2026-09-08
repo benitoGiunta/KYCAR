@@ -235,3 +235,10 @@
     margin-top: var(--space-1);
   }
 }
+
+/* `EX-SCR-153` (D8-31) — calque des graduations de G4, superposé au canvas : couleur de texte
+   atténuée (les axes ne doivent pas concurrencer les points), aucun événement intercepté. */
+.kycar-scatter-axes {
+  color: var(--color-text-muted);
+  fill: var(--color-text-muted);
+}

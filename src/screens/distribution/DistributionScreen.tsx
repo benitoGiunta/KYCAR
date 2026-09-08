@@ -446,6 +446,8 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <ScatterCloud
           points={scatter.points}
           variant={variant}
+          /* `EX-SCR-153` (D8-31) — G4a lit la grille de G1 : mêmes bornes, mêmes buckets. */
+          priceBuckets={recalc.priceHistogram}
           onVariantChange={onVariantChange}
           sampleInfo={scatter.sample}
           brushX={ui.brushX}
