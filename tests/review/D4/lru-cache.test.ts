@@ -4,6 +4,7 @@ import { AggregationEngine } from '../../../src/engine/client';
 import type { AggregationWorkerClient } from '../../../src/worker/client';
 import type { EngineSelection, FacetResult, RecalcResult } from '../../../src/engine/kernel';
 import type { PongMessage } from '../../../src/worker/messages';
+import { forceGc } from './helpers';
 
 /**
  * Revue D4 — cache LRU 32 (EX-DATA-109, EX-SRCH-9quinquies) : éviction, clé = `selectionHash`,
@@ -127,17 +128,12 @@ describe('AggregationEngine — cache clé `selectionHash` devant le worker', ()
     expect(engine.isCached('FULL:first')).toBe(false);
     const internal = (engine as unknown as { cache: LruCache<RecalcResult> }).cache;
     expect(internal.keysOldestFirst()).not.toContain('FULL:first');
-    const gc = (globalThis as unknown as { gc?: () => void }).gc;
-    if (typeof gc === 'function') {
-      gc();
-      await new Promise((r) => setTimeout(r, 10));
-      gc();
-      const released = weak.deref() === undefined;
-      console.log(`[LRU fuite] WeakRef après éviction + gc : ${released ? 'libérée' : 'encore vivante'}`);
-      expect(released).toBe(true);
-    } else {
-      console.log('[LRU fuite] gc non exposé : vérification structurelle seulement (clé absente du Map interne)');
-    }
+    forceGc();
+    await new Promise((r) => setTimeout(r, 10));
+    forceGc();
+    const released = weak.deref() === undefined;
+    console.log(`[LRU fuite] WeakRef après éviction + GC forcé : ${released ? 'libérée' : 'encore vivante'}`);
+    expect(released).toBe(true);
     expect(internal.size).toBe(32);
   });
 
