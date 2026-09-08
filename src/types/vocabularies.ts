@@ -216,15 +216,67 @@ export function ingestFlagCodes(flags: number): readonly IngestFlagCode[] {
   return codes;
 }
 
-/** `KYCAR_OUTLIER_FLAG` — CRÉÉ (§B.6), 6 codes. */
-export const OUTLIER_FLAG_VALUES: readonly EnumValueDef[] = [
+/**
+ * `KYCAR_OUTLIER_FLAG` — CRÉÉ (§B.6), **8 codes** depuis D8-09 / DR-122 (dette D-45 levée).
+ *
+ * Les six premiers sont les codes de DÉTECTION gelés en 2.3 (divergence de nommage avec
+ * EX-DATA-85, qui les appelle `LOW_PRICE_IQR`/`HIGH_PRICE_IQR`/`LOW_PRICE_MODEL`/
+ * `HIGH_PRICE_MODEL` : signalée en 2.3, non corrigée, le vocabulaire gelé fait foi).
+ *
+ * Les deux derniers sont les codes de NON-ÉVALUABILITÉ nommés littéralement par EX-DATA-85 et
+ * exigés par EX-DATA-86 (dernière ligne du tableau de cellules) et EX-DATA-95 : une annonce que
+ * ni M1 ni M2 ne peuvent évaluer porte un verdict qui DIT pourquoi, au lieu de disparaître des
+ * sorties. Ils ne sont PAS des drapeaux d'outlier : EX-DATA-95 interdit de compter une annonce
+ * `INSUFFICIENT_*` comme signalée.
+ *   - `INSUFFICIENT_DATA`   : aucune cellule d'homogénéité n'atteint le seuil (n < 12 pour M1,
+ *                             |F| < 30 pour M2) — EX-DATA-86.
+ *   - `INSUFFICIENT_SPREAD` : la cellule existe mais sa dispersion est nulle (IQR ou MAD nul,
+ *                             `SCT = 0` pour le `R²` d'EX-DATA-93bis) — aucun écart n'est
+ *                             mesurable, un z-score y serait une division par zéro.
+ *
+ * D8-09 : le VOCABULAIRE est étendu ici (étape 0) ; l'ÉMISSION des deux codes par le moteur est
+ * le travail de fix-engine (`src/engine/outliers.ts`). Tant qu'elle n'est pas faite, aucun verdict
+ * ne porte ces codes et la sonde `R-D4-05` reste rouge (`it.fails` vert).
+ */
+const OUTLIER_FLAG_DEFS = [
   { code: 'M1_LOW', label: 'M1 — prix anormalement bas' },
   { code: 'M1_HIGH', label: 'M1 — prix anormalement haut' },
   { code: 'M2_LOW', label: 'M2 — sous le prix attendu' },
   { code: 'M2_HIGH', label: 'M2 — au-dessus du prix attendu' },
   { code: 'M1_M2_AGREE_LOW', label: 'M1 et M2 concordent (bas)' },
   { code: 'M1_M2_AGREE_HIGH', label: 'M1 et M2 concordent (haut)' },
+  { code: 'INSUFFICIENT_DATA', label: 'Effectif insuffisant pour évaluer' },
+  { code: 'INSUFFICIENT_SPREAD', label: 'Dispersion nulle : écart non mesurable' },
+] as const;
+
+/** Les 8 valeurs du vocabulaire `KYCAR_OUTLIER_FLAG` (EX-DATA-85, D8-09). */
+export const OUTLIER_FLAG_VALUES: readonly EnumValueDef[] = OUTLIER_FLAG_DEFS;
+
+/** Code canonique d'un verdict d'outlier (union littérale des 8 codes d'EX-DATA-85). */
+export type OutlierFlagCode = (typeof OUTLIER_FLAG_DEFS)[number]['code'];
+
+/**
+ * Les deux codes de NON-ÉVALUABILITÉ (D8-09). Un verdict qui en porte un n'est jamais compté
+ * comme une annonce signalée (EX-DATA-95) : les écrans et les invariants doivent les exclure de
+ * l'ensemble `A` des outliers.
+ */
+export const OUTLIER_NOT_EVALUABLE_CODES: readonly OutlierFlagCode[] = [
+  'INSUFFICIENT_DATA',
+  'INSUFFICIENT_SPREAD',
 ];
+
+/** Validation : `code` appartient-il au vocabulaire gelé `KYCAR_OUTLIER_FLAG` (8 codes) ? */
+export function isOutlierFlagCode(code: string): code is OutlierFlagCode {
+  return OUTLIER_FLAG_DEFS.some((v) => v.code === code);
+}
+
+/**
+ * Validation : le code est-il un verdict de NON-ÉVALUABILITÉ (EX-DATA-95) ? Sert à ne jamais
+ * compter une annonce `INSUFFICIENT_*` parmi les annonces signalées.
+ */
+export function isNotEvaluableOutlierCode(code: string): boolean {
+  return code === 'INSUFFICIENT_DATA' || code === 'INSUFFICIENT_SPREAD';
+}
 
 /**
  * `KYCAR_REGION` — CRÉÉ, NUTS-2 2021 (§A.8, EX-DATA-51). 11 valeurs distinctes pour la Belgique.

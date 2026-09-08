@@ -70,7 +70,8 @@ describe('D2 — chargement nominal des référentiels du dépôt', () => {
     expect(n('KYCAR_REGION')).toBe(11);
     expect(n('KYCAR_PRICE_STATUS')).toBe(3);
     expect(n('KYCAR_MEASUREMENT_STANDARD')).toBe(3);
-    expect(n('KYCAR_OUTLIER_FLAG')).toBe(6);
+    // D8-09 / DR-114 : 6 → 8 codes (INSUFFICIENT_DATA, INSUFFICIENT_SPREAD, EX-DATA-85).
+    expect(n('KYCAR_OUTLIER_FLAG')).toBe(8);
   });
 
   it('EX-DATA-9 : le décodage exige le vocabulaire, et deux vocabulaires disjoints ne se confondent pas', () => {

@@ -86,7 +86,11 @@ describe('D2 — O16 : décompte des entités typées (EX-DATA-105)', () => {
 
   it('fait — le barrel exporte aussi les 27 noms de vocabulaire et les 8 contrôles d’invariant', () => {
     expect(VOCABULARY_NAMES).toHaveLength(27);
-    expect(OUTLIER_FLAG_VALUES).toHaveLength(6);
+    // D8-09 / DR-114 (dette D-45 levée) : le vocabulaire `KYCAR_OUTLIER_FLAG` passe de 6 à 8 codes
+    // (`INSUFFICIENT_DATA`, `INSUFFICIENT_SPREAD`, nommés par EX-DATA-85 et exigés par
+    // EX-DATA-86/95). La sonde figeait la cardinalité d'AVANT l'amendement ; le fait mesuré (le
+    // barrel exporte le vocabulaire) est inchangé.
+    expect(OUTLIER_FLAG_VALUES).toHaveLength(8);
     for (const id of ['checkI1', 'checkI2', 'checkI3', 'checkI4', 'checkI5', 'checkI6', 'checkI7', 'checkI8']) {
       expect(typeof (types as unknown as Record<string, unknown>)[id]).toBe('function');
     }
