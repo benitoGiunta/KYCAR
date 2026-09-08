@@ -21,7 +21,7 @@ import {
   type Viewport,
 } from './scatter-model';
 import { drawScatter, type Canvas2DLike, type ScatterVariant } from './scatter-render';
-import { computeBrushSelection, BRUSH_ACCESSOR_SCATTER, type BrushAccessor } from './brush-model';
+import { computeBrushSelection, BRUSH_ACCESSOR_SCATTER, BRUSH_ACCESSOR_STACK, type BrushAccessor } from './brush-model';
 import type { BrushRange } from './url-state';
 import { formatPrice, formatKm, formatYear } from './format';
 import { bin, binIndexOf, PRICE_BIN_PARAMS } from '../../engine/bin';
@@ -49,14 +49,20 @@ export interface ScatterCloudProps {
   readonly height?: number;
 }
 
-/** Bornes d'année / km observées (pour normaliser les rampes couleur). */
+/** Bornes d'année / km observées (pour normaliser les rampes couleur). `hasAnyYear` (DR-086) est
+ * calculé AVANT le repli `{0,1}` de `yearMin`/`yearMax` : ce repli sert uniquement à donner des
+ * bornes finies à la rampe couleur quand aucune annonce n'a d'année exploitable, il ne doit jamais
+ * être confondu avec « une année existe » (`yearMax === yearMin` ne se déclenche jamais sur `{0,1}`,
+ * `EX-SCR-160`). */
 function ramps(points: readonly ScatterPoint[]) {
   let yearMin = Infinity;
   let yearMax = -Infinity;
   let kmMin = Infinity;
   let kmMax = -Infinity;
+  let hasAnyYear = false;
   for (const p of points) {
     if (p.year >= 0) {
+      hasAnyYear = true;
       if (p.year < yearMin) yearMin = p.year;
       if (p.year > yearMax) yearMax = p.year;
     }
@@ -71,7 +77,7 @@ function ramps(points: readonly ScatterPoint[]) {
     kmMin = 0;
     kmMax = 1;
   }
-  return { yearMin, yearMax, kmMin, kmMax };
+  return { yearMin, yearMax, kmMin, kmMax, hasAnyYear };
 }
 
 export function ScatterCloud(props: ScatterCloudProps) {
@@ -84,7 +90,7 @@ export function ScatterCloud(props: ScatterCloudProps) {
   const [dragRect, setDragRect] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
 
   const effectiveVariant: ScatterVariant = props.degraded ? 'scatter' : props.variant;
-  const { yearMin, yearMax, kmMin, kmMax } = ramps(props.points);
+  const { yearMin, yearMax, kmMin, kmMax, hasAnyYear } = ramps(props.points);
 
   const vp: Viewport = useMemo(
     () => ({ width, height, padLeft: 52, padRight: props.degraded ? 16 : 168, padTop: 16, padBottom: 40 }),
@@ -138,7 +144,7 @@ export function ScatterCloud(props: ScatterCloudProps) {
     const accessor: BrushAccessor = props.degraded
       ? { x: (p) => p.mileageKm, y: (p) => p.priceEur }
       : effectiveVariant === 'stack'
-        ? { x: (p) => p.priceEur, y: (p) => p.priceEur }
+        ? BRUSH_ACCESSOR_STACK
         : BRUSH_ACCESSOR_SCATTER;
     return computeBrushSelection(props.points, props.brushX, props.brushY, accessor);
   }, [props.points, props.brushX, props.brushY, effectiveVariant, props.degraded]);
@@ -219,13 +225,17 @@ export function ScatterCloud(props: ScatterCloudProps) {
                 type="button"
                 role="tab"
                 aria-selected={props.variant === 'scatter'}
-                disabled={yearMax === yearMin}
-                title={yearMax === yearMin ? "Nécessite l'année de première immatriculation" : undefined}
+                disabled={!hasAnyYear}
+                title={!hasAnyYear ? "Nécessite l'année de première immatriculation" : undefined}
                 onClick={() => props.onVariantChange('scatter')}
               >
                 Prix × année
               </button>
             </div>
+          ) : null}
+          {/* EX-SCR-160 (DR-086) : légende de repli quand G4b est indisponible faute d'année. */}
+          {!hasAnyYear ? (
+            <p class="kycar-scatter-no-year-note">année non renseignée sur les {props.points.length} offres</p>
           ) : null}
           <div class="kycar-scatter-zoom">
             <button type="button" aria-label="Zoom avant" onClick={() => setZoom((z) => Math.max(0.1, z * 0.8))}>+</button>

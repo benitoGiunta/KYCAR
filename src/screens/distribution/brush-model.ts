@@ -24,10 +24,16 @@ export const BRUSH_ACCESSOR_SCATTER: BrushAccessor = {
   y: (p) => p.priceEur,
 };
 
-/** Accès G4a : X = prix (rang d'empilement non pertinent pour la conversion en filtre d'intervalle). */
+/** Accès G4a : X = prix. `EX-SCR-151` : l'axe Y de G4a encode le RANG D'EMPILEMENT dans le bucket de
+ * prix (bornes `{0, maxStack}`), une information qui dépend de l'ensemble des points (`stackRankByRow`
+ * dans `ScatterCloud.tsx`) et n'est donc PAS portée par un `ScatterPoint` isolé. `DR-075` : lire
+ * `priceEur` sur Y (comme avant) comparait un rang (~0-30) à un prix (des milliers d'euros) et
+ * éliminait systématiquement tous les points dès qu'un brossage touchait tout l'axe Y. Le brossage de
+ * G4a ne contraint donc QUE l'axe des prix — Y ne filtre jamais (retourne une constante toujours dans
+ * l'intervalle `[0, maxStack]`, `maxStack ≥ 1`). */
 export const BRUSH_ACCESSOR_STACK: BrushAccessor = {
   x: (p) => p.priceEur,
-  y: (p) => p.priceEur,
+  y: () => 0,
 };
 
 /**
