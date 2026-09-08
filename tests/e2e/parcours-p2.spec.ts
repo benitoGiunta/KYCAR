@@ -26,6 +26,7 @@ import {
   open,
   parseInteger,
   readCanvasInk,
+  openFilterSheet,
   regimeOf,
   readSelectionCount,
   stripSpaces,
@@ -481,7 +482,9 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     await open(page, `${P2_PATH}?priceto=20000`);
 
     // `EX-SCR-103` — le seul sélecteur de marque atteignable en mode 2 est le contrôle
-    // `Marque / Modèle` du bandeau, qui ouvre l'écran `G`.
+    // `Marque / Modèle` du bandeau, qui ouvre l'écran `G`. En régime COMPACT (`EX-SCR-97`), la
+    // ligne primaire ne vit que dans la feuille plein écran : le MÊME parcours passe par elle.
+    await openFilterSheet(page, regimeOf(testInfo) === 'compact');
     await page.locator('.kycar-filter-band .kycar-control--structured-picker button').first().click();
     const dialog = page.getByRole('dialog', { name: 'Sélectionner marque et modèle' });
     await expect(dialog).toBeVisible();
