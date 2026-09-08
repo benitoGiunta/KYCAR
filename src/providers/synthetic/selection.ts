@@ -1,21 +1,34 @@
 /**
- * KYCAR — Filtrage de sélection interne du provider synthétique
+ * KYCAR — Compilation d'une `SelectionQuery` en prédicat sur le lot du provider synthétique
  * =================================================================================================
- * Traduit une `SelectionQuery` canonique (EX-DATA-108 : `id=v1,v2;id2=v3`) en un prédicat sur les
- * lignes du lot en mémoire. Le provider est ainsi AUTONOME et TESTABLE sans le moteur D4.
+ * Traduit une `SelectionQuery` canonique (EX-DATA-108 : `id=v1,v2;id2=v3`, IDENTIFIANTS de filtre D5
+ * — jamais les paramètres d'URL) en un prédicat sur les lignes du lot en mémoire. Le provider est
+ * ainsi AUTONOME et TESTABLE sans le moteur D4.
  *
- * PÉRIMÈTRE SUPPORTÉ (dette signalée) : les filtres qui s'appliquent 1:1 aux colonnes stockées —
- * `make`/`model` (identifiants entiers), les énumérés adossés à un vocabulaire de colonne, et les
- * bornes numériques prix/km/année/puissance. Les filtres D5 STRUCTURÉS (`mmmv`, `mcat`) et le filtre
- * `fuelType` (vocabulaire KYCAR_FUEL_TYPE ≠ colonne `fuelCategory`) NE sont PAS interprétés ici : le
- * câblage de la grammaire d'état complète relève de l'intégration D4/D5. Un filtre non reconnu est
- * IGNORÉ (aucune contrainte ajoutée) et remonté dans `unsupported`.
+ * DR-005 (BLOQUANT) — la table ne mappait que 21 identifiants et en IGNORAIT 15 dont la colonne
+ * existe pourtant dans `ListingColumnBatch` : `makesModelsVariants`, `fuelType`, `gearType`,
+ * `dateOfRegistrationFrom/To`, `countryType`, `numberOfOwners`, `doorFrom/To`,
+ * `numberOfSeatsFrom/To`, `electricRangeFrom/To`, `emissionClass`, `priceEvaluation`. Les 15 sont
+ * désormais mappés, y compris la valeur STRUCTURÉE `mmmv` décodée en `TaxonomyScope`.
+ *
+ * DEUX RÈGLES NON NÉGOCIABLES (D-03, DR-016) :
+ *   1. Un identifiant NON pris en charge est déclaré dans `unsupported` — jamais ignoré en silence.
+ *   2. Un prédicat non applicable ne peut être satisfait par AUCUNE ligne : il compile en un test
+ *      constamment faux. L'effectif publié est donc un PLANCHER honnête (0 pour un filtre
+ *      inapplicable seul), jamais l'effectif NON FILTRÉ étiqueté comme filtré. Le contrôleur lit
+ *      `unsupportedFilterIds` (`AggregateResult`) et bascule en état dégradé `ET-FILTRE-NON-APPLIQUE`
+ *      plutôt que de publier ce plancher (D-03, fix-app).
+ *
+ * `powerFrom`/`powerTo` sont exprimés dans l'unité désignée par `powerType` (ARB-33/EX-SRCH-11bis) :
+ * une borne en chevaux est convertie en kW par `hpToKw`, la constante UNIQUE de la couche D2
+ * (DR-008), sans arrondi intermédiaire.
  */
 
 import type { ReferenceData } from '../../types/reference';
 import type { VocabularyName } from '../../types/vocabularies';
-import type { ListingColumnBatch } from '../DataProvider';
 import { NUMERIC_UNKNOWN } from '../../types/sentinels';
+import { hpToKw } from '../../types/shared-rules';
+import type { CoreColumns } from './generate';
 
 /** Prédicat compilé + liste des identifiants de filtre non pris en charge. */
 export interface CompiledSelection {
@@ -27,26 +40,67 @@ export interface CompiledSelection {
 
 /** Colonne énumérée d'un octet ciblée par un filtre, avec son vocabulaire de décodage. */
 type EnumColumn = keyof Pick<
-  ListingColumnBatch,
-  'fuelCategory' | 'bodyType' | 'bodyColor' | 'upholsteryType' | 'drivetrain' | 'transmission' | 'sellerType' | 'offerType' | 'regionCode' | 'usageState'
+  CoreColumns,
+  | 'fuelCategory'
+  | 'bodyType'
+  | 'bodyColor'
+  | 'upholsteryType'
+  | 'drivetrain'
+  | 'transmission'
+  | 'sellerType'
+  | 'offerType'
+  | 'regionCode'
+  | 'usageState'
+  | 'countryCode'
+  | 'euEmissionStandard'
+  | 'priceEvaluationCategory'
 >;
 
+/**
+ * Identifiants D5 dont la valeur est un CODE du vocabulaire de la colonne visée. `fuelType` (domaine
+ * `filters.json#fuel`) et `KYCAR_FUEL_CATEGORY` partagent leurs dix codes (`B`, `D`, `2`, `3`, `E`,
+ * `H`, `L`, `C`, `M`, `O`) : la traduction est l'identité, vérifiée par le test du lot.
+ */
 const ENUM_FILTERS: Readonly<Record<string, { column: EnumColumn; vocabulary: VocabularyName }>> = {
   fuelCategory: { column: 'fuelCategory', vocabulary: 'KYCAR_FUEL_CATEGORY' },
+  fuelType: { column: 'fuelCategory', vocabulary: 'KYCAR_FUEL_CATEGORY' },
   bodyType: { column: 'bodyType', vocabulary: 'KYCAR_BODY_TYPE' },
   bodyColor: { column: 'bodyColor', vocabulary: 'KYCAR_BODY_COLOR' },
   upholstery: { column: 'upholsteryType', vocabulary: 'KYCAR_UPHOLSTERY_TYPE' },
   driveTrain: { column: 'drivetrain', vocabulary: 'KYCAR_DRIVETRAIN' },
   transmission: { column: 'transmission', vocabulary: 'KYCAR_TRANSMISSION' },
+  gearType: { column: 'transmission', vocabulary: 'KYCAR_TRANSMISSION' },
   sellerType: { column: 'sellerType', vocabulary: 'KYCAR_SELLER_TYPE' },
   offer: { column: 'offerType', vocabulary: 'KYCAR_OFFER_TYPE' },
   region: { column: 'regionCode', vocabulary: 'KYCAR_REGION' },
   hadAccident: { column: 'usageState', vocabulary: 'KYCAR_USAGE_STATE' },
   usageState: { column: 'usageState', vocabulary: 'KYCAR_USAGE_STATE' },
+  emissionClass: { column: 'euEmissionStandard', vocabulary: 'KYCAR_EU_EMISSION_STANDARD' },
+  priceEvaluation: { column: 'priceEvaluationCategory', vocabulary: 'KYCAR_PRICE_EVALUATION' },
+};
+
+/**
+ * `countryType` (`cy`) porte le domaine D5 des pays de recherche (`A`, `B`, `D`, `E`, `F`, `I`, `L`,
+ * `NL`) tandis que la colonne `countryCode` porte le vocabulaire `KYCAR_MARKETPLACE` (`at`, `be`,
+ * `de`, `es`, `fr`, `it`, `lu`, `nl`). Traduction EXPLICITE, jamais une coïncidence de casse
+ * (EX-DATA-40).
+ */
+const COUNTRY_TYPE_TO_MARKETPLACE: Readonly<Record<string, string>> = {
+  A: 'at',
+  B: 'be',
+  D: 'de',
+  E: 'es',
+  F: 'fr',
+  I: 'it',
+  L: 'lu',
+  NL: 'nl',
 };
 
 /** Colonne numérique ciblée par une borne min/max. */
-type RangeColumn = keyof Pick<ListingColumnBatch, 'priceEur' | 'mileageKm' | 'modelYear' | 'powerKw'>;
+type RangeColumn = keyof Pick<
+  CoreColumns,
+  'priceEur' | 'mileageKm' | 'modelYear' | 'powerKw' | 'doorCount' | 'seatCount' | 'electricRangeKm' | 'previousOwnerCount'
+>;
 
 const RANGE_FILTERS: Readonly<Record<string, { column: RangeColumn; bound: 'min' | 'max' }>> = {
   priceFrom: { column: 'priceEur', bound: 'min' },
@@ -59,6 +113,14 @@ const RANGE_FILTERS: Readonly<Record<string, { column: RangeColumn; bound: 'min'
   dateOfModelYearTo: { column: 'modelYear', bound: 'max' },
   powerFrom: { column: 'powerKw', bound: 'min' },
   powerTo: { column: 'powerKw', bound: 'max' },
+  doorFrom: { column: 'doorCount', bound: 'min' },
+  doorTo: { column: 'doorCount', bound: 'max' },
+  numberOfSeatsFrom: { column: 'seatCount', bound: 'min' },
+  numberOfSeatsTo: { column: 'seatCount', bound: 'max' },
+  electricRangeFrom: { column: 'electricRangeKm', bound: 'min' },
+  electricRangeTo: { column: 'electricRangeKm', bound: 'max' },
+  // `prevownersid` porte une sémantique « au plus » relevée (`AT_MOST_PRESUMED`, filter-registry).
+  numberOfOwners: { column: 'previousOwnerCount', bound: 'max' },
 };
 
 /** Parse une `SelectionQuery` canonique en paires (id, valeurs). */
@@ -89,9 +151,41 @@ function enumIndexSet(ref: ReferenceData, vocabulary: VocabularyName, codes: rea
   return set;
 }
 
+/**
+ * Portée de taxonomie décodée d'un `mmmv` (EX-SRCH-9bis) : chaque valeur est
+ * `<makeId>|<modelId>|<versionId>`, les deux derniers segments étant facultatifs. Une valeur qui ne
+ * porte QUE la marque élargit la portée à toute la marque ; le segment version n'a pas de colonne
+ * dans le lot (`modelVersion*` est du texte libre) et n'est donc PAS appliqué — sans conséquence
+ * sur l'effectif, puisque toute annonce du couple marque/modèle reste retenue.
+ */
+export interface TaxonomySelectionScope {
+  readonly makeIds: ReadonlySet<number>;
+  readonly models: ReadonlySet<number>;
+}
+
+/** Décode la valeur structurée `makesModelsVariants` en portée de taxonomie. */
+export function decodeTaxonomyScope(values: readonly string[]): TaxonomySelectionScope {
+  const makeIds = new Set<number>();
+  const models = new Set<number>();
+  for (const value of values) {
+    const parts = value.split('|');
+    const makeId = Number(parts[0]);
+    if (!Number.isFinite(makeId)) continue;
+    const modelRaw = parts[1];
+    if (modelRaw === undefined || modelRaw === '') {
+      makeIds.add(makeId);
+      continue;
+    }
+    const modelId = Number(modelRaw);
+    if (Number.isFinite(modelId)) models.add(makeId * 1_000_000 + modelId);
+    else makeIds.add(makeId);
+  }
+  return { makeIds, models };
+}
+
 /** Compile une `SelectionQuery` en prédicat sur les lignes du lot. */
 export function compileSelection(
-  batch: ListingColumnBatch,
+  batch: CoreColumns,
   query: string,
   ref: ReferenceData,
 ): CompiledSelection {
@@ -102,14 +196,61 @@ export function compileSelection(
 
   const tests: Array<(i: number) => boolean> = [];
   const unsupported: string[] = [];
+  // ARB-33 : l'unité des bornes de puissance est portée par `powerType` (`kw` par défaut).
+  const powerInHp = (pairs.get('powerType') ?? []).includes('hp');
 
   for (const [id, values] of pairs) {
+    if (id === 'powerType') continue; // paramètre d'UNITÉ, jamais un prédicat (EX-SRCH-18bis).
+
     if (id === 'make' || id === 'model') {
       const ids = new Set(values.map((v) => Number(v)).filter((n) => Number.isFinite(n)));
       const col = id === 'make' ? batch.makeId : batch.modelId;
       tests.push((i) => ids.has(col[i] as number));
       continue;
     }
+
+    if (id === 'makesModelsVariants') {
+      const scope = decodeTaxonomyScope(values);
+      if (scope.makeIds.size === 0 && scope.models.size === 0) {
+        unsupported.push(id);
+        continue;
+      }
+      const makeCol = batch.makeId;
+      const modelCol = batch.modelId;
+      tests.push((i) => {
+        const makeId = makeCol[i] as number;
+        if (scope.makeIds.has(makeId)) return true;
+        return scope.models.has(makeId * 1_000_000 + (modelCol[i] as number));
+      });
+      continue;
+    }
+
+    if (id === 'countryType') {
+      const codes = values.map((v) => COUNTRY_TYPE_TO_MARKETPLACE[v]).filter((c): c is string => c !== undefined);
+      const set = enumIndexSet(ref, 'KYCAR_MARKETPLACE', codes);
+      const col = batch.countryCode;
+      tests.push((i) => set.has(col[i] as number));
+      continue;
+    }
+
+    if (id === 'dateOfRegistrationFrom' || id === 'dateOfRegistrationTo') {
+      // EX-DATA-25 : le pivot temporel est la PREMIÈRE IMMATRICULATION, jamais l'année-modèle.
+      const year = Number(values[0]);
+      if (!Number.isFinite(year)) {
+        unsupported.push(id);
+        continue;
+      }
+      const col = batch.firstRegistrationYearMonth;
+      const isMin = id === 'dateOfRegistrationFrom';
+      tests.push((i) => {
+        const ym = col[i] as number;
+        if (ym === NUMERIC_UNKNOWN) return false;
+        const y = Math.floor(ym / 12);
+        return isMin ? y >= year : y <= year;
+      });
+      continue;
+    }
+
     const enumSpec = ENUM_FILTERS[id];
     if (enumSpec !== undefined) {
       const set = enumIndexSet(ref, enumSpec.vocabulary, values);
@@ -117,26 +258,35 @@ export function compileSelection(
       tests.push((i) => set.has(col[i] as number));
       continue;
     }
+
     const rangeSpec = RANGE_FILTERS[id];
     if (rangeSpec !== undefined) {
-      const threshold = Number(values[0]);
-      if (Number.isFinite(threshold)) {
-        const col = batch[rangeSpec.column];
-        if (rangeSpec.bound === 'min') {
-          tests.push((i) => {
-            const v = col[i] as number;
-            return v !== NUMERIC_UNKNOWN && v >= threshold;
-          });
-        } else {
-          tests.push((i) => {
-            const v = col[i] as number;
-            return v !== NUMERIC_UNKNOWN && v <= threshold;
-          });
-        }
+      const raw = Number(values[0]);
+      if (!Number.isFinite(raw)) {
+        unsupported.push(id);
+        continue;
+      }
+      const isPower = rangeSpec.column === 'powerKw';
+      const threshold = isPower && powerInHp ? hpToKw(raw) : raw;
+      const col = batch[rangeSpec.column];
+      if (rangeSpec.bound === 'min') {
+        tests.push((i) => {
+          const v = col[i] as number;
+          return v !== NUMERIC_UNKNOWN && v >= threshold;
+        });
+      } else {
+        tests.push((i) => {
+          const v = col[i] as number;
+          return v !== NUMERIC_UNKNOWN && v <= threshold;
+        });
       }
       continue;
     }
+
+    // Aucune colonne, aucune règle : le filtre est DÉCLARÉ non appliqué et aucune ligne ne peut être
+    // prouvée conforme (règle 2 de l'en-tête) — jamais l'effectif non filtré.
     unsupported.push(id);
+    tests.push(() => false);
   }
 
   const predicate = (i: number): boolean => {

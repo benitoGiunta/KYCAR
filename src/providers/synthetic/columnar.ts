@@ -1,10 +1,13 @@
 /**
  * KYCAR — Assemblage colonnaire d'un `ListingColumnBatch` (EX-DATA-119/121)
  * =================================================================================================
- * Deux services pour le lot D3 :
- *   - `ColumnarBuilder` : alloue les `TypedArray` d'un lot de `rowCount` lignes, reçoit chaque ligne
- *     déjà ENCODÉE (sentinelles typées posées en amont), et matérialise en fin de course la zone de
- *     chaînes contiguë (`stringBlob` + `stringOffsets`, `STRINGS_PER_ROW` champs par ligne).
+ * Trois services pour le lot D3 :
+ *   - `allocColumns` : alloue les `TypedArray` d'un lot de `rowCount` lignes. Le générateur écrit
+ *     DIRECTEMENT dans ces colonnes (aucun objet-ligne intermédiaire : DR-049, chemin critique).
+ *   - `buildStringZone` / `finalizeBatch` : matérialisent la zone de chaînes contiguë
+ *     (`stringBlob` + `stringOffsets`, `STRINGS_PER_ROW` champs par ligne) et figent le lot. Cette
+ *     étape est la plus coûteuse de la génération (≈ 330 ms à 100 000 lignes) : elle est DIFFÉRÉE
+ *     hors du chemin critique de `openSnapshot` (DR-049, ARCHITECTURE §9.3 garde-fou 2).
  *   - `subsetBatch` : extrait un sous-ensemble de lignes d'un lot existant (filtrage de sélection,
  *     forage par identifiants), en reconstruisant la zone de chaînes.
  *
@@ -15,51 +18,13 @@
 import type { ListingColumnBatch } from '../DataProvider';
 import { STRINGS_PER_ROW } from '../DataProvider';
 
-/** Une ligne d'annonce déjà encodée (valeurs entières + sentinelles posées), prête à l'écriture. */
-export interface EncodedRow {
-  readonly listingId: Uint8Array; // 16 octets
-  readonly priceEur: number;
-  readonly mileageKm: number;
-  readonly firstRegistrationYearMonth: number;
-  readonly modelId: number;
-  readonly makeId: number;
-  readonly modelYear: number;
-  readonly powerKw: number;
-  readonly co2EmissionsGPerKmX10: number;
-  readonly consumptionCombinedL100KmX10: number;
-  readonly electricRangeKm: number;
-  readonly fuelCategory: number;
-  readonly bodyType: number;
-  readonly transmission: number;
-  readonly drivetrain: number;
-  readonly offerType: number;
-  readonly usageState: number;
-  readonly sellerType: number;
-  readonly regionCode: number;
-  readonly countryCode: number;
-  readonly priceStatus: number;
-  readonly priceEvaluationCategory: number;
-  readonly adTier: number;
-  readonly bodyColor: number;
-  readonly upholsteryType: number;
-  readonly euEmissionStandard: number;
-  readonly doorCount: number;
-  readonly seatCount: number;
-  readonly previousOwnerCount: number;
-  readonly imageCount: number;
-  readonly booleanFlags: number;
-  readonly ingestFlags: number;
-  /** Ordre : [listingUrl, modelVersionRaw, modelVersionClean, fuelSourceLabelRaw, trimTokens]. */
-  readonly strings: readonly string[];
-}
-
 const ENCODER = new TextEncoder();
 
 /** Champs de chaînes attendus par ligne (miroir de `STRINGS_PER_ROW`). */
 const STRING_FIELDS = STRINGS_PER_ROW;
 
-/** Colonnes typées mutables allouées pour l'assemblage. */
-interface MutableColumns {
+/** Colonnes typées mutables allouées pour l'assemblage — écrites directement par le générateur. */
+export interface MutableColumns {
   listingId: Uint8Array;
   priceEur: Int32Array;
   mileageKm: Int32Array;
@@ -94,7 +59,8 @@ interface MutableColumns {
   ingestFlags: Uint32Array;
 }
 
-function allocColumns(rowCount: number): MutableColumns {
+/** Alloue toutes les colonnes typées d'un lot de `rowCount` lignes (sentinelles à poser par l'appelant). */
+export function allocColumns(rowCount: number): MutableColumns {
   return {
     listingId: new Uint8Array(rowCount * 16),
     priceEur: new Int32Array(rowCount),
@@ -132,7 +98,7 @@ function allocColumns(rowCount: number): MutableColumns {
 }
 
 /** Assemble la zone de chaînes contiguë à partir des chaînes par ligne. */
-function buildStringZone(
+export function buildStringZone(
   perRowStrings: readonly (readonly string[])[],
 ): { stringBlob: Uint8Array; stringOffsets: Uint32Array } {
   const rowCount = perRowStrings.length;
@@ -159,66 +125,19 @@ function buildStringZone(
   return { stringBlob, stringOffsets };
 }
 
-/** Assembleur de lot colonnaire : alloue, remplit ligne à ligne, puis fige en `ListingColumnBatch`. */
-export class ColumnarBuilder {
-  private readonly cols: MutableColumns;
-  private readonly perRowStrings: string[][];
-
-  constructor(private readonly rowCount: number) {
-    this.cols = allocColumns(rowCount);
-    this.perRowStrings = new Array(rowCount);
-  }
-
-  /** Écrit une ligne encodée à l'indice `i`. */
-  setRow(i: number, row: EncodedRow): void {
-    const c = this.cols;
-    c.listingId.set(row.listingId, i * 16);
-    c.priceEur[i] = row.priceEur;
-    c.mileageKm[i] = row.mileageKm;
-    c.firstRegistrationYearMonth[i] = row.firstRegistrationYearMonth;
-    c.modelId[i] = row.modelId;
-    c.makeId[i] = row.makeId;
-    c.modelYear[i] = row.modelYear;
-    c.powerKw[i] = row.powerKw;
-    c.co2EmissionsGPerKmX10[i] = row.co2EmissionsGPerKmX10;
-    c.consumptionCombinedL100KmX10[i] = row.consumptionCombinedL100KmX10;
-    c.electricRangeKm[i] = row.electricRangeKm;
-    c.fuelCategory[i] = row.fuelCategory;
-    c.bodyType[i] = row.bodyType;
-    c.transmission[i] = row.transmission;
-    c.drivetrain[i] = row.drivetrain;
-    c.offerType[i] = row.offerType;
-    c.usageState[i] = row.usageState;
-    c.sellerType[i] = row.sellerType;
-    c.regionCode[i] = row.regionCode;
-    c.countryCode[i] = row.countryCode;
-    c.priceStatus[i] = row.priceStatus;
-    c.priceEvaluationCategory[i] = row.priceEvaluationCategory;
-    c.adTier[i] = row.adTier;
-    c.bodyColor[i] = row.bodyColor;
-    c.upholsteryType[i] = row.upholsteryType;
-    c.euEmissionStandard[i] = row.euEmissionStandard;
-    c.doorCount[i] = row.doorCount;
-    c.seatCount[i] = row.seatCount;
-    c.previousOwnerCount[i] = row.previousOwnerCount;
-    c.imageCount[i] = row.imageCount;
-    c.booleanFlags[i] = row.booleanFlags;
-    c.ingestFlags[i] = row.ingestFlags;
-    this.perRowStrings[i] = [...row.strings];
-  }
-
-  /** Fige le lot. `localDatasetKey` et `snapshotId` proviennent de l'appelant. */
-  finalize(snapshotId: string, localDatasetKey: string): ListingColumnBatch {
-    const { stringBlob, stringOffsets } = buildStringZone(this.perRowStrings);
-    return {
-      snapshotId,
-      localDatasetKey,
-      rowCount: this.rowCount,
-      ...this.cols,
-      stringBlob,
-      stringOffsets,
-    };
-  }
+/**
+ * Fige un lot colonnaire : colonnes déjà remplies + zone de chaînes construite à partir des
+ * `STRINGS_PER_ROW` champs textuels de chaque ligne.
+ */
+export function finalizeBatch(
+  cols: MutableColumns,
+  rowCount: number,
+  perRowStrings: readonly (readonly string[])[],
+  snapshotId: string,
+  localDatasetKey: string,
+): ListingColumnBatch {
+  const { stringBlob, stringOffsets } = buildStringZone(perRowStrings);
+  return { snapshotId, localDatasetKey, rowCount, ...cols, stringBlob, stringOffsets };
 }
 
 /**
