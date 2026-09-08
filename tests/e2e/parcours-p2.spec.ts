@@ -488,7 +488,21 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     await page.locator('.kycar-filter-band .kycar-control--structured-picker button').first().click();
     const dialog = page.getByRole('dialog', { name: 'Sélectionner marque et modèle' });
     await expect(dialog).toBeVisible();
+
+    // `EX-SCR-216` (`D8-34`) — chaque entrée porte son effectif. Ouvert depuis le MODE 2, l'écran G
+    // n'avait aucun agrégat de marché à sa disposition et affichait `—` partout (`fix-app-2` §7.3) ;
+    // la coquille retombe désormais sur les effectifs de la baseline détenue par le contrôleur.
+    const firstOptions = (await dialog.locator('[role="option"]').allInnerTexts()).slice(0, 10);
+    mesure(testInfo, 'EX-SCR-216 — effectifs de l’écran G ouvert depuis l’écran B', firstOptions.join(' | '));
+    expect(firstOptions.length).toBeGreaterThan(0);
+    expect(firstOptions.filter((t) => t.trim().endsWith('—'))).toEqual([]);
+
     await dialog.getByPlaceholder('Rechercher…').fill('Volkswagen');
+    // Une valeur NUMÉRIQUE, pas seulement « pas un tiret » : l'entrée est « <libellé> <effectif> ».
+    const vw = (await dialog.locator('[role="option"]').first().innerText()).trim();
+    expect(vw).toMatch(/^Volkswagen\s[\d\u00A0\u202F ]+$/u);
+    expect(parseInteger(vw.replace(/^Volkswagen\s/u, ''))).toBeGreaterThan(0);
+
     await dialog.locator('[role="option"]').first().click();
     await dialog.getByRole('button', { name: 'Appliquer' }).click();
 
