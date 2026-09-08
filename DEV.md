@@ -47,10 +47,19 @@ snapshot en IndexedDB).
 
 ## Navigateurs cibles (`EX-NFR-17`)
 
-Deux dernieres versions majeures de Chrome, Firefox, Edge et Safari. Consequence pour le code :
-ES2022 natif suffit (pas de fallback legacy), aucune des quatre cibles n'a besoin d'un polyfill
-pour les APIs utilisees en D1 (Worker modules, `structuredClone` implicite via `postMessage`,
-`import.meta.url`).
+Deux dernieres versions majeures de Chrome, Firefox, Edge et Safari. Aucune des quatre cibles n'a
+besoin d'un polyfill pour les APIs utilisees en D1 (Worker modules, `structuredClone` implicite via
+`postMessage`, `import.meta.url`).
+
+**Cible de build effective (corrige 2.6, `DR-160`).** `tsconfig.json` fixe `target: "ES2022"`, mais
+ce reglage ne gouverne que la **verification de types** par `tsc`, pas la syntaxe reellement emise
+par le bundle : le `build.target` **effectif** de Vite/esbuild, non fixe explicitement dans
+`vite.config.ts`, vaut par defaut `['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14']`
+(mesure : `vite build --debug`). Le plancher de compatibilite reel du bundle est donc **au moins
+ES2020**, pas ES2022 natif comme l'affirmait la version precedente de cette section. Aucun impact
+fonctionnel constate (aucun plugin de transpilation legacy, aucun polyfill, syntaxe moderne
+conservee dans le bundle produit) : c'est une correction de l'enonce, pas un defaut de
+compatibilite.
 
 ## Points de rupture responsive (`EX-NFR-18`)
 
