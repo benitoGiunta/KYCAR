@@ -15,8 +15,8 @@ export { AggregationEngine, createAggregationEngine } from './client';
 export { createAggregationWorkerClient, type AggregationWorkerClient } from '../worker/client';
 
 // Noyau exécuté dans le worker (calcul pur — utilisable aussi hors worker pour les tests/bancs).
-export { AggregationDataset } from './kernel';
-export type { EngineSelection, RecalcResult, FacetResult } from './kernel';
+export { AggregationDataset, OUTLIER_UNPRUNED_MAX_ROWS, STATS_UNPRUNED_MAX_ROWS } from './kernel';
+export type { EngineSelection, RecalcResult, FacetResult, OutliersSkippedReason, StatsSkippedReason } from './kernel';
 
 // Statistiques publiées par le protocole worker (D8-07, dette D-17 levée) — types seulement.
 export type {
@@ -48,9 +48,27 @@ export { compilePredicate, compilePredicates } from './predicates';
 export type { FacetCount, FacetFilterSpec } from './facets';
 export { computeFacets } from './facets';
 
-// Détection d'outliers (M1/M2/M3).
-export { detectOutliers } from './outliers';
-export type { OutlierResult, M3Control } from './outliers';
+// Détection d'outliers (M1/M2/M3) et évaluabilité (D8-09).
+export { detectOutliers, R_SQUARED_WARNING_THRESHOLD } from './outliers';
+export type { OutlierResult, M3Control, OutlierEvaluationCounters } from './outliers';
+
+// Agrégats par groupe D8-07 : GROUPSTAT, NTILE, paliers de puissance, indice de dépréciation.
+export {
+  computeGroupStats,
+  computeDepreciationIndex,
+  compareGroupLabels,
+  powerTierLabel,
+  roundHalfAway,
+  GROUP_STAT_KEYS,
+  MILEAGE_NTILE_K,
+  POWER_TIER_WIDTH_KW,
+  DEPRECIATION_MIN_N,
+} from './group-stats';
+export type { GroupStatsOutput } from './group-stats';
+
+// Échantillon déterministe du nuage G4 (EX-DATA-99..103), calculé dans le worker (D8-07).
+export { sampleScatter, SCATTER_MAX_POINTS } from './scatter';
+export type { ScatterSampleInput } from './scatter';
 
 // Index et élagage (EX-DATA-115/116).
 export { buildIndexes, modelIndexKey, BITSET_COLUMNS } from './index-build';

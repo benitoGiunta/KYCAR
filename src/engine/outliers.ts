@@ -24,6 +24,8 @@ import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED, yearFro
 import { implausibleInCellThreshold } from './implausible';
 import { quantileFromSorted } from './quantiles';
 import { decodeListingId } from './uuid';
+import { roundHalfAway } from './group-stats';
+import type { CellLevel, CellStat } from './stats-protocol';
 
 /**
  * Clés composites ENTIÈRES des cellules (point chaud mesuré à N = 100 000 : allouer une chaîne
@@ -53,6 +55,18 @@ const FLAG_M2_LOW = 'M2_LOW';
 const FLAG_M2_HIGH = 'M2_HIGH';
 const FLAG_AGREE_LOW = 'M1_M2_AGREE_LOW';
 const FLAG_AGREE_HIGH = 'M1_M2_AGREE_HIGH';
+/**
+ * D8-09 (DR-114, dette D-45 levée) — les deux codes de NON-ÉVALUABILITÉ du vocabulaire gelé, porté
+ * de 6 à 8 codes par l'étape 0 (`OUTLIER_FLAG_VALUES`, `OUTLIER_NOT_EVALUABLE_CODES`).
+ * `EX-DATA-86` (dernière ligne du tableau de repli) et `EX-DATA-89` / `EX-DATA-91` / `EX-DATA-92`
+ * les EXIGENT ; `EX-DATA-95` en tire la conséquence : une annonce qui les porte n'est jamais classée
+ * parmi les opportunités et n'est pas non plus comptée comme « non anormale ».
+ */
+const FLAG_INSUFFICIENT_DATA = 'INSUFFICIENT_DATA';
+const FLAG_INSUFFICIENT_SPREAD = 'INSUFFICIENT_SPREAD';
+
+/** Seuil d'avertissement affiché sous le titre de `G8` (EX-SCR-164, EX-DATA-93bis). */
+export const R_SQUARED_WARNING_THRESHOLD = 0.3;
 
 /** Contrôle externe M3 (EX-DATA-96). */
 export interface M3Control {
@@ -72,11 +86,50 @@ export const M3_EMPTY: M3Control = {
   evalCoverage: null,
 };
 
+/**
+ * D8-09 — décompte de l'évaluabilité des annonces à prix AFFICHÉ (`priceStatus = QUOTED`), publié
+ * pour que l'écran distingue « aucune anomalie détectée » de « anomalie non évaluable », que
+ * `EX-DATA-95` interdit de confondre.
+ *
+ * Invariant (contrôlé par test, raffinement d'I6) :
+ * `evaluated + notEvaluableTotal + priceExcluded + implausibleInCell = priceQuotedCount`,
+ * et `notEvaluableTotal + priceExcluded + implausibleInCell = outlierNotEvaluatedCount`.
+ */
+export interface OutlierEvaluationCounters {
+  /** Annonces évaluées par M1 et/ou M2 (`outlierEvaluatedCount`). */
+  readonly evaluated: number;
+  /** Annonces non évaluables, ventilées par code de verdict (les deux codes de D8-09). */
+  readonly notEvaluable: Readonly<Record<'INSUFFICIENT_DATA' | 'INSUFFICIENT_SPREAD', number>>;
+  /** Somme des deux compteurs ci-dessus — le nombre de verdicts de non-évaluabilité émis. */
+  readonly notEvaluableTotal: number;
+  /**
+   * Annonces à prix affiché mais HORS `V_price` au sens absolu (sentinelle `PRICE_SENTINEL_ABSOLUTE`,
+   * hors domaine) : non évaluées et JAMAIS porteuses d'un verdict (EX-DATA-16(d)).
+   */
+  readonly priceExcluded: number;
+  /**
+   * Annonces écartées de `V_price(C)` par `PRICE_IMPLAUSIBLE_IN_CELL` : ni évaluées ni JUGÉES,
+   * aucun verdict, pas même de non-évaluabilité (EX-DATA-19(2)).
+   */
+  readonly implausibleInCell: number;
+}
+
 /** Résultat complet de la détection. */
 export interface OutlierResult {
   readonly verdicts: readonly OutlierVerdict[];
   readonly outlierEvaluatedCount: number;
   readonly outlierNotEvaluatedCount: number;
+  /** D8-09 — ventilation de l'évaluabilité, dont les deux codes `INSUFFICIENT_*`. */
+  readonly evaluation: OutlierEvaluationCounters;
+  /**
+   * D8-07 — statistiques des cellules d'homogénéité RETENUES (EX-DATA-86/87/93bis), dont le `R²` de
+   * la passe 2 de M2 et son avertissement `R² < 0,30`.
+   */
+  readonly cellStats: readonly CellStat[];
+  /** Lignes SIGNALÉES (`A` d'EX-DATA-101) : au moins un drapeau `M1_*` / `M2_*`. */
+  readonly flaggedRows: ReadonlySet<number>;
+  /** `opportunityScore` par ligne évaluée (départage du cas `|A| ≥ K` d'EX-DATA-101). */
+  readonly scoreByRow: ReadonlyMap<number, number>;
   readonly m1FlaggedIds: ReadonlySet<string>;
   readonly m2FlaggedIds: ReadonlySet<string>;
   /**
@@ -181,6 +234,16 @@ interface CellSample {
   readonly implausibleInCellCount: number;
   /** `n_price(C)` HORS implausibles : l'effectif publié avec le verdict (EX-DATA-87). */
   readonly keptCount: number;
+  /** Médiane de `V_price(C)` (prix, en euros), ou `null` si la cellule est vide — D8-07. */
+  readonly median: number | null;
+  /**
+   * Écart absolu médian de `V_price(C)` autour de sa médiane, en euros (l'estimateur robuste
+   * d'`EX-DATA-92` appliqué à l'échantillon de la cellule), ou `null` si la cellule est vide —
+   * D8-07. `null` et JAMAIS `0` par défaut : `0` est une valeur mesurée (cellule à prix unique) qui
+   * déclenche `INSUFFICIENT_SPREAD`, et la confondre avec « non calculée » ferait dire à l'écran
+   * qu'une cellule non mesurée est parfaitement homogène.
+   */
+  readonly mad: number | null;
   /** Barrière M1 de la cellule, ou `null` si `keptCount < 12`. */
   readonly fence: M1Fence | null;
 }
@@ -189,6 +252,8 @@ const EMPTY_CELL: CellSample = {
   implausibleThreshold: null,
   implausibleInCellCount: 0,
   keptCount: 0,
+  median: null,
+  mad: null,
   fence: null,
 };
 
@@ -202,10 +267,20 @@ function buildCellSample(prices: readonly number[] | undefined): CellSample {
     while (start < sorted.length && (sorted[start] as number) < threshold) start++;
   }
   const kept = sorted.subarray(start);
+  const keptMedian = kept.length === 0 ? null : quantileFromSorted(kept, 0.5);
+  let mad: number | null = null;
+  if (keptMedian !== null) {
+    const deviations = new Float64Array(kept.length);
+    for (let i = 0; i < kept.length; i++) deviations[i] = Math.abs((kept[i] as number) - keptMedian);
+    deviations.sort();
+    mad = quantileFromSorted(deviations, 0.5);
+  }
   return {
     implausibleThreshold: threshold,
     implausibleInCellCount: start,
     keptCount: kept.length,
+    median: keptMedian,
+    mad,
     fence: kept.length >= MIN_M1 ? fenceFromSortedPrices(kept) : null,
   };
 }
@@ -230,9 +305,24 @@ interface M2Fit {
   readonly zByRow: ReadonlyMap<number, number>;
   readonly expectedByRow: ReadonlyMap<number, number>;
   readonly deviationByRow: ReadonlyMap<number, number>;
+  /** `|F|` — effectif de l'ensemble d'ajustement, publié avec le libellé normatif de `G8`. */
+  readonly fitCount: number;
+  /**
+   * `R² = 1 − SCR/SCT` de la PASSE 2 (EX-DATA-93bis), sur `F` COMPLET — jamais sur `F'` — en échelle
+   * `y = ln(p)`, arrondi à 2 décimales. `null` si `SCT = 0` (le verdict de la cellule est alors
+   * `INSUFFICIENT_SPREAD`) ou si M2 n'est pas applicable à la cellule.
+   */
+  readonly rSquared: number | null;
 }
 
-const FIT_EMPTY: M2Fit = { ok: false, zByRow: new Map(), expectedByRow: new Map(), deviationByRow: new Map() };
+const FIT_EMPTY: M2Fit = {
+  ok: false,
+  zByRow: new Map(),
+  expectedByRow: new Map(),
+  deviationByRow: new Map(),
+  fitCount: 0,
+  rSquared: null,
+};
 
 /** Ajuste M2 sur les points `F` (lignes, y=ln prix, année, km) — EX-DATA-90/91/92/93. */
 function fitM2(fRows: number[], fY: number[], fYear: number[], fMileage: number[]): M2Fit {
@@ -332,7 +422,25 @@ function fitM2(fRows: number[], fY: number[], fYear: number[], fMileage: number[
     expectedByRow.set(fRows[p] as number, expected);
     deviationByRow.set(fRows[p] as number, price / expected - 1);
   }
-  return { ok: true, zByRow, expectedByRow, deviationByRow };
+
+  // EX-DATA-93bis — `R² = 1 − SCR/SCT` sur `F` COMPLET (jamais `F'`), en échelle `y = ln(p)` et non
+  // en euros, avec les coefficients de la PASSE 2 (`betaUsed`) et SANS le recentrage `m_r` : `ŷ_i`
+  // est la prédiction du modèle, pas le prix attendu. `SCT = 0` ⇒ `null` (cellule sans dispersion).
+  let yBar = 0;
+  for (let p = 0; p < nF; p++) yBar += fY[p] as number;
+  yBar /= nF;
+  let scr = 0;
+  let sct = 0;
+  for (let p = 0; p < nF; p++) {
+    const y = fY[p] as number;
+    const r = y - predict(betaUsed, p);
+    scr += r * r;
+    const c = y - yBar;
+    sct += c * c;
+  }
+  const rSquared = sct === 0 ? null : roundHalfAway(1 - scr / sct, 2);
+
+  return { ok: true, zByRow, expectedByRow, deviationByRow, fitCount: nF, rSquared };
 }
 
 /* ---- Détection complète ---------------------------------------------------------------------- */
@@ -470,6 +578,12 @@ export function detectOutliers(
   // tautologique — il ne pouvait jamais échouer sur une sortie réelle du moteur. Les deux termes
   // sont désormais comptés indépendamment, et I6 compare deux comptages.
   let notEvaluatedCount = 0;
+  // D8-09 : ventilation des annonces NON ÉVALUABLES par code de verdict, et des deux motifs qui ne
+  // donnent lieu à AUCUN verdict (prix hors `V_price` au sens absolu, implausible en cellule).
+  let insufficientDataCount = 0;
+  let insufficientSpreadCount = 0;
+  let priceExcludedCount = 0;
+  let implausibleInCellCount = 0;
   // Annonces à prix affiché mais hors de `V_price` (sentinelle absolue, hors domaine) : comptées
   // non évaluées, jamais porteuses d'un verdict (EX-DATA-16(d)).
   for (let i = 0; i < n; i++) {
@@ -478,11 +592,74 @@ export function detectOutliers(
     if (status !== PRICE_STATUS_QUOTED) continue;
     if (!isPriceValid(batch.priceEur[row] as number, status, batch.ingestFlags[row] as number)) {
       notEvaluatedCount++;
+      priceExcludedCount++;
     }
   }
 
+  // D8-07 — statistiques des cellules d'homogénéité RETENUES (EX-DATA-86/87/93bis). Une cellule est
+  // enregistrée la PREMIÈRE fois qu'une annonce la retient ; la clé de déduplication est
+  // `niveau|clé entière`, de sorte que `C₁(m, y)` et `C₂(m)` restent deux cellules distinctes.
+  // Un magasin par NIVEAU, clé ENTIÈRE (aucune chaîne allouée sur le chemin chaud) : `C₁(m, y)` et
+  // `C₂(m)` restent deux cellules distinctes, et `C₃ = Σ` est unique par construction.
+  const cellStatC1 = new Map<number, CellStat>();
+  const cellStatC2 = new Map<number, CellStat>();
+  /** `C₃ = Σ` est unique : un porte-valeur d'au plus un élément suffit. */
+  const cellStatSelection: CellStat[] = [];
+  const buildCellStat = (
+    level: CellLevel,
+    cellKey: number,
+    label: string,
+    sample: CellSample,
+    fit: M2Fit | null,
+  ): CellStat => {
+    const fitted = fit !== null && fit.ok;
+    const rSquared = fitted ? fit.rSquared : null;
+    return {
+      cellLevel: level,
+      cellKey,
+      cellLabel: label,
+      n: sample.keptCount,
+      median: sample.median,
+      mad: sample.mad,
+      rSquared,
+      rSquaredWarning: rSquared !== null && rSquared < R_SQUARED_WARNING_THRESHOLD,
+      fitCount: fitted ? fit.fitCount : 0,
+      implausibleInCellCount: sample.implausibleInCellCount,
+    };
+  };
+  /**
+   * Enregistre une cellule RETENUE. Une cellule d'abord vue par M1 (sans ajustement) peut l'être
+   * ensuite par M2 : on complète alors son `R²` au lieu d'en publier une seconde ligne muette.
+   */
+  const registerCell = (
+    level: CellLevel,
+    cellKey: number,
+    label: string,
+    sample: CellSample,
+    fit: M2Fit | null,
+  ): void => {
+    const store = level === 'MODEL_YEAR' ? cellStatC1 : level === 'MODEL' ? cellStatC2 : null;
+    const known = store === null ? cellStatSelection[0] : store.get(cellKey);
+    const brings = fit !== null && fit.ok;
+    if (known !== undefined && (!brings || known.rSquared !== null)) return;
+    const stat = buildCellStat(level, cellKey, label, sample, fit);
+    if (store === null) cellStatSelection[0] = stat;
+    else store.set(cellKey, stat);
+  };
+  /** Libellé de cellule côté MOTEUR : identifiants techniques, l'écran y substitue la taxonomie. */
+  const cellLabelOf = (level: CellLevel, makeId: number, modelId: number, year: number): string =>
+    level === 'SELECTION'
+      ? 'Σ'
+      : level === 'MODEL'
+        ? `${makeId}/${modelId}`
+        : `${makeId}/${modelId} · ${year}`;
+
   // Pour M3 : besoin, par ligne, du fait d'avoir été signalée BAS.
   const flaggedLowRow = new Set<number>();
+  // `A` d'EX-DATA-101 (nuage G4) et le score de départage, par LIGNE : l'échantillonneur travaille
+  // sur des indices de ligne, pas sur des `listingId` (aucune chaîne allouée sur ce chemin).
+  const flaggedRows = new Set<number>();
+  const scoreByRow = new Map<number, number>();
   // Annonces marquées `PRICE_IMPLAUSIBLE_IN_CELL` dans leur cellule (EX-DATA-19(2)).
   const implausibleInCellIds = new Set<string>();
 
@@ -526,6 +703,14 @@ export function detectOutliers(
       }
     }
 
+    // D8-07 : la cellule que M1 a RETENUE est publiée avec ses statistiques (EX-DATA-87), qu'un
+    // verdict soit émis ou non — l'écran nomme la base de comparaison sans la recalculer.
+    const m1CellKey =
+      m1Level === 'MODEL_YEAR' ? cellC1(c2Key, year) : m1Level === 'MODEL' ? c2Key : -1;
+    if (m1Level !== null) {
+      registerCell(m1Level, m1CellKey, cellLabelOf(m1Level, makeId, modelId, year), m1Cell, null);
+    }
+
     let m1Evaluated = false;
     let m1Low = false;
     let m1High = false;
@@ -556,6 +741,9 @@ export function detectOutliers(
         m2Implausible = true;
       } else {
         const fit = fitC2(c2Key, c2Sample);
+        // D8-07 : la cellule est RETENUE dès que `n_price(C₂) ≥ 30` — son `R²` est publié même
+        // quand l'annonce courante n'appartient pas à `F` (EX-DATA-93bis porte sur la CELLULE).
+        registerCell('MODEL', c2Key, cellLabelOf('MODEL', makeId, modelId, year), c2Sample, fit);
         if (fit.ok && fit.zByRow.has(row)) {
           m2Fit = fit;
           m2Cell = c2Sample;
@@ -566,6 +754,7 @@ export function detectOutliers(
       const s = sampleC3();
       if (s.keptCount >= MIN_M2 && !isImplausibleInCell(s, price)) {
         const fit = fitC3();
+        registerCell('SELECTION', -1, 'Σ', s, fit);
         if (fit.ok && fit.zByRow.has(row)) {
           m2Fit = fit;
           m2Cell = s;
@@ -595,16 +784,59 @@ export function detectOutliers(
       // Une annonce écartée de `V_price(C)` n'est ni évaluée ni JUGÉE : aucun verdict, pas même de
       // non-évaluation (EX-DATA-19(2)). Elle compte dans `outlierNotEvaluatedCount`.
       notEvaluatedCount++;
+      implausibleInCellCount++;
       continue;
     }
 
     if (m1Evaluated || m2Evaluated) evaluatedCount++;
-    else notEvaluatedCount++;
+    else {
+      notEvaluatedCount++;
+      // ---- D8-09 (DR-114) : un VERDICT par annonce non évaluable ----------------------------
+      // `EX-DATA-86` (dernière ligne : « aucune cellule … drapeau INSUFFICIENT_DATA »),
+      // `EX-DATA-89` (« IQR = 0 … verdict INSUFFICIENT_SPREAD ») et `EX-DATA-95` (« n'est pas non
+      // plus comptée comme non anormale ») exigent que la non-évaluabilité soit DITE, et non
+      // déduite d'une absence. Le moteur n'émettait aucun verdict : l'écran ne pouvait pas
+      // distinguer « aucune anomalie » de « pas de mesure possible ».
+      //
+      // Le code est déterminé par la cause, dans cet ordre :
+      //   - aucune cellule n'a atteint `n_price ≥ 12` (`m1Fence === null`)      → INSUFFICIENT_DATA
+      //     (M2 démarre à 30 : aucune cellule à 12 ⇒ aucune à 30, la cause est bien l'effectif) ;
+      //   - une cellule existe mais son `IQR(ln p)` est nul (`spread === false`) → INSUFFICIENT_SPREAD.
+      // Les deux autres branches de non-évaluation (prix hors `V_price` au sens absolu, implausible
+      // en cellule) sortent AVANT ce point : elles ne sont pas jugées du tout (EX-DATA-16(d),
+      // EX-DATA-19(2)) et ne reçoivent donc pas de verdict.
+      const notEvaluableCode = m1Fence === null ? FLAG_INSUFFICIENT_DATA : FLAG_INSUFFICIENT_SPREAD;
+      if (notEvaluableCode === FLAG_INSUFFICIENT_DATA) insufficientDataCount++;
+      else insufficientSpreadCount++;
+      verdicts.push({
+        snapshotId,
+        selectionHash,
+        listingId: decodeListingId(batch.listingId, row),
+        // La méthode nommée est M1 : c'est la première du repli d'`EX-DATA-86` et la plus
+        // permissive (12 contre 30) — une annonce que M1 ne peut pas juger, M2 ne le peut pas
+        // davantage. La clé primaire du verdict `(snapshot, sélection, annonce, méthode)` reste
+        // unique : une annonce non évaluable ne porte aucun autre verdict.
+        method: 'M1',
+        flags: [notEvaluableCode],
+        expectedPriceEur: null,
+        deviationPct: null,
+        // EX-DATA-95 : jamais classée parmi les opportunités.
+        opportunityScore: null,
+        cellLabel: m1Level,
+        cellCount: m1Cell.keptCount,
+        implausibleInCellCount: m1Cell.implausibleInCellCount,
+      });
+      continue;
+    }
 
     const agreeLow = m1Low && m2Low;
     const agreeHigh = m1High && m2High;
     const opportunityScore = m2Evaluated ? -(m2Z as number) : m1Evaluated ? -(zIqr as number) : null;
     if (m1Low || m2Low) flaggedLowRow.add(row);
+    // `A` d'EX-DATA-101 : l'annonce porte au moins un des quatre drapeaux de signalement (les codes
+    // d'accord n'apparaissent jamais seuls). Publié par LIGNE pour l'échantillonnage du nuage G4.
+    if (m1Low || m1High || m2Low || m2High) flaggedRows.add(row);
+    if (opportunityScore !== null) scoreByRow.set(row, opportunityScore);
 
     // EX-DATA-92/94, EX-SCR-203/206 : un verdict est publié pour TOUTE annonce ÉVALUÉE, signalée ou
     // non — `flags` vide quand aucune barrière n'est franchie. Le verdict d'aberration (`flags`) et
@@ -665,10 +897,31 @@ export function detectOutliers(
   // --- M3 : contrôle externe (EX-DATA-96) ---
   const m3 = computeM3(batch, rows, flaggedLowRow, priceQuotedCount);
 
+  // D8-07 : ordre de publication total des cellules — niveau (du plus fin au plus grossier), puis
+  // clé entière croissante. `C₃ = Σ` est unique et vient en dernier.
+  const cellStats: CellStat[] = [
+    ...[...cellStatC1.values()].sort((a, b) => a.cellKey - b.cellKey),
+    ...[...cellStatC2.values()].sort((a, b) => a.cellKey - b.cellKey),
+    ...cellStatSelection,
+  ];
+
   return {
     verdicts,
     outlierEvaluatedCount: evaluatedCount,
     outlierNotEvaluatedCount,
+    evaluation: {
+      evaluated: evaluatedCount,
+      notEvaluable: {
+        INSUFFICIENT_DATA: insufficientDataCount,
+        INSUFFICIENT_SPREAD: insufficientSpreadCount,
+      },
+      notEvaluableTotal: insufficientDataCount + insufficientSpreadCount,
+      priceExcluded: priceExcludedCount,
+      implausibleInCell: implausibleInCellCount,
+    },
+    cellStats,
+    flaggedRows,
+    scoreByRow,
     m1FlaggedIds,
     m2FlaggedIds,
     implausibleInCellIds,

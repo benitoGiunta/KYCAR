@@ -21,6 +21,8 @@ import { loadRealReferenceData, makeRawListing } from '../../../src/providers/tw
 import { buildListingRow } from '../../../src/screens/listings/listing-fields';
 import { OutlierIndex } from '../../../src/screens/outlier-index';
 import { AggregationDataset } from '../../../src/engine/index';
+import type { OutlierVerdict } from '../../../src/types/index';
+import { isNotEvaluableOutlierCode } from '../../../src/types/index';
 import { buildModelZoneViewModel } from '../../../src/screens/market/view-model';
 import { effectifTier } from '../../../src/screens/market/thresholds';
 import {
@@ -36,6 +38,16 @@ import {
 
 const referenceData = loadRealReferenceData();
 const euroIndex = buildEuroStandardIndex(referenceData);
+
+/**
+ * Verdicts de DÉTECTION (D8-09) : ceux qui ne portent AUCUN code de non-évaluabilité. Depuis D8-09
+ * le moteur émet un verdict `INSUFFICIENT_DATA` / `INSUFFICIENT_SPREAD` par annonce qu'il ne peut
+ * pas juger (EX-DATA-85/86/95) ; « aucun faux positif » se dit donc « aucun verdict de détection »,
+ * et non « aucun verdict ».
+ */
+function detectionVerdicts(verdicts: readonly OutlierVerdict[]): readonly OutlierVerdict[] {
+  return verdicts.filter((v) => !v.flags.some((f) => isNotEvaluableOutlierCode(f)));
+}
 
 /** Annonce 2dehands minimale, résolue sur le référentiel réel (Opel Corsa). */
 function rawCorsa(overrides: Parameters<typeof makeRawListing>[0] extends infer T ? Partial<T> : never = {}) {
@@ -198,18 +210,24 @@ describe('patho — variance nulle et seuils d’effectif (ADV-06 / ADV-07 → A
       mileageKm: 40000 + i * 500,
     }));
 
-  it('VAL-VARIANCE-0 — toutes les annonces au même prix : AUCUN faux positif (EX-DATA-89/92)', async () => {
+  it('VAL-VARIANCE-0 — toutes les annonces au même prix : AUCUN faux positif (EX-DATA-89/92) ; 40 verdicts INSUFFICIENT_SPREAD depuis D8-09', async () => {
     const recalc = await recalcOf(varianceNulle());
     expect(recalc.selectionStats.price.n).toBe(40);
     expect(recalc.selectionStats.price.p50).toBe(15000);
-    expect(recalc.outlierVerdicts).toHaveLength(0); // ni M1 (IQR = 0) ni M2
+    // AMENDEMENT D8-09 (D-31 / D8-19) : `toHaveLength(0)` sur TOUS les verdicts → aucun verdict de
+    // DÉTECTION. Le fait mesuré — aucun faux positif, ni M1 (IQR = 0) ni M2 — est intact ; depuis
+    // D8-09 la non-évaluabilité est DITE au lieu d'être déduite d'une absence (EX-DATA-89/95).
+    expect(detectionVerdicts(recalc.outlierVerdicts)).toHaveLength(0); // ni M1 (IQR = 0) ni M2
+    expect(recalc.outlierVerdicts.filter((v) => v.flags.includes('INSUFFICIENT_SPREAD'))).toHaveLength(40);
   });
 
   it('VAL-VARIANCE-0-COLIN — prix ET kilométrage constants : les deux régresseurs sont retirés, 0 évaluée', async () => {
     const specs = varianceNulle().map((r) => ({ ...r, mileageKm: 40000 }));
     const recalc = await recalcOf(specs);
-    expect(recalc.outlierVerdicts).toHaveLength(0);
+    // AMENDEMENT D8-09 : même transformation que ci-dessus, même intention.
+    expect(detectionVerdicts(recalc.outlierVerdicts)).toHaveLength(0);
     expect(recalc.selectionStats.outlierEvaluatedCount).toBe(0); // INSUFFICIENT_SPREAD, conforme
+    expect(recalc.outlierVerdicts.filter((v) => v.flags.includes('INSUFFICIENT_SPREAD'))).toHaveLength(40);
   });
 
   it('R-PATHO-07 — variance de prix nulle : M2 déclare 40 annonces « évaluées » sur un MAD de bruit flottant', async () => {
@@ -239,8 +257,14 @@ describe('patho — variance nulle et seuils d’effectif (ADV-06 / ADV-07 → A
     const batch = buildBatch(specs);
     const recalc = new AggregationDataset(batch).recalculate({ selectionHash: `n${n}` });
 
-    const m1 = recalc.outlierVerdicts.filter((v) => v.method === 'M1');
-    const m2 = recalc.outlierVerdicts.filter((v) => v.method === 'M2');
+    // AMENDEMENT D8-09 (D-31 / D8-19) : sous 12, le moteur émet désormais un verdict de
+    // NON-ÉVALUABILITÉ (`INSUFFICIENT_DATA`), nommé sur la méthode M1 — la première du repli
+    // d'EX-DATA-86. La sonde compte les méthodes APPLIQUÉES : elle écarte donc les verdicts de
+    // non-évaluabilité, qui disent exactement qu'aucune méthode n'a pu être appliquée. Le fait
+    // mesuré (paliers 12 / 30) est inchangé.
+    const applied = detectionVerdicts(recalc.outlierVerdicts);
+    const m1 = applied.filter((v) => v.method === 'M1');
+    const m2 = applied.filter((v) => v.method === 'M2');
 
     if (n < 12) {
       expect(m1).toHaveLength(0);
