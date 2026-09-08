@@ -91,7 +91,7 @@ interface MutableColumns {
   previousOwnerCount: Uint8Array;
   imageCount: Uint8Array;
   booleanFlags: Uint16Array;
-  ingestFlags: Uint16Array;
+  ingestFlags: Uint32Array;
 }
 
 function allocColumns(rowCount: number): MutableColumns {
@@ -127,7 +127,7 @@ function allocColumns(rowCount: number): MutableColumns {
     previousOwnerCount: new Uint8Array(rowCount),
     imageCount: new Uint8Array(rowCount),
     booleanFlags: new Uint16Array(rowCount),
-    ingestFlags: new Uint16Array(rowCount),
+    ingestFlags: new Uint32Array(rowCount),
   };
 }
 

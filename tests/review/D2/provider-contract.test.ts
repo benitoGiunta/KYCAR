@@ -104,7 +104,7 @@ function batchVide(): ListingColumnBatch {
     previousOwnerCount: u8,
     imageCount: u8,
     booleanFlags: new Uint16Array(0),
-    ingestFlags: new Uint16Array(0),
+    ingestFlags: new Uint32Array(0),
     stringBlob: u8,
     stringOffsets: new Uint32Array(0),
   };

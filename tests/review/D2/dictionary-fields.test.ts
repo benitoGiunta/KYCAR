@@ -59,7 +59,8 @@ describe('D2 — disposition physique (EX-DATA-119) : 8 champs échantillonnés'
 
   it('EX-DATA-119 : exactement 19 colonnes énumérées sur un octet et 2 champs de bits', () => {
     expect(LISTING_COLUMNS.filter((c) => c.physical === 'Uint8Array')).toHaveLength(19);
-    expect(LISTING_COLUMNS.filter((c) => c.physical === 'bitset16')).toHaveLength(2);
+    // D-01 : `ingestFlags` est passé de `bitset16` à `bitset32` ; il y a toujours 2 champs de bits.
+    expect(LISTING_COLUMNS.filter((c) => c.physical === 'bitset16' || c.physical === 'bitset32')).toHaveLength(2);
   });
 
   it('EX-DATA-121 : les 5 champs textuels sont hors du chemin chaud et cohérents avec STRINGS_PER_ROW', () => {

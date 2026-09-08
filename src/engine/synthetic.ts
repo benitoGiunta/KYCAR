@@ -158,7 +158,7 @@ export function generateSyntheticDataset(options: SyntheticOptions): SyntheticDa
   const imageCount = new Uint8Array(n);
 
   const booleanFlags = new Uint16Array(n);
-  const ingestFlags = new Uint16Array(n);
+  const ingestFlags = new Uint32Array(n);
 
   // Prix « propre » avant injection (sert de base aux outliers).
   const cleanPrice = new Int32Array(n);

@@ -47,7 +47,7 @@ export type { ColumnDescriptor, ColumnPhysicalType, SentinelPolicy, Listing } fr
 export { LISTING_COLUMNS, LISTING_COLUMN_BY_NAME } from './columns';
 
 // Vocabulaires.
-export type { VocabularyName, EnumValueDef, PostalRangeDef } from './vocabularies';
+export type { VocabularyName, EnumValueDef, PostalRangeDef, IngestFlagCode } from './vocabularies';
 export {
   VOCABULARY_NAMES,
   PRICE_STATUS_VALUES,
@@ -57,6 +57,11 @@ export {
   PRICE_EVALUATION_VALUES,
   MARKETPLACE_VALUES,
   INGEST_FLAG_VALUES,
+  INGEST_FLAG_BIT,
+  INGEST_FLAG_BIT_CAPACITY,
+  hasIngestFlag,
+  setIngestFlag,
+  ingestFlagCodes,
   OUTLIER_FLAG_VALUES,
   REGION_VALUES,
   BE_POSTAL_RANGES,

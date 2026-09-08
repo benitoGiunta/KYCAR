@@ -150,8 +150,14 @@ export const MARKETPLACE_VALUES: readonly EnumValueDef[] = [
  * table §A.1 en annonce 14 et le champ #82 borne le tableau à `0..14`. Divergence de la source
  * signalée (non corrigée). On reprend ici la liste exhaustive d'EX-DATA-45 (17 codes), qui fait foi
  * puisqu'elle nomme chaque drapeau. `PRICE_IMPLAUSIBLE_IN_CELL` n'y figure pas (verdict d'analyse).
+ *
+ * O13 tranché par D-01 (`reports/remediation/FIX-LEAD-DECISIONS.md`) : la colonne `ingestFlags` est
+ * un `Uint32Array` (32 bits) et l'encodage reste POSITIONNEL — la position de bit d'un code est son
+ * rang dans cette liste. La correspondance n'est plus laissée à la charge de chaque appelant : elle
+ * est matérialisée UNE FOIS par `INGEST_FLAG_BIT` ci-dessous, seule source du couple bit ↔ code
+ * (DR-013). 17 codes posés, 15 bits de réserve.
  */
-export const INGEST_FLAG_VALUES: readonly EnumValueDef[] = [
+const INGEST_FLAG_DEFS = [
   { code: 'UNIT_UNSUPPORTED', label: 'Unité non gérée' },
   { code: 'ENUM_UNKNOWN', label: 'Code énuméré inconnu' },
   { code: 'MODEL_UNRESOLVED', label: 'Modèle non résolu' },
@@ -169,7 +175,46 @@ export const INGEST_FLAG_VALUES: readonly EnumValueDef[] = [
   { code: 'VERSION_FULLY_STRIPPED', label: 'Version entièrement nettoyée' },
   { code: 'DUPLICATE_VALUE_CONFLICT', label: 'Conflit de valeur sur doublon' },
   { code: 'MARKETPLACE_UNMAPPED', label: 'Marché non traduit' },
-];
+] as const;
+
+/** Les 17 valeurs du vocabulaire `KYCAR_INGEST_FLAG`, dans l'ordre normatif d'EX-DATA-45. */
+export const INGEST_FLAG_VALUES: readonly EnumValueDef[] = INGEST_FLAG_DEFS;
+
+/** Code canonique d'un drapeau d'ingestion (union littérale des 17 codes d'EX-DATA-45). */
+export type IngestFlagCode = (typeof INGEST_FLAG_DEFS)[number]['code'];
+
+/**
+ * Table EXPLICITE bit ↔ code (DR-013 / D-01). La position de bit d'un drapeau est son rang dans
+ * `INGEST_FLAG_VALUES` ; cette table matérialise cette correspondance pour que plus aucun appelant
+ * n'ait à recalculer un index ni à écrire un `1 << n` littéral. Une valeur de cette table est un
+ * NUMÉRO DE BIT (0..31), pas un masque : le masque s'obtient par `1 << INGEST_FLAG_BIT[code]`, ou
+ * mieux par `setIngestFlag` / `hasIngestFlag`.
+ */
+export const INGEST_FLAG_BIT: Readonly<Record<IngestFlagCode, number>> = Object.freeze(
+  Object.fromEntries(INGEST_FLAG_DEFS.map((v, i) => [v.code, i])) as Record<IngestFlagCode, number>,
+);
+
+/** Nombre de bits utilisables dans la colonne `ingestFlags` (`Uint32Array`, D-01). */
+export const INGEST_FLAG_BIT_CAPACITY = 32;
+
+/** Vrai si le masque `flags` porte le drapeau `code`. */
+export function hasIngestFlag(flags: number, code: IngestFlagCode): boolean {
+  return ((flags >>> INGEST_FLAG_BIT[code]) & 1) === 1;
+}
+
+/** Retourne `flags` augmenté du drapeau `code` (masque non signé, jamais muté en place). */
+export function setIngestFlag(flags: number, code: IngestFlagCode): number {
+  return (flags | (1 << INGEST_FLAG_BIT[code])) >>> 0;
+}
+
+/** Décode un masque `ingestFlags` en la liste ordonnée des codes qu'il porte (EX-DATA-46). */
+export function ingestFlagCodes(flags: number): readonly IngestFlagCode[] {
+  const codes: IngestFlagCode[] = [];
+  for (const def of INGEST_FLAG_DEFS) {
+    if (hasIngestFlag(flags, def.code)) codes.push(def.code);
+  }
+  return codes;
+}
 
 /** `KYCAR_OUTLIER_FLAG` — CRÉÉ (§B.6), 6 codes. */
 export const OUTLIER_FLAG_VALUES: readonly EnumValueDef[] = [

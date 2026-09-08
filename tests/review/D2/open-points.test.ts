@@ -24,15 +24,17 @@ describe('D2 — O13 : drapeaux d’ingestion réellement définis et leur encod
     expect(INGEST_FLAG_VALUES.map((v) => v.code)).not.toContain('PRICE_IMPLAUSIBLE_IN_CELL');
   });
 
-  it('fait 2 — l’encodage est POSITIONNEL : la colonne `ingestFlags` est un bitset 16 bits', () => {
-    expect(LISTING_COLUMN_BY_NAME.get('ingestFlags')?.physical).toBe('bitset16');
+  it('fait 2 — l’encodage est POSITIONNEL : la colonne `ingestFlags` est un bitset 32 bits (D-01)', () => {
+    // D-01 / DR-013 : la colonne passe de `Uint16Array` à `Uint32Array` ; `booleanFlags` reste 16 bits.
+    expect(LISTING_COLUMN_BY_NAME.get('ingestFlags')?.physical).toBe('bitset32');
     expect(LISTING_COLUMN_BY_NAME.get('booleanFlags')?.physical).toBe('bitset16');
   });
 
-  it('R-D2-18 — les 17 drapeaux tiennent dans le `Uint16Array` gelé (16 bits)', () => {
-    // `src/engine/flags.ts` fixe « position de bit = index dans INGEST_FLAG_VALUES » et lève une
-    // erreur au-delà du bit 15. Le 17ᵉ code (index 16) est donc INSTOCKABLE.
-    const debordent = INGEST_FLAG_VALUES.map((v, i) => ({ code: v.code, bit: i })).filter((x) => x.bit > 15);
+  it('R-D2-18 — les 17 drapeaux tiennent dans le `Uint32Array` de la colonne (32 bits, D-01)', () => {
+    // `src/engine/flags.ts` fixe « position de bit = index dans INGEST_FLAG_VALUES » (table
+    // explicite `INGEST_FLAG_BIT`) et lève une erreur au-delà de la capacité de la colonne.
+    // D-01 porte cette capacité de 16 à 32 bits : le 17ᵉ code (index 16) devient STOCKABLE.
+    const debordent = INGEST_FLAG_VALUES.map((v, i) => ({ code: v.code, bit: i })).filter((x) => x.bit > 31);
     expect(debordent.map((x) => x.code)).toEqual([]);
   });
 
@@ -57,7 +59,7 @@ describe('D2 — ADV-15 / ARB-60 : KYCAR_MARKETPLACE n=9 contre 8 codes pays tra
   it('R-D2-18 (ADV-15) — le repli d’ARB-60 (MARKETPLACE_UNMAPPED) est stockable dans `ingestFlags`', () => {
     const bit = INGEST_FLAG_VALUES.findIndex((v) => v.code === 'MARKETPLACE_UNMAPPED');
     expect(bit).toBeGreaterThanOrEqual(0);
-    expect(bit).toBeLessThanOrEqual(15);
+    expect(bit).toBeLessThanOrEqual(31);
   });
 });
 

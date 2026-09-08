@@ -98,7 +98,7 @@ export function makeBatch(
   const previousOwnerCount = enumCol();
   const imageCount = enumCol();
   const booleanFlags = new Uint16Array(n);
-  const ingestFlags = new Uint16Array(n);
+  const ingestFlags = new Uint32Array(n);
 
   for (let i = 0; i < n; i++) {
     const r = rows[i] as RowSpec;

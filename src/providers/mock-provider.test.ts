@@ -95,7 +95,7 @@ const servedProvider: DataProvider = {
       previousOwnerCount: new Uint8Array(0),
       imageCount: new Uint8Array(0),
       booleanFlags: new Uint16Array(0),
-      ingestFlags: new Uint16Array(0),
+      ingestFlags: new Uint32Array(0),
       stringBlob: new Uint8Array(0),
       stringOffsets: new Uint32Array(0),
     }),

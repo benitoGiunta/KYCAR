@@ -300,7 +300,13 @@ export interface ListingColumnBatch {
 
   // --- Drapeaux de bits (booléens + ingestFlags, dont PRICE_SENTINEL_ABSOLUTE — R-A06) ---
   readonly booleanFlags: Uint16Array;
-  readonly ingestFlags: Uint16Array;
+  /**
+   * Masque positionnel des drapeaux d'ingestion (EX-DATA-45) : bit = rang du code dans
+   * `INGEST_FLAG_VALUES`, correspondance matérialisée par `INGEST_FLAG_BIT` (src/types). 32 bits
+   * depuis D-01 / DR-013 — les 17 codes d'EX-DATA-45 ne tenaient pas dans les 16 bits gelés en 2.3,
+   * le 17e (`MARKETPLACE_UNMAPPED`, repli d'ARB-60) étant instockable.
+   */
+  readonly ingestFlags: Uint32Array;
 
   // --- Zone de chaînes contiguë (EX-DATA-121), lue hors du chemin chaud ---
   /** Concaténation UTF-8 de tous les champs textuels. */

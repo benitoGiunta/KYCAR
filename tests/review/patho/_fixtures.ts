@@ -140,7 +140,7 @@ export function buildBatch(specs: readonly RowSpec[], options: BuildBatchOptions
   const previousOwnerCount = new Uint8Array(n);
   const imageCount = new Uint8Array(n);
   const booleanFlags = new Uint16Array(n);
-  const ingestFlags = new Uint16Array(n);
+  const ingestFlags = new Uint32Array(n);
 
   const perRowStrings: string[][] = [];
 

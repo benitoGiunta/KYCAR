@@ -143,12 +143,12 @@ describe('Sondes de mutation — chaque invariant détecte une violation', () =>
   });
 
   it('entrée dégradée : un kilométrage hors bornes DRAPEAUTÉ sort de V_mileage (I3/I4 restent vrais) — EX-DATA-60', () => {
-    const mutated: ListingColumnBatch = { ...batch, ingestFlags: Uint16Array.from(batch.ingestFlags) };
+    const mutated: ListingColumnBatch = { ...batch, ingestFlags: Uint32Array.from(batch.ingestFlags) };
     const bitMileageOOR = 1 << 9; // MILEAGE_OUT_OF_RANGE (index 9 d'INGEST_FLAG_VALUES)
     let touched = 0;
     for (let i = 0; i < 50; i++) {
       if ((batch.mileageKm[i] as number) >= 0) {
-        (mutated.ingestFlags as Uint16Array)[i] = (mutated.ingestFlags[i] as number) | bitMileageOOR;
+        (mutated.ingestFlags as Uint32Array)[i] = (mutated.ingestFlags[i] as number) | bitMileageOOR;
         touched++;
       }
     }

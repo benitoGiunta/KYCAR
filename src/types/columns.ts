@@ -28,7 +28,8 @@ export type ColumnPhysicalType =
   | 'Uint8Array'
   | 'Uint16Array'
   | 'Uint8Array16' // 16 octets par ligne (UUID binaire de `listingId`)
-  | 'bitset16' // `Uint16Array` de drapeaux de bits
+  | 'bitset16' // `Uint16Array` de drapeaux de bits (`booleanFlags`)
+  | 'bitset32' // `Uint32Array` de drapeaux de bits (`ingestFlags`, 17 codes — D-01 / DR-013)
   | 'string'; // champ textuel de la zone de chaînes (adressé par offsets)
 
 /** Politique de sentinelle d'une colonne. */
@@ -99,7 +100,7 @@ export const LISTING_COLUMNS: readonly ColumnDescriptor[] = [
 
   // Drapeaux de bits
   { name: 'booleanFlags', physical: 'bitset16', sentinel: NONE, vocabulary: null, scale: 1, hotPath: true },
-  { name: 'ingestFlags', physical: 'bitset16', sentinel: NONE, vocabulary: 'KYCAR_INGEST_FLAG', scale: 1, hotPath: true },
+  { name: 'ingestFlags', physical: 'bitset32', sentinel: NONE, vocabulary: 'KYCAR_INGEST_FLAG', scale: 1, hotPath: true },
 
   // Zone de chaînes (EX-DATA-121), hors du chemin chaud
   { name: 'listingUrl', physical: 'string', sentinel: NONE, vocabulary: null, scale: 1, hotPath: false },
