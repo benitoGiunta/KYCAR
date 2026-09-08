@@ -27,10 +27,13 @@ import {
   type SnapshotDescriptor,
   type SnapshotHandle,
 } from '../providers/DataProvider';
+import { compilePredicates } from '../engine/predicates';
 import { FILTER_DEFAULTS } from '../state/filter-registry';
 import type { SelectionState } from '../state/filter-types';
+import { partitionSelection, splitSelection } from '../state/tr-split';
 import type { ReferenceData } from '../types/reference';
 import { serializeSelection } from '../types/selection';
+import { buildRefinePredicates } from './refine-predicates';
 import type { ListingColumnBatch } from '../types/index';
 import type { ScreenALoadedData } from '../screens/market/state';
 
@@ -85,9 +88,14 @@ export interface StartResult {
 export interface Mode2Payload {
   readonly batch: ListingColumnBatch;
   readonly recalc: RecalcResult;
+  /** Lignes de Σ après application des filtres R de l'URL (`DR-006`), indices dans `batch`. */
   readonly rows: Int32Array;
   readonly makeModelName: string;
   readonly sourceKind: 'REAL' | 'SYNTHETIC';
+  /** `selectionHash` réellement recalculé (`<localDatasetKey>:<refineHash>`, EX-SRCH-9quinquies). */
+  readonly selectionHash: string;
+  /** `D-03` — filtres R posés que le moteur n'a PAS pu appliquer (jamais silencieux). */
+  readonly unappliedFilterIds: readonly string[];
 }
 
 const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -235,7 +243,7 @@ export class DataController {
    * Entrée en mode 2 (écrans B/D) : charge le lot élagué au couple marque/modèle et recalcule (O17).
    * Le lot est demandé pour `make;model` — l'élagage a donc lieu AVANT tout M1/M2.
    */
-  async enterMode2(makeId: number, modelId: number): Promise<Mode2Payload> {
+  async enterMode2(makeId: number, modelId: number, selection: SelectionState = {}): Promise<Mode2Payload> {
     if (this.handle === null) throw new Error('DataController.enterMode2: snapshot indisponible');
 
     const provider = this.mode2Provider();
@@ -247,11 +255,31 @@ export class DataController {
       await engine.loadDataset(batch, this.ref.models);
       this.loadedDatasetKey = batch.localDatasetKey;
     }
-    const selectionHash = `${batch.localDatasetKey}:EMPTY`;
-    const recalc = await engine.recalculate({ selectionHash, refine: [] });
 
-    const rows = new Int32Array(batch.rowCount);
-    for (let i = 0; i < batch.rowCount; i += 1) rows[i] = i;
+    // `DR-006` — la composante R de l'URL est APPLIQUÉE : scission T/R par D5 (le couple
+    // marque/modèle, classe T, est déjà absorbé par la route et par `tSelection`), compilation des
+    // prédicats par D4, recalcul sur le `selectionHash` RÉEL (jamais `:EMPTY` d'office).
+    const { r } = partitionSelection(selection, 'mode2');
+    const { refine, unsupported } = buildRefinePredicates(r, this.ref);
+    const refineHash = splitSelection(selection, 'mode2').refineHash;
+    const selectionHash = `${batch.localDatasetKey}:${refineHash}`;
+    const recalc = await engine.recalculate({ selectionHash, refine });
+
+    // Lignes de Σ : le moteur balaie de son côté (worker), l'écran a besoin des indices ici. Le lot
+    // est élagué (O17) : le balayage local est trivial et n'emprunte aucun chemin réseau.
+    const compiled = compilePredicates(batch, refine);
+    const kept: number[] = [];
+    for (let i = 0; i < batch.rowCount; i += 1) {
+      let ok = true;
+      for (const p of compiled) {
+        if (!p.test(i)) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) kept.push(i);
+    }
+    const rows = Int32Array.from(kept);
 
     const make = this.ref.makeById.get(makeId);
     const model = this.ref.modelByKey.get(`${makeId}:${modelId}`);
@@ -263,6 +291,8 @@ export class DataController {
       rows,
       makeModelName,
       sourceKind: provider.describe().sourceKind,
+      selectionHash,
+      unappliedFilterIds: unsupported,
     };
   }
 

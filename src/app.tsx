@@ -174,17 +174,21 @@ export function App(props: AppProps): JSX.Element {
 
   // ---- Mode 2 : entrée dans l'écran B/D (O17, élagage avant M1/M2) -------------------------------
   const [mode2, setMode2] = useState<Mode2State | null>(null);
+  /** Compteur de tentatives : le bouton « Réessayer » de l'écran B/D relance l'effet d'entrée. */
+  const [mode2Attempt, setMode2Attempt] = useState(0);
   useEffect(() => {
     if (start === null) return;
     if (view.kind !== 'modelDistribution' && view.kind !== 'modelListings') return;
-    const key = `${view.makeId}:${view.modelId}`;
+    // `DR-006` : la clé d'entrée en mode 2 dépend du couple ET de la requête courante — un changement
+    // de filtre du bandeau mode 2 doit RECALCULER, pas seulement réécrire l'URL.
+    const key = `${view.makeId}:${view.modelId}:${currentQuery}:${mode2Attempt}`;
     if (mode2?.key === key && mode2.status !== 'error') return;
     setMode2({ key, status: 'loading' });
     void controller
-      .enterMode2(view.makeId, view.modelId)
+      .enterMode2(view.makeId, view.modelId, selection)
       .then((payload) => setMode2({ key, status: 'ready', payload }))
       .catch((e) => setMode2({ key, status: 'error', errorCode: e instanceof Error ? e.message : String(e) }));
-  }, [start, view]);
+  }, [start, view, currentQuery, mode2Attempt]);
 
   useEffect(() => {
     const unsubs = [stores.saved.subscribe(bumpCrud), stores.followed.subscribe(bumpCrud), stores.recent.subscribe(bumpCrud)];
@@ -522,7 +526,7 @@ export function App(props: AppProps): JSX.Element {
       return (
         <section class="kycar-market-error" role="alert">
           <p>Les distributions n’ont pas pu être chargées ({mode2.errorCode ?? 'erreur'}).</p>
-          <button type="button" onClick={() => setMode2({ key: `${makeId}:${modelId}`, status: 'loading' })}>
+          <button type="button" onClick={() => setMode2Attempt((n) => n + 1)}>
             Réessayer
           </button>
         </section>
