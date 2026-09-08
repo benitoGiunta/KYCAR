@@ -59,6 +59,13 @@ export interface RawListing {
 export interface RawSearchResponse {
   readonly totalResultCount: number;
   readonly listings: readonly RawListing[];
+  /**
+   * Vrai quand la source a annoncé un `totalResultCount` hors domaine (négatif ou non fini). Le
+   * compte est alors ramené à `0` — un effectif ne peut pas être négatif — et l'anomalie est
+   * REMONTÉE plutôt que coercée en silence : l'appelant la compte dans `rejectedByReason` et ne
+   * publie pas cet agrégat comme exhaustif.
+   */
+  readonly announcedCountRejected?: boolean;
 }
 
 interface NextDataShape {
@@ -89,7 +96,19 @@ export function extractNextDataScript(html: string): string {
  */
 export function parseSearchResponse(html: string): RawSearchResponse {
   const json = extractNextDataScript(html);
-  const parsed = JSON.parse(json) as NextDataShape;
+  let parsed: NextDataShape;
+  try {
+    parsed = JSON.parse(json) as NextDataShape;
+  } catch (cause) {
+    // ZO-5 : un JSON tronqué (page coupée, réponse partielle) doit remonter un rejet RATTACHABLE au
+    // provider, pas un `SyntaxError` brut que rien ne relie à la source.
+    throw new Error(
+      `TweedehandsDataProvider: bloc __NEXT_DATA__ illisible (JSON invalide ou tronqué) : ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+      { cause },
+    );
+  }
   const response = parsed.props?.pageProps?.searchRequestAndResponse;
   if (
     response === undefined ||
@@ -100,7 +119,13 @@ export function parseSearchResponse(html: string): RawSearchResponse {
       'TweedehandsDataProvider: forme de __NEXT_DATA__ inattendue (searchRequestAndResponse manquant ou malformé)',
     );
   }
-  return { totalResultCount: response.totalResultCount, listings: response.listings as readonly RawListing[] };
+  const listings = response.listings as readonly RawListing[];
+  if (!Number.isFinite(response.totalResultCount) || response.totalResultCount < 0) {
+    // Un effectif annoncé NÉGATIF n'est pas un effectif : accepté tel quel, il devenait un
+    // `listingCount` d'agrégat négatif. Ramené à zéro ET signalé — jamais coercé en silence.
+    return { totalResultCount: 0, listings, announcedCountRejected: true };
+  }
+  return { totalResultCount: response.totalResultCount, listings };
 }
 
 /** Recherche la première valeur d'une clé d'attribut, dans `attributes` puis `extendedAttributes`. */

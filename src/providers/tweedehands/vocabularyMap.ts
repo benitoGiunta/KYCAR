@@ -51,6 +51,25 @@ function matchToken(value: string, table: ReadonlyMap<string, string>): string |
  * KYCAR_FUEL_CATEGORY — attribut 2dehands `fuel`
  * ============================================================================================== */
 
+/**
+ * Jetons HYBRIDES, testés EN PREMIER (DR-041). `REF-vocabulary-reconciliation.md` PIÈGE 1 /
+ * décision V1 : `KYCAR_FUEL_CATEGORY` porte deux codes dédiés — `2` (Électrique/Essence) et `3`
+ * (Électrique/Diesel). Écraser un hybride sur son carburant primaire (`B`/`D`) est exactement
+ * l'erreur silencieuse que le document interdit nommément : « une donnée fausse qui fausse ensuite
+ * toute distribution par carburant ». Un libellé hybride porte DEUX jetons de motorisation ; c'est
+ * la combinaison, pas le premier jeton, qui détermine le code.
+ */
+const HYBRID_TOKENS: ReadonlyMap<string, string> = new Map([
+  ['dieselelektrisch', '3'],
+  ['elektrischdiesel', '3'],
+  ['dieselelectrique', '3'],
+  ['electriquediesel', '3'],
+  ['benzineelektrisch', '2'],
+  ['elektrischbenzine', '2'],
+  ['essenceelectrique', '2'],
+  ['electriqueessence', '2'],
+]);
+
 /** Jeton NL/FR replié → code `KYCAR_FUEL_CATEGORY` (references/FuelCategory.json, table §A.1). */
 const FUEL_TOKENS: ReadonlyMap<string, string> = new Map([
   ['elektrisch', 'E'],
@@ -66,17 +85,33 @@ const FUEL_TOKENS: ReadonlyMap<string, string> = new Map([
   ['ethanol', 'M'],
 ]);
 
+/** Code de repli `KYCAR_FUEL_CATEGORY` = « Autres » : motorisation RELEVÉE mais atypique (DR-041). */
+const FUEL_OTHER = 'O';
+
 /**
- * `fuel` (2dehands) → `KYCAR_FUEL_CATEGORY`. Un libellé hybride (« Hybride diesel/elektrisch ») porte
- * les deux jetons : la carburant PRIMAIRE (celui qui apparaît AVANT le séparateur, cohérent avec la
- * convention AS24 observée `fuels.fuelCategory.raw` = carburant primaire, `FINDING-allowed-surface.md`
- * §2.4) l'emporte — recherche du premier jeton dans l'ORDRE DE LA TABLE ne suffit pas ici, donc on
- * teste explicitement le préfixe avant `/`.
+ * `fuel` (2dehands) → `KYCAR_FUEL_CATEGORY`.
+ *
+ *   1. un libellé hybride est reconnu comme tel et rend `2` ou `3` — jamais son carburant primaire ;
+ *   2. sinon le premier jeton simple reconnu l'emporte (préfixe avant `/` d'abord) ;
+ *   3. une valeur PRÉSENTE mais non reconnue rend `O` (« Autres »), code réel du vocabulaire qui
+ *      n'était jamais produit, et l'appelant lève `ENUM_UNKNOWN` (`isFuelCategoryRecognised`).
+ *
+ * `undefined` (attribut absent) rend `null` : il n'y a rien à traduire, donc rien à signaler.
  */
 export function mapFuelCategory(rawValue: string | undefined): string | null {
   if (rawValue === undefined) return null;
+  const hybrid = matchToken(rawValue, HYBRID_TOKENS);
+  if (hybrid !== null) return hybrid;
   const primary = rawValue.split(/[/,]/)[0] ?? rawValue;
-  return matchToken(primary, FUEL_TOKENS) ?? matchToken(rawValue, FUEL_TOKENS);
+  return matchToken(primary, FUEL_TOKENS) ?? matchToken(rawValue, FUEL_TOKENS) ?? FUEL_OTHER;
+}
+
+/** Vrai si `rawValue` est une motorisation RECONNUE (et non le repli « Autres »). */
+export function isFuelCategoryRecognised(rawValue: string | undefined): boolean {
+  if (rawValue === undefined) return false;
+  if (matchToken(rawValue, HYBRID_TOKENS) !== null) return true;
+  const primary = rawValue.split(/[/,]/)[0] ?? rawValue;
+  return matchToken(primary, FUEL_TOKENS) !== null || matchToken(rawValue, FUEL_TOKENS) !== null;
 }
 
 /* ================================================================================================
@@ -114,6 +149,15 @@ const BODY_TYPE_OTHER = '7';
 export function mapBodyType(rawValue: string | undefined): string | null {
   if (rawValue === undefined) return null;
   return matchToken(rawValue, BODY_TYPE_TOKENS) ?? BODY_TYPE_OTHER;
+}
+
+/**
+ * Vrai si la carrosserie est RECONNUE — par opposition au repli « Autres » (DR-044). Le repli reste
+ * un code valide du vocabulaire, mais il ne dit PAS la même chose qu'une reconnaissance : sans ce
+ * prédicat, une valeur inconnue était absorbée en donnée plausible, sans drapeau ni champ inconnu.
+ */
+export function isBodyTypeRecognised(rawValue: string | undefined): boolean {
+  return rawValue !== undefined && matchToken(rawValue, BODY_TYPE_TOKENS) !== null;
 }
 
 /* ================================================================================================
@@ -175,6 +219,11 @@ const USAGE_STATE_TOKENS: ReadonlyMap<string, string> = new Map([
 export function mapUsageState(rawValue: string | undefined): string | null {
   if (rawValue === undefined) return null;
   return matchToken(rawValue, USAGE_STATE_TOKENS) ?? 'U';
+}
+
+/** Vrai si l'état est RECONNU — par opposition au repli « état d'origine » (DR-044). */
+export function isUsageStateRecognised(rawValue: string | undefined): boolean {
+  return rawValue !== undefined && matchToken(rawValue, USAGE_STATE_TOKENS) !== null;
 }
 
 /* ================================================================================================
@@ -247,12 +296,41 @@ function foldLabel(s: string): string {
   return foldToken(s);
 }
 
-/** Résout un libellé de marque 2dehands (`brand`) vers le `makeId` du référentiel, ou `null`. */
+/**
+ * Alias de marque relevés sur un portail belge (DR-130) : formes courtes et commerciales qu'aucune
+ * égalité de libellé ne résout. Clé = libellé REPLIÉ de l'alias, valeur = libellé replié de la
+ * marque du référentiel. La table reste petite et EXPLICITE : elle ne devine rien, elle traduit des
+ * formes observées. Une marque non résolue n'est plus perdue en silence — `normalize.ts` recense
+ * `makeId` dans `unknownFields`, ce qui rend la perte auditable au rapport d'ingestion.
+ */
+const MAKE_ALIASES: ReadonlyMap<string, string> = new Map([
+  ['vw', 'volkswagen'],
+  ['mercedes', 'mercedesbenz'],
+  ['merc', 'mercedesbenz'],
+  ['ds', 'dsautomobiles'],
+  ['landrover', 'landrover'],
+  ['range rover', 'landrover'],
+  ['rangerover', 'landrover'],
+  ['alfa', 'alfaromeo'],
+  ['citroen', 'citroen'],
+  ['vauxhall', 'opel'],
+  ['skoda', 'skoda'],
+  ['mini cooper', 'mini'],
+  ['minicooper', 'mini'],
+  ['chevy', 'chevrolet'],
+  ['bmwi', 'bmw'],
+]);
+
+/**
+ * Résout un libellé de marque 2dehands (`brand`) vers le `makeId` du référentiel, ou `null`.
+ * Égalité de libellé replié d'abord (accents, casse et séparateurs neutralisés), puis table d'alias.
+ */
 export function resolveMakeId(referenceData: ReferenceData, brandRaw: string | undefined): number | null {
   if (brandRaw === undefined) return null;
   const folded = foldLabel(brandRaw);
+  const target = MAKE_ALIASES.get(folded) ?? folded;
   for (const make of referenceData.makes) {
-    if (foldLabel(make.label) === folded || foldLabel(make.slug) === folded) return make.makeId;
+    if (foldLabel(make.label) === target || foldLabel(make.slug) === target) return make.makeId;
   }
   return null;
 }
@@ -280,4 +358,43 @@ export function resolveModelId(
 /** Lit et déplie un attribut 2dehands nommé, ré-exporté pour les modules aval (`normalize.ts`). */
 export function readAttr(listing: RawListing, key: string): string | undefined {
   return getAttr(listing, key);
+}
+
+/* ================================================================================================
+ * Pays et région — EX-DATA-40 (ARB-60/ADV-15), EX-DATA-53 (O14) — DR-046
+ * ============================================================================================== */
+
+/**
+ * `location.countryAbbreviation` (2dehands) → code pays ISO 3166-1 alpha-2 (annexe A champ « pays »).
+ * La surface autorisée sert déjà l'abréviation ; elle n'était simplement jamais traduite, si bien
+ * qu'aucun `countryCode` n'existait et que le repli d'`ARB-60` (`MARKETPLACE_UNMAPPED`) restait
+ * inatteignable. Table EXPLICITE : une abréviation hors table rend `null`, et l'appelant lève
+ * `MARKETPLACE_UNMAPPED` — jamais un code inventé.
+ */
+const COUNTRY_ABBREVIATION_TO_ISO: ReadonlyMap<string, string> = new Map([
+  ['be', 'BE'],
+  ['nl', 'NL'],
+  ['lu', 'LU'],
+  ['fr', 'FR'],
+  ['de', 'DE'],
+  ['at', 'AT'],
+  ['es', 'ES'],
+  ['it', 'IT'],
+]);
+
+/** Traduit l'abréviation de pays de la source en ISO alpha-2, ou `null` si elle est hors table. */
+export function mapCountryCode(rawValue: string | undefined): string | null {
+  if (rawValue === undefined) return null;
+  return COUNTRY_ABBREVIATION_TO_ISO.get(foldToken(rawValue)) ?? null;
+}
+
+/**
+ * Région NUTS-2 (`KYCAR_REGION`, EX-DATA-53). La surface autorisée n'expose AUCUN code postal (P-3,
+ * `probe-LOT-N.md`) : la seule dérivation licite — code postal → NUTS-2 — n'a pas d'entrée. La
+ * région reste donc INCONNUE, et c'est `REGION_UNRESOLVED` qui rend cette couverture NULLE visible
+ * au rapport d'ingestion (EX-DATA-46) au lieu de la laisser muette (DR-046). Router `cityName` vers
+ * une région serait une extrapolation non vérifiable : l'adaptateur ne le fait pas.
+ */
+export function mapRegionCode(): null {
+  return null;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEuroStandardIndex,
+  isFuelCategoryRecognised,
   mapBodyType,
   mapDrivetrain,
   mapEuEmissionStandard,
@@ -26,10 +27,18 @@ describe('vocabularyMap — re-cartographie 2dehands → KYCAR', () => {
     expect(mapFuelCategory('CNG')).toBe('C');
     expect(mapFuelCategory('Waterstof')).toBe('H');
     // Hybride : le carburant PRIMAIRE (avant le séparateur) l'emporte.
-    expect(mapFuelCategory('Diesel/Elektrisch')).toBe('D');
-    expect(mapFuelCategory('Benzine/Elektrisch')).toBe('B');
+    // DR-041 : un hybride rend le code DÉDIÉ du vocabulaire (`3` Électrique/Diesel, `2`
+    // Électrique/Essence), jamais son carburant primaire — l'écrasement sur `D`/`B` est l'erreur
+    // silencieuse que `REF-vocabulary-reconciliation.md` (PIÈGE 1, décision V1) interdit nommément.
+    expect(mapFuelCategory('Diesel/Elektrisch')).toBe('3');
+    expect(mapFuelCategory('Benzine/Elektrisch')).toBe('2');
+    expect(mapFuelCategory('Hybride benzine/elektrisch')).toBe('2');
     expect(mapFuelCategory(undefined)).toBeNull();
-    expect(mapFuelCategory('Zonderbrandstof')).toBeNull();
+    // Une valeur PRÉSENTE mais atypique rend « Autres » (code réel du vocabulaire) et l'appelant
+    // lève `ENUM_UNKNOWN` : ni valeur inventée, ni repli silencieux.
+    expect(mapFuelCategory('Zonderbrandstof')).toBe('O');
+    expect(isFuelCategoryRecognised('Zonderbrandstof')).toBe(false);
+    expect(isFuelCategoryRecognised('Benzine')).toBe(true);
     // Les codes retournés existent réellement dans le référentiel chargé.
     expect(referenceData.decodeEnum('KYCAR_FUEL_CATEGORY', mapFuelCategory('Diesel') ?? '')).toBeTruthy();
   });

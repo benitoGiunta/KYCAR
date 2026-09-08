@@ -22,7 +22,7 @@ function listing(priceCents: number, mileageKm: number, year: number) {
 
 describe('aggregate — MetricRange et lignes MakeAggregate/ModelAggregate', () => {
   it('computeMetricRange calcule min/max/p50 sur un échantillon connu', () => {
-    const range = computeMetricRange([10, 20, 30, 40, 50]);
+    const range = computeMetricRange([10, 20, 30, 40, 50], 'mileage');
     expect(range.n).toBe(5);
     expect(range.min).toBe(10);
     expect(range.max).toBe(50);
@@ -30,10 +30,22 @@ describe('aggregate — MetricRange et lignes MakeAggregate/ModelAggregate', () 
   });
 
   it('computeMetricRange ignore les valeurs inconnues (null)', () => {
-    const range = computeMetricRange([100, null, 200, null]);
+    const range = computeMetricRange([100, null, 200, null], 'mileage');
     expect(range.n).toBe(2);
     expect(range.min).toBe(100);
     expect(range.max).toBe(200);
+  });
+
+  it('EX-DATA-60 / ARB-15 (DR-001) : la métrique PRIX exclut la sentinelle absolue de 250 €', () => {
+    // L'annonce à 1 € compte dans l'effectif (`listingCount`) mais n'entre NI dans la médiane NI
+    // dans les bornes publiées. Le prix est la SEULE métrique à porter une sentinelle absolue :
+    // c'est pourquoi il est la valeur par défaut du paramètre `metric`.
+    const range = computeMetricRange([10000, 12000, 15000, 1]);
+    expect(range.n).toBe(3);
+    expect(range.min).toBe(10000);
+    expect(range.p50).toBe(12000);
+    // La même série lue comme un kilométrage garde ses quatre valeurs : la règle est propre au prix.
+    expect(computeMetricRange([10000, 12000, 15000, 1], 'mileage').n).toBe(4);
   });
 
   it('computeMetricRange sur échantillon vide renvoie tout à null, n=0', () => {
