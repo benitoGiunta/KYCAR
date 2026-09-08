@@ -12,17 +12,24 @@
  * « makeId/modelId inconnu de la taxonomie » (`EX-NAV-19`/`20`) est déplacée dans
  * `resolveTaxonomyRoute` ci-dessous, qui prend `ReferenceData` en paramètre et reste néanmoins pure.
  *
- * Les six routes (`draft-screens.md` §3.1) :
+ * Les six routes ADRESSABLES (`draft-screens.md` §3.1, annexe C §A.1, `DR-053`) :
  *   1. `market`            — écran A, `/marche`
  *   2. `modelDistribution` — écran B, `/marche/:makeId-:makeSlug/:modelId-:modelSlug`
  *   3. `modelListings`     — écran D, `/marche/:makeId-:makeSlug/:modelId-:modelSlug/annonces`
  *   4. `compare`           — écran C, `/comparer`
  *   5. `savedSearches`     — écran E, `/recherches`
- *   6. `notFound`          — chemin non reconnu (générique) OU segment `makeId`/`modelId` mal formé
+ *   6. `followedModels`    — écran F, `/suivis`
  *
- * L'écran `G` (§7.4) n'est PAS une septième route : c'est une modale superposée à A/B/C/D, portée
+ * `notFound` (chemin non reconnu, générique, OU segment `makeId`/`modelId` mal formé) est un
+ * SEPTIÈME nom technique, l'écran d'erreur générique — il ne compte pas parmi les six routes
+ * adressables de l'annexe C (`DR-054` corrige la confusion antérieure qui le comptait comme la
+ * sixième route à la place de `/suivis`).
+ *
+ * L'écran `G` (§7.4) n'est PAS une route non plus : c'est une modale superposée à A/B/C/D, portée
  * par l'état d'interface du composant appelant, jamais par le chemin.
  */
+
+import type { MutableSelectionState, ScreenMode, SelectionState } from './filter-types';
 
 export type RouteName =
   | 'market'
@@ -30,15 +37,17 @@ export type RouteName =
   | 'modelListings'
   | 'compare'
   | 'savedSearches'
+  | 'followedModels'
   | 'notFound';
 
-/** Les six noms de route, dans l'ordre de `draft-screens.md` §3.1 (pour un test d'exhaustivité). */
+/** Les six routes ADRESSABLES de `draft-screens.md` §3.1, plus `notFound` (générique, `DR-054`). */
 export const ROUTE_NAMES: readonly RouteName[] = [
   'market',
   'modelDistribution',
   'modelListings',
   'compare',
   'savedSearches',
+  'followedModels',
   'notFound',
 ];
 
@@ -65,6 +74,10 @@ export interface CompareRoute {
 export interface SavedSearchesRoute {
   readonly name: 'savedSearches';
 }
+/** Écran F, `/suivis` — modèles suivis (`EX-NAV-4`, `DR-053`). */
+export interface FollowedModelsRoute {
+  readonly name: 'followedModels';
+}
 /** Chemin non reconnu — distinct de l'écran d'erreur `EX-NAV-19`/`20` (marque/modèle inconnu de la
  * taxonomie), qui exige `ReferenceData` et est résolu par `resolveTaxonomyRoute`, pas ici. */
 export interface NotFoundRoute {
@@ -78,6 +91,7 @@ export type Route =
   | ModelListingsRoute
   | CompareRoute
   | SavedSearchesRoute
+  | FollowedModelsRoute
   | NotFoundRoute;
 
 /** `:id-:slug` — l'id est la partie normative, le slug est cosmétique (jamais revalidé ici). */
@@ -119,6 +133,8 @@ export function matchRoute(pathname: string): Route {
 
   if (first === 'recherches' && second === undefined) return { name: 'savedSearches' };
 
+  if (first === 'suivis' && second === undefined) return { name: 'followedModels' };
+
   if (first === 'marche' && second !== undefined && third !== undefined) {
     const make = parseIdSlug(second);
     const model = parseIdSlug(third);
@@ -138,6 +154,19 @@ export function matchRoute(pathname: string): Route {
     }
   }
 
+  // Route HISTORIQUE `/modele/:makeId/:modelId` (annexe C §A.1 : « conservée en lecture seule,
+  // redirige par `replaceState` »). Ni `makeId` ni `modelId` ne portent de slug dans cette forme
+  // ancienne : les deux sont vides ici, à charge de l'appelant de les canoniser via
+  // `resolveTaxonomyRoute` avant `replaceState` (`DR-054` ; le câblage réel est fix-app, `D-054`
+  // → `DR-099`).
+  if (first === 'modele' && second !== undefined && third !== undefined && segments.length === 3) {
+    const makeId = Number(second);
+    const modelId = Number(third);
+    if (Number.isSafeInteger(makeId) && makeId >= 0 && Number.isSafeInteger(modelId) && modelId >= 0) {
+      return { name: 'modelDistribution', makeId, makeSlug: '', modelId, modelSlug: '' };
+    }
+  }
+
   return { name: 'notFound', path: pathname };
 }
 
@@ -151,6 +180,8 @@ export function buildPath(route: Route): string {
       return '/comparer';
     case 'savedSearches':
       return '/recherches';
+    case 'followedModels':
+      return '/suivis';
     case 'modelDistribution':
       return `/marche/${route.makeId}-${route.makeSlug}/${route.modelId}-${route.modelSlug}`;
     case 'modelListings':
@@ -164,11 +195,43 @@ export function buildPath(route: Route): string {
  * Validation référentielle (EX-NAV-19/20) — séparée de `matchRoute`, qui reste pure et sans données
  * ============================================================================================== */
 
+/**
+ * Entrée minimale requise d'un `Make`/`Model` (D2, `src/types/reference.ts`) pour calculer le slug
+ * CANONIQUE d'une route (`EX-SCR-140`, `DR-054`). `slug` est TOUJOURS posé par le chargeur réel de
+ * D2 (`buildTaxonomy`, repli `slugify(label)`) ; ce module accepte néanmoins `label` seul (sans
+ * `slug`) et calcule alors le même repli localement — ce module reste sans dépendance à
+ * `src/types` (note de conception du fichier), formule dupliquée sciemment, comme `modelKeyOf`
+ * duplique `modelKey`.
+ */
+export interface TaxonomyEntry {
+  readonly label?: string;
+  readonly slug?: string;
+}
+
 /** Sous-ensemble de `ReferenceData` (D2) nécessaire à la validation — évite un couplage fort au
  * type complet exporté par `src/types/reference.ts` (ce module n'importe QUE ce dont il a besoin). */
 export interface TaxonomyLookup {
-  readonly makeById: ReadonlyMap<number, unknown>;
-  readonly modelByKey: ReadonlyMap<string, unknown>;
+  readonly makeById: ReadonlyMap<number, TaxonomyEntry>;
+  readonly modelByKey: ReadonlyMap<string, TaxonomyEntry>;
+}
+
+/** Même formule que `slugify` de `src/types/reference.ts` (non exportée là-bas), dupliquée ici
+ * plutôt qu'importée — voir la note de type ci-dessus. */
+function slugify(label: string): string {
+  return label
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/g, '');
+}
+
+function canonicalSlug(entry: TaxonomyEntry, fallback: string): string {
+  if (entry.slug !== undefined) return entry.slug;
+  if (entry.label !== undefined) return slugify(entry.label);
+  return fallback;
 }
 
 export type TaxonomyRouteError =
@@ -188,23 +251,80 @@ function modelKeyOf(makeId: number, modelId: number): string {
 
 /**
  * Valide une route `modelDistribution`/`modelListings` déjà matchée contre la taxonomie chargée
- * (`EX-NAV-19`/`20`). `modelId = 0` est la clé réservée « Modèle non identifié »
- * (`EX-DATA-72`) et n'est JAMAIS traité comme un modèle inconnu (exception unique d'`EX-NAV-20`),
- * à condition que `makeId` existe lui-même.
+ * (`EX-NAV-19`/`20`), ET calcule ses slugs CANONIQUES (`EX-SCR-140`, `DR-054`) : un slug erroné (ou
+ * absent, route historique `/modele/:makeId/:modelId`) n'empêche jamais l'affichage — l'identifiant
+ * fait foi — mais la route retournée porte toujours le slug RELEVÉ dans la taxonomie, à charge de
+ * l'appelant de comparer au slug REÇU et de `replaceState` vers `buildPath(resolved.route)` s'ils
+ * diffèrent (le câblage dans la coquille est fix-app, `DR-099`). `modelId = 0` est la clé réservée
+ * « Modèle non identifié » (`EX-DATA-72`) et n'est JAMAIS traité comme un modèle inconnu (exception
+ * unique d'`EX-NAV-20`), à condition que `makeId` existe lui-même — son `modelSlug` d'origine est
+ * conservé tel quel (aucune entrée de taxonomie ne le porte par construction).
  */
 export function resolveTaxonomyRoute(
   route: ModelDistributionRoute | ModelListingsRoute,
   taxonomy: TaxonomyLookup,
 ): TaxonomyRouteResult {
-  if (!taxonomy.makeById.has(route.makeId)) {
+  const make = taxonomy.makeById.get(route.makeId);
+  if (make === undefined) {
     return { ok: false, error: { kind: 'unknownMake', makeId: route.makeId } };
   }
-  if (route.modelId === 0) return { ok: true, route };
-  if (!taxonomy.modelByKey.has(modelKeyOf(route.makeId, route.modelId))) {
+  const makeSlug = canonicalSlug(make, route.makeSlug);
+
+  if (route.modelId === 0) {
+    return { ok: true, route: { ...route, makeSlug } };
+  }
+  const model = taxonomy.modelByKey.get(modelKeyOf(route.makeId, route.modelId));
+  if (model === undefined) {
     return {
       ok: false,
       error: { kind: 'unknownModel', makeId: route.makeId, modelId: route.modelId },
     };
   }
-  return { ok: true, route };
+  const modelSlug = canonicalSlug(model, route.modelSlug);
+  return { ok: true, route: { ...route, makeSlug, modelSlug } };
+}
+
+/* ================================================================================================
+ * Transitions mode 1 ↔ mode 2 (`EX-NAV-15`/`16`/`17`, `D-09`, `DR-063`)
+ * ================================================================================================
+ * `EX-NAV-5` (annexe C) nomme un paramètre `make` distinct qui n'existe pas dans le registre : le
+ * couple marque/modèle du mode 1 passe entièrement par `mmmv` (`makesModelsVariants`, annexe B,
+ * `EX-SCR-59`/`72`) — arbitrage `D-09`, qui amende `EX-NAV-5`/`15`/`16`/`17` en ce sens (fix-docs).
+ * Fonction PURE : ne lit ni le DOM ni l'historique, ne connaît pas la route active — l'appelant
+ * (fix-app) lui donne `from`/`to` et le couple choisi, et branche le résultat sur `serializeQuery`.
+ * ============================================================================================== */
+
+/** Couple marque/modèle porté par la route en mode 2 (`modelId` absent = « toute la marque »,
+ * bloc `mmmv` à un seul segment, `EX-SCR-72`). */
+export interface ModeCarryPair {
+  readonly makeId: number;
+  readonly modelId?: number;
+}
+
+/**
+ * Transporte une sélection de filtres d'un mode d'écran à l'autre :
+ *  - mode 1 → mode 2 (`EX-NAV-15`/`16`) : le bloc `mmmv` du couple CHOISI est absorbé par la route
+ *    (`/marche/:makeId-.../:modelId-...`) — retiré de la sélection retournée. Tout autre filtre
+ *    PARTAGÉ (posé ou non) est conservé tel quel, y compris s'il n'a plus de sens en mode 2 (le
+ *    contrôleur mode 2 applique sa propre scission T/R, `partitionSelection`, `D4`/`DR-006`).
+ *  - mode 2 → mode 1 (`EX-NAV-17`) : le couple ACTIF de la route quittée est RÉINJECTÉ dans `mmmv`
+ *    (`EX-SCR-72` : `makeId` seul, ou `makeId|modelId`), les autres filtres partagés inchangés.
+ *  - même mode des deux côtés : identité (copie défensive), aucun couple à transporter.
+ */
+export function carryFiltersAcrossMode(
+  selection: SelectionState,
+  from: ScreenMode,
+  to: ScreenMode,
+  pair: ModeCarryPair,
+): MutableSelectionState {
+  const next: MutableSelectionState = { ...selection };
+  if (from === to) return next;
+  if (from === 'mode1' && to === 'mode2') {
+    delete next['makesModelsVariants'];
+    return next;
+  }
+  // from === 'mode2' && to === 'mode1'
+  next['makesModelsVariants'] =
+    pair.modelId === undefined ? String(pair.makeId) : `${pair.makeId}|${pair.modelId}`;
+  return next;
 }
