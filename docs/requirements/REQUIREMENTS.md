@@ -327,6 +327,24 @@ Ils sont énumérés ici pour que la phase 2.2 ne les découvre pas comme des tr
 | **1.0** | **2026-09-06** | **GELÉ. 485 exigences.** Voir le détail ci-dessous |
 | **1.1** | **2026-09-08** | **Remédiation 2.6, `fix-docs`.** Aucune exigence créée ni supprimée, aucun identifiant renuméroté. 30 exigences amendées (annexes A, B, C) contre les décisions de `reports/remediation/FIX-LEAD-DECISIONS.md` et les tensions §5.2/§5.3/§6.5 de `reports/DEV-REVIEW.md`. Détail ci-dessous |
 | **1.2** | **2026-09-08** | **Remédiation 2.8, `fix-docs`.** Aucune exigence créée ni supprimée, aucun identifiant renuméroté. Amendements contre `reports/remediation-2.8/FIX-LEAD-DECISIONS-2.8.md` (constats `FV-xx` de `reports/FINAL-VERIFICATION.md` §7) : décomptes de filtres et de primaires corrigés (`D8-13`), vocabulaire d'outliers porté à 8 codes (`D8-09`), garde R3 étendue (`D8-11`), colonne TVA de l'interface physique (`D8-08`), agrégats `modelCount`/`iqr`/`coverage`/champs optionnels (`D8-10`, `D8-23`), dette `D-17` levée (`D8-07`), dettes produit et externes consignées (`D8-15`, `D8-18`, `D8-20`). Détail ci-dessous |
+| **1.3** | **2026-09-08** | **Remédiation 2.8, vague F3, `fix-docs-2`.** Aucune exigence créée ni supprimée, aucun identifiant renuméroté. Amendements contre `reports/remediation-2.8/FIX-LEAD-DECISIONS-2.8.md` §E (arbitrages après `fix-verify` rev 1) : dénominateur de `coverageWarning`/`priceCoverage` sur une source d'agrégats précisé (`D8-32`), dette d'interface gelée `co2Source` du provider synthétique consignée (`D8-32`), version bornée d'`EX-SCR-159` ratifiée (`D8-32`), portée de `count` dans le bloc statistique précisée (`D8-32`, hypothèse sur `D8-30`), décompte des filtres retenus (`REF-filters.md`, `ARBITRAGES-req-lead.md`) aligné sur 74 (`D8-32`), dette architecturale des effectifs de facette en mode 1 ratifiée (`D8-29`). Détail ci-dessous |
+
+### Journal des amendements 2.8, vague F3 (v1.2 → v1.3)
+
+Chaque exigence amendée porte la marque `[amendée 2.8 — D8-xx]` en fin de texte, au même titre
+que la vague précédente (v1.1 → v1.2) : la remédiation reste celle de la **phase 2.8**, cette
+vague F3 n'introduit pas de nouvelle phase. Aucune formule ni disposition n'est réécrite au-delà
+de ce que la décision citée impose.
+
+| Identifiant | Fichier | Nature de l'amendement | Décision |
+|---|---|---|---|
+| `EX-DATA-17` | draft-data-dictionary.md | Précision : sur une source d'agrégats (mode 1), le dénominateur de `priceCoverage`/`coverageWarning.price` est l'effectif de l'échantillon calculé, pas `listingCount` ; règle `listingCount` inchangée sur un jeu chargé | `D8-32` |
+| `EX-DATA-35` | draft-data-dictionary.md | Dette d'interface gelée consignée : `co2Source` du provider synthétique figé `UNKNOWN` et déclaré (`unknownCountByField`, `coverageNote`), faute de colonne dans `DataProvider` v1 ; levée prévue en v2 de l'interface | `D8-32` |
+| `EX-SCR-159` | draft-screens.md (§6.4) | Version bornée livrée en 2.8 ratifiée : légende continue atténuée à `n ≤ 3`, sans recentrage à `n = 1` ni pastilles/valeurs littérales ; seuil et désactivation du brossage conformes ; passage à la version complète consigné comme dette de présentation non bloquante | `D8-32` |
+| `EX-DATA-64` | draft-data-dictionary.md | Précision : `count` porté par le conteneur de l'agrégat (`SelectionStats`/`MakeAggregate`), pas répété dans chaque `MetricStats` ; bloc de treize valeurs réparti conteneur + `MetricStats`, sous hypothèse que `D8-30` (calcul de `iqr`/`coverage`) est livré par `fix-engine-2` | `D8-32` |
+| `EX-SCR-65`, `EX-SCR-89`, `EX-SCR-90` | draft-screens.md | Dette architecturale ratifiée : en mode 1 (agrégats servis sans ligne, `O17`), les effectifs de facette `(n)` et le marquage `(0)` ne sont pas affichés (aucun jeu chargé pour les calculer) ; aucune valeur inventée ; corrigé en mode 2 (`D8-05`) ; levée conditionnée à une décision produit ou à `DataProvider.facets()` (v2) | `D8-29` |
+| `REF-filters.md` (fiche `zipr`) | REF-filters.md | Note ajoutée : statut KYCAR de `zip`/`zipr` (`EXCLU`/`RETENU`) rappelé, dépendance de `zipr` à `zip` devenue résiduelle et sans effet | `D8-32` |
+| `ARBITRAGES-req-lead.md` (R-A15) | ARBITRAGES-req-lead.md | Note ajoutée : le décompte historique « 77 retenus + 24 exclus » de la phase 2.2 est dépassé par `D8-13` ; décompte courant 74 retenus + 27 exclus, recompté ligne à ligne sur `EX-SCR-82` et confirmé contre `filters-scope.json` | `D8-32` |
 
 ### Journal des amendements 2.6 (v1.0 → v1.1)
 
