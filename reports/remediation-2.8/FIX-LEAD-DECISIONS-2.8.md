@@ -75,3 +75,36 @@ Coordinateur : porte G7, journal, handoff, push → 2.9b acceptance (Fable/max) 
 | D8-24 | Sous-points FV-18 laissés par fix-screens (squelettes ET-CHARGE-INIT, interactions de brossage des histogrammes, légendes discrètes + brossage désactivé sous 4 offres, atténuation ET-CHARGE-MAJ) | **Pas de dette** : ET-CHARGE-INIT et ET-CHARGE-MAJ (atténuation + barre) sont câblés par **fix-app** (signal `recalculating` du contrôleur → prop `DistributionScreen.recalculating`) ; brossage horizontal / `Ctrl`+clic / double-clic (`EX-SCR-149`) et légendes discrètes + brossage désactivé sous 4 offres (`EX-SCR-159`) sont livrés par un agent de finition **fix-screens-finition** (Sonnet/high, worktree, fichiers `Histogram.tsx`, `brush-model.ts`, `ScatterCloud.tsx` légendes, sondes D7), en parallèle de fix-app. |
 | D8-25 | Quatre sondes D7 rouges après la fusion engine + screens (`EX-SCR-144/191`, `EX-NFR-15`, `EX-SCR-176`, mode `modelId = 0`) : 13 figures au lieu de 14 | Cause : D8-06 « G15 masqué si un seul pays » s'applique désormais parce que le moteur fournit les données ; les fixtures des sondes n'ont qu'un pays. **Les sondes sont corrigées** (fixture à ≥ 2 pays pour les cas « 14 graphes » ; un cas dédié atteste le masquage à un pays), justification D8-06/D-31. Porteur : fix-screens-finition. |
 | D8-26 | Retrait des annotations `test.fail()` E2E pour les constats corrigés par fix-state (E2E-12, E2E-14, E2E-21) | Porteur : fix-app (seul propriétaire de `tests/e2e/` en F2), après avoir rejoué chaque test vert. |
+
+## E. Arbitrages après fix-verify rev 1 (G7 NON FRANCHIE) — vague F3
+
+`reports/REMEDIATION-2.8.md` rev 1 (commit `d94d0a2`) : S1 et S4 non atteints. Huit exigences
+`PARTIELLE` sans correction ni dette, une correction sans preuve, un renvoi de correcteur non ratifié.
+Le fix-lead tranche ci-dessous et ouvre une **vague F3** ; fix-verify rejouera ensuite (rev 2).
+
+| # | Sujet | Décision |
+|---|---|---|
+| D8-27 | Câblage `onClearFilter` (`EX-SCR-149`) posé par le coordinateur au commit `90a9eea` dans `DistributionScreen.tsx`, sans preuve (REMEDIATION-2.8 §7.4) | Preuve à écrire par **fix-screens-2** dans `tests/review/D7/ecran-b.test.ts` selon le test minimal du §7.4 ; elle doit être rouge sur `3435456` (avant câblage) et verte sur `HEAD` (D-32). |
+| D8-28 | Deux corrections de fix-app hors périmètre nominal (`filter-band.css` régime intermédiaire, `FilterBand.tsx` `EX-NAV-11` sur application différée) — REMEDIATION-2.8 §7.3 | **Ratifiées** : causées par le mandat D8-15, bornées au régime concerné, prouvées par un E2E rouge → vert, attribuées en commentaire. Leçon de séquencement retenue : en F2, un correcteur reste ouvert sur chaque répertoire de `src/components/` jusqu'à la fin de la vague (appliqué en F3 : fix-state-2 reste vivant jusqu'à la fin de fix-app-2). |
+| D8-29 | FV-06 en **mode 1** (`EX-SCR-65`, `89`, `90` : effectifs de facettes) — renvoi de fix-app à 2.9 sans décision | **Dette architecturale ratifiée** : les facettes exigent un jeu chargé, ce qu'`O17` (élagage avant chargement, mode 1 = agrégats servis sans lignes) interdit ; la contradiction `EX-SCR-89/90` × `O17` en mode 1 ne se tranche qu'avec le commanditaire (E3 : pas de question posée) — elle est donc **hors dépôt**, au même titre que `EX-SCR-9`. Condition de levée : décision produit, ou provider mode 1 exposant des facettes (`DataProvider.facets()` en v2 de l'interface). Aucune valeur inventée : `CheckboxList` ne rend aucune parenthèse sans facettes (vérifié par fix-verify). Marqueur : aucune sonde ne peut la faire échouer sans jeu chargé ; consignée dans REMEDIATION-2.8 §6.1 par fix-verify rev 2, et dans `draft-screens.md` par fix-docs-2. |
+| D8-30 | Résidu DR-122 : `MetricStats.iqr` / `coverage` toujours `null` (`EX-DATA-61`, `EX-DATA-64`) — renvoyé entre fix-engine et fix-providers | Attribué à **fix-engine-2** (la correction est dans `src/engine/quantiles.ts`, la plus profonde) : `iqr = q3 − q1`, `coverage = n_m / N` (paramètre `selectionCount`), dans `metricStatsFromCounts` et `exactStatsBySort` ; `tests/review/D4/quantiles-bin.test.ts` amendée dans le même commit avec justification écrite (son `toEqual` fige `iqr: null`, ce qui figeait le défaut). Sonde d'échec d'abord. |
+| D8-31 | `EX-SCR-174`, `EX-SRCH-14` (sondes « à écrire en 2.8 » jamais écrites) et les cinq mineurs isolés `EX-DATA-23`, `EX-SCR-17`, `EX-SCR-101`, `EX-SCR-153`, `EX-SCR-212` (attribués à personne) | Attribution F3 : `EX-DATA-23` → fix-engine-2 (`src/types/shared-rules.ts`, sonde D2) ; `EX-SCR-17` (bascule log de G7 seul), `EX-SCR-153` (G4a = bornes/buckets de G1), `EX-SCR-174` (en-tête « aucune offre » + bloc EX-SCR-26 sur B), `EX-SCR-212` (cartes de l'écran E) → fix-screens-2 ; `EX-SCR-101` (filtre invalide après changement de snapshot : conservé, ambre, infobulle, compteur « n filtre(s) sans effet ») et `EX-SRCH-14` (changement de marque en mode 2 → `/marche?mmmv=<make>\|\|\|`) → fix-state-2 pour la logique et les sondes D5, fix-app-2 pour le câblage coquille et les sondes D8. Chaque exigence finit **CORRIGÉE avec preuve** ou en dette **écrite** ici : aucun troisième état. |
+| D8-32 | Arbitrages de correcteurs en attente (REMEDIATION-2.8 §7.2) | (1) Dénominateur de `coverageWarning` sur une source d'agrégats = effectif de l'échantillon : **ratifié**, `EX-DATA-17` amendée par fix-docs-2 (une phrase). (2) `co2Source` synthétique figé `UNKNOWN` et déclaré : **dette d'interface gelée** (colonne absente de `DataProvider`), levée en v2 de l'interface ; `EX-DATA-35` annotée par fix-docs-2. (3) `EX-SCR-159` en version bornée : **ratifiée** (seuil et désactivation du brossage conformes ; pastilles littérales à n ≤ 3 = détail de présentation de `draft-screens.md` §6.4, annoté par fix-docs-2). (4) `EX-DATA-64` : `count` porté par le conteneur : **ratifié** (structure, pas valeur ; le bloc publie 13/13 après D8-30). (5) `zipr` `RETENU` / « 77 retenus » : fix-docs-2 aligne `REF-filters.md` et `ARBITRAGES-req-lead.md` sur 74. |
+| D8-33 | `reports/e2e/results.json` suivi par git et régénéré à chaque exécution | Conservé suivi : artefact de preuve **de référence**, commité uniquement avec le rapport qui l'a produit (e2e-harness, fix-verify, acceptance). Les exécutions intermédiaires des correcteurs ne le commitent pas (`git checkout -- reports/e2e/results.json` avant leur commit). |
+
+### Séquencement F3
+
+```
+Vague F3 (PARALLÈLE, worktrees isolés, node_modules symlinké)
+  fix-engine-2  Opus/high  (src/engine, src/worker, src/types, tests/review/D2, D4)  D8-30, EX-DATA-23
+  fix-screens-2 Opus/high  (src/screens, tests/review/D6, D7 ; JAMAIS app.tsx)       D8-27, EX-SCR-17/153/174/212
+  fix-state-2   Opus/high  (src/state, src/components/filters, tests/review/D5)      EX-SCR-101, EX-SRCH-14
+  fix-docs-2    Sonnet/high (docs/, aucun code)                                      D8-29, D8-32 → REQUIREMENTS v1.3
+        │  fusions --no-ff : engine-2 → state-2 → screens-2 → docs-2 ; gates après chaque fusion
+        v
+fix-app-2 Opus/high (SÉQUENTIEL, arbre principal) : câblage listé par screens-2 et state-2,
+  sondes D8, E2E complet ; fix-state-2 reste joignable pour src/components/filters (D8-28)
+        │
+        v
+fix-verify rev 2 → REMEDIATION-2.8.md rev 2, porte G7
+```
