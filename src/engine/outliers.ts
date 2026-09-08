@@ -19,14 +19,8 @@
  */
 
 import type { ListingColumnBatch, OutlierVerdict } from '../types/index';
-import {
-  implausibleInCellThreshold,
-  isMileageValid,
-  isPriceValid,
-  isYearValid,
-  PRICE_STATUS_QUOTED,
-  yearFromYearMonth,
-} from './flags';
+import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED, yearFromYearMonth } from './flags';
+import { implausibleInCellThreshold } from './implausible';
 import { quantileFromSorted } from './quantiles';
 import { decodeListingId } from './uuid';
 

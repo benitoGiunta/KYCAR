@@ -66,27 +66,6 @@ export function isPriceValid(price: number, priceStatus: number, ingestFlags: nu
   );
 }
 
-/* ---- Sentinelle RELATIVE à la cellule (EX-DATA-19(2), ARB-13, R-A06) -------------------------- */
-
-/**
- * `PRICE_IMPLAUSIBLE_IN_CELL` : `prix < 0,10 × médianeRéf(C)`. Verdict d'ANALYSE, recalculé par
- * cellule et par sélection, JAMAIS stocké dans `ingestFlags` — le vocabulaire gelé ne le porte pas.
- */
-export const IMPLAUSIBLE_IN_CELL_RATIO = 0.1;
-
-/** La règle relative ne s'applique pas sous 12 prix valides dans la cellule (EX-DATA-19(2)). */
-export const MIN_IMPLAUSIBLE_IN_CELL = 12;
-
-/**
- * Seuil relatif de la cellule, ou `null` si la règle ne s'y applique pas.
- * `médianeRéf(C)` est la médiane de `V_price(C)`, c'est-à-dire des prix de la cellule DÉJÀ privés
- * des sentinelles ABSOLUES : un seul passage, aucune rétroaction (ARB-13).
- */
-export function implausibleInCellThreshold(medianRef: number | null, nPrice: number): number | null {
-  if (medianRef === null || nPrice < MIN_IMPLAUSIBLE_IN_CELL) return null;
-  return IMPLAUSIBLE_IN_CELL_RATIO * medianRef;
-}
-
 /** Vrai si l'ANNÉE (firstRegistrationYearMonth encodé) est connue (EX-DATA-60). */
 export function isYearValid(firstRegistrationYearMonth: number): boolean {
   return firstRegistrationYearMonth !== NUMERIC_UNKNOWN;

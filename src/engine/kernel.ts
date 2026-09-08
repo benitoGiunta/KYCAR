@@ -22,8 +22,9 @@ import type {
   OutlierVerdict,
 } from '../types/index';
 import { aggregate } from './aggregate';
-import { densityGrid } from './density';
+import { densityGrid, type IneligibleBreakdown } from './density';
 import { detectOutliers, M3_EMPTY, type M3Control } from './outliers';
+import { selectionImplausibleThreshold } from './implausible';
 import { buildIndexes, type DatasetIndexes } from './index-build';
 import { compilePredicates, type RefinePredicate, type TaxonomyScope } from './predicates';
 import { computeFacets, type FacetCount, type FacetFilterSpec } from './facets';
@@ -70,6 +71,12 @@ export interface RecalcResult {
   readonly mileageHistogram: readonly DistributionBucket[];
   readonly densityCells: readonly DensityCell[];
   readonly eligibleCount: number;
+  /**
+   * Motifs de non-éligibilité ventilés (EX-DATA-99) : `eligibleCount` plus les quatre compteurs
+   * valent exactement `selectionCount`. Publiés par le moteur pour que l'écran B ne les recalcule
+   * pas sur le thread principal.
+   */
+  readonly ineligible: IneligibleBreakdown;
   readonly outlierVerdicts: readonly OutlierVerdict[];
   /**
    * Motif d'omission de M1/M2, ou `null` si la détection a bien tourné. Quand il est renseigné,
@@ -133,7 +140,12 @@ export class AggregationDataset {
       scan.pruned || scan.rows.length <= OUTLIER_UNPRUNED_MAX_ROWS ? null : 'UNPRUNED_SELECTION';
     const outliers =
       outliersSkipped === null ? detectOutliers(batch, scan.rows, snapshotId, selectionHash) : null;
-    const density = densityGrid(batch, scan.rows, snapshotId, selectionHash);
+    // Éligibilité du nuage et de la densité (D-05) : même règle de prix valide que M1/M2, donc le
+    // seuil relatif de `C₃ = Σ` est celui que la détection a calculé — recalculé seulement si elle
+    // a été omise.
+    const implausibleThreshold =
+      outliers === null ? selectionImplausibleThreshold(batch, scan.rows) : outliers.selectionImplausibleThreshold;
+    const density = densityGrid(batch, scan.rows, snapshotId, selectionHash, implausibleThreshold);
     this.lastYearMarginal = density.yearBucketCountByIndex;
 
     const selectionStats: SelectionStats = {
@@ -162,6 +174,7 @@ export class AggregationDataset {
       mileageHistogram: agg.mileageHistogram,
       densityCells: density.cells,
       eligibleCount: density.eligibleCount,
+      ineligible: density.ineligible,
       outlierVerdicts: outliers === null ? [] : outliers.verdicts,
       outliersSkipped,
       m3: outliers === null ? M3_EMPTY : outliers.m3,
