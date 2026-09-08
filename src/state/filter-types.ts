@@ -83,6 +83,9 @@ export interface FilterDef {
   readonly param: string;
   /** Libellé FR (`EX-NFR-28`/`30`). */
   readonly label: string;
+  /** Libellé anglais relevé (`data/reference/filters.json#label_en`), deuxième index de recherche
+   * exigé par `EX-SCR-79` (troisième index avec le libellé FR et le paramètre d'URL). */
+  readonly labelEn?: string;
   /** Groupe visuel (`EX-SCR-93` pour l'ordre normatif). */
   readonly group: string;
   readonly scopeType: ScopeType;
@@ -111,7 +114,15 @@ export interface FilterDef {
   /** Motif d'infobulle pour un filtre de classe `D` (`EX-SCR-74`). */
   readonly disabledReason?: string;
   readonly semanticsWarning?: SemanticsWarning;
-  /** `true` si l'exposition est `NON_EXPOSE` malgré `perimetre = RETENU` (seul cas : `atype`). */
+  /**
+   * `true` si le filtre n'est jamais présenté comme un choix utilisateur, jamais sérialisé dans
+   * l'URL de l'application, jamais compté dans le badge de filtres actifs et jamais remis à zéro
+   * par une réinitialisation. Deux familles de raisons distinctes (`DR-052`) :
+   *  - valeur INJECTÉE VERS LA SOURCE par l'adaptateur (`EX-SRCH-18bis`, `ARB-30`) : `atype`,
+   *    `ustate` (`hadAccident`), `powertype` (`powerType`), `cy` (`countryType`) ;
+   *  - paramètre d'ÉTAT D'INTERFACE de l'écran D (`EX-NAV-10bis`, `D-12`/`DR-066`) : `page`,
+   *    `pageSize` — leur présence dans l'URL passe par `UI_STATE_PARAMS`, pas par ce registre.
+   */
   readonly nonExposed?: boolean;
 }
 
