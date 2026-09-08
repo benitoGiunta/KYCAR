@@ -1122,9 +1122,6 @@ export function App(props: AppProps): JSX.Element {
     return topRestrictiveFilters({ selection, batch: payload.batch, referenceData, baselineCount: 0 });
   }, [mode2, selection, referenceData]);
 
-  /** `ET-FILTRE-NON-APPLIQUE` (D-03, DR-103) — bandeau nommant les filtres non appliqués. */
-  const unapplied = loadedData?.unappliedFilterIds ?? [];
-
   /**
    * `D8-20` (`ET-FILTRE-NON-APPLIQUE`, `EX-SCR-221`, O15) — filtres DÉCLARÉS non appliqués par le
    * moteur en mode 2. Cas particulier tranché par le fix-lead sur relevé de fix-providers §6.3 :
@@ -1134,6 +1131,19 @@ export function App(props: AppProps): JSX.Element {
    */
   const unsupportedMode2 = mode2?.payload?.unappliedFilterIds ?? [];
   const bodyFilterUnapplied = unsupportedMode2.includes('bodyType');
+
+  /**
+   * `ET-FILTRE-NON-APPLIQUE` (D-03, DR-103) — bandeau nommant les filtres non appliqués.
+   *
+   * `ACC-01` / `D8-41` : la déclaration dépend du MODE. En mode 1 elle vient du provider
+   * (`ScreenALoadedData.unappliedFilterIds`) ; en mode 2 elle vient de l'entrée `enterMode2`
+   * (composante `T` hors route, que `fetchListingColumns` n'accepte pas — O17), moins `bodyType`
+   * qui a son bandeau propre ci-dessus. Sans cette lecture, un filtre de classe `T` posé sur
+   * l'écran B restait sans effet ET sans mention, ce que `D-03` interdit ; et la liste du mode 1,
+   * conservée en mémoire pendant la navigation vers B, n'y décrit plus les chiffres affichés.
+   */
+  const unapplied =
+    currentMode === 'mode2' ? unsupportedMode2.filter((id) => id !== 'bodyType') : (loadedData?.unappliedFilterIds ?? []);
 
   /**
    * `EX-SCR-38` (`D8-06`/`FV-07`) — EMPILEMENT des bandeaux d'état de la coquille : au plus DEUX

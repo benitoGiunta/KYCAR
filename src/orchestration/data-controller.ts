@@ -136,6 +136,47 @@ export function validateAggregateResult(value: unknown): string | null {
   return null;
 }
 
+/**
+ * Identifiants ABSORBÉS par la route en mode 2 : le couple marque/modèle est porté par l'URL de
+ * l'écran B et par `tSelection`, il n'a jamais à être déclaré non appliqué. Même liste que
+ * `TAXONOMY_IDS` de `refine-predicates.ts`, pour la même raison, du côté `T`.
+ */
+const MODE2_ROUTE_ABSORBED_IDS: ReadonlySet<string> = new Set([
+  'make',
+  'model',
+  'makesModelsVariants',
+  'category',
+  'modelCategory',
+]);
+
+/**
+ * `ACC-01` / `D8-41` (`D-03` « jamais ignoré en silence », `EX-SCR-221`, `EX-NAV-18`) — filtres de
+ * classe `T` POSÉS que l'entrée en mode 2 n'applique pas.
+ *
+ * En mode 2, `fetchListingColumns` n'accepte qu'un seul argument de sélection (`TSelectionQuery`)
+ * et l'entrée le fixe au couple marque/modèle (décision `O17` : le lot est élagué AVANT tout
+ * M1/M2). Tout autre filtre de classe `T` de l'URL — au premier rang duquel `bodyType`, dont la
+ * classe DEVIENT `T` en mode 2 (`resolveFilterClass`, `EX-SCR-82` #44 / `EX-SCR-221`) — n'est donc
+ * ni poussé au provider ni compilé en prédicat `R` : il n'est PAS appliqué. La recette 2.9b
+ * (`ACC-01`) a constaté qu'il n'était pas non plus déclaré : « 1 352 offres » (la cellule entière)
+ * s'affichait sous un jeton « Carrosserie : Coupé » actif, sans le bandeau de `D8-20`.
+ *
+ * Cette fonction rend la liste que `Mode2Payload.unappliedFilterIds` publie à la coquille, laquelle
+ * en fait le bandeau `ET-FILTRE-NON-APPLIQUE(-BODY)`. Le chiffre affiché reste celui de la cellule
+ * — aucune valeur n'est inventée, aucune n'est amputée : c'est la MENTION qui manquait.
+ *
+ * Canonisation : la liste est celle de `serializeSelection` (`EX-DATA-108`/`EX-NAV-8`), donc un
+ * filtre à sa valeur par défaut ou à valeur vide n'est pas « posé » et n'est pas déclaré.
+ */
+function unappliedTFilterIds(tSelection: SelectionState): readonly string[] {
+  const canonical = serializeSelection(tSelection, { defaults: FILTER_DEFAULTS });
+  if (canonical === '') return [];
+  return canonical
+    .split(';')
+    .map((pair) => pair.slice(0, pair.indexOf('=')))
+    .filter((id) => id !== '' && !MODE2_ROUTE_ABSORBED_IDS.has(id));
+}
+
 export class DataController {
   private readonly provider: DataProvider;
   private readonly ref: ReferenceData;
@@ -459,7 +500,7 @@ export class DataController {
     // `DR-006` — la composante R de l'URL est APPLIQUÉE : scission T/R par D5 (le couple
     // marque/modèle, classe T, est déjà absorbé par la route et par `tSelection`), compilation des
     // prédicats par D4, recalcul sur le `selectionHash` RÉEL (jamais `:EMPTY` d'office).
-    const { r } = partitionSelection(selection, 'mode2');
+    const { t, r } = partitionSelection(selection, 'mode2');
     const { refine, unsupported } = buildRefinePredicates(r, this.ref);
     const refineHash = splitSelection(selection, 'mode2').refineHash;
     const selectionHash = `${batch.localDatasetKey}:${refineHash}`;
@@ -492,7 +533,10 @@ export class DataController {
       makeModelName,
       sourceKind: provider.describe().sourceKind,
       selectionHash,
-      unappliedFilterIds: unsupported,
+      // `ACC-01` / `D8-41` — la composante `T` HORS ROUTE n'est pas poussée au provider (le seul
+      // argument de `fetchListingColumns` est `make;model`, O17) : elle est DÉCLARÉE, jamais
+      // ignorée en silence. Voir `unappliedTFilterIds`.
+      unappliedFilterIds: [...unsupported, ...unappliedTFilterIds(t)],
     };
   }
 
