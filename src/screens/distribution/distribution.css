@@ -107,6 +107,20 @@
   margin-bottom: var(--space-1);
 }
 
+/* `EX-SCR-17` (D8-31) — graduations de l'axe des prix de G7, sous la carte de densité : une liste
+   horizontale de bornes, du prix le plus bas au plus haut, qui rend LISIBLE le changement d'échelle
+   (linéaire ↔ logarithmique) au lieu de le laisser deviner à la déformation des cellules. */
+.kycar-heatmap-priceaxis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
 .kycar-scatter-controls {
   display: flex;
   flex-wrap: wrap;

@@ -142,14 +142,76 @@ export function DepreciationChart({ model, dataSelection }: { model: Depreciatio
 }
 
 /* ---- G7 — Densité prix × km ------------------------------------------------------------------- */
-export function DensityHeatmap({ density, dataSelection }: { density: PriceMileageDensity; dataSelection?: string }) {
+
+/** `EX-SCR-17` — plancher du logarithme : un prix nul ou négatif n'existe pas dans `V_price`
+ * (`EX-DATA-60`), mais la BORNE BASSE de la grille `BIN` peut valoir 0 (origine `O = 0`). Le
+ * plancher évite `log10(0) = −∞` sans déplacer aucune valeur observable. */
+const PRICE_LOG_FLOOR_EUR = 1;
+
+/** Échelle de l'axe des prix de G7 : identité (linéaire) ou `log10` (`EX-SCR-17`). */
+function priceScaleFn(log: boolean): (v: number) => number {
+  return log ? (v: number) => Math.log10(Math.max(PRICE_LOG_FLOOR_EUR, v)) : (v: number) => v;
+}
+
+/**
+ * G7 — densité prix × km. L'axe des PRIX est un axe quantitatif réel (bornes et hauteurs prises sur
+ * la grille `BIN`, `density.priceBins`), ce qui est la condition pour qu'une bascule d'échelle ait
+ * un sens : `EX-SCR-17` offre une bascule logarithmique sur l'axe des prix du SEUL graphe `G7`
+ * (« où l'étalement du haut de gamme écrase la masse »). L'axe des kilométrages, lui, reste une
+ * grille régulière de bins (aucune échelle log ailleurs, `EX-SCR-17`/`EX-SCR-153`).
+ *
+ * État de la bascule : le mécanisme EXISTANT `ui.logHistograms` / `g<n>log` (`EX-SCR-16`,
+ * `EX-NAV-10bis`) avec l'indice **7** — l'écran B passe `log`/`onToggleLog` ; `g7log` est déjà
+ * encodable et décodable par le codec de D5 (`GRAPH_LOG_RE`), aucune déclaration nouvelle.
+ */
+export function DensityHeatmap({
+  density,
+  dataSelection,
+  log,
+  onToggleLog,
+}: {
+  density: PriceMileageDensity;
+  dataSelection?: string;
+  /** `EX-SCR-17` — axe des PRIX en échelle logarithmique (`ui.logHistograms.has(7)`). */
+  log?: boolean;
+  /** Bascule l'échelle de l'axe des prix (`toggleLogHistogram(ui, 7)`). Absent : bouton inerte. */
+  onToggleLog?: () => void;
+}) {
   const cellSize = 14;
+  const isLog = log === true;
   const cols = new Set(density.cells.map((c) => c.mileageBinIndex));
-  const rows = new Set(density.cells.map((c) => c.priceBinIndex));
   const colList = [...cols].sort((a, b) => a - b);
-  const rowList = [...rows].sort((a, b) => b - a); // prix décroissant vers le haut
   const colIndex = new Map(colList.map((c, i) => [c, i]));
-  const rowIndex = new Map(rowList.map((r, i) => [r, i]));
+  const width = Math.max(1, colList.length) * cellSize;
+
+  // Axe des prix : bornes = premier/dernier bin FERMÉ de la grille `BIN` (EX-SCR-18). Les cellules
+  // des bins de débordement sont ÉCRÊTÉES sur la bordure (jamais supprimées, EX-SCR-18).
+  const bins = density.priceBins;
+  const lo = bins.length > 0 ? (bins[0] as { lowerBound: number }).lowerBound : 0;
+  const hi = bins.length > 0 ? (bins[bins.length - 1] as { upperBound: number }).upperBound : 1;
+  const height = Math.max(1, bins.length) * cellSize;
+  const scale = priceScaleFn(isLog);
+  const sLo = scale(lo);
+  const span = scale(hi) - sLo || 1;
+  /** Pixel (haut = prix élevé) d'un prix, écrêté à la zone de tracé. */
+  const yOf = (price: number): number => {
+    const t = (scale(Math.max(lo, Math.min(hi, price))) - sLo) / span;
+    return height - t * height;
+  };
+  const boundsOf = (index: number): { lower: number; upper: number } => {
+    const b = bins.find((x) => x.index === index);
+    if (b !== undefined) return { lower: b.lowerBound, upper: b.upperBound };
+    // Bin de débordement : porté sur la bordure basse ou haute (EX-SCR-18).
+    return index < (bins[0]?.index ?? 0) ? { lower: lo, upper: lo } : { lower: hi, upper: hi };
+  };
+
+  // Graduations de l'axe des prix : les bornes des bins fermés, éclaircies à ~6 étiquettes.
+  const tickStep = Math.max(1, Math.ceil(bins.length / 6));
+  const ticks = bins
+    .filter((_b, i) => i % tickStep === 0)
+    .map((b) => b.lowerBound)
+    .concat(bins.length > 0 ? [hi] : []);
+
   return (
     <GraphFrame
       graphId="G7"
@@ -184,23 +246,57 @@ export function DensityHeatmap({ density, dataSelection }: { density: PriceMilea
       }
     >
       {density.available ? (
-        <svg viewBox={`0 0 ${Math.max(1, colList.length) * cellSize} ${Math.max(1, rowList.length) * cellSize}`} class="kycar-heatmap" role="img" aria-label="Carte de densité prix par kilométrage">
-          {density.cells.map((c, i) => {
-            const t = c.count / Math.max(1, density.maxCount);
-            return (
-              <rect
-                key={i}
-                x={(colIndex.get(c.mileageBinIndex) ?? 0) * cellSize}
-                y={(rowIndex.get(c.priceBinIndex) ?? 0) * cellSize}
-                width={cellSize - 1}
-                height={cellSize - 1}
-                fill={`rgba(11,95,214,${(0.15 + 0.85 * t).toFixed(3)})`}
-              >
-                <title>{`prix bin ${c.priceBinIndex} · km bin ${c.mileageBinIndex} · ${c.count} offres`}</title>
-              </rect>
-            );
-          })}
-        </svg>
+        <>
+          {/* `EX-SCR-17` — bascule de l'axe des PRIX de G7, et de lui seul. Bouton bascule nommé
+              (l'axe est dit dans le libellé), état porté par `aria-pressed` : un lecteur d'écran
+              annonce « activé »/« désactivé », ce qu'une case à cocher sans nom d'axe ne dirait pas. */}
+          <button
+            type="button"
+            class="kycar-log-toggle"
+            aria-pressed={isLog}
+            onClick={onToggleLog}
+            title="L’axe des prix seul change d’échelle ; l’axe des kilométrages reste linéaire"
+          >
+            Échelle log de l’axe des prix
+          </button>
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            class="kycar-heatmap"
+            role="img"
+            aria-label={`Carte de densité prix par kilométrage, axe des prix en échelle ${isLog ? 'logarithmique' : 'linéaire'}`}
+            data-price-scale={isLog ? 'log' : 'linear'}
+          >
+            {density.cells.map((c, i) => {
+              const t = c.count / Math.max(1, density.maxCount);
+              const b = boundsOf(c.priceBinIndex);
+              const yTop = yOf(b.upper);
+              const cellHeight = Math.max(1, yOf(b.lower) - yTop);
+              return (
+                <rect
+                  key={i}
+                  x={(colIndex.get(c.mileageBinIndex) ?? 0) * cellSize}
+                  y={yTop}
+                  width={cellSize - 1}
+                  height={cellHeight}
+                  data-price-lower={b.lower}
+                  data-price-upper={b.upper}
+                  fill={`rgba(11,95,214,${(0.15 + 0.85 * t).toFixed(3)})`}
+                >
+                  <title>{`prix bin ${c.priceBinIndex} · km bin ${c.mileageBinIndex} · ${c.count} offres`}</title>
+                </rect>
+              );
+            })}
+          </svg>
+          {/* Graduations de l'axe des prix, en TEXTE (l'échelle log doit se lire, sinon la bascule
+              ne se voit qu'à la déformation des cellules). */}
+          <ul class="kycar-heatmap-priceaxis" aria-hidden="true">
+            {ticks.map((v) => (
+              <li key={v} data-tick={v}>
+                {formatPrice(v)}
+              </li>
+            ))}
+          </ul>
+        </>
       ) : (
         <p class="kycar-graph-empty">Densité non calculable en dessous de 40 offres — voir la nuée ci-dessus</p>
       )}

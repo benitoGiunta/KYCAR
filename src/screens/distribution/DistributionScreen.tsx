@@ -474,7 +474,7 @@ export function DistributionScreen(props: DistributionScreenProps) {
       <section class="kycar-graph-grid" aria-label="Graphes additionnels">
         {!isUnresolvedModel ? <YearMedianChart points={yearMedian} dataSelection={stats.selectionHash} /> : null}
         {!isUnresolvedModel ? <DepreciationChart model={depreciation} dataSelection={stats.selectionHash} /> : null}
-        <DensityHeatmap density={density} dataSelection={stats.selectionHash} />
+        <DensityHeatmap density={density} log={ui.logHistograms.has(7)} onToggleLog={() => onToggleLog(7)} dataSelection={stats.selectionHash} />
         {!isUnresolvedModel ? (
           <OutlierLollipopChart
             items={lollipops}

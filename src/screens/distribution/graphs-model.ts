@@ -105,12 +105,25 @@ export interface DensityCellPM {
   readonly count: number;
 }
 
+/** `EX-SCR-17` — un bin FERMÉ de la grille `BIN` d'un axe de G7, avec ses bornes en DONNÉE. Sans
+ * ces bornes, l'axe des prix de G7 n'est qu'un rang de bins : ni linéaire ni logarithmique, donc
+ * aucune bascule d'échelle n'y a de sens. */
+export interface DensityAxisBin {
+  readonly index: number;
+  readonly lowerBound: number;
+  readonly upperBound: number;
+}
+
 export interface PriceMileageDensity {
   readonly cells: readonly DensityCellPM[];
   readonly eligibleCount: number;
   /** `null` si non calculable (< 40 offres, EX-SCR-163). */
   readonly available: boolean;
   readonly maxCount: number;
+  /** `EX-SCR-17`/`EX-SCR-18` — bins FERMÉS de l'axe des prix (grille `BIN`, `EX-DATA-75`), dans
+   * l'ordre croissant : bornes de l'axe (premier `lowerBound`, dernier `upperBound`) et hauteur de
+   * chaque cellule. Vide quand la densité n'est pas calculable. */
+  readonly priceBins: readonly DensityAxisBin[];
 }
 
 /**
@@ -130,7 +143,7 @@ export function buildPriceMileageDensity(batch: ListingColumnBatch, rows: Int32A
     mileageValues.push(batch.mileageKm[row] as number);
   }
   if (eligibleRows.length < 40) {
-    return { cells: [], eligibleCount: eligibleRows.length, available: false, maxCount: 0 };
+    return { cells: [], eligibleCount: eligibleRows.length, available: false, maxCount: 0, priceBins: [] };
   }
   const priceBins = bin(priceValues, PRICE_BIN_PARAMS);
   const mileageBins = bin(mileageValues, MILEAGE_BIN_PARAMS);
@@ -150,7 +163,13 @@ export function buildPriceMileageDensity(batch: ListingColumnBatch, rows: Int32A
     cells.push({ priceBinIndex: pi as number, mileageBinIndex: mi as number, count });
   }
   cells.sort((a, b) => a.priceBinIndex - b.priceBinIndex || a.mileageBinIndex - b.mileageBinIndex);
-  return { cells, eligibleCount: eligibleRows.length, available: true, maxCount };
+  // `EX-SCR-17` : bornes RÉELLES de l'axe des prix, reprises telles quelles de la grille `BIN` — les
+  // bins de débordement (`open`) sont écartés, conformément à `EX-SCR-18` (bornes de tracé), et les
+  // cellules qui y tombent sont portées sur la bordure par le rendu, jamais supprimées.
+  const priceAxisBins: DensityAxisBin[] = priceBins.bins
+    .filter((b) => !b.open)
+    .map((b) => ({ index: b.index, lowerBound: b.lowerBound, upperBound: b.upperBound }));
+  return { cells, eligibleCount: eligibleRows.length, available: true, maxCount, priceBins: priceAxisBins };
 }
 
 /* ---- G8 — Écart au prix attendu, 20 premiers outliers (EX-SCR-164) ---------------------------- */
