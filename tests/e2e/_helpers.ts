@@ -196,6 +196,34 @@ export async function readCanvasInk(page: Page, selector: string): Promise<Canva
   }, selector);
 }
 
+/**
+ * Brossage du nuage G4 : glisser-déposer RÉEL à la souris à l'intérieur du canvas (`EX-SCR-158`).
+ * Le canvas est plus bas que le pli sur toutes les tailles d'écran : il faut le faire défiler dans la
+ * vue ET borner le rectangle glissé à la fois au canvas et au viewport, faute de quoi le `mouseup`
+ * tombe hors de l'élément et le geste n'est jamais interprété.
+ */
+export async function brushScatter(page: Page, graphId = 'G4'): Promise<void> {
+  const canvas = page.locator(`[data-graph="${graphId}"] canvas`);
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  expect(box, `canvas ${graphId} absent ou invisible`).not.toBeNull();
+  if (box === null) return;
+  const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
+
+  const x0 = box.x + box.width * 0.15;
+  const y0 = box.y + box.height * 0.2;
+  const x1 = Math.min(box.x + box.width * 0.75, viewport.width - 8);
+  const y1 = Math.min(box.y + box.height * 0.75, viewport.height - 8);
+  // Le geste doit dépasser 4 px sur les DEUX axes, sinon il est lu comme un clic simple.
+  expect(x1 - x0, 'rectangle de brossage trop étroit').toBeGreaterThan(8);
+  expect(y1 - y0, 'rectangle de brossage trop plat').toBeGreaterThan(8);
+
+  await page.mouse.move(x0, y0);
+  await page.mouse.down();
+  await page.mouse.move(x1, y1, { steps: 12 });
+  await page.mouse.up();
+}
+
 /* ================================================================================================
  * Focus, clavier
  * ============================================================================================== */
