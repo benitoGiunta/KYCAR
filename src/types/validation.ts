@@ -32,7 +32,9 @@ export interface ValidationResult {
 /**
  * Noms de propriété INTERDITS partout (R3, E1..E14). Comparaison insensible à la casse. La liste
  * couvre les noms source ET les noms canoniques par lesquels un champ vendeur identifiant pourrait
- * se glisser dans une structure. `postalCodePrefix2` et `regionCode` (autorisés) n'y figurent pas.
+ * se glisser dans une structure — y compris les formes APLATIES (`sellerName`, `dealerName`,
+ * `contactPhone`…, DR-012), qui échappaient à la seule règle d'ancêtre `seller`.
+ * `postalCodePrefix2`, `sellerType` et `regionCode` (autorisés, EX-DATA-42) n'y figurent pas.
  */
 export const R3_FORBIDDEN_FIELD_NAMES: ReadonlySet<string> = new Set(
   [
@@ -86,14 +88,64 @@ export const R3_FORBIDDEN_FIELD_NAMES: ReadonlySet<string> = new Set(
     'description',
     // E14 cid
     'cid',
+
+    // ---- Formes APLATIES canoniques (DR-012) --------------------------------------------------
+    // Le nom canonique le plus probable d'un champ vendeur dans une structure KYCAR est aplati
+    // (`sellerName`), pas imbriqué (`seller.name`) : la règle d'ancêtre `seller` ne le voyait pas.
+    // E1/E2/E3 — identité du vendeur
+    'sellername',
+    'dealername',
+    'vendorname',
+    'sellercompanyname',
+    // E4 — téléphone
+    'sellerphone',
+    'dealerphone',
+    'vendorphone',
+    'contactphone',
+    // E5 — courriel
+    'selleremail',
+    'dealeremail',
+    'vendoremail',
+    'contactemail',
+    // E6/E7 — URL de contact
+    'sellercontacturl',
+    'dealercontacturl',
+    'contacturlseller',
+    // E8/E10 — adresse postale exacte
+    'selleraddress',
+    'dealeraddress',
+    'vendoraddress',
+    'sellerstreet',
+    'dealerstreet',
+    'sellerpostalcode',
+    'sellerzip',
+    'sellercity',
   ].map((s) => s.toLowerCase()),
 );
+
+/** Préfixes qui font d'un nom générique un identifiant vendeur une fois aplati (DR-012). */
+const SELLER_PREFIXES: readonly string[] = ['seller', 'dealer', 'vendor'];
 
 /**
  * Noms interdits UNIQUEMENT sous un ancêtre `seller` (où ils deviennent identifiants) — `id`, `name`
  * bruts. Évite de rejeter `listingId`/`makeName` légitimes ailleurs.
  */
 const FORBIDDEN_UNDER_SELLER: ReadonlySet<string> = new Set(['id', 'name']);
+
+/**
+ * Généralisation de DR-012 : un nom normalisé qui commence par `seller`/`dealer`/`vendor` et se
+ * termine par un membre de `FORBIDDEN_UNDER_SELLER` est la forme APLATIE d'un champ vendeur
+ * identifiant (`sellerName`, `dealerId`…), donc interdit — alors que `sellerType` (type de vendeur,
+ * EX-DATA-42) reste autorisé puisque `type` n'est pas un membre de cette liste.
+ */
+function isFlattenedSellerIdentifier(normalizedKey: string): boolean {
+  for (const prefix of SELLER_PREFIXES) {
+    if (!normalizedKey.startsWith(prefix)) continue;
+    const rest = normalizedKey.slice(prefix.length);
+    if (rest.length > 0 && FORBIDDEN_UNDER_SELLER.has(rest)) return true;
+  }
+  return false;
+}
 
 function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[_\-\s]/g, '');
@@ -115,7 +167,7 @@ export function scanForbiddenFields(record: unknown, pathPrefix = ''): Validatio
       const norm = normalizeKey(key);
       const childPath = path === '' ? key : `${path}.${key}`;
       const underSeller = ancestorKeys.some((k) => normalizeKey(k) === 'seller');
-      if (R3_FORBIDDEN_FIELD_NAMES.has(norm)) {
+      if (R3_FORBIDDEN_FIELD_NAMES.has(norm) || isFlattenedSellerIdentifier(norm)) {
         issues.push({
           path: childPath,
           code: 'R3_FORBIDDEN_FIELD',
