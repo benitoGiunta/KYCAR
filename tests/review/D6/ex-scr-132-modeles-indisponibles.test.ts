@@ -45,7 +45,11 @@ describe("R-D6-07 — EX-SCR-132 (DR-011, CORRIGÉ) : quand le détail par modè
         modelsVisibleBeforeCollapse: 6,
       });
       expect(card.modelsUnavailable).toBe(true);
-      expect(card.modelCount).toBe(0);
+      // D8-02/D8-19 (FV-02) : `modelCount` vient désormais de `agg.modelCount` (D8-10), jamais d'un
+      // comptage sur `modelAggregates` — le fixture ci-dessus ne le renseigne pas (`makeAgg()` pose
+      // `modelCount: null`), donc la valeur attendue passe de `0` (ancien comptage local, toujours
+      // nul quand `modelAggregates === 'unavailable'`) à `null` (non calculé, jamais un 0 par défaut).
+      expect(card.modelCount).toBeNull();
       // Corrigé (DR-011) : plus jamais « 0 modèles » à côté d'une médiane non nulle — la ligne dit
       // l'indisponibilité du détail, jamais un cardinal zéro trompeur.
       expect(card.medianPriceLine).not.toContain('0 modèles');

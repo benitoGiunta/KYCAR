@@ -180,5 +180,6 @@ function blankRow(row: number): ListingRow {
     cellCount: 0,
     outlierMethod: null,
     duplicateValueConflict: false,
+    vatDeductible: null,
   };
 }

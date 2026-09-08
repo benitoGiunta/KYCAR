@@ -11,7 +11,7 @@
  */
 
 import type { ListingColumnBatch } from '../../types/index';
-import { NUMERIC_UNKNOWN, ENUM_UNKNOWN_BYTE, STRINGS_PER_ROW, hasIngestFlag } from '../../types/index';
+import { NUMERIC_UNKNOWN, ENUM_UNKNOWN_BYTE, STRINGS_PER_ROW, hasIngestFlag, readVatDeductible } from '../../types/index';
 import { decodeListingId } from '../../engine/uuid';
 import { isYearValid, yearFromYearMonth } from '../../engine/flags';
 import type { OutlierEntry, OutlierIndex } from '../outlier-index';
@@ -80,6 +80,9 @@ export interface ListingRow {
   /** `EX-DATA-15`/`EX-SCR-203` (DR-150) : deux versions de cette annonce reçues avec des valeurs
    * différentes dans ce snapshot (`ARB-54`/D-04 → fix-providers pose ce drapeau à l'ingestion). */
   readonly duplicateValueConflict: boolean;
+  /** Colonne « TVA » (`prices.public.taxDeductible`, EX-SCR-203, D8-08) : `null` = INCONNU (tri-état,
+   * `readVatDeductible` replie `0` sur `null`, jamais sur `false`). */
+  readonly vatDeductible: boolean | null;
 }
 
 /** Construit une `ListingRow` pour la ligne `row`. */
@@ -121,5 +124,6 @@ export function buildListingRow(
     cellCount: entry?.cellCount ?? 0,
     outlierMethod: entry?.method ?? null,
     duplicateValueConflict: hasIngestFlag(batch.ingestFlags[row] as number, 'DUPLICATE_VALUE_CONFLICT'),
+    vatDeductible: readVatDeductible(batch.vatDeductible[row] as number),
   };
 }

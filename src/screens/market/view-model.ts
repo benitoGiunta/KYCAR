@@ -221,10 +221,11 @@ export interface MakeCardViewModel {
   readonly listingCount: number;
   readonly badgeInitials: string;
   readonly badgeColor: string;
-  /** `EX-DATA-71` : modèles distincts RÉELS présents dans la sélection — exclut la clé réservée
-   * `modelId = 0` (choix documenté : compter « Modèle non identifié » parmi les « n modèles » du
-   * résumé induirait en erreur, cf. rapport de lot). */
-  readonly modelCount: number;
+  /** `D8-02`/`D8-10` (FV-02) : cardinal publié par le PROVIDER (`MakeAggregate.modelCount`), jamais
+   * recompté depuis `modelAggregates` — ce comptage local valait `0` tant que le détail par modèle
+   * n'était pas encore chargé pour cette carte, d'où le « 0 modèles » de FV-02. `null` = non calculé
+   * par le provider : l'écran affiche alors « — », jamais `0` par défaut (`EX-DATA-71`). */
+  readonly modelCount: number | null;
   readonly medianPriceLine: string;
   readonly price: CentralRange;
   readonly priceRawTooltip: string | undefined;
@@ -278,7 +279,13 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
   const hiddenSparseCount = opts.hideSparseModels ? allZones.filter((z) => z.isSparse).length : 0;
   if (opts.hideSparseModels) allZones = allZones.filter((z) => !z.isSparse);
 
-  const modelCount = new Set(rawModelAggregates.filter((a) => a.modelId !== MODEL_ID_UNRESOLVED).map((a) => a.modelId)).size;
+  // `D8-02`/`D8-10` (FV-02) : le cardinal affiché vient de `agg.modelCount` (publié par le provider
+  // pour TOUTE la sélection Σ de la marque), jamais d'un comptage sur `rawModelAggregates` — ce
+  // tableau ne porte que les modèles dont le détail a été chargé pour CETTE carte, ce qui vaut `0`
+  // avant ce chargement et produisait le « 0 modèles » de FV-02. `null` (non calculé) → « — »,
+  // jamais `0` par défaut.
+  const modelCount = agg.modelCount;
+  const modelCountLabel = modelCount === null ? '—' : formatInteger(modelCount);
 
   const visibleCount = opts.isExpanded ? allZones.length : Math.min(allZones.length, opts.modelsVisibleBeforeCollapse);
   // EX-SCR-122 : si la marque compte exactement un modèle de plus que le seuil, les deux sont
@@ -306,7 +313,9 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
       ? (agg.price.p50 !== null
           ? `détail des modèles indisponible · médiane ${formatPrice(agg.price.p50)}`
           : `détail des modèles indisponible`)
-      : (agg.price.p50 !== null ? `${modelCount} modèles · médiane ${formatPrice(agg.price.p50)}` : `${modelCount} modèles · médiane non calculable`),
+      : (agg.price.p50 !== null
+          ? `${modelCountLabel} modèles · médiane ${formatPrice(agg.price.p50)}`
+          : `${modelCountLabel} modèles · médiane non calculable`),
     price: priceCentralRange(agg.price),
     priceRawTooltip: priceRawRangeTooltip(agg.price),
     year: yearCentralRange(agg.year),

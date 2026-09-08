@@ -185,10 +185,10 @@ describe('D7 · écran D — colonnes et texte adverse (EX-SCR-203/204, ADV-17/1
     }
   });
 
-  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
-  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
-  // DETTE D-38 : colonne TVA seule (aucun champ taxDeductible dans l interface gelée) ; Conso. et CO₂ sont rendues.
-  it.fails('R-D7-16 — EX-SCR-203 : les colonnes « Conso. », « CO₂ » et « TVA » ne sont pas rendues', () => {
+  // D8-08/D8-19 : dette D-38 LEVÉE — `ListingColumnBatch.vatDeductible` amendé à l'étape 0 de la
+  // phase 2.8 (fix-foundation), colonne « TVA » rendue et triable par fix-screens. La sonde repasse
+  // de `it.fails` à `it`, SANS modification de son intention ni de ses trois assertions.
+  it('R-D7-16 — EX-SCR-203 : les colonnes « Conso. », « CO₂ » et « TVA » sont rendues', () => {
     const tree = deepRender(ListingsScreen({ batch: f.batch, recalc: f.recalc, rows: f.rows, csvMeta: META } as never));
     const heads = findAll(tree, byType('th')).map((n) => norm(visibleTextOf(n)));
     expect(heads.join(' | ')).toContain('Conso.');

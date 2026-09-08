@@ -52,6 +52,9 @@ import {
   buildCategoryBars,
   buildMileageBoxes,
   buildPowerTiers,
+  selectionCellStat,
+  g8ModelCaption,
+  g8RSquaredWarning,
 } from './graphs-model';
 import {
   effectiveG4Variant,
@@ -154,17 +157,24 @@ export function DistributionScreen(props: DistributionScreenProps) {
     return { elig, sample, points };
   }, [batch, rows, outlierLookup]);
 
-  // Graphes additionnels.
-  const yearMedian = useMemo(() => buildYearMedian(batch, rows), [batch, rows]);
-  const depreciation = useMemo(() => buildDepreciation(yearMedian), [yearMedian]);
+  // Graphes additionnels — `D8-07` (dette D-17 levée) : G5/G6/G9/G10/G12/G13/G14/G15 sont lus DEPUIS
+  // `RecalcResult` (source unique, calculée dans le worker), plus jamais recalculés ici depuis
+  // `batch`/`rows`. Un champ absent (`recalc.groupStats` etc. non encore rempli par fix-engine) rend
+  // l'état « indisponible » (`'unavailable'`) — voir `graphs-model.ts`. G7 (densité) et G8 (liste des
+  // outliers, hors libellé R²) restent hors du protocole worker (aucun champ dédié, O17).
+  const yearMedian = useMemo(() => buildYearMedian(recalc.groupStats), [recalc.groupStats]);
+  const depreciation = useMemo(() => buildDepreciation(recalc.depreciationIndex), [recalc.depreciationIndex]);
   const density = useMemo(() => buildPriceMileageDensity(batch, rows), [batch, rows]);
   const lollipops = useMemo(() => buildOutlierLollipops(batch, rows, outlierIndex, 20), [batch, rows, outlierIndex]);
-  const fuelBars = useMemo(() => buildCategoryBars(batch, rows, 'fuelCategory'), [batch, rows]);
-  const sellerBars = useMemo(() => buildCategoryBars(batch, rows, 'sellerType'), [batch, rows]);
-  const evalBars = useMemo(() => buildCategoryBars(batch, rows, 'priceEvaluationCategory'), [batch, rows]);
-  const countryBars = useMemo(() => buildCategoryBars(batch, rows, 'countryCode'), [batch, rows]);
-  const mileageBoxes = useMemo(() => buildMileageBoxes(batch, rows), [batch, rows]);
-  const powerTiers = useMemo(() => buildPowerTiers(batch, rows), [batch, rows]);
+  const fuelBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'fuelCategory'), [recalc.groupStats]);
+  const sellerBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'sellerType'), [recalc.groupStats]);
+  const evalBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'priceEvaluationCategory'), [recalc.groupStats]);
+  const countryBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'countryCode'), [recalc.groupStats]);
+  const mileageBoxes = useMemo(() => buildMileageBoxes(recalc.ntiles, recalc.groupStats), [recalc.ntiles, recalc.groupStats]);
+  const powerTiers = useMemo(() => buildPowerTiers(recalc.powerTiers), [recalc.powerTiers]);
+  const selectionCell = useMemo(() => selectionCellStat(recalc.cellStats), [recalc.cellStats]);
+  const g8Caption = useMemo(() => g8ModelCaption(selectionCell), [selectionCell]);
+  const g8Warning = useMemo(() => g8RSquaredWarning(selectionCell), [selectionCell]);
 
   const variant: G4Variant = effectiveG4Variant(ui, selectionCount);
   const labels = props.labels ?? {};
@@ -375,9 +385,15 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <YearMedianChart points={yearMedian} />
         <DepreciationChart model={depreciation} />
         <DensityHeatmap density={density} />
-        <OutlierLollipopChart items={lollipops} perimeter={{ makeModel: props.makeModelName }} onOpen={props.onOpenListing} />
+        <OutlierLollipopChart
+          items={lollipops}
+          perimeter={{ makeModel: props.makeModelName }}
+          onOpen={props.onOpenListing}
+          modelCaption={g8Caption}
+          rSquaredWarning={g8Warning}
+        />
         <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} />
-        <MileageBoxes tiles={mileageBoxes.tiles} />
+        <MileageBoxes boxes={mileageBoxes} />
         <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." />
         <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} />
         <PowerTiers tiers={powerTiers} />

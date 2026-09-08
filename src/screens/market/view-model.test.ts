@@ -150,10 +150,15 @@ describe('badgeInitials / badgeColorForMake — EX-SCR-108', () => {
   });
 });
 
-describe('buildMakeCardViewModel — résumé et modelCount (EX-DATA-71)', () => {
-  it("exclut la clé réservée modelId = 0 du compte « n modèles »", () => {
+describe('buildMakeCardViewModel — résumé et modelCount (EX-DATA-71, D8-02/D8-10)', () => {
+  // D8-02/D8-19 (FV-02) : `modelCount` vient désormais de `agg.modelCount` (publié par le provider,
+  // D8-10), jamais d'un comptage sur `modelAggregates` — ce comptage valait `0` tant que le détail
+  // par modèle de CETTE carte n'était pas chargé (c'est exactement le « 0 modèles » de FV-02). La
+  // sonde exerce donc désormais `agg.modelCount` explicitement au lieu de le faire dériver du
+  // tableau `modelAggregates` passé à côté (qui garde son propre rôle : construire les zones).
+  it("porte le cardinal publié par le provider, indépendant du tableau modelAggregates de la carte", () => {
     const models = new Map([[11, GOLF], [12, POLO]]);
-    const agg = makeAgg({ makeId: 1, listingCount: 200, price: range({ p50: 18900, n: 200 }) });
+    const agg = makeAgg({ makeId: 1, listingCount: 200, price: range({ p50: 18900, n: 200 }), modelCount: 2 });
     const vm = buildMakeCardViewModel(agg, {
       make: VW,
       modelAggregates: [
@@ -169,6 +174,25 @@ describe('buildMakeCardViewModel — résumé et modelCount (EX-DATA-71)', () =>
     });
     expect(vm.modelCount).toBe(2);
     expect(vm.medianPriceLine).toContain('2 modèles');
+  });
+
+  it("D8-02/FV-02 : `modelCount` reste « — » (jamais 0) quand le provider ne l'a pas calculé, même si des zones-modèles sont déjà rendues", () => {
+    const models = new Map([[11, GOLF], [12, POLO]]);
+    const agg = makeAgg({ makeId: 1, listingCount: 200, price: range({ p50: 18900, n: 200 }), modelCount: null });
+    const vm = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [modelAgg({ modelId: 11, listingCount: 100 }), modelAgg({ modelId: 12, listingCount: 90 })],
+      models,
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(vm.modelCount).toBeNull();
+    expect(vm.medianPriceLine).toContain('— modèles');
+    expect(vm.medianPriceLine).not.toContain('0 modèles');
+    // Les zones sont bien construites (le repli/l'affichage des zones ne dépend pas de `modelCount`).
+    expect(vm.modelZones).toHaveLength(2);
   });
 
   it('place modelId = 0 en dernier, quel que soit son effectif', () => {

@@ -179,9 +179,9 @@ export function ListingsScreen(props: ListingsScreenProps) {
               <SortableTh label="Éval. AS24" col="evaluation" sort={sort} onSort={onSort} />
               <SortableTh label="Vendeur" col="seller" sort={sort} onSort={onSort} />
               <SortableTh label="Pays" col="country" sort={sort} onSort={onSort} />
-              {/* `TVA` (EX-SCR-203, `prices.public.taxDeductible`) : NON FAIT — aucune colonne
-                  `ListingColumnBatch` ne porte cette donnée (interface gelée 2.3, `src/providers/
-                  DataProvider.ts`, hors périmètre fix-screens) ; voir le rapport de lot. */}
+              {/* `TVA` (EX-SCR-203, `prices.public.taxDeductible`, D8-08) : colonne tri-état triable,
+                  `ListingColumnBatch.vatDeductible` amendée à l'étape 0 de la phase 2.8. */}
+              <SortableTh label="TVA" col="vat" sort={sort} onSort={onSort} />
               <th scope="col">Lien</th>
             </tr>
           </thead>
@@ -222,6 +222,7 @@ export function ListingsScreen(props: ListingsScreenProps) {
                   <td>{label(props.labels?.evaluation, r.priceEvaluationCategory)}</td>
                   <td>{label(props.labels?.sellerType, r.sellerType)}</td>
                   <td>{label(props.labels?.country, r.countryCode)}</td>
+                  <td>{r.vatDeductible === true ? 'TVA déd.' : ''}</td>
                   <td>
                     {r.url ? (
                       <button type="button" class="kycar-open" onClick={() => props.onOpenListing?.(r.row)} aria-label="Ouvrir l'annonce d'origine">

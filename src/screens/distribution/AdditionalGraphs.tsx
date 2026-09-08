@@ -20,14 +20,28 @@ import type {
   OutlierLollipop,
   CategoryBar,
   PowerTierBar,
+  MileageBoxTile,
+  Unavailable,
 } from './graphs-model';
-import type { NtileBin } from './group-stat';
 
 /** Résolveur de libellé d'une valeur énumérée. */
 export type LabelResolver = (code: number) => string;
 
+/** `D8-07` — un graphe dont la source (`RecalcResult`) n'est pas encore remplie par le worker
+ * affiche cet état, jamais un recalcul de repli ni un graphe vide silencieux. */
+function UnavailableGraph({ graphId, title, reason }: { graphId: string; title: string; reason: string }) {
+  return (
+    <GraphFrame graphId={graphId} title={title} ariaLabel={`${title}, données indisponibles`} dataTable={<p>{reason}</p>}>
+      <p class="kycar-graph-empty">{reason}</p>
+    </GraphFrame>
+  );
+}
+
+const STATS_UNAVAILABLE_REASON = 'Données indisponibles — statistiques non encore calculées pour cette sélection';
+
 /* ---- G5 — Prix médian par année --------------------------------------------------------------- */
-export function YearMedianChart({ points }: { points: readonly YearMedianPoint[] }) {
+export function YearMedianChart({ points }: { points: readonly YearMedianPoint[] | Unavailable }) {
+  if (points === 'unavailable') return <UnavailableGraph graphId="G5" title="Prix médian par année" reason={STATS_UNAVAILABLE_REASON} />;
   const W = 520;
   const H = 220;
   const padL = 48;
@@ -62,7 +76,8 @@ export function YearMedianChart({ points }: { points: readonly YearMedianPoint[]
 }
 
 /* ---- G6 — Dépréciation base 100 --------------------------------------------------------------- */
-export function DepreciationChart({ model }: { model: DepreciationModel }) {
+export function DepreciationChart({ model }: { model: DepreciationModel | Unavailable }) {
+  if (model === 'unavailable') return <UnavailableGraph graphId="G6" title="Dépréciation (base 100)" reason={STATS_UNAVAILABLE_REASON} />;
   return (
     <GraphFrame
       graphId="G6"
@@ -174,10 +189,18 @@ export function OutlierLollipopChart({
   items,
   perimeter,
   onOpen,
+  /** `D8-07`/`EX-DATA-93bis` — libellé normatif du modèle M2 (`graphs-model.ts::g8ModelCaption`),
+   * `undefined` tant que `RecalcResult.cellStats` n'a pas encore été calculé (jamais une formule
+   * inventée, A-09). */
+  modelCaption,
+  /** `EX-SCR-164` — avertissement ambre quand `R² < 0,30` (`graphs-model.ts::g8RSquaredWarning`). */
+  rSquaredWarning,
 }: {
   items: readonly OutlierLollipop[];
   perimeter?: { makeModel?: string; year?: number };
   onOpen?: (row: number) => void;
+  modelCaption?: string;
+  rSquaredWarning?: boolean;
 }) {
   const maxAbs = Math.max(1, ...items.map((i) => Math.abs(i.deviationPct)));
   return (
@@ -210,6 +233,14 @@ export function OutlierLollipopChart({
         </table>
       }
     >
+      {/* `EX-SCR-164` (D8-07) — libellé normatif du modèle M2, MOT POUR MOT ; aucune formule inventée
+          (`A-09`) quand `modelCaption` est absent (cellule `SELECTION` pas encore publiée). */}
+      {modelCaption !== undefined ? <p class="kycar-graph-caption">{modelCaption}</p> : null}
+      {rSquaredWarning === true ? (
+        <p class="kycar-graph-warning" role="status">
+          Le modèle explique moins de 30&nbsp;% de la variance — les écarts sont peu fiables
+        </p>
+      ) : null}
       <ul class="kycar-lollipops">
         {items.map((it) => {
           const frac = (it.deviationPct / maxAbs) * 50; // % de largeur, centré sur 0
@@ -250,10 +281,11 @@ export function CategoricalBars({
 }: {
   graphId: string;
   title: string;
-  bars: readonly CategoryBar[];
+  bars: readonly CategoryBar[] | Unavailable;
   label: LabelResolver;
   note?: string;
 }) {
+  if (bars === 'unavailable') return <UnavailableGraph graphId={graphId} title={title} reason={STATS_UNAVAILABLE_REASON} />;
   const maxCount = Math.max(1, ...bars.map((b) => b.count));
   return (
     <GraphFrame
@@ -303,7 +335,11 @@ export function CategoricalBars({
 }
 
 /* ---- G10 — Prix par tranche de kilométrage ---------------------------------------------------- */
-export function MileageBoxes({ tiles }: { tiles: readonly NtileBin[] }) {
+const fmtKm = (v: number | null): string => (v != null ? formatKm(v) : '—');
+
+export function MileageBoxes({ boxes }: { boxes: { readonly tiles: readonly MileageBoxTile[]; readonly tileCount: number } | Unavailable }) {
+  if (boxes === 'unavailable') return <UnavailableGraph graphId="G10" title="Prix par tranche de kilométrage" reason={STATS_UNAVAILABLE_REASON} />;
+  const { tiles } = boxes;
   return (
     <GraphFrame
       graphId="G10"
@@ -316,19 +352,19 @@ export function MileageBoxes({ tiles }: { tiles: readonly NtileBin[] }) {
             <tr>
               <th scope="col">Tranche km</th>
               <th scope="col">n</th>
-              <th scope="col">P25</th>
+              <th scope="col">P5</th>
               <th scope="col">Médiane</th>
-              <th scope="col">P75</th>
+              <th scope="col">P95</th>
             </tr>
           </thead>
           <tbody>
             {tiles.map((t) => (
               <tr key={t.rank}>
-                <td>{`${formatKm(t.loObserved)} – ${formatKm(t.hiObserved)} (${t.rank}/${tiles.length})`}</td>
-                <td>{t.stat.n}</td>
-                <td>{t.stat.p25 != null ? formatPrice(t.stat.p25) : '—'}</td>
-                <td>{t.stat.median != null ? formatPrice(t.stat.median) : '—'}</td>
-                <td>{t.stat.p75 != null ? formatPrice(t.stat.p75) : '—'}</td>
+                <td>{`${fmtKm(t.loObserved)} – ${fmtKm(t.hiObserved)} (${t.rank}/${tiles.length})`}</td>
+                <td>{t.n}</td>
+                <td>{t.p05 != null ? formatPrice(t.p05) : '—'}</td>
+                <td>{t.median != null ? formatPrice(t.median) : '—'}</td>
+                <td>{t.p95 != null ? formatPrice(t.p95) : '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -338,9 +374,9 @@ export function MileageBoxes({ tiles }: { tiles: readonly NtileBin[] }) {
       <ul class="kycar-boxes">
         {tiles.map((t) => (
           <li key={t.rank}>
-            <span class="kycar-box-label">{`${formatKm(t.loObserved)}–${formatKm(t.hiObserved)}`}</span>
+            <span class="kycar-box-label">{`${fmtKm(t.loObserved)}–${fmtKm(t.hiObserved)}`}</span>
             <span class="kycar-box-stat">
-              n={t.stat.n} · méd. {t.stat.median != null ? formatPrice(t.stat.median) : '—'}
+              n={t.n} · méd. {t.median != null ? formatPrice(t.median) : '—'}
             </span>
           </li>
         ))}
@@ -350,7 +386,8 @@ export function MileageBoxes({ tiles }: { tiles: readonly NtileBin[] }) {
 }
 
 /* ---- G14 — Prix médian par palier de puissance ------------------------------------------------ */
-export function PowerTiers({ tiers }: { tiers: readonly PowerTierBar[] }) {
+export function PowerTiers({ tiers }: { tiers: readonly PowerTierBar[] | Unavailable }) {
+  if (tiers === 'unavailable') return <UnavailableGraph graphId="G14" title="Prix médian par puissance" reason={STATS_UNAVAILABLE_REASON} />;
   const maxMedian = Math.max(1, ...tiers.map((t) => t.stat.median ?? 0));
   const W = 520;
   const H = 200;
