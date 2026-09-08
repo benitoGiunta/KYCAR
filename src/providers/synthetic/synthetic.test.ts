@@ -58,7 +58,10 @@ function serializeBatch(batch: ListingColumnBatch): Uint8Array {
 async function gzipSize(data: Uint8Array): Promise<number> {
   const cs = new CompressionStream('gzip');
   const writer = cs.writable.getWriter();
-  void writer.write(data);
+  // Copie sur un ArrayBuffer (non partagé) pour satisfaire BufferSource sous TS strict.
+  const input = new Uint8Array(data.byteLength);
+  input.set(data);
+  void writer.write(input);
   void writer.close();
   const chunks: Uint8Array[] = [];
   const reader = cs.readable.getReader();
@@ -68,6 +71,13 @@ async function gzipSize(data: Uint8Array): Promise<number> {
     if (value) chunks.push(value);
   }
   return chunks.reduce((a, c) => a + c.byteLength, 0);
+}
+
+/** Comparaison d'octets sans dépendre du `Buffer` de Node (@types/node absent). */
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 /** Fences de Tukey (k=1,5) sur un tableau de valeurs. */
@@ -116,7 +126,7 @@ describe('SyntheticDataProvider — déterminisme (graine fixée)', () => {
     const ba = serializeBatch(a.getDataset().batch);
     const bb = serializeBatch(b.getDataset().batch);
     expect(ba.length).toBe(bb.length);
-    expect(Buffer.from(ba).equals(Buffer.from(bb))).toBe(true);
+    expect(bytesEqual(ba, bb)).toBe(true);
     // Vérité terrain identique elle aussi.
     expect(JSON.stringify(a.getGroundTruthOutliers())).toBe(JSON.stringify(b.getGroundTruthOutliers()));
   });
@@ -128,7 +138,7 @@ describe('SyntheticDataProvider — déterminisme (graine fixée)', () => {
     await b.openSnapshot();
     const ba = serializeBatch(a.getDataset().batch);
     const bb = serializeBatch(b.getDataset().batch);
-    expect(Buffer.from(ba).equals(Buffer.from(bb))).toBe(false);
+    expect(bytesEqual(ba, bb)).toBe(false);
   });
 });
 
