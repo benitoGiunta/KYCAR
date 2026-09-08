@@ -118,7 +118,7 @@ rattachement au code le plus proche.
 | `KYCAR_REGION` | 11 (BE) | **CRÉÉ** — NUTS-2 2021 | table § A.8 |
 | `KYCAR_PRICE_STATUS` | 3 | **CRÉÉ** | § A.5.3 |
 | `KYCAR_MEASUREMENT_STANDARD` | 3 | **CRÉÉ** (`WLTP`, `NEDC`, `UNKNOWN`) | § A.5.5 |
-| `KYCAR_INGEST_FLAG` | 14 | **CRÉÉ** | § A.6 |
+| `KYCAR_INGEST_FLAG` | 17 | **CRÉÉ** | § A.6 [amendée 2.6 — D-01] |
 | `KYCAR_OUTLIER_FLAG` | 6 | **CRÉÉ** | § B.6 |
 | `KYCAR_PUBLICATION_STATE` | `[À CONFIRMER]` | `publication.accurateState` relevé, domaine non énuméré | — |
 
@@ -1569,7 +1569,7 @@ atteindre 200.
 | I4 | `∀m : Σ_{bins émis} count = n_m(Σ)` |
 | I5 | `priceQuotedCount + priceOnRequestCount + priceMissingCount = N` |
 | I6 | `outlierEvaluatedCount + outlierNotEvaluatedCount = priceQuotedCount` |
-| I7 | `Σ_{cellules de G} count = n_e`, et pour toute colonne d'année la somme des effectifs de cellules vaut l'effectif du bin d'année correspondant |
+| I7 | `Σ_{cellules de G} count = n_e`, et pour toute colonne d'année la somme des effectifs de cellules vaut l'effectif du bin d'année correspondant — **la marginale porte sur l'ensemble éligible `Elig` (`n_e`), pas sur `V_year(Σ)`** : la grille de densité `G` est binée sur `Elig`, et c'est cette marginale-là, non celle de l'histogramme `G3`, que l'invariant vérifie [amendée 2.6 — D-25] |
 | I8 | `BIN(permutation(V), …) = BIN(V, …)` octet à octet ; `min(V)` appartient au premier bin émis et `max(V)` au dernier |
 
 ---
@@ -1578,8 +1578,8 @@ atteindre 200.
 
 ## C.0 Inventaire des entités
 
-**EX-DATA-105.** Le modèle compte **treize entités**, dont quatre seulement sont persistées par
-snapshot.
+**EX-DATA-105.** Le modèle compte **quatorze entités**, dont quatre seulement sont persistées par
+snapshot. [amendée 2.6 — O16]
 
 | Entité | Rôle | Portée |
 |---|---|---|
@@ -1664,6 +1664,15 @@ globalement vide (aucun filtre `T` ni `R`) a donc pour hachage la chaîne réser
 **Justification** : la même règle de canonisation sert de clé de cache, de clé d'entité calculée et
 de base de l'URL partageable, donc deux états de filtres sémantiquement identiques ne peuvent pas
 produire deux caches ni deux liens différents.
+**Précision (D-23, T-m)** : « la même règle » désigne l'**algorithme** de canonisation (tri,
+jointure, omission des valeurs par défaut), pas un espace d'identifiants unique. Cette règle
+s'applique à **deux espaces d'identifiants distincts** : côté D2 (`selectionHash`, ce document),
+les filtres sont triés sur leur **identifiant KYCAR** ; côté D5 (URL applicative), ils sont triés
+sur le **paramètre AutoScout24** relevé. Les deux chaînes produites pour un même état de filtres
+diffèrent donc par construction dès que le nom KYCAR et le nom AutoScout24 diffèrent (`location`
+vs `zip`, `countryType` vs `cy`, …) — ce n'est pas une incohérence : chaque implémentation renvoie
+à l'autre par la table de correspondance identifiant KYCAR ↔ paramètre AutoScout24, et aucune des
+deux ne prétend produire la chaîne de l'autre. [amendée 2.6 — D-23]
 
 ## C.1 Stratégie de calcul — précalcul ou calcul à la volée
 
@@ -1837,6 +1846,10 @@ d'objets.
 **Justification** : un balayage de sélection lit 3 à 12 champs sur 82 ; en disposition
 ligne-par-ligne il traverserait l'intégralité des 82 champs de chaque annonce, soit un facteur 7 à
 27 de lecture mémoire inutile, ce qui rendrait le budget de 60 ms d'EX-DATA-110 inatteignable.
+**Amendement 2.6** : `makeId` passe d'`Int16Array` à `Int32Array` (`D-02`) et `ingestFlags`
+d'`Uint16Array` à `Uint32Array` (`D-01`), portant le total des colonnes numériques et énumérées de
+≈ 71 à **≈ 75**, soit +4 octets par ligne sur ≈ 251 (+1,6 %), sans effet sur le budget d'`EX-NFR-3`
+(≤ 6 Mo gzip). [amendée 2.6 — D-01, D-02]
 
 | Colonne | Type physique | Octets/ligne |
 |---|---|---:|
@@ -1845,12 +1858,13 @@ ligne-par-ligne il traverserait l'intégralité des 82 champs de chaque annonce,
 | `mileageKm` | `Int32Array`, sentinelle `−1` | 4 |
 | `firstRegistrationYearMonth` | `Int32Array` encodé `12·année + (mois−1)`, sentinelle `−1` | 4 |
 | `modelId` | `Int32Array`, `0` pour non résolu | 4 |
-| `makeId` | `Int16Array` | 2 |
+| `makeId` | `Int32Array` (élargi 2.6, `D-02`/DR-007 : 158 des 295 marques ont un identifiant AutoScout24 > 32 767) | 4 |
 | `powerKw`, `co2EmissionsGPerKm ×10`, `consumptionCombinedL100Km ×10`, `electricRangeKm` | 4 × `Int16Array`, sentinelle `−1` | 8 |
 | `modelYear` | `Int16Array`, sentinelle `−1` | 2 |
 | `fuelCategory`, `bodyType`, `transmission`, `drivetrain`, `offerType`, `usageState`, `sellerType`, `regionCode`, `countryCode`, `priceStatus`, `priceEvaluationCategory`, `adTier`, `bodyColor`, `upholsteryType`, `euEmissionStandard`, `doorCount`, `seatCount`, `previousOwnerCount`, `imageCount` | 19 × `Uint8Array`, sentinelle `255` | 19 |
-| drapeaux booléens et `ingestFlags` | 2 × `Uint16Array` de bits | 4 |
-| **Total colonnes numériques et énumérées** | | **≈ 71** |
+| drapeaux booléens (`booleanFlags`) | `Uint16Array` de bits | 2 |
+| `ingestFlags` | `Uint32Array` de bits (élargi 2.6, `D-01`/DR-013 : 17 codes, encodage positionnel, table explicite `INGEST_FLAG_BIT`, 15 bits de réserve — voir § A.1, § A.6) | 4 |
+| **Total colonnes numériques et énumérées** | | **≈ 75** |
 | `listingUrl`, `modelVersionRaw`, `modelVersionClean`, `fuelSourceLabelRaw`, `trimTokens` | zone de chaînes contiguë + `Uint32Array` d'offsets | ≈ 180 en moyenne |
 
 **EX-DATA-120.** Les colonnes numériques utilisent une **sentinelle typée** pour l'inconnu
@@ -1905,7 +1919,7 @@ arrondis sont ceux de l'écran (`EX-DATA-6`, `ARB-21`).
 | Champs au dictionnaire principal | **82** |
 | Champs exclus par conception | **21**, dont **14 au titre de R3** |
 | Vocabulaires nommés | **27** |
-| Entités | **13** |
+| Entités | **14** [amendée 2.6 — O16] |
 | Exigences `EX-DATA-*` | **139** (127 d'origine + 12 créées par l'arbitrage du stress-test) |
 | Méthodes de détection d'outlier | **2 détecteurs (M1, M2) + 1 contrôle externe (M3)** |
 | Invariants exécutables du moteur d'agrégation | **8** |
