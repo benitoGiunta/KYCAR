@@ -8,7 +8,8 @@ import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED, FLAG_PR
 import { modelIndexKey } from '../../../src/engine/index-build';
 import { loadReferenceData, openSyntheticProvider } from '../../../src/engine/testkit';
 import { batchByteLength, type InjectedOutlier } from '../../../src/providers/synthetic/index';
-import { medianMs, percentileMs } from './helpers';
+import { decodeListingId } from '../../../src/engine/uuid';
+import { medianMs, percentileMs, retainedBytes } from './helpers';
 
 /**
  * Revue D4 — sondes à N = 100 000 (dataset D3, graine 7), UN SEUL dataset construit et mis en cache au
@@ -49,57 +50,65 @@ let truth: readonly InjectedOutlier[];
 let memBefore: Mem;
 let memAfterProvider: Mem;
 let memAfterIndexes: Mem;
+let retainedBefore: number;
+let retainedAfterProvider: number;
+let retainedAfterIndexes: number;
+let indexBuildMs: number;
 let full: OutlierResult;
 
 beforeAll(async () => {
   ref = loadReferenceData();
-  const gc = (globalThis as unknown as { gc?: () => void }).gc;
-  gc?.();
+  retainedBefore = retainedBytes();
   memBefore = snapshotMem();
   const provider = await openSyntheticProvider(ref, N, 7);
   batch = provider.getDataset().batch;
   truth = provider.getGroundTruthOutliers();
-  gc?.();
+  retainedAfterProvider = retainedBytes();
   memAfterProvider = snapshotMem();
+  const t0 = performance.now();
   dataset = new AggregationDataset(batch, ref.models);
-  gc?.();
+  indexBuildMs = performance.now() - t0;
+  retainedAfterIndexes = retainedBytes();
   memAfterIndexes = snapshotMem();
   const rows = Int32Array.from({ length: N }, (_v, i) => i);
   full = detectOutliers(batch, rows, batch.snapshotId, 'FULL:EMPTY');
 }, 300_000);
 
-describe('EX-DATA-112 / ARB-55 — mémoire mesurée à N = 100 000 et extrapolée à 10⁶', () => {
-  it('rss/heap/arrayBuffers avant→après dataset et index ; extrapolation ×10 sous 512 Mo', () => {
+describe('EX-DATA-112 / EX-DATA-115 / ARB-55 — mémoire mesurée à N = 100 000 (GC forcé) et extrapolée à 10⁶', () => {
+  it('magasin colonnaire : batchByteLength × 10 dans l’enveloppe corrigée d’ARB-55 (colonnes + chaînes ≈ 232 Mo à 10⁶)', () => {
     const bytesColumns = batchByteLength(batch);
     const dProv = deltaMb(memBefore, memAfterProvider);
-    const dIdx = deltaMb(memAfterProvider, memAfterIndexes);
-    const totalRss = (memAfterIndexes.rss - memBefore.rss) / MB;
-    const totalAb = (memAfterIndexes.arrayBuffers - memBefore.arrayBuffers) / MB;
-    const totalHeap = (memAfterIndexes.heapUsed - memBefore.heapUsed) / MB;
     console.log(
-      `[mémoire 100k] batch colonnaire (batchByteLength) = ${(bytesColumns / MB).toFixed(1)} Mo (${(bytesColumns / N).toFixed(0)} o/ligne) ; ` +
-        `Δ provider : rss ${dProv.rss} heap ${dProv.heapUsed} arrayBuffers ${dProv.arrayBuffers} Mo ; ` +
-        `Δ index : rss ${dIdx.rss} heap ${dIdx.heapUsed} arrayBuffers ${dIdx.arrayBuffers} Mo ; ` +
-        `total Δ : rss ${totalRss.toFixed(1)} / heap ${totalHeap.toFixed(1)} / arrayBuffers ${totalAb.toFixed(1)} Mo`,
+      `[mémoire 100k — dataset] batchByteLength = ${(bytesColumns / MB).toFixed(1)} Mo (${(bytesColumns / N).toFixed(0)} o/ligne, EX-DATA-119/121 annonce ≈ 251) ; ` +
+        `retenu (heap+arrayBuffers après GC) Δ provider = ${((retainedAfterProvider - retainedBefore) / MB).toFixed(1)} Mo ; rss Δ = ${dProv.rss} Mo (inclut la génération D3)`,
     );
-    // Estimation analytique des index (EX-DATA-115) : 3 × Int32Array(N) + bitsets + Map PK_LISTING.
+    expect((bytesColumns * 10) / MB).toBeLessThan(232);
+  });
+
+  it('R-D4-13 — la construction des index (EX-DATA-115) retient ≈ 74 Mo de tas V8 à 100k (≈ 740 Mo à 10⁶, budget EX-DATA-115 ≈ 41 Mo) : PK_LISTING est une Map de 100 000 cordes UUID non aplaties (≈ 770 o/clé)', () => {
     const idx = dataset.indexes;
     let bitsetBytes = 0;
     for (const [, perValue] of idx.bitsets) for (const [, arr] of perValue) bitsetBytes += arr.byteLength;
     const typedIndexBytes = idx.idxMakeRows.byteLength + idx.idxModelRows.byteLength + idx.idxPriceSorted.byteLength + bitsetBytes;
-    const gcExposed = typeof (globalThis as unknown as { gc?: () => void }).gc === 'function';
+    const indexRetainedMb = (retainedAfterIndexes - retainedAfterProvider) / MB;
+    const totalRetainedMb = (retainedAfterIndexes - retainedBefore) / MB;
+    const dIdx = deltaMb(memAfterProvider, memAfterIndexes);
+    // Coût isolé des clés : décoder les 100 000 listingId comme le fait buildIndexes (chaîne par `+=`).
+    const before = retainedBytes();
+    const keys: string[] = [];
+    for (let i = 0; i < N; i++) keys.push(decodeListingId(batch.listingId, i));
+    const keysMb = (retainedBytes() - before) / MB;
     console.log(
-      `[mémoire ×10 → 10⁶] rss ≈ ${(totalRss * 10).toFixed(0)} Mo (bruité : pages libérées non rendues) ; heap+arrayBuffers ≈ ${((totalHeap + totalAb) * 10).toFixed(0)} Mo` +
-        `${gcExposed ? ' (gc forcé avant chaque relevé)' : ' (gc NON exposé : contient des temporaires de génération)'} ; ` +
-        `colonnes seules (batchByteLength) ≈ ${((bytesColumns * 10) / MB).toFixed(0)} Mo ; index typés (3 Int32Array + bitsets) ≈ ${((typedIndexBytes * 10) / MB).toFixed(0)} Mo ; ` +
-        `PK_LISTING = Map de ${idx.pkListing.size} chaînes UUID (non typé) ; référence EX-DATA-112 corrigée (ARB-55) = 274 Mo pire cas / ≈ 258 Mo typique ; ancien total contesté ≈ 87 Mo`,
+      `[mémoire 100k — index] construction ${indexBuildMs.toFixed(0)} ms ; retenu Δ index = ${indexRetainedMb.toFixed(1)} Mo (heap ${dIdx.heapUsed}, arrayBuffers ${dIdx.arrayBuffers}) ; ` +
+        `index typés (3 Int32Array + bitsets) = ${(typedIndexBytes / MB).toFixed(2)} Mo ; 100 000 clés UUID décodées par decodeListingId = ${keysMb.toFixed(1)} Mo (${((keysMb * MB) / N).toFixed(0)} o/clé, ${keys.length} clés) ; ` +
+        `PK_LISTING.size = ${idx.pkListing.size}`,
     );
-    expect(bytesColumns).toBeGreaterThan(0);
-    // Le magasin colonnaire seul reste dans l'enveloppe corrigée d'ARB-55 (colonnes + chaînes ≈ 232 Mo à 10⁶).
-    expect((bytesColumns * 10) / MB).toBeLessThan(232);
-    // Mesure processus fiable seulement gc forcé (lancer avec NODE_OPTIONS=--expose-gc) : alors l'enveloppe
-    // extrapolée (heap + arrayBuffers, dataset + index) doit tenir sous le budget d'onglet de 512 Mo.
-    if (gcExposed) expect((totalHeap + totalAb) * 10).toBeLessThan(512);
+    console.log(
+      `[mémoire ×10 → 10⁶] dataset + index retenus ≈ ${(totalRetainedMb * 10).toFixed(0)} Mo (dont index ≈ ${(indexRetainedMb * 10).toFixed(0)} Mo) ; ` +
+        `référence EX-DATA-112 corrigée (ARB-55) = 274 Mo pire cas dont index EX-DATA-115 ≈ 41 Mo (PK 24 + IDX 12 + bitsets 5,4) ; ancien total contesté ≈ 87 Mo ; budget d'onglet 512 Mo`,
+    );
+    // Tolérance ×3 sur la part d'index d'EX-DATA-115 ramenée à 100k (41 Mo / 10 = 4,1 Mo).
+    expect(indexRetainedMb).toBeLessThanOrEqual(12.5);
   });
 });
 
