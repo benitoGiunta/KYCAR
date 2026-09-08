@@ -40,7 +40,24 @@ export class OutlierIndex {
     }
   }
 
+  /**
+   * Vrai si l'annonce est SIGNALÉE, c'est-à-dire si son verdict porte au moins un drapeau
+   * `KYCAR_OUTLIER_FLAG`. C'est la seule question que posent les appelants : appartenance à `A`
+   * (écrêtage du nuage, EX-DATA-101), sucettes G8, colonne « signalée » de l'écran D.
+   *
+   * D-48 : depuis DR-030 le moteur publie un `OutlierVerdict` pour TOUTE annonce ÉVALUÉE, `flags`
+   * vide quand aucune barrière n'est franchie. La présence d'une entrée ne veut donc plus dire
+   * « signalée » — elle répondait « oui » pour toute annonce évaluée, `|A|` dépassait `K` et la
+   * troisième branche du pseudo-code d'EX-DATA-101 n'était plus jamais exercée. La question
+   * « évaluée ? » a désormais son propre nom (`isEvaluated`).
+   */
   has(listingId: string): boolean {
+    const entry = this.byId.get(listingId);
+    return entry !== undefined && entry.flags.length > 0;
+  }
+
+  /** Vrai si l'annonce a été ÉVALUÉE par M1/M2, signalée ou non (I6, EX-DATA-104). */
+  isEvaluated(listingId: string): boolean {
     return this.byId.has(listingId);
   }
 
@@ -48,8 +65,16 @@ export class OutlierIndex {
     return this.byId.get(listingId);
   }
 
+  /** Nombre d'annonces ÉVALUÉES indexées (signalées ou non). */
   get size(): number {
     return this.byId.size;
+  }
+
+  /** Nombre d'annonces SIGNALÉES (`|A|` d'EX-DATA-101). */
+  get flaggedCount(): number {
+    let n = 0;
+    for (const entry of this.byId.values()) if (entry.flags.length > 0) n += 1;
+    return n;
   }
 
   /** Score d'opportunité agrégé, ou `null`. */

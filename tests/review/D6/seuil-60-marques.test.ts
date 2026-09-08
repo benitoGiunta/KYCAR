@@ -39,14 +39,26 @@ describe('MarketScreen.tsx applique le seuil au décompte « makeCount > 0 », p
   });
 
   it(
-    'FAIT DE CORPUS (non tranché ici) — EX-SRCH-26 (annexe C, draft-behaviour.md) prescrit un texte ' +
-      'DIFFÉRENT pour le même seuil : « <n> marques correspondent — affinez pour une vue plus lisible ». ' +
-      "Le code suit EX-SCR-32 (annexe B), autorité de disposition par R-A09 — documenté, pas un défaut D6.",
+    'FAIT DE CORPUS RÉSORBÉ (T-t, D-48) — EX-SRCH-26 (annexe C) et EX-SCR-32 (annexe B) prescrivent ' +
+      'désormais LE MÊME texte pour le même seuil : « <n> marques correspondent — affinez pour comparer ». ' +
+      'La sonde atteste l’égalité des deux textes et l’absence de l’ancienne variante.',
     () => {
+      // Sonde RETOURNÉE (D-31, justification T-t / D-48). Elle documentait une divergence de corpus
+      // qu'elle ne pouvait pas trancher ; fix-docs l'a résorbée en alignant `EX-SRCH-26` sur
+      // `EX-SCR-32` (R-A09 : la disposition fait autorité sur le libellé affiché). Elle atteste
+      // maintenant l'égalité — et se rallumera si l'un des deux textes repart de son côté.
       const behaviourDoc = readFileSync(new URL('../../../docs/requirements/draft-behaviour.md', import.meta.url), 'utf8');
-      expect(behaviourDoc).toContain('affinez pour une vue plus lisible');
       const screensDoc = readFileSync(new URL('../../../docs/requirements/draft-screens.md', import.meta.url), 'utf8');
-      expect(screensDoc).toContain('affinez pour comparer');
+      const src = readFileSync(new URL('../../../src/screens/market/MarketScreen.tsx', import.meta.url), 'utf8');
+      const TEXTE = 'marques correspondent — affinez pour comparer';
+      const ANCIEN = 'affinez pour une vue plus lisible';
+
+      expect(behaviourDoc).toContain(TEXTE);
+      expect(screensDoc).toContain(TEXTE);
+      expect(src).toContain(TEXTE);
+      expect(behaviourDoc).not.toContain(ANCIEN);
+      expect(screensDoc).not.toContain(ANCIEN);
+      expect(src).not.toContain(ANCIEN);
     },
   );
 });
