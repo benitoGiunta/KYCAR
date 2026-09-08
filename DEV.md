@@ -30,6 +30,21 @@ lot qui l'ouvre en premier.
 | `npm test` | Vitest, un run |
 | `npm run size` | garde de budget bundle (`tools/check-bundle-size.mjs`), a lancer apres `npm run build` |
 
+## Lancer l'application (lot D8)
+
+`npm run dev` (ou le lanceur `kycar-dev` de `.claude/launch.json`, port 5173) sert l'app complete.
+Le point d'entree `src/main.tsx` assemble le cablage de production : `loadReferenceData()`
+(referentiels servis sous `/reference/*` par le plugin Vite `kycar-reference-data`) +
+`SyntheticDataProvider` (source SYNTHETIC par defaut, sert mode 1 et mode 2) +
+`createAggregationEngine()` (Web Worker) + `DataController`, puis monte la coquille `src/app.tsx`.
+
+Le rendu est une fonction pure du chemin+requete (EX-NAV-18). Routes servies :
+`/marche` (ecran A), `/marche/:makeId-:slug/:modelId-:slug` (ecran B, distributions),
+`.../annonces` (ecran D), `/comparer` (ecran C), `/recherches` (ecran E), `/suivis` (ecran F),
+`/mentions` (page statique). L'ecran G est une modale superposee, pas une route.
+La persistance locale vit dans `src/persistence/` (collections CRUD en `localStorage`, cache de
+snapshot en IndexedDB).
+
 ## Navigateurs cibles (`EX-NFR-17`)
 
 Deux dernieres versions majeures de Chrome, Firefox, Edge et Safari. Consequence pour le code :
