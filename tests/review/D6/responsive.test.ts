@@ -77,14 +77,23 @@ describe('market.css — valeurs de points de rupture (lecture de constante, pas
     expect(css).toMatch(/max-width:\s*767\.98px[\s\S]{0,80}min-height:\s*96px/);
   });
 
+  // D8-12/D8-19 (DR-143, dette levée) : la sonde documentait l'ABSENCE de grille de lignes contrôlée
+  // par régime. `ModelZone.tsx` porte désormais des classes dédiées par fourchette
+  // (`kycar-market-zone-price/-year/-mileage/-median`) et `market.css` les replace en 4 lignes
+  // nommées (`grid-template-areas`) sous 768 px — l'assertion NÉGATIVE est remplacée par l'assertion
+  // POSITIVE du comportement corrigé, sans toucher aux deux autres sondes de ce fichier (R-D6-08/09,
+  // seules nommées par ailleurs).
   it(
-    "R-D6-10 — MINEUR : la réorganisation en QUATRE LIGNES distinctes de la zone-modèle compacte " +
-      '(EX-SCR-135 : « 1: nom+effectif ; 2: prix ; 3: années+km ; 4: médiane+barre ») n’a aucune ' +
-      "règle CSS dédiée au-delà de l'augmentation de hauteur (96px) — seul un `flex-wrap` générique " +
-      '(`.kycar-market-zone-ranges`) existe, sans grille de lignes contrôlée par régime.',
+    "R-D6-10 — CORRIGÉ (DR-143) : la zone-modèle compacte est réorganisée en QUATRE LIGNES distinctes " +
+      '(EX-SCR-135 : « 1: nom+effectif ; 2: prix ; 3: années+km ; 4: médiane+barre ») par une grille ' +
+      "nommée dédiée, et non plus par le seul `flex-wrap` générique de `.kycar-market-zone-ranges`.",
     () => {
       const compactBlock = css.slice(css.indexOf('@container (max-width: 767.98px)'));
-      expect(compactBlock).not.toMatch(/grid-template-areas|grid-template-rows/);
+      expect(compactBlock).toMatch(/grid-template-areas/);
+      expect(compactBlock).toContain("'row1 row1'");
+      expect(compactBlock).toContain("'price price'");
+      expect(compactBlock).toContain("'year mileage'");
+      expect(compactBlock).toContain("'median bar'");
     },
   );
 });

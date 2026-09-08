@@ -73,13 +73,16 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
 
       {zone.rangesAvailable ? (
         <div class="kycar-market-zone-ranges">
-          <span title={zone.price.caption}>
+          {/* `EX-SCR-135`/DR-143 (D8-12) : classes dédiées pour que le régime compact (CSS,
+              `display: contents` sur ce conteneur) puisse replacer chaque fourchette dans sa propre
+              ligne de la grille à 4 lignes, sans dupliquer la moindre règle ici. */}
+          <span class="kycar-market-zone-price" title={zone.price.caption}>
             {zone.price.label}
             {zone.price.available ? ` (${zone.price.caption})` : ''}
           </span>
-          <span title={zone.year.caption}>{zone.year.label}</span>
-          <span title={zone.mileage.caption}>{zone.mileage.label}</span>
-          <span>{zone.medianLabel}</span>
+          <span class="kycar-market-zone-year" title={zone.year.caption}>{zone.year.label}</span>
+          <span class="kycar-market-zone-mileage" title={zone.mileage.caption}>{zone.mileage.label}</span>
+          <span class="kycar-market-zone-median">{zone.medianLabel}</span>
           {/* `EX-SCR-33`/`134` (D8-06/FV-09) : jeton ambre `n = <n>` — un seul jeton pour les trois
               fourchettes, elles partagent le même effectif de métrique sous ce palier. */}
           {zone.price.lowSampleToken ?? zone.year.lowSampleToken ?? zone.mileage.lowSampleToken ? (

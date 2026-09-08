@@ -462,10 +462,13 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} />
         {!isUnresolvedModel ? <PowerTiers tiers={powerTiers} /> : null}
         <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} />
-        {/* A-08 (DR-147, DETTE consignée) : CO₂, consommation et boîte de vitesses sont écartés de
-            cette grille — voir `reports/remediation/fix-screens.md` §6.5. Mention volontairement
-            absente ici : le fix-lead a retenu la dette « muette » pour ce MINEUR, pas un correctif. */}
       </section>
+      {/* A-08 (DR-147, D8-12 — dette LEVÉE) : les graphes CO₂/consommation/boîte de vitesses restent
+          écartés de la grille (dette A-08 elle-même inchangée), mais `EX-SCR-39` (« aucun état n'est
+          silencieux ») exige désormais une mention à l'utilisateur, là où il n'y en avait aucune. */}
+      <p class="kycar-graph-note">
+        Graphes CO₂, consommation et boîte de vitesses : non disponibles dans cette version (dette A-08).
+      </p>
     </div>
   );
 }

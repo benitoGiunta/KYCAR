@@ -300,10 +300,31 @@
 }
 
 /* Regime compact (< 768px) - EX-SCR-135 : la zone-modele passe a 96px, 4 lignes. */
+/* `EX-SCR-135`/DR-143 (D8-12) : la zone-modèle compacte passe sur QUATRE lignes distinctes
+   (« 1: nom+effectif ; 2: prix ; 3: années+km ; 4: médiane+barre ») — grille nommée sur la racine,
+   `.kycar-market-zone-ranges` devient transparente (`display: contents`) pour que ses enfants
+   (prix/année/km/médiane) rejoignent directement cette grille, à côté de `.row1` et de la barre de
+   part (sibling après `.ranges`, DOM inchangé). */
 @container (max-width: 767.98px) {
   .kycar-market-zone {
     min-height: 96px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      'row1 row1'
+      'price price'
+      'year mileage'
+      'median bar';
+    align-items: center;
+    row-gap: 2px;
   }
+  .kycar-market-zone-row1 { grid-area: row1; }
+  .kycar-market-zone-ranges { display: contents; }
+  .kycar-market-zone-price { grid-area: price; }
+  .kycar-market-zone-year { grid-area: year; }
+  .kycar-market-zone-mileage { grid-area: mileage; }
+  .kycar-market-zone-median { grid-area: median; }
+  .kycar-market-zone-share-bar { grid-area: bar; }
 }
 
 /* Feuille de tri compacte - EX-SCR-135 (DR-072) : declencheur 44px, liste d'options native (<details>,
