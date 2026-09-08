@@ -59,3 +59,11 @@ fix-verify Opus/high → reports/REMEDIATION-2.8.md (rejoue npm test + test:e2e 
         v
 Coordinateur : porte G7, journal, handoff, push → 2.9b acceptance (Fable/max) → G8.
 ```
+
+## C. Amendements après l'étape 0
+
+| # | Sujet | Décision |
+|---|---|---|
+| D8-21 | `npm run lint` rouge avant l'étape 0 (scripts de preuve 2.7 sous `reports/`) | Ratifié : `reports/**` ignoré par ESLint (artefacts de preuve, pas du code livré). |
+| D8-22 | `R-D3-02` (temps mural d'`openSnapshot`, marge ~10 %) sensible à la charge machine | Conservée telle quelle ; fix-verify la rejoue **hors charge** (aucun autre agent actif). Si elle reste en défaut à vide, fix-providers relève la marge par une mesure médiane sur 5 exécutions (D-31 justifiée). |
+| D8-23 | Résidu DR-122 : `MakeAggregate` sans `displayRange`/`rank`/`makeName` | `rank` et `displayRange` sont dérivés au rendu (tri, A-05) ; `makeName` vient de la taxonomie par `makeId`. Aucun ajout d'interface ; annexe A précisée par fix-docs (« dérivés, non portés par l'entité »). |
