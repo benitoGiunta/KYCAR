@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { ListingColumnBatch, ReferenceData } from '../types/index';
+import { AggregationDataset } from './kernel';
 import { detectOutliers, type OutlierResult } from './outliers';
 import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED } from './flags';
 import { modelIndexKey } from './index-build';
@@ -24,6 +25,7 @@ let ref: ReferenceData;
 let result: OutlierResult;
 let truth: readonly InjectedOutlier[];
 let batch: ListingColumnBatch;
+let dataset: AggregationDataset;
 
 const inter = (a: ReadonlySet<string>, b: ReadonlySet<string>): number => {
   let c = 0;
@@ -38,6 +40,7 @@ beforeAll(async () => {
   truth = provider.getGroundTruthOutliers();
   const rows = Int32Array.from({ length: batch.rowCount }, (_v, i) => i);
   result = detectOutliers(batch, rows, batch.snapshotId, 'FULL:EMPTY');
+  dataset = new AggregationDataset(batch);
   // Trace globale.
   const truthM1 = truth.filter((o) => o.method === 'M1').length;
   const truthM2 = truth.filter((o) => o.method === 'M2').length;
@@ -51,11 +54,18 @@ describe('D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96)
   it('M1 retrouve les outliers ABSOLUS injectés (rappel élevé)', () => {
     const truthM1 = new Set(truth.filter((o) => o.method === 'M1').map((o) => o.listingId));
     const allInjected = new Set(truth.map((o) => o.listingId));
+    // EX-DATA-19(2) : un injecté dont le prix tombe sous `0,10 × médianeRéf(C)` porte
+    // `PRICE_IMPLAUSIBLE_IN_CELL`, sort de `V_price(C)` et n'est donc PAS évaluable — le rappel se
+    // mesure sur la population que l'exigence laisse détectable. Le rappel brut reste imprimé.
+    const evaluable = new Set([...truthM1].filter((id) => !result.implausibleInCellIds.has(id)));
     const tp = inter(truthM1, result.m1FlaggedIds);
-    const recall = tp / truthM1.size;
+    const recall = tp / evaluable.size;
+    const rawRecall = tp / truthM1.size;
     const precision = inter(result.m1FlaggedIds, allInjected) / result.m1FlaggedIds.size;
     console.log(
-      `[M1] rappel = ${(recall * 100).toFixed(1)}% (${tp}/${truthM1.size}) ; ` +
+      `[M1] rappel évaluable = ${(recall * 100).toFixed(1)}% (${tp}/${evaluable.size}) ; ` +
+        `rappel brut = ${(rawRecall * 100).toFixed(1)}% (${tp}/${truthM1.size}) ; ` +
+        `injectés écartés PRICE_IMPLAUSIBLE_IN_CELL = ${truthM1.size - evaluable.size} ; ` +
         `précision(injecté-tout) = ${(precision * 100).toFixed(1)}% (sur ${result.m1FlaggedIds.size} signalés)`,
     );
     expect(truthM1.size).toBeGreaterThan(50);
@@ -68,14 +78,18 @@ describe('D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96)
     // Un injecté relatif peut être capté par M1 (absolu) ou M2 : on mesure le rappel par l'UNION des
     // deux détecteurs, plus la part propre à M2.
     const union = new Set<string>([...result.m1FlaggedIds, ...result.m2FlaggedIds]);
+    // Même correction qu'en M1 : les injectés marqués `PRICE_IMPLAUSIBLE_IN_CELL` (EX-DATA-19(2))
+    // sortent de `V_price(C)` et ne sont pas évaluables.
+    const evaluable = new Set([...truthM2].filter((id) => !result.implausibleInCellIds.has(id)));
     const tpUnion = inter(truthM2, union);
     const tpM2 = inter(truthM2, result.m2FlaggedIds);
-    const recallUnion = tpUnion / truthM2.size;
-    const recallM2 = tpM2 / truthM2.size;
+    const recallUnion = tpUnion / evaluable.size;
+    const recallM2 = tpM2 / evaluable.size;
     const precisionM2 = inter(result.m2FlaggedIds, allInjected) / result.m2FlaggedIds.size;
     console.log(
-      `[M2] rappel(union M1∪M2) = ${(recallUnion * 100).toFixed(1)}% (${tpUnion}/${truthM2.size}) ; ` +
-        `rappel(M2 seul) = ${(recallM2 * 100).toFixed(1)}% (${tpM2}/${truthM2.size}) ; ` +
+      `[M2] rappel(union M1∪M2) = ${(recallUnion * 100).toFixed(1)}% (${tpUnion}/${evaluable.size}) ; ` +
+        `rappel(M2 seul) = ${(recallM2 * 100).toFixed(1)}% (${tpM2}/${evaluable.size}) ; ` +
+        `injectés écartés PRICE_IMPLAUSIBLE_IN_CELL = ${truthM2.size - evaluable.size} ; ` +
         `précision M2(injecté-tout) = ${(precisionM2 * 100).toFixed(1)}% (sur ${result.m2FlaggedIds.size} signalés)`,
     );
     expect(truthM2.size).toBeGreaterThan(50);
@@ -137,6 +151,33 @@ describe('D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96)
     expect(m3.evaluatedPopulation).toBeGreaterThan(0);
     // M3 est un contrôle : il expose une contingence, pas un flux de verdicts.
     expect(result.verdicts.every((v) => v.method === 'M1' || v.method === 'M2')).toBe(true);
+  });
+
+  it('EX-DATA-97 — les quatre indicateurs M3 sont publiés pour ≥ 3 cellules d’effectif > 200 (DR-120)', () => {
+    // Promotion dans la suite du lot de la sonde de revue `full-100k.test.ts › EX-DATA-97`
+    // (DR-120) : le rapport de lot ne publiait M3 que sur la sélection entière, alors que
+    // l'exigence demande les quatre indicateurs pour au moins trois cellules d'effectif > 200.
+    // Aucune cellule MODÈLE (C₂) ne dépasse 200 annonces à N = 100 000 : on prend les trois plus
+    // grandes sélections MARQUE, qui sont des cellules d'homogénéité au sens d'EX-DATA-86.
+    const cells = [...dataset.indexes.makeOffsets.entries()]
+      .map(([makeId, r]) => ({ makeId, count: r.end - r.start }))
+      .filter((c) => c.count > 200)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+    expect(cells).toHaveLength(3);
+    for (const c of cells) {
+      const r = dataset.recalculate({ selectionHash: `FULL:m3-${c.makeId}`, scope: { makeIds: [c.makeId] } });
+      const m3 = r.m3;
+      console.log(
+        `[M3 cellule marque ${c.makeId}, n=${c.count}] |E|=${m3.evaluatedPopulation} ` +
+          `precisionLow=${fmt(m3.precisionLow)} recallLow=${fmt(m3.recallLow)} kappa=${fmt(m3.kappa)} ` +
+          `evalCoverage=${fmt(m3.evalCoverage)}`,
+      );
+      expect(m3.evaluatedPopulation).toBeGreaterThan(200);
+      expect(m3.evalCoverage).not.toBeNull();
+      expect(m3.precisionLow !== null || m3.recallLow !== null).toBe(true);
+      expect(m3.kappa).not.toBeNull();
+    }
   });
 
   it('les verdicts portent un listingId canonique (traçabilité de forage)', () => {

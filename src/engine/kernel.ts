@@ -22,12 +22,33 @@ import type {
   OutlierVerdict,
 } from '../types/index';
 import { aggregate } from './aggregate';
-import { densityGrid } from './density';
-import { detectOutliers, type M3Control } from './outliers';
+import { densityGrid, type IneligibleBreakdown } from './density';
+import { detectOutliers, M3_EMPTY, type M3Control } from './outliers';
+import { selectionImplausibleThreshold } from './implausible';
 import { buildIndexes, type DatasetIndexes } from './index-build';
 import { compilePredicates, type RefinePredicate, type TaxonomyScope } from './predicates';
+import { PRICE_STATUS_MISSING, PRICE_STATUS_ON_REQUEST, PRICE_STATUS_QUOTED } from './flags';
 import { computeFacets, type FacetCount, type FacetFilterSpec } from './facets';
 import { scanSelection } from './scan';
+
+/**
+ * Motif typé d'omission de la détection d'outliers (EX-NFR-5, EX-NFR-4bis, O17).
+ * `UNPRUNED_SELECTION` : la sélection n'est pas élaguée par la taxonomie ET dépasse le plafond de
+ * lignes sous lequel M1/M2 tiennent le budget synchrone.
+ */
+export type OutliersSkippedReason = 'UNPRUNED_SELECTION';
+
+/**
+ * Plafond de lignes au-delà duquel M1/M2 ne s'exécutent PAS sur une sélection non élaguée.
+ *
+ * `EX-NFR-5` borne le recalcul synchrone à 200 ms. Le banc O17 (`tests/review/D4/full-100k.test.ts`)
+ * mesure le franchissement des 200 ms d'un recalcul NON élagué au premier effectif retenu de
+ * **44 186 lignes** (100 000 lignes : 567 ms ; 25 069 lignes : 161 ms). Le plafond est posé à
+ * 25 000 lignes : le dernier point mesuré sous budget, avec ≈ 20 % de marge. Au-delà, et sans scope
+ * marque/modèle, la détection est omise et le motif est publié — le moteur ne rend jamais des
+ * verdicts M2 calculés sur une régression à `C₃ = 10⁵` lignes hors élagage (R-D4-12).
+ */
+export const OUTLIER_UNPRUNED_MAX_ROWS = 25_000;
 
 /** Sélection telle que la voit le moteur : hachage publié + scope de taxonomie (T) + prédicats (R). */
 export interface EngineSelection {
@@ -51,7 +72,19 @@ export interface RecalcResult {
   readonly mileageHistogram: readonly DistributionBucket[];
   readonly densityCells: readonly DensityCell[];
   readonly eligibleCount: number;
+  /**
+   * Motifs de non-éligibilité ventilés (EX-DATA-99) : `eligibleCount` plus les quatre compteurs
+   * valent exactement `selectionCount`. Publiés par le moteur pour que l'écran B ne les recalcule
+   * pas sur le thread principal.
+   */
+  readonly ineligible: IneligibleBreakdown;
   readonly outlierVerdicts: readonly OutlierVerdict[];
+  /**
+   * Motif d'omission de M1/M2, ou `null` si la détection a bien tourné. Quand il est renseigné,
+   * `outlierVerdicts` est vide, `outlierEvaluatedCount` vaut 0 et `outlierNotEvaluatedCount` vaut
+   * `priceQuotedCount` — l'invariant I6 tient (EX-DATA-104).
+   */
+  readonly outliersSkipped: OutliersSkippedReason | null;
   readonly m3: M3Control;
   /** Lignes réellement examinées (témoin d'élagage : `N / scannedCount`). */
   readonly scannedCount: number;
@@ -63,6 +96,23 @@ export interface FacetResult {
   readonly snapshotId: string;
   readonly selectionHash: string;
   readonly facets: readonly FacetCount[];
+}
+
+/**
+ * Contrôle d'entrée au chargement du jeu de données (`LOAD_DATASET`) : `priceStatus` doit appartenir
+ * au vocabulaire gelé `KYCAR_PRICE_STATUS` (EX-DATA-8). Un octet hors vocabulaire est une donnée
+ * corrompue en amont : le moteur le REFUSE au chargement (`WORKER_ERROR` nommé) au lieu de le
+ * laisser fausser la partition I5 en silence (DR-116).
+ */
+function assertPriceStatusVocabulary(batch: ListingColumnBatch): void {
+  for (let row = 0; row < batch.rowCount; row++) {
+    const status = batch.priceStatus[row] as number;
+    if (status !== PRICE_STATUS_QUOTED && status !== PRICE_STATUS_ON_REQUEST && status !== PRICE_STATUS_MISSING) {
+      throw new Error(
+        `kernel: priceStatus hors vocabulaire KYCAR_PRICE_STATUS à la ligne ${row} (octet ${status})`,
+      );
+    }
+  }
 }
 
 /**
@@ -78,6 +128,7 @@ export class AggregationDataset {
     readonly batch: ListingColumnBatch,
     models?: readonly Model[],
   ) {
+    assertPriceStatusVocabulary(batch);
     this.indexes = buildIndexes(batch, models);
   }
 
@@ -101,8 +152,19 @@ export class AggregationDataset {
     const scan = scanSelection(this.indexes, predicates, selection.scope);
 
     const agg = aggregate(batch, scan.rows, snapshotId, selectionHash);
-    const outliers = detectOutliers(batch, scan.rows, snapshotId, selectionHash);
-    const density = densityGrid(batch, scan.rows, snapshotId, selectionHash);
+
+    // Garde de budget (EX-NFR-5, O17) : M1/M2 ne tournent que sur une sélection élaguée par la
+    // taxonomie, ou assez petite pour tenir les 200 ms. Sinon la détection est OMISE avec son motif.
+    const outliersSkipped: OutliersSkippedReason | null =
+      scan.pruned || scan.rows.length <= OUTLIER_UNPRUNED_MAX_ROWS ? null : 'UNPRUNED_SELECTION';
+    const outliers =
+      outliersSkipped === null ? detectOutliers(batch, scan.rows, snapshotId, selectionHash) : null;
+    // Éligibilité du nuage et de la densité (D-05) : même règle de prix valide que M1/M2, donc le
+    // seuil relatif de `C₃ = Σ` est celui que la détection a calculé — recalculé seulement si elle
+    // a été omise.
+    const implausibleThreshold =
+      outliers === null ? selectionImplausibleThreshold(batch, scan.rows) : outliers.selectionImplausibleThreshold;
+    const density = densityGrid(batch, scan.rows, snapshotId, selectionHash, implausibleThreshold);
     this.lastYearMarginal = density.yearBucketCountByIndex;
 
     const selectionStats: SelectionStats = {
@@ -115,8 +177,9 @@ export class AggregationDataset {
       priceQuotedCount: agg.priceQuotedCount,
       priceOnRequestCount: agg.priceOnRequestCount,
       priceMissingCount: agg.priceMissingCount,
-      outlierEvaluatedCount: outliers.outlierEvaluatedCount,
-      outlierNotEvaluatedCount: outliers.outlierNotEvaluatedCount,
+      outlierEvaluatedCount: outliers === null ? 0 : outliers.outlierEvaluatedCount,
+      outlierNotEvaluatedCount:
+        outliers === null ? agg.priceQuotedCount : outliers.outlierNotEvaluatedCount,
     };
 
     return {
@@ -130,8 +193,10 @@ export class AggregationDataset {
       mileageHistogram: agg.mileageHistogram,
       densityCells: density.cells,
       eligibleCount: density.eligibleCount,
-      outlierVerdicts: outliers.verdicts,
-      m3: outliers.m3,
+      ineligible: density.ineligible,
+      outlierVerdicts: outliers === null ? [] : outliers.verdicts,
+      outliersSkipped,
+      m3: outliers === null ? M3_EMPTY : outliers.m3,
       scannedCount: scan.scannedCount,
       pruned: scan.pruned,
     };

@@ -216,7 +216,14 @@ export interface OutlierVerdict {
   readonly opportunityScore: number | null;
   /** Cellule d'homogénéité au sens d'EX-DATA-86, nommée pour l'étiquetage. */
   readonly cellLabel: string | null;
+  /** `n_price(C)` de la cellule retenue, HORS annonces `PRICE_IMPLAUSIBLE_IN_CELL` (EX-DATA-87). */
   readonly cellCount: number;
+  /**
+   * Annonces de la cellule écartées de `V_price(C)` au titre de `PRICE_IMPLAUSIBLE_IN_CELL`
+   * (`prix < 0,10 × médianeRéf(C)`, EX-DATA-19(2)) — publié avec le verdict par EX-DATA-87 pour que
+   * l'écran puisse dire combien d'annonces la cellule a écartées à ce titre.
+   */
+  readonly implausibleInCellCount: number;
 }
 
 /**

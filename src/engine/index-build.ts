@@ -18,7 +18,7 @@
  */
 
 import type { ListingColumnBatch, Model } from '../types/index';
-import { decodeListingId } from './uuid';
+import { compareListingId, compareListingIdToBytes, parseListingId } from './uuid';
 import type { EnumColumnName } from './predicates';
 import { enumColumn } from './predicates';
 
@@ -42,10 +42,27 @@ export const BITSET_COLUMNS: readonly EnumColumnName[] = [
   'transmission',
 ];
 
+/**
+ * `PK_LISTING` (EX-DATA-114/115) : clé primaire `listingId` → indice de ligne.
+ *
+ * L'index est matérialisé par un ORDRE DE LIGNES trié sur les 16 octets du `listingId`, pas par une
+ * `Map` de 100 000 chaînes UUID : à N = 100 000, la Map de chaînes retenait 77 Mo (≈ 800 octets par
+ * clé, cordes V8), contre 400 Ko pour l'`Int32Array` — l'écart faisait sortir l'enveloppe mémoire
+ * d'EX-DATA-112 / ARB-55 (DR-033). La recherche est dichotomique, en `O(log N)` comparaisons octet à
+ * octet, et rend exactement le même résultat qu'une table de hachage sur la chaîne canonique.
+ */
+export interface ListingPrimaryKey {
+  /** Nombre d'entrées de la clé primaire (`= rowCount`). */
+  readonly size: number;
+  /** Indice de ligne d'un `listingId` canonique, ou `undefined` s'il n'appartient pas au lot. */
+  get(listingId: string): number | undefined;
+  has(listingId: string): boolean;
+}
+
 /** Ensemble des index d'un dataset. */
 export interface DatasetIndexes {
   readonly rowCount: number;
-  readonly pkListing: ReadonlyMap<string, number>;
+  readonly pkListing: ListingPrimaryKey;
   readonly idxMakeRows: Int32Array;
   readonly makeOffsets: ReadonlyMap<number, IndexRange>;
   readonly idxModelRows: Int32Array;
@@ -85,6 +102,40 @@ function bucketSortRows(
   return { rows, offsets };
 }
 
+/** Implémentation dichotomique de `PK_LISTING` sur les 16 octets bruts de la colonne `listingId`. */
+class SortedListingPrimaryKey implements ListingPrimaryKey {
+  /** Tampon réutilisé par `get` : la recherche n'alloue pas. */
+  private readonly key = new Uint8Array(16);
+
+  constructor(
+    private readonly bytes: Uint8Array,
+    private readonly sortedRows: Int32Array,
+  ) {}
+
+  get size(): number {
+    return this.sortedRows.length;
+  }
+
+  get(listingId: string): number | undefined {
+    if (parseListingId(listingId, this.key) === null) return undefined;
+    let lo = 0;
+    let hi = this.sortedRows.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      const row = this.sortedRows[mid] as number;
+      const cmp = compareListingIdToBytes(this.bytes, row, this.key);
+      if (cmp === 0) return row;
+      if (cmp < 0) lo = mid + 1;
+      else hi = mid - 1;
+    }
+    return undefined;
+  }
+
+  has(listingId: string): boolean {
+    return this.get(listingId) !== undefined;
+  }
+}
+
 /** Construit tous les index d'un batch. `models` (facultatif) alimente l'index EX-DATA-115bis. */
 export function buildIndexes(
   batch: ListingColumnBatch,
@@ -92,9 +143,10 @@ export function buildIndexes(
 ): DatasetIndexes {
   const n = batch.rowCount;
 
-  // PK_LISTING
-  const pkListing = new Map<string, number>();
-  for (let row = 0; row < n; row++) pkListing.set(decodeListingId(batch.listingId, row), row);
+  // PK_LISTING : ordre de lignes trié sur les 16 octets du listingId (aucune chaîne matérialisée).
+  const pkRows = Int32Array.from({ length: n }, (_v, i) => i);
+  pkRows.sort((a, b) => compareListingId(batch.listingId, a, b));
+  const pkListing = new SortedListingPrimaryKey(batch.listingId, pkRows);
 
   // IDX_MAKE
   const make = bucketSortRows(n, (row) => batch.makeId[row] as number);

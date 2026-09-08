@@ -27,7 +27,6 @@ import {
   isMileageValid,
   isPriceValid,
   isYearValid,
-  PRICE_STATUS_MISSING,
   PRICE_STATUS_ON_REQUEST,
   PRICE_STATUS_QUOTED,
   yearFromYearMonth,
@@ -141,11 +140,15 @@ export function aggregate(
     mk.listingCount++;
     md.listingCount++;
 
-    // Statut de prix (I5).
+    // Statut de prix (I5). La partition doit être EXHAUSTIVE : un octet hors vocabulaire (255, 7…)
+    // traversait le moteur en silence et produisait `quoted + onRequest + missing ≠ N`, c'est-à-dire
+    // une sortie du moteur violant son propre invariant I5. Tout statut qui n'est ni `QUOTED` ni
+    // `ON_REQUEST` est un prix INDISPONIBLE (DR-116) ; la validation d'entrée, elle, est faite au
+    // chargement du jeu de données (`AggregationDataset`).
     const status = batch.priceStatus[row] as number;
     if (status === PRICE_STATUS_QUOTED) priceQuotedCount++;
     else if (status === PRICE_STATUS_ON_REQUEST) priceOnRequestCount++;
-    else if (status === PRICE_STATUS_MISSING) priceMissingCount++;
+    else priceMissingCount++;
 
     // Échantillons valides (EX-DATA-60).
     const ingest = batch.ingestFlags[row] as number;

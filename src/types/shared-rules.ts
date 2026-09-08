@@ -119,6 +119,12 @@ export type DuplicateConflictField = (typeof DUPLICATE_CONFLICT_FIELDS)[number];
  */
 export const MODEL_VERSION_CLEAN_MAX = 80;
 
+/** Options de `cleanModelVersion` : la liste d'arrêt est une donnée versionnée, pas une constante. */
+export interface CleanModelVersionOptions {
+  /** Motifs de l'étape 3 (`data/reference/version-stoplist.json`, EX-DATA-30). Défaut : aucun. */
+  readonly stoplist?: readonly string[];
+}
+
 /**
  * Étape 2 d'EX-DATA-29 — plages de pictogrammes et de symboles décoratifs, plus la zone privée.
  * Les liants invisibles sont retirés séparément (`INVISIBLE_JOINERS`) pour que chaque classe reste
@@ -146,6 +152,36 @@ const RESIDUAL_PUNCTUATION = /[^\p{L}\p{M}\p{N}.,\-+/]/gu;
 /** Marque combinante — une coupe ne doit jamais séparer une marque de sa base (ARB-24). */
 const COMBINING_MARK = /\p{M}/u;
 
+/** Repli d'une chaîne pour la comparaison de la liste d'arrêt : minuscules, diacritiques retirés. */
+function foldForStoplist(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase();
+}
+
+/**
+ * Étape 3 d'EX-DATA-29 — retrait des marqueurs promotionnels de la liste d'arrêt versionnée
+ * (`data/reference/version-stoplist.json`, contenu initial d'EX-DATA-30). Comparaison insensible à
+ * la CASSE et aux DIACRITIQUES : le repli s'applique au texte comme au motif, et la coupe se fait
+ * sur les index du texte replié — le repli NFKD ne change pas le nombre d'unités de code des lettres
+ * latines couvertes par la liste, chaque marque combinante retirée étant reportée sur l'index.
+ */
+function stripPromotionalMarkers(value: string, stoplist: readonly string[]): string {
+  if (stoplist.length === 0) return value;
+  let out = value;
+  for (const pattern of stoplist) {
+    const needle = foldForStoplist(pattern);
+    if (needle.length === 0) continue;
+    for (;;) {
+      const at = foldForStoplist(out).indexOf(needle);
+      if (at < 0) break;
+      out = `${out.slice(0, at)} ${out.slice(at + needle.length)}`;
+    }
+  }
+  return out;
+}
+
 /**
  * Nettoie une version déclarée en texte libre selon `EX-DATA-29`, jusqu'à la troncature d'ARB-61.
  *
@@ -159,24 +195,33 @@ const COMBINING_MARK = /\p{M}/u;
  *      défaut d'un tel espace, troncature DURE à exactement la limite, sans chercher au-delà
  *      (ARB-61/ADV-17). La coupe ne sépare jamais une marque combinante de sa base (ARB-24).
  *
- * NON appliquées ici, faute de référentiel dans le dépôt : l'étape 3 (liste d'arrêt promotionnelle
- * `data/reference/version-stoplist.json`, EX-DATA-30) et les étapes 7 à 10 (jetonisation, cylindrée
- * et puissance au badge, lexique de motorisation). Elles s'insèrent dans cette fonction sans en
- * changer la signature ; leur portage est le reste de DR-025.
+ * L'étape 3 (retrait des marqueurs promotionnels) s'applique dès que l'appelant fournit la liste
+ * d'arrêt versionnée d'EX-DATA-30 (`ReferenceData.versionStoplist`, chargée depuis
+ * `data/reference/version-stoplist.json`) ; sans elle, aucun marqueur n'est retiré — la liste est
+ * une DONNÉE versionnée, jamais une constante du code.
+ *
+ * Les étapes 7 à 10 (jetonisation, cylindrée et puissance au badge, lexique de motorisation)
+ * produisent des CHAMPS DISTINCTS (`trimTokens`, `badgeDisplacementL`, `badgePowerRaw`,
+ * `driveBadges`), pas `modelVersionClean` : elles sont exposées par `parseModelVersion`.
  *
  * Le résultat est une DONNÉE textuelle, rendue par le seul contenu textuel — aucune échappement
  * n'est appliqué ici, et aucun n'est requis : la couche de rendu échappe. Une chaîne vide en sortie
  * alors que l'entrée ne l'était pas est le cas d'EX-DATA-31 (`VERSION_FULLY_STRIPPED`), que
  * l'appelant traite ; cette fonction ne pose aucun drapeau.
  */
-export function cleanModelVersion(raw: string | null | undefined): string {
+export function cleanModelVersion(
+  raw: string | null | undefined,
+  options: CleanModelVersionOptions = {},
+): string {
   if (raw === null || raw === undefined) return '';
 
-  const normalized = raw
+  const step2 = raw
     .normalize('NFKC')
     .replace(VARIATION_SELECTORS, '')
     .replace(INVISIBLE_SEPARATORS, '')
-    .replace(PICTOGRAM_RANGES, '')
+    .replace(PICTOGRAM_RANGES, '');
+
+  const normalized = stripPromotionalMarkers(step2, options.stoplist ?? [])
     .replace(DECORATIVE_RUNS, ' ')
     .replace(RESIDUAL_PUNCTUATION, ' ')
     .replace(/\s+/gu, ' ')
@@ -192,4 +237,106 @@ export function cleanModelVersion(raw: string | null | undefined): string {
   let cut = MODEL_VERSION_CLEAN_MAX;
   while (cut > 0 && COMBINING_MARK.test(points[cut] as string)) cut -= 1;
   return points.slice(0, cut).join('');
+}
+
+/* ---- EX-DATA-29 étapes 7 à 10 : champs dérivés de la version déclarée ------------------------- */
+
+/** Longueur d'un jeton de finition retenu (annexe A # 22 : `chaîne(24)`, étape 7). */
+export const TRIM_TOKEN_MAX_LENGTH = 24;
+/** Nombre de jetons de finition conservés (annexe A # 22, étape 7). */
+export const TRIM_TOKENS_MAX = 12;
+
+/** Étape 8 — cylindrée au badge : `x,y` avec `x ∈ [0,8]`, retenue si `0,6 ≤ d ≤ 8,0`. */
+const BADGE_DISPLACEMENT = /(?<!\d)([0-8])[.,]([0-9])(?!\d)/u;
+/** Étape 9 — puissance au badge, avec son unité déclarée. */
+const BADGE_POWER = /(?<!\d)(\d{2,3})\s?(ch|cv|hp|pk|kw|kW|PS)(?![a-z])/u;
+
+/** Puissance relevée au badge de la version déclarée (étape 9). Ne remplace JAMAIS `powerKw`. */
+export interface BadgePower {
+  readonly value: number;
+  /** Unité telle qu'elle est écrite dans le texte (`ch`, `cv`, `hp`, `pk`, `kw`, `kW`, `PS`). */
+  readonly unit: string;
+  /** Forme brute conservée dans `badgePowerRaw`. */
+  readonly raw: string;
+}
+
+/** Champs dérivés de la version déclarée (EX-DATA-29 étapes 7 à 10). */
+export interface ParsedModelVersion {
+  /** `modelVersionClean` (étapes 1 à 6). */
+  readonly clean: string;
+  /** Étape 7 : jetons de finition, majuscules, dédupliqués, triés, 12 au plus. */
+  readonly trimTokens: readonly string[];
+  /** Étape 8 : cylindrée au badge en litres, ou `null`. */
+  readonly badgeDisplacementL: number | null;
+  /** Étape 9 : puissance au badge, ou `null`. */
+  readonly badgePower: BadgePower | null;
+  /** Étape 10 : mentions de motorisation du lexique FERMÉ, dans l'ordre du lexique. */
+  readonly driveBadges: readonly string[];
+}
+
+/** Options de `parseModelVersion`. */
+export interface ParseModelVersionOptions extends CleanModelVersionOptions {
+  /** Liste d'arrêt de JETONS de l'étape 7 (repli sur la liste d'arrêt promotionnelle). */
+  readonly tokenStoplist?: readonly string[];
+  /** Lexique FERMÉ de l'étape 10 (`data/reference/version-lexicon.json`). Défaut : aucun. */
+  readonly driveBadgeLexicon?: readonly string[];
+}
+
+/**
+ * Applique les étapes 7 à 10 d'EX-DATA-29 sur une version déclarée, en plus du nettoyage des étapes
+ * 1 à 6. Fonction PURE : aucune donnée n'est codée en dur, la liste d'arrêt et le lexique sont
+ * fournis par le référentiel versionné.
+ *
+ * Étape 7 — jetonisation : découpe sur l'espace ; un jeton est retenu s'il fait 2 à 24 caractères,
+ * s'il n'est pas exclusivement numérique, et s'il n'appartient pas à la liste d'arrêt de jetons ;
+ * majuscules ; déduplication ; tri lexicographique croissant par point de code ; 12 premiers.
+ * Étape 8 — cylindrée au badge : premier appariement, retenu si `0,6 ≤ d ≤ 8,0`.
+ * Étape 9 — puissance au badge : premier appariement, conservé AVEC son unité ; la valeur du badge
+ * ne remplace jamais `powerKw` (le contrôle d'écart de 10 % et `VERSION_POWER_MISMATCH` relèvent de
+ * l'ingestion, qui seule connaît `powerKw`).
+ * Étape 10 — mentions de motorisation : appariement du lexique FERMÉ, jamais une déduction.
+ */
+export function parseModelVersion(
+  raw: string | null | undefined,
+  options: ParseModelVersionOptions = {},
+): ParsedModelVersion {
+  const clean = cleanModelVersion(raw, options);
+
+  const tokenStop = new Set((options.tokenStoplist ?? []).map((t) => foldForStoplist(t)));
+  const tokens = new Set<string>();
+  for (const piece of clean.split(' ')) {
+    const token = piece.trim();
+    const points = Array.from(token);
+    if (points.length < 2 || points.length > TRIM_TOKEN_MAX_LENGTH) continue;
+    if (/^\p{N}+$/u.test(token)) continue;
+    if (tokenStop.has(foldForStoplist(token))) continue;
+    tokens.add(token.toUpperCase());
+  }
+  const trimTokens = [...tokens].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).slice(0, TRIM_TOKENS_MAX);
+
+  let badgeDisplacementL: number | null = null;
+  const displacement = BADGE_DISPLACEMENT.exec(clean);
+  if (displacement !== null) {
+    const value = Number(`${displacement[1] as string}.${displacement[2] as string}`);
+    if (value >= 0.6 && value <= 8.0) badgeDisplacementL = value;
+  }
+
+  let badgePower: BadgePower | null = null;
+  const power = BADGE_POWER.exec(clean);
+  if (power !== null) {
+    badgePower = { value: Number(power[1] as string), unit: power[2] as string, raw: power[0] };
+  }
+
+  // Le lexique est écrit sous une forme canonique (`s-line`, `m-sport`) que le texte libre écrit
+  // indifféremment « S line », « S-Line » ou « Sline » : l'appariement replie les séparateurs des
+  // DEUX côtés. Il reste un appariement du lexique FERMÉ, jamais une déduction.
+  const foldBadge = (value: string): string => foldForStoplist(value).replace(/[\s\-_]/gu, '');
+  const folded = foldBadge(clean);
+  const driveBadges: string[] = [];
+  for (const badge of options.driveBadgeLexicon ?? []) {
+    const needle = foldBadge(badge);
+    if (needle.length > 0 && folded.includes(needle)) driveBadges.push(badge);
+  }
+
+  return { clean, trimTokens, badgeDisplacementL, badgePower, driveBadges };
 }

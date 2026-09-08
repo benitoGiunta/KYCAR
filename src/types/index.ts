@@ -93,6 +93,8 @@ export {
   EMPTY,
   DEFAULT_TAXONOMY_T_FILTERS,
   compareCode,
+  escapeFilterValue,
+  unescapeFilterValue,
   serializeSelection,
   computeSelectionHash,
   localDatasetKey,
@@ -101,7 +103,13 @@ export {
 export { sha256Hex } from './sha256';
 
 // Règles métier partagées (seuils, facteurs, clés, nettoyage) — étape 0 de la remédiation 2.6.
-export type { DuplicateConflictField } from './shared-rules';
+export type {
+  DuplicateConflictField,
+  CleanModelVersionOptions,
+  ParseModelVersionOptions,
+  ParsedModelVersion,
+  BadgePower,
+} from './shared-rules';
 export {
   PRICE_SENTINEL_ABSOLUTE_EUR,
   isPriceSentinelAbsolute,
@@ -110,15 +118,25 @@ export {
   listingKey,
   DUPLICATE_CONFLICT_FIELDS,
   MODEL_VERSION_CLEAN_MAX,
+  TRIM_TOKEN_MAX_LENGTH,
+  TRIM_TOKENS_MAX,
   cleanModelVersion,
+  parseModelVersion,
 } from './shared-rules';
 
 // Validation + garde R3.
-export type { ValidationIssue, ValidationResult } from './validation';
+export type { ValidationIssue, ValidationResult, ValidateListingOptions } from './validation';
 export {
   R3_FORBIDDEN_FIELD_NAMES,
+  R3_IDENTIFIER_VALUE_KEYS,
   LISTING_NUMERIC_BOUNDS,
+  LISTING_STRING_BOUNDS,
+  LISTING_TRIM_TOKENS_MAX,
+  LISTING_ID_PATTERN,
+  LISTING_MANDATORY_FIELDS,
+  defaultModelYearMax,
   scanForbiddenFields,
+  scanForbiddenIdentifiers,
   validateListingRecord,
 } from './validation';
 
@@ -148,6 +166,8 @@ export type {
   RawEnumEntry,
   RawFiltersScope,
   RawScopeEntry,
+  RawVersionStoplist,
+  RawVersionLexicon,
   FilterScope,
 } from './reference';
 export { buildReferenceData, modelKey } from './reference';

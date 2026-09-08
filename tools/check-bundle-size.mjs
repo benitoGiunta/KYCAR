@@ -13,6 +13,15 @@
  *     rendering bundle - see `src/screens/README.md`) has its own <= 400 KiB gzip budget,
  *     checked and reported the same way but kept informational while no such chunk exists yet.
  *
+ * ORPHAN CHUNKS (DR-036). The manifest only records what the module graph reaches through
+ * `imports`/`dynamicImports`. A Web Worker chunk is NOT in that graph: `new Worker(new URL(...))`
+ * emits a separate file (`aggregation.worker-*.js`) that appears under no manifest key at all,
+ * while `bootstrap()` instantiates it on the first paint of mode 1. Left alone, such a chunk could
+ * grow without ever failing `npm run size` - a structural blind spot, not a thin margin. Every
+ * `.js` file present in `dist/` but absent from the manifest is therefore counted in the INITIAL
+ * budget and listed by name: a chunk that ships but is reachable by no static import is either
+ * started at bootstrap (worker) or dead weight, and neither deserves to be invisible.
+ *
  * Uses only Node's built-in `zlib`/`fs` - no extra dependency, per lot D1's dependency cap.
  *
  * Reads `dist/.vite/manifest.json` (`build.manifest: true` in `vite.config.ts`), which records,
@@ -23,7 +32,7 @@
  * Usage: `npm run build` first (produces `dist/`), then `npm run size`.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import path from 'node:path';
 
@@ -102,6 +111,26 @@ const deferredSet = new Set(
   [...collectStatic(dynamicRoots)].filter((key) => !initialSet.has(key)),
 );
 
+/** Every `.js` file actually present under `dist/`, as paths relative to `dist/`. */
+function listShippedJsFiles(dir, prefix = '') {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const rel = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) {
+      if (entry.name === '.vite') continue; // manifest metadata, never shipped as code
+      out.push(...listShippedJsFiles(path.join(dir, entry.name), rel));
+    } else if (entry.isFile() && entry.name.endsWith('.js')) {
+      out.push(rel);
+    }
+  }
+  return out;
+}
+
+/** Gzip size of a file given by its path relative to `dist/`. */
+function gzipSizeOfFile(relFile) {
+  return gzipSync(readFileSync(path.join(DIST_DIR, relFile))).length;
+}
+
 function summarize(label, keys) {
   let totalBytes = 0;
   const rows = [];
@@ -122,7 +151,31 @@ function summarize(label, keys) {
   return totalBytes;
 }
 
-const initialBytes = summarize('initial bundle (static from entry) - EX-NFR-10', initialSet);
+// DR-036: chunks that ship but appear under no manifest key (the aggregation Web Worker, first of
+// all) are attributed to the INITIAL budget, so the guard can never be blind to them.
+const manifestFiles = new Set(Object.values(manifest).map((entry) => entry.file));
+const orphanFiles = listShippedJsFiles(DIST_DIR).filter((file) => !manifestFiles.has(file));
+
+function summarizeFiles(label, files) {
+  let totalBytes = 0;
+  const rows = files.map((file) => ({ file, gzipBytes: gzipSizeOfFile(file) }));
+  rows.sort((a, b) => b.gzipBytes - a.gzipBytes);
+  console.log(`\n[size] ${label}:`);
+  for (const row of rows) {
+    console.log(`  ${(row.gzipBytes / 1024).toFixed(2).padStart(8)} KiB  ${row.file}  (hors manifest)`);
+    totalBytes += row.gzipBytes;
+  }
+  console.log(`  ${'-'.repeat(40)}`);
+  console.log(`  ${(totalBytes / 1024).toFixed(2).padStart(8)} KiB  TOTAL`);
+  return totalBytes;
+}
+
+const initialGraphBytes = summarize('initial bundle (static from entry) - EX-NFR-10', initialSet);
+const orphanBytes =
+  orphanFiles.length > 0
+    ? summarizeFiles('chunks shipped outside the manifest graph (worker) - EX-NFR-10', orphanFiles)
+    : 0;
+const initialBytes = initialGraphBytes + orphanBytes;
 const deferredBytes =
   deferredSet.size > 0
     ? summarize('deferred bundle (dynamic import) - EX-NFR-11', deferredSet)

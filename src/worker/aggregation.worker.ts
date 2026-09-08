@@ -40,6 +40,14 @@ function handleRequest(request: WorkerRequest): WorkerResponse {
         kind: 'FACETS_READY',
         result: requireDataset().computeFacets(request.selection, request.facetFilters),
       };
+    default: {
+      // EX-NFR-23 : sans ce cas, un `kind` inconnu (protocole désynchronisé, message d'un autre
+      // émetteur) faisait retourner `undefined`, donc `postMessage(undefined)`, et le client lisait
+      // `undefined.id` — exception non gérée sur le thread principal. On lève : le `catch` du
+      // récepteur rend un `WORKER_ERROR` nommé, porteur de l'`id` de la requête (DR-118).
+      const unknown = request as { readonly kind?: unknown };
+      throw new Error(`aggregation worker: type de requête inconnu « ${String(unknown.kind)} »`);
+    }
   }
 }
 
@@ -49,7 +57,8 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
     self.postMessage(response);
   } catch (error) {
     const errorResponse: WorkerResponse = {
-      id: event.data.id,
+      // `event.data` peut être n'importe quoi : l'`id` est lu en accès optionnel (EX-NFR-23).
+      id: (event.data as { id?: number } | undefined)?.id ?? 0,
       kind: 'WORKER_ERROR',
       message: error instanceof Error ? error.message : String(error),
     };

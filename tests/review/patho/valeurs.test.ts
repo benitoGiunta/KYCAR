@@ -224,12 +224,16 @@ describe('patho — variance nulle et seuils d’effectif (ADV-06 / ADV-07 → A
   it.each([11, 12, 29, 30])('VAL-SEUIL-%i — méthodes disponibles et palier d’écran alignés sur 12 (M1) et 30 (M2)', async (n) => {
     // Cellule (marque, modèle, année) d'exactement n annonces, une valeur franchement écartée
     // pour que la détection ait quelque chose à signaler quand elle est applicable.
+    // La valeur écartée vaut 4 000 € et non 1 200 € : à 1 200 € elle tombe SOUS
+    // `0,10 × médianeRéf(C) = 1 250 €` et porte donc `PRICE_IMPLAUSIBLE_IN_CELL` (EX-DATA-19(2)),
+    // qui l'exclut de `V_price(C)` et interdit de l'évaluer — la sonde n'aurait plus aucune annonce
+    // signalable et mesurerait la sentinelle relative au lieu des paliers 12 / 30 qu'elle vise.
     const specs: RowSpec[] = Array.from({ length: n }, (_v, i) => ({
       makeId: 5,
       modelId: 505,
       year: 2016,
       month: 1 + (i % 12),
-      priceEur: i === 0 ? 1200 : 12000 + (i % 7) * 250,
+      priceEur: i === 0 ? 4000 : 12000 + (i % 7) * 250,
       mileageKm: 30000 + i * 1500,
     }));
     const batch = buildBatch(specs);

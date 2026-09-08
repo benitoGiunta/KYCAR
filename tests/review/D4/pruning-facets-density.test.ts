@@ -329,11 +329,23 @@ describe('EX-DATA-110bis — facettes en UN balayage', () => {
 describe('EX-DATA-102 / I7 — grille de densité : bornée, triée, cohérente', () => {
   it('Σ cellules = n_e recomputé indépendamment ; ≤ 676 cellules ; indices dans [kLo−1, kHi+1] des deux axes ; ordre lexicographique', () => {
     const r = dataset.recalculate({ selectionHash: 'FULL:EMPTY' });
-    // Ensemble éligible recomputé avec la règle EX-DATA-99 lue strictement (prix VALIDE au sens d'EX-DATA-60).
+    // Ensemble éligible recomputé HORS moteur. Lecture retenue : **D-05** — l'éligibilité au nuage et
+    // à la densité est « prix VALIDE », c'est-à-dire `QUOTED` ∧ ¬sentinelle absolue (EX-DATA-60) ∧
+    // ¬`PRICE_IMPLAUSIBLE_IN_CELL` (EX-DATA-19(2)), en plus d'une année et d'un kilométrage valides.
+    // La lecture littérale d'EX-DATA-99 (« statut seul ») est amendée par D-05 et par fix-docs ; les
+    // trois chiffres restent imprimés pour que l'écart soit lisible.
+    const validPrices: number[] = [];
+    for (let i = 0; i < batch.rowCount; i++) {
+      const status = batch.priceStatus[i] as number;
+      const p = batch.priceEur[i] as number;
+      if (isPriceValid(p, status, batch.ingestFlags[i] as number)) validPrices.push(p);
+    }
+    const implausibleBelow = validPrices.length >= 12 ? 0.1 * refQuantile(validPrices, 0.5) : Number.NEGATIVE_INFINITY;
     const eligYear: number[] = [];
     const eligKm: number[] = [];
     let eligStrict = 0;
     let eligStatusOnly = 0;
+    let eligValidPrice = 0;
     for (let i = 0; i < batch.rowCount; i++) {
       const status = batch.priceStatus[i] as number;
       const ingest = batch.ingestFlags[i] as number;
@@ -341,13 +353,24 @@ describe('EX-DATA-102 / I7 — grille de densité : bornée, triée, cohérente'
       const km = batch.mileageKm[i] as number;
       if (status !== PRICE_STATUS_QUOTED || !isYearValid(ym) || !isMileageValid(km, ingest)) continue;
       eligStatusOnly++;
-      if (!isPriceValid(batch.priceEur[i] as number, status, ingest)) continue;
+      const price = batch.priceEur[i] as number;
+      if (!isPriceValid(price, status, ingest)) continue;
       eligStrict++;
+      if (price < implausibleBelow) continue;
+      eligValidPrice++;
       eligYear.push(yearFromYearMonth(ym));
       eligKm.push(km);
     }
-    console.log(`[densité] n_e moteur=${r.eligibleCount} ; n_e (statut seul)=${eligStatusOnly} ; n_e (prix valide EX-DATA-60)=${eligStrict} ; cellules=${r.densityCells.length}`);
-    expect(r.eligibleCount).toBe(eligStatusOnly);
+    console.log(`[densité] n_e moteur=${r.eligibleCount} ; n_e (statut seul)=${eligStatusOnly} ; n_e (prix valide EX-DATA-60)=${eligStrict} ; n_e (prix valide D-05, seuil ${implausibleBelow.toFixed(0)} €)=${eligValidPrice} ; cellules=${r.densityCells.length}`);
+    expect(r.eligibleCount).toBe(eligValidPrice);
+    // EX-DATA-99 : la ventilation des motifs ferme l'effectif de la sélection.
+    expect(
+      r.eligibleCount +
+        r.ineligible.noPrice +
+        r.ineligible.noYear +
+        r.ineligible.noMileage +
+        r.ineligible.suspectValue,
+    ).toBe(r.selectionStats.selectionCount);
     expect(r.densityCells.reduce((a, c) => a + c.count, 0)).toBe(r.eligibleCount);
     expect(r.densityCells.length).toBeLessThanOrEqual(676);
     const yb = bin(eligYear, YEAR_BIN_PARAMS);

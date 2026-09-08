@@ -152,7 +152,13 @@ export function createAggregationWorkerClient(): AggregationWorkerClient {
       });
     },
     terminate(): void {
+      // EX-NAV-23 / EX-NFR-23 : vider `pending` sans rien régler laissait tout appelant en vol
+      // (`enterMode2`, `dispose`) suspendu à jamais. Chaque promesse est REJETÉE avant l'arrêt.
+      const abandoned = [...pending.values()];
       pending.clear();
+      for (const request of abandoned) {
+        request.reject(new Error('aggregation worker: terminé, requête abandonnée'));
+      }
       worker.terminate();
     },
   };

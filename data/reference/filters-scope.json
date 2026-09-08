@@ -3,11 +3,11 @@
   "regle": "Arbitrage A-01 de docs/requirements/ARBITRAGES-req-lead.md",
   "generatedAt": "2026-09-05T23:56:37.662Z",
   "totalCatalogue": 101,
-  "totalRetenus": 77,
-  "totalExclus": 24,
+  "totalRetenus": 74,
+  "totalExclus": 27,
   "exclusionsParCategorie": {
     "DOUBLON_STRICT": 2,
-    "R3_DONNEE_PERSONNELLE": 1,
+    "R3_DONNEE_PERSONNELLE": 4,
     "TELEMETRIE_AS24": 5,
     "HORS_PERIMETRE_VOITURE": 16
   },
@@ -805,18 +805,6 @@
       "domainRef": "data/reference/filters.json#filters[id=countryType].domain"
     },
     {
-      "id": "location",
-      "param": "zip",
-      "label": "Ville / code postal",
-      "type": "geo_text",
-      "group": "geographie",
-      "evidence": "RELEVE",
-      "separator": null,
-      "semantics": null,
-      "dependencies": [],
-      "domainRef": null
-    },
-    {
       "id": "radius",
       "param": "zipr",
       "label": "Rayon",
@@ -829,34 +817,6 @@
         "zip"
       ],
       "domainRef": "data/reference/filters.json#filters[id=radius].domain"
-    },
-    {
-      "id": "lat",
-      "param": "lat",
-      "label": "Latitude",
-      "type": "number",
-      "group": "geographie",
-      "evidence": "RELEVE",
-      "separator": null,
-      "semantics": null,
-      "dependencies": [
-        "zip"
-      ],
-      "domainRef": null
-    },
-    {
-      "id": "lon",
-      "param": "lon",
-      "label": "Longitude",
-      "type": "number",
-      "group": "geographie",
-      "evidence": "RELEVE",
-      "separator": null,
-      "semantics": null,
-      "dependencies": [
-        "zip"
-      ],
-      "domainRef": null
     },
     {
       "id": "region",
@@ -1250,6 +1210,39 @@
       "exclusion": "DOUBLON_STRICT",
       "motif": "Deux paramètres pour une même notion. La notion est implémentée une fois ; le paramètre est accepté en lecture d'URL comme alias.",
       "alias": "mmmv"
+    },
+    {
+      "id": "location",
+      "param": "zip",
+      "label": "Ville / code postal",
+      "type": "geo_text",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "exclusion": "R3_DONNEE_PERSONNELLE",
+      "motif": "Code postal exact du vendeur (E8 de EX-DATA-47). Regle R3 de 00-CONTEXT.md et decision 2.6 D-14 : aucun filtre geographique fin ; le pays et la region NUTS-2 restent disponibles.",
+      "alias": null
+    },
+    {
+      "id": "lat",
+      "param": "lat",
+      "label": "Latitude",
+      "type": "number",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "exclusion": "R3_DONNEE_PERSONNELLE",
+      "motif": "Latitude du vendeur (E11 de EX-DATA-47). Regle R3 de 00-CONTEXT.md et decision 2.6 D-14 : la geolocalisation exacte n'entre dans aucune structure KYCAR.",
+      "alias": null
+    },
+    {
+      "id": "lon",
+      "param": "lon",
+      "label": "Longitude",
+      "type": "number",
+      "group": "geographie",
+      "evidence": "RELEVE",
+      "exclusion": "R3_DONNEE_PERSONNELLE",
+      "motif": "Longitude du vendeur (E11 de EX-DATA-47). Regle R3 de 00-CONTEXT.md et decision 2.6 D-14 : la geolocalisation exacte n'entre dans aucune structure KYCAR.",
+      "alias": null
     }
   ]
 }

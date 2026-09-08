@@ -5,6 +5,7 @@ import {
   MODEL_VERSION_CLEAN_MAX,
   PRICE_SENTINEL_ABSOLUTE_EUR,
   cleanModelVersion,
+  parseModelVersion,
   hpToKw,
   isPriceSentinelAbsolute,
   listingKey,
@@ -130,5 +131,73 @@ describe('nettoyage de modelVersionClean (EX-DATA-29, ARB-61/ADV-17, ARB-24, DR-
     const long = `${'Opel Corsa Innovation '.repeat(20)}fin`;
     expect(long.length).toBeGreaterThan(300);
     expect(Array.from(cleanModelVersion(long)).length).toBeLessThanOrEqual(MODEL_VERSION_CLEAN_MAX);
+  });
+});
+
+/* ---- DR-025 : étapes 3 et 7 à 10 du pipeline EX-DATA-29 ------------------------------------- */
+
+const stoplistMod = import.meta.glob('../../data/reference/version-stoplist.json', { eager: true, import: 'default' });
+const lexiconMod = import.meta.glob('../../data/reference/version-lexicon.json', { eager: true, import: 'default' });
+const STOPLIST = (Object.values(stoplistMod)[0] as { entries: { pattern: string }[] }).entries.map((e) => e.pattern);
+const LEXICON = (Object.values(lexiconMod)[0] as { driveBadges: string[] }).driveBadges;
+
+describe('EX-DATA-30 — étape 3 : liste d’arrêt promotionnelle versionnée', () => {
+  it('le fichier de référence porte les 40 motifs initiaux et le lexique ses 28 mentions', () => {
+    expect(STOPLIST).toHaveLength(40);
+    expect(STOPLIST).toContain('promo');
+    expect(STOPLIST).toContain('carpass');
+    expect(STOPLIST).toContain('@');
+    expect(LEXICON).toHaveLength(28);
+    expect(LEXICON).toContain('quattro');
+    expect(LEXICON).toContain('st-line');
+  });
+
+  it('retire les marqueurs promotionnels, insensiblement à la casse et aux diacritiques', () => {
+    expect(cleanModelVersion('PROMO 2.0 TDI Style', { stoplist: STOPLIST })).toBe('2.0 TDI Style');
+    expect(cleanModelVersion('2.0 TDI Nouvelle Arrivée', { stoplist: STOPLIST })).toBe('2.0 TDI');
+    expect(cleanModelVersion('1.6 HDi tva deductible', { stoplist: STOPLIST })).toBe('1.6 HDi');
+  });
+
+  it('retire aussi les amorces de coordonnées de contact — deuxième barrière R3', () => {
+    expect(cleanModelVersion('2.0 TDI www.garage-x.be', { stoplist: STOPLIST })).toBe('2.0 TDI garage-x');
+    expect(cleanModelVersion('1.4 TSI gsm 0470 11 22 33', { stoplist: STOPLIST })).not.toContain('gsm');
+  });
+
+  it('sans liste d’arrêt, aucun marqueur n’est retiré : la liste est une donnée, pas une constante', () => {
+    expect(cleanModelVersion('PROMO 2.0 TDI Style')).toBe('PROMO 2.0 TDI Style');
+  });
+});
+
+describe('EX-DATA-29 — étapes 7 à 10 : champs dérivés de la version déclarée', () => {
+  const parse = (raw: string) => parseModelVersion(raw, { stoplist: STOPLIST, driveBadgeLexicon: LEXICON });
+
+  it('étape 7 — jetons : 2 à 24 caractères, jamais purement numériques, majuscules, triés, 12 au plus', () => {
+    const r = parse('2.0 TDI quattro S line 190 ch');
+    expect(r.trimTokens).toEqual([...r.trimTokens].sort());
+    expect(r.trimTokens).toContain('TDI');
+    expect(r.trimTokens).toContain('QUATTRO');
+    expect(r.trimTokens.some((t) => /^[0-9]+$/.test(t))).toBe(false);
+    expect(r.trimTokens.length).toBeLessThanOrEqual(12);
+    const many = parse(Array.from({ length: 30 }, (_v, i) => `MOT${i}`).join(' '));
+    expect(many.trimTokens).toHaveLength(12);
+  });
+
+  it('étape 8 — cylindrée au badge : premier appariement, retenue dans [0,6 ; 8,0]', () => {
+    expect(parse('2.0 TDI').badgeDisplacementL).toBe(2);
+    expect(parse('1,6 HDi 115').badgeDisplacementL).toBe(1.6);
+    expect(parse('0.4 mini').badgeDisplacementL).toBeNull(); // sous 0,6
+    expect(parse('BMW 320d').badgeDisplacementL).toBeNull(); // aucun appariement
+  });
+
+  it('étape 9 — puissance au badge : conservée AVEC son unité, jamais substituée à powerKw', () => {
+    expect(parse('2.0 TDI 190 ch').badgePower).toEqual({ value: 190, unit: 'ch', raw: '190 ch' });
+    expect(parse('e-tron 300kw').badgePower?.unit).toBe('kw');
+    expect(parse('2.0 TDI').badgePower).toBeNull();
+  });
+
+  it('étape 10 — mentions de motorisation : appariement du lexique FERMÉ, jamais une déduction', () => {
+    expect(parse('2.0 TDI quattro S line').driveBadges).toEqual(['quattro', 'tdi', 's-line']);
+    expect(parse('320d xDrive M Sport').driveBadges).toEqual(['xdrive', 'm-sport']);
+    expect(parse('un moteur inconnu').driveBadges).toEqual([]);
   });
 });

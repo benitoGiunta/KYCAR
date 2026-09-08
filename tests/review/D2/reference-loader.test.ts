@@ -118,9 +118,18 @@ describe('D2 — robustesse du chargeur (point 10 de la revue)', () => {
   it('R-D2-14 — `_index.json` injecté par erreur dans la table : rejet nommé, pas une clé « undefined »', () => {
     // Le chargeur indexe par `file.referenceType` sans le valider. Un appelant (D8) qui n'écarte
     // pas `_index.json` produit silencieusement une entrée `undefined` au lieu d'une erreur.
+    //
+    // SONDE CORRIGÉE (D-31, justification DR-110). Telle qu'écrite, elle construisait elle-même
+    // l'objet pollué avec `[String(index.referenceType)]` — donc littéralement la clé « undefined »,
+    // puisque le « fait » vert ci-dessus établit que `_index.json` ne porte PAS de `referenceType` —
+    // puis affirmait que cette clé n'existait pas : l'assertion était insatisfaisable et
+    // n'exerçait à aucun moment le chargeur. La CORRECTION ATTENDUE par DR-110 est « valider que
+    // chaque entrée porte un `referenceType` non vide cohérent avec sa clé, avec une erreur
+    // nommée » : c'est ce que la sonde mesure désormais, sur le chargeur, sans changer son intention.
     const index = indexEntries[0]?.[1] as RawReferenceFile;
     const pollué: Record<string, RawReferenceFile> = { ...referenceFiles, [String(index.referenceType)]: index };
-    expect(Object.keys(pollué)).not.toContain('undefined');
+    expect(Object.keys(pollué)).toContain('undefined'); // ce que l'appelant fautif produit
+    expect(() => buildReferenceData({ ...inputs, referenceFiles: pollué })).toThrow(/referenceType/);
   });
 
   it('R-D2-15 — fichier de référence structurellement invalide : erreur nommée, pas un TypeError brut', () => {

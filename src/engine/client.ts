@@ -20,12 +20,20 @@ import { LruCache, LRU_CAPACITY } from './lru';
 /** Façade moteur : worker + cache LRU de sélection. */
 export class AggregationEngine {
   private readonly cache = new LruCache<RecalcResult>(LRU_CAPACITY);
+  /**
+   * Recalculs EN VOL, par `selectionHash` (EX-DATA-109, ADV-12/ARB-57). Le cache LRU ne coalesce
+   * que ce qui est déjà REVENU : trois demandes du même hachage avant la première réponse
+   * déclenchaient trois calculs worker. La promesse est mémorisée le temps de l'aller-retour, puis
+   * retirée — un échec ne se mémorise pas (DR-117).
+   */
+  private readonly inFlight = new Map<string, Promise<RecalcResult>>();
 
   constructor(private readonly client: AggregationWorkerClient = createAggregationWorkerClient()) {}
 
   /** Charge (ou remplace) le jeu de données actif. Vide le cache (nouveau snapshot, EX-NAV-23). */
   async loadDataset(batch: ListingColumnBatch, models?: readonly Model[]): Promise<number> {
     this.cache.clear();
+    this.inFlight.clear();
     return this.client.loadDataset(batch, models);
   }
 
@@ -37,9 +45,19 @@ export class AggregationEngine {
     const key = selection.selectionHash;
     const hit = this.cache.get(key);
     if (hit !== undefined) return hit;
-    const result = await this.client.recalculate(selection);
-    this.cache.set(key, result);
-    return result;
+    const flying = this.inFlight.get(key);
+    if (flying !== undefined) return flying;
+    const promise = this.client
+      .recalculate(selection)
+      .then((result) => {
+        this.cache.set(key, result);
+        return result;
+      })
+      .finally(() => {
+        this.inFlight.delete(key);
+      });
+    this.inFlight.set(key, promise);
+    return promise;
   }
 
   /** Calcule les facettes (chemin différé, non mémorisé — dépend du même balayage que le recalcul). */
@@ -57,8 +75,14 @@ export class AggregationEngine {
     return this.cache.size;
   }
 
+  /** Nombre de recalculs en vol (diagnostic). */
+  get inFlightSize(): number {
+    return this.inFlight.size;
+  }
+
   /** Libère le worker. */
   terminate(): void {
+    this.inFlight.clear();
     this.client.terminate();
   }
 }

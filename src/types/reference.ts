@@ -79,11 +79,27 @@ export interface RawScopeEntry {
   readonly label: string;
   readonly type: string;
   readonly group: string;
+  /** Motif d'exclusion du périmètre (entrées de `exclus` seulement), ex. `R3_DONNEE_PERSONNELLE`. */
+  readonly exclusion?: string;
+  /** Phrase motivant l'exclusion (entrées de `exclus` seulement). */
+  readonly motif?: string;
 }
 export interface RawFiltersScope {
   readonly totalRetenus: number;
   readonly retenus: readonly RawScopeEntry[];
   readonly exclus?: readonly RawScopeEntry[];
+}
+
+/** `data/reference/version-stoplist.json` (EX-DATA-30) : liste d'arrêt promotionnelle versionnée. */
+export interface RawVersionStoplist {
+  readonly referenceType: string;
+  readonly entries: readonly { readonly pattern: string; readonly lang?: string; readonly kind?: string }[];
+}
+
+/** `data/reference/version-lexicon.json` (EX-DATA-29 étape 10) : lexique FERMÉ de motorisation. */
+export interface RawVersionLexicon {
+  readonly referenceType: string;
+  readonly driveBadges: readonly string[];
 }
 
 /** Entrées brutes du chargeur : les JSON du dépôt déjà parsés. */
@@ -93,6 +109,10 @@ export interface RawReferenceInputs {
   readonly referenceFiles: Readonly<Record<string, RawReferenceFile>>;
   readonly filters: RawFilters;
   readonly filtersScope: RawFiltersScope;
+  /** EX-DATA-30. Absent : l'étape 3 du pipeline EX-DATA-29 ne retire aucun marqueur. */
+  readonly versionStoplist?: RawVersionStoplist;
+  /** EX-DATA-29 étape 10. Absent : aucune mention de motorisation n'est déduite. */
+  readonly versionLexicon?: RawVersionLexicon;
 }
 
 /* ---- Sortie typée ----------------------------------------------------------------------------- */
@@ -113,6 +133,19 @@ export interface ReferenceData {
   readonly regions: readonly Region[];
   readonly postalRanges: readonly PostalRegionRange[];
   readonly filterScope: FilterScope;
+  /**
+   * EX-DATA-115bis : code de carrosserie → modèles qui la portent. VIDE tant que `taxonomy.json` ne
+   * publie pas de `bodyTypes` ; `bodyTypeIndexAvailable` dit lequel des deux cas s'applique, pour
+   * que D4 et D6 dégradent en connaissance de cause au lieu de confondre « aucun modèle de cette
+   * carrosserie » avec « donnée non fournie » (DR-024, solde d'O15).
+   */
+  readonly modelsByBodyType: ReadonlyMap<string, readonly Model[]>;
+  /** Faux tant qu'aucun modèle du référentiel ne déclare de carrosserie (O15). */
+  readonly bodyTypeIndexAvailable: boolean;
+  /** Motifs de la liste d'arrêt promotionnelle (EX-DATA-30), ou liste vide si le fichier est absent. */
+  readonly versionStoplist: readonly string[];
+  /** Lexique FERMÉ des mentions de motorisation (EX-DATA-29 étape 10), ou liste vide. */
+  readonly versionDriveBadges: readonly string[];
   /** Décode un code dans un vocabulaire NOMMÉ explicitement (EX-DATA-9). `null` si code inconnu. */
   decodeEnum(vocabulary: VocabularyName, code: string): string | null;
   /** Résout un code postal belge en `regionCode` NUTS-2, ou `null` (EX-DATA-52/54). */
@@ -155,6 +188,13 @@ function fromReferenceFile(
 ): Enumeration {
   if (file === undefined) {
     throw new Error(`reference: fichier de référence manquant pour ${vocabulary}`);
+  }
+  // DR-111 : un fichier de forme fausse doit lever une erreur NOMMÉE, jamais un `TypeError` brut
+  // (`file.references is not iterable`) qui ne dit ni le fichier ni le vocabulaire concerné.
+  if (!Array.isArray(file.references)) {
+    throw new Error(
+      `reference: fichier de référence ${file.referenceType ?? '(sans referenceType)'} invalide pour ${vocabulary} : « references » n'est pas un tableau`,
+    );
   }
   const values: EnumValueDef[] = [];
   for (const r of file.references) {
@@ -290,6 +330,17 @@ function buildRegions(): { regions: Region[]; postalRanges: PostalRegionRange[] 
 
 /** Construit la structure de référence typée à partir des JSON du dépôt déjà parsés. */
 export function buildReferenceData(inputs: RawReferenceInputs): ReferenceData {
+  // DR-110 : la table est indexée par `file.referenceType` ; un appelant qui n'écarte pas
+  // `references/_index.json` produisait silencieusement une entrée de clé « undefined ».
+  for (const [key, file] of Object.entries(inputs.referenceFiles)) {
+    if (typeof file?.referenceType !== 'string' || file.referenceType.length === 0) {
+      throw new Error(`reference: entrée « ${key} » sans referenceType exploitable (references/_index.json ?)`);
+    }
+    if (file.referenceType !== key) {
+      throw new Error(`reference: entrée « ${key} » indexée sous un referenceType différent (« ${file.referenceType} »)`);
+    }
+  }
+
   const { makes, makeById, models, modelByKey, modelsByMake } = buildTaxonomy(inputs.taxonomy);
   const vocabularies = buildVocabularies(inputs);
   const { regions, postalRanges } = buildRegions();
@@ -315,6 +366,28 @@ export function buildReferenceData(inputs: RawReferenceInputs): ReferenceData {
     return null;
   };
 
+  // EX-DATA-115bis / O15 : index modèle → carrosserie, VIDE et déclaré indisponible tant que la
+  // taxonomie ne porte aucun `bodyTypes` (DR-024).
+  const modelsByBodyType = new Map<string, Model[]>();
+  for (const m of models) {
+    for (const code of m.bodyTypes) {
+      let bucket = modelsByBodyType.get(code);
+      if (bucket === undefined) {
+        bucket = [];
+        modelsByBodyType.set(code, bucket);
+      }
+      bucket.push(m);
+    }
+  }
+  const bodyTypeIndexAvailable = modelsByBodyType.size > 0;
+
+  const versionStoplist = (inputs.versionStoplist?.entries ?? [])
+    .map((e) => e.pattern)
+    .filter((p) => typeof p === 'string' && p.length > 0);
+  const versionDriveBadges = (inputs.versionLexicon?.driveBadges ?? []).filter(
+    (b) => typeof b === 'string' && b.length > 0,
+  );
+
   return {
     makes,
     makeById,
@@ -325,6 +398,10 @@ export function buildReferenceData(inputs: RawReferenceInputs): ReferenceData {
     regions,
     postalRanges,
     filterScope,
+    modelsByBodyType,
+    bodyTypeIndexAvailable,
+    versionStoplist,
+    versionDriveBadges,
     decodeEnum,
     resolveRegionBE,
   };
