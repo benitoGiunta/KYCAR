@@ -1,0 +1,308 @@
+/**
+ * KYCAR — Orchestration des données (lot D8)
+ * =================================================================================================
+ * Le `DataController` est l'HÔTE que les composants montables (D6/D7 : `MarketScreen`,
+ * `DistributionScreen`, `ListingsScreen`) attendent : eux ne possèdent ni `DataProvider` ni moteur, il
+ * les leur fournit sous une forme déjà résolue (`ScreenALoadedData`, `RecalcResult`, batch élagué).
+ *
+ * Il implémente les décisions d'orchestration de la mission D8 :
+ *   - Cycle de vie du snapshot (EX-NAV-23) : un seul snapshot actif, acquis au démarrage.
+ *   - Échec provider (EX-NFR-21) : délai 5 000 ms, 3 réessais 1s/2s/4s ; repli sur le dernier cache
+ *     (EX-NFR-22) ; une erreur n'est JAMAIS présentée comme un résultat vide (EX-NFR-23).
+ *   - Chargement progressif (EX-NFR-9) : mode 1 servi par les agrégats de base précalculés d'abord ;
+ *     les colonnes d'annonces ne sont chargées qu'à l'ENTRÉE en mode 2 (`fetchListingColumns`).
+ *   - Décision O17 : M1/M2 et les distributions fines ne tournent qu'APRÈS élagage marque/modèle — le
+ *     lot mode 2 est demandé pour `make=<id>;model=<id>`, donc déjà réduit (~10³ lignes), jamais sur
+ *     les 100k complets.
+ */
+
+import { AggregationEngine } from '../engine/index';
+import type { RecalcResult } from '../engine/index';
+import {
+  servesMode2,
+  type AggregateResult,
+  type DataProvider,
+  type MakeAggregate,
+  type ModelAggregate,
+  type SnapshotDescriptor,
+  type SnapshotHandle,
+} from '../providers/DataProvider';
+import { FILTER_DEFAULTS } from '../state/filter-registry';
+import type { SelectionState } from '../state/filter-types';
+import type { ReferenceData } from '../types/reference';
+import { serializeSelection } from '../types/selection';
+import type { ListingColumnBatch } from '../types/index';
+import type { ScreenALoadedData } from '../screens/market/state';
+
+/** Un instantané de cache (EX-NFR-22) : descripteur + agrégats de base, pour le repli hors-ligne. */
+export interface CachedSnapshot {
+  readonly descriptor: SnapshotDescriptor;
+  readonly baseline: AggregateResult<MakeAggregate>;
+  readonly storedAt: string;
+}
+
+/** Cache du dernier snapshot (EX-NFR-22, EX-NFR-24). Implémenté sur IndexedDB (voir `persistence/`). */
+export interface SnapshotCache {
+  read(): Promise<CachedSnapshot | null>;
+  write(snapshot: CachedSnapshot): Promise<void>;
+}
+
+/** Politique de réessai (EX-NFR-21). */
+export interface RetryPolicy {
+  readonly timeoutMs: number;
+  readonly delaysMs: readonly number[];
+}
+
+export const DEFAULT_RETRY_POLICY: RetryPolicy = {
+  timeoutMs: 5000,
+  delaysMs: [1000, 2000, 4000],
+};
+
+export interface DataControllerOptions {
+  readonly provider: DataProvider;
+  readonly referenceData: ReferenceData;
+  /** Provider de repli mode 2 quand le provider principal ne sert pas le mode 2 (EX-DATA-107). */
+  readonly mode2Fallback?: DataProvider;
+  /** Fabrique du moteur (worker en prod, in-process en test). Défaut : `new AggregationEngine()`. */
+  readonly engineFactory?: () => AggregationEngine;
+  readonly cache?: SnapshotCache;
+  readonly retry?: RetryPolicy;
+  /** Injection d'horloge/minuterie pour les tests (défaut : `setTimeout`). */
+  readonly sleep?: (ms: number) => Promise<void>;
+}
+
+/** Résultat du démarrage : nominal, ou dégradé sur cache, ou échec total (jamais silencieux). */
+export interface StartResult {
+  readonly status: 'ready' | 'degraded-cache' | 'failed';
+  readonly descriptor: SnapshotDescriptor | null;
+  readonly sourceKind: 'REAL' | 'SYNTHETIC' | null;
+  readonly errorCode?: string;
+  readonly attemptedAt: string;
+  readonly hasCachedResult: boolean;
+}
+
+/** Résultat de l'entrée en mode 2 (écrans B/D) : lot élagué + recalcul moteur. */
+export interface Mode2Payload {
+  readonly batch: ListingColumnBatch;
+  readonly recalc: RecalcResult;
+  readonly rows: Int32Array;
+  readonly makeModelName: string;
+  readonly sourceKind: 'REAL' | 'SYNTHETIC';
+}
+
+const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+/** Course entre une promesse et un délai (EX-NFR-21 : 5 000 ms). */
+function withTimeout<T>(p: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`TIMEOUT_${timeoutMs}MS`)), timeoutMs);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e instanceof Error ? e : new Error(String(e)));
+      },
+    );
+  });
+}
+
+export class DataController {
+  private readonly provider: DataProvider;
+  private readonly ref: ReferenceData;
+  private readonly mode2Fallback?: DataProvider;
+  private readonly cache?: SnapshotCache;
+  private readonly retry: RetryPolicy;
+  private readonly sleep: (ms: number) => Promise<void>;
+  private readonly engineFactory: () => AggregationEngine;
+
+  private handle: SnapshotHandle | null = null;
+  private descriptor: SnapshotDescriptor | null = null;
+  private cachedBaseline: AggregateResult<MakeAggregate> | null = null;
+  private engine: AggregationEngine | null = null;
+  private degraded = false;
+  /** Dernière clé de jeu local chargée dans le moteur (évite un rechargement redondant). */
+  private loadedDatasetKey: string | null = null;
+
+  constructor(options: DataControllerOptions) {
+    this.provider = options.provider;
+    this.ref = options.referenceData;
+    this.mode2Fallback = options.mode2Fallback;
+    this.cache = options.cache;
+    this.retry = options.retry ?? DEFAULT_RETRY_POLICY;
+    this.sleep = options.sleep ?? defaultSleep;
+    this.engineFactory = options.engineFactory ?? ((): AggregationEngine => new AggregationEngine());
+  }
+
+  get isDegraded(): boolean {
+    return this.degraded;
+  }
+
+  get snapshotDescriptor(): SnapshotDescriptor | null {
+    return this.descriptor;
+  }
+
+  /**
+   * Acquiert le snapshot avec la politique de réessai (EX-NFR-21) et le repli sur cache (EX-NFR-22).
+   * Ne LANCE jamais : un échec est un `StartResult` explicite, jamais une exception muette ni un vide.
+   */
+  async start(): Promise<StartResult> {
+    const attemptedAt = new Date().toISOString();
+    let lastError: Error | null = null;
+
+    const attempts = this.retry.delaysMs.length + 1;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        const handle = await withTimeout(this.provider.openSnapshot(), this.retry.timeoutMs);
+        const baseline = await this.provider.fetchBaselineAggregates(handle);
+        this.handle = handle;
+        this.descriptor = handle.descriptor;
+        this.cachedBaseline = baseline;
+        this.degraded = false;
+        if (this.cache) {
+          await this.cache
+            .write({ descriptor: handle.descriptor, baseline, storedAt: new Date().toISOString() })
+            .catch(() => undefined); // le cache est un confort, jamais bloquant
+        }
+        return {
+          status: 'ready',
+          descriptor: handle.descriptor,
+          sourceKind: handle.descriptor.sourceKind,
+          attemptedAt,
+          hasCachedResult: true,
+        };
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        const delay = this.retry.delaysMs[attempt];
+        if (delay !== undefined) await this.sleep(delay);
+      }
+    }
+
+    // Tous les réessais ont échoué → repli sur le dernier cache (EX-NFR-22).
+    const cached = this.cache ? await this.cache.read().catch(() => null) : null;
+    if (cached !== null) {
+      this.descriptor = cached.descriptor;
+      this.cachedBaseline = cached.baseline;
+      this.degraded = true;
+      return {
+        status: 'degraded-cache',
+        descriptor: cached.descriptor,
+        sourceKind: cached.descriptor.sourceKind,
+        errorCode: lastError?.message ?? 'PROVIDER_ERROR',
+        attemptedAt,
+        hasCachedResult: true,
+      };
+    }
+
+    // Aucun cache : échec total, présenté comme une erreur (EX-NFR-23), jamais comme un résultat vide.
+    return {
+      status: 'failed',
+      descriptor: null,
+      sourceKind: null,
+      errorCode: lastError?.message ?? 'PROVIDER_ERROR',
+      attemptedAt,
+      hasCachedResult: false,
+    };
+  }
+
+  /** Agrégats mode 1 pour la sélection courante → `ScreenALoadedData` prêt pour l'écran A. */
+  async loadMarket(selection: SelectionState): Promise<ScreenALoadedData> {
+    const hasUserFilters = Object.keys(selection).length > 0;
+    const query = serializeSelection(selection, { defaults: FILTER_DEFAULTS });
+
+    // Sélection vide : agrégats de base (précalculés / cache), sans balayage (EX-NFR-9).
+    if (!hasUserFilters || this.handle === null) {
+      const baseline = this.cachedBaseline;
+      if (baseline === null) throw new Error('DataController.loadMarket: aucun snapshot ni cache disponible');
+      return this.screenDataFrom(baseline.rows, hasUserFilters && this.handle !== null, selection);
+    }
+
+    const result = await this.provider.fetchAggregates(this.handle, query, 'MAKE');
+    return this.screenDataFrom(result.rows as readonly MakeAggregate[], true, selection);
+  }
+
+  /** Agrégats de modèle d'une marque (chargement paresseux à l'expansion d'une carte, EX-SCR-132). */
+  async loadModelsForMake(selection: SelectionState, makeId: number): Promise<readonly ModelAggregate[]> {
+    if (this.handle === null) return [];
+    const query = serializeSelection(selection, { defaults: FILTER_DEFAULTS });
+    const result = await this.provider.fetchAggregates(this.handle, query, 'MODEL', makeId);
+    return result.rows.filter((r): r is ModelAggregate => 'modelId' in r);
+  }
+
+  /**
+   * Entrée en mode 2 (écrans B/D) : charge le lot élagué au couple marque/modèle et recalcule (O17).
+   * Le lot est demandé pour `make;model` — l'élagage a donc lieu AVANT tout M1/M2.
+   */
+  async enterMode2(makeId: number, modelId: number): Promise<Mode2Payload> {
+    if (this.handle === null) throw new Error('DataController.enterMode2: snapshot indisponible');
+
+    const provider = this.mode2Provider();
+    const tSelection = `make=${makeId};model=${modelId}`;
+    const batch = await provider.fetchListingColumns!(this.handle, tSelection);
+
+    const engine = this.ensureEngine();
+    if (this.loadedDatasetKey !== batch.localDatasetKey) {
+      await engine.loadDataset(batch, this.ref.models);
+      this.loadedDatasetKey = batch.localDatasetKey;
+    }
+    const selectionHash = `${batch.localDatasetKey}:EMPTY`;
+    const recalc = await engine.recalculate({ selectionHash, refine: [] });
+
+    const rows = new Int32Array(batch.rowCount);
+    for (let i = 0; i < batch.rowCount; i += 1) rows[i] = i;
+
+    const make = this.ref.makeById.get(makeId);
+    const model = this.ref.modelByKey.get(`${makeId}:${modelId}`);
+    const makeModelName = `${make?.label ?? `Marque ${makeId}`} ${model?.label ?? (modelId === 0 ? 'Modèle non identifié' : `Modèle ${modelId}`)}`.trim();
+
+    return {
+      batch,
+      recalc,
+      rows,
+      makeModelName,
+      sourceKind: provider.describe().sourceKind,
+    };
+  }
+
+  /** Libère le moteur (démontage, changement de snapshot). */
+  dispose(): void {
+    this.engine?.terminate();
+    this.engine = null;
+    this.loadedDatasetKey = null;
+  }
+
+  private ensureEngine(): AggregationEngine {
+    if (this.engine === null) this.engine = this.engineFactory();
+    return this.engine;
+  }
+
+  /** Choisit le provider qui sert le mode 2 : le principal s'il le sert, sinon le repli synthétique. */
+  private mode2Provider(): DataProvider {
+    if (servesMode2(this.provider)) return this.provider;
+    if (this.mode2Fallback && servesMode2(this.mode2Fallback)) return this.mode2Fallback;
+    throw new Error('DataController.enterMode2: aucun provider ne sert le mode 2 (EX-DATA-107)');
+  }
+
+  private screenDataFrom(
+    makeAggregates: readonly MakeAggregate[],
+    hasUserFilters: boolean,
+    selection: SelectionState,
+  ): ScreenALoadedData {
+    const descriptor = this.descriptor;
+    return {
+      makeAggregates,
+      modelAggregatesByMake: new Map(),
+      hasUserFilters,
+      activeFilterCount: Object.keys(selection).length,
+      // EX-SCR-26 (leave-one-out) : calcul complet non câblé — dette signalée (boutons libellé seul).
+      topRestrictiveFilters: [],
+      snapshotDate: descriptor?.capturedAt ?? '',
+      snapshotListingCount: descriptor?.listingCount ?? makeAggregates.reduce((s, a) => s + a.listingCount, 0),
+      snapshotAnnouncedListingCount: descriptor?.announcedListingCount ?? null,
+      failedMakeIds: new Set(),
+      totalMakesAttempted: makeAggregates.length,
+    };
+  }
+}

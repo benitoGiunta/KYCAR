@@ -1,5 +1,50 @@
+import { cpSync, existsSync, createReadStream } from 'node:fs';
+import { resolve, extname } from 'node:path';
+
 import preact from '@preact/preset-vite';
-import { defineConfig } from 'vitest/config';
+import { defineConfig, type Plugin } from 'vitest/config';
+
+/**
+ * KYCAR — Plugin d'intégration D8 : sert les référentiels statiques du dépôt (`data/reference/`) sous
+ * `/reference/*` SANS les dupliquer dans le dépôt ni les inliner dans le bundle JS (garde EX-NFR-10).
+ *
+ * - En DEV : un middleware sert `data/reference/<...>` sur les requêtes `/reference/<...>`.
+ * - Au BUILD : l'arbre `data/reference/` est copié dans `dist/reference/` (assets statiques, hors des
+ *   chunks JS du manifest — donc invisibles de `npm run size`).
+ *
+ * SIGNALÉ (dette d'intégration) : ce plugin est le SEUL point où D8 retouche un fichier d'un autre
+ * lot (vite.config.ts, D1). Il ne change rien au budget ni au pipeline ; il branche le fetch au
+ * démarrage (EX-NFR-4), explicitement laissé à D8 par `src/types/reference.ts`.
+ */
+const REFERENCE_DIR = resolve(__dirname, 'data/reference');
+const MIME: Readonly<Record<string, string>> = {
+  '.json': 'application/json; charset=utf-8',
+};
+
+function kycarReferenceData(): Plugin {
+  return {
+    name: 'kycar-reference-data',
+    configureServer(server) {
+      server.middlewares.use('/reference', (req, res, next) => {
+        const rawUrl = req.url ?? '/';
+        const rel = decodeURIComponent(rawUrl.split('?')[0] ?? '/').replace(/^\/+/, '');
+        // Défense: pas de remontée hors du dossier de référence.
+        const filePath = resolve(REFERENCE_DIR, rel);
+        if (!filePath.startsWith(REFERENCE_DIR) || rel.length === 0 || !existsSync(filePath)) {
+          next();
+          return;
+        }
+        res.setHeader('Content-Type', MIME[extname(filePath)] ?? 'application/octet-stream');
+        createReadStream(filePath).pipe(res);
+      });
+    },
+    closeBundle() {
+      if (existsSync(REFERENCE_DIR)) {
+        cpSync(REFERENCE_DIR, resolve(__dirname, 'dist/reference'), { recursive: true });
+      }
+    },
+  };
+}
 
 /**
  * KYCAR - Vite config (lot D1).
@@ -21,7 +66,7 @@ import { defineConfig } from 'vitest/config';
  * legacy fallback bundle, which would itself blow the 300 KiB budget).
  */
 export default defineConfig({
-  plugins: [preact()],
+  plugins: [preact(), kycarReferenceData()],
   build: {
     manifest: true,
   },
