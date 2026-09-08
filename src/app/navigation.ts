@@ -38,6 +38,10 @@ export function resolveView(pathname: string): AppView {
       return { kind: 'compare' };
     case 'savedSearches':
       return { kind: 'savedSearches' };
+    case 'followedModels':
+      // DR-053 (fix-state) : `/suivis` est désormais la sixième route de `matchRoute` ; le
+      // court-circuit ci-dessus reste pour les chemins non canoniques (`/suivis/`).
+      return { kind: 'followed' };
     case 'modelDistribution':
       return { kind: 'modelDistribution', makeId: route.makeId, makeSlug: route.makeSlug, modelId: route.modelId, modelSlug: route.modelSlug };
     case 'modelListings':
