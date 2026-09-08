@@ -31,9 +31,10 @@ export function removeFromCompare(current: readonly CompareModelKey[], key: Comp
   return current.filter((k) => !sameKey(k, key));
 }
 
-/** Sérialise en tokens `makeId.modelId` pour le paramètre multi-valeurs `m` (EX-NAV-10bis). */
+/** Sérialise en tokens `<makeId>-<modelId>` pour le paramètre multi-valeurs `m` (annexe C, R-A09 —
+ * autorité sur l'encodage ; D-13/DR-085 : `.` était incompatible avec `EX-SCR-194`). */
 export function serializeCompareParam(keys: readonly CompareModelKey[]): string {
-  return keys.map((k) => `${k.makeId}.${k.modelId}`).join(',');
+  return keys.map((k) => `${k.makeId}-${k.modelId}`).join(',');
 }
 
 export interface ParseCompareResult {
@@ -43,8 +44,9 @@ export interface ParseCompareResult {
 }
 
 /**
- * Analyse le paramètre `m` (déjà scindé par virgule ou chaîne brute). Ignore les tokens malformés et
- * `modelId = 0`, dédoublonne, et écrête au 4ᵉ couple en signalant l'écrêtage (EX-CRUD-13bis).
+ * Analyse le paramètre `m` (déjà scindé par virgule ou chaîne brute). Format normatif
+ * `<makeId>-<modelId>` (D-13/DR-085, annexe C). Ignore les tokens malformés et `modelId = 0`,
+ * dédoublonne, et écrête au 4ᵉ couple en signalant l'écrêtage (EX-CRUD-13bis).
  */
 export function parseCompareParam(raw: string | readonly string[] | null | undefined): ParseCompareResult {
   if (raw === null || raw === undefined) return { keys: [], clipped: false };
@@ -52,7 +54,7 @@ export function parseCompareParam(raw: string | readonly string[] | null | undef
   const keys: CompareModelKey[] = [];
   let clipped = false;
   for (const token of tokens) {
-    const [makeStr, modelStr] = token.split('.');
+    const [makeStr, modelStr] = token.split('-');
     const makeId = Number(makeStr);
     const modelId = Number(modelStr);
     if (!Number.isSafeInteger(makeId) || !Number.isSafeInteger(modelId) || makeId <= 0) continue;

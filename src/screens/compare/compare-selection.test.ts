@@ -26,22 +26,24 @@ describe('sélection de comparaison (EX-CRUD-13bis)', () => {
     expect(sel).toEqual([{ makeId: 2, modelId: 20 }]);
   });
 
+  // D-13/DR-085 : format normatif `<makeId>-<modelId>` (tiret), annexe C fait foi sur l'encodage —
+  // les littéraux ci-dessous sont mis à jour du point (ancien format non conforme) au tiret.
   it('sérialise puis réanalyse un aller-retour', () => {
     const keys = [{ makeId: 16, modelId: 1174 }, { makeId: 9, modelId: 33 }];
     const serialized = serializeCompareParam(keys);
-    expect(serialized).toBe('16.1174,9.33');
+    expect(serialized).toBe('16-1174,9-33');
     expect(parseCompareParam(serialized).keys).toEqual(keys);
   });
 
   it('écrête l’URL au-delà de 4 couples et le signale', () => {
-    const raw = '1.1,2.2,3.3,4.4,5.5,6.6';
+    const raw = '1-1,2-2,3-3,4-4,5-5,6-6';
     const parsed = parseCompareParam(raw);
     expect(parsed.keys).toHaveLength(MAX_COMPARE);
     expect(parsed.clipped).toBe(true);
   });
 
   it('ignore les tokens malformés et modelId = 0 dans l’URL', () => {
-    const parsed = parseCompareParam('abc,1.0,2.,.3,7.70');
+    const parsed = parseCompareParam('abc,1-0,2-,-3,7-70');
     expect(parsed.keys).toEqual([{ makeId: 7, modelId: 70 }]);
   });
 });
