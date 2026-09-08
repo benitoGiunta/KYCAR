@@ -117,19 +117,24 @@ describe('AggregationEngine — cache clé `selectionHash` devant le worker', ()
   it('pas de fuite de référence : un résultat évincé n’est plus retenu par le cache (WeakRef libérée si gc exposé, sinon absence structurelle)', async () => {
     const { client } = fakeClient();
     const engine = new AggregationEngine(client);
-    const first = await engine.recalculate({ selectionHash: 'FULL:first' });
-    const weak = new WeakRef(first);
+    // La référence forte au résultat ne vit que dans cette fermeture : après éviction, seul le cache
+    // pourrait encore le retenir.
+    const weak = await (async (): Promise<WeakRef<RecalcResult>> => {
+      const first = await engine.recalculate({ selectionHash: 'FULL:first' });
+      return new WeakRef(first);
+    })();
     for (let i = 0; i < 40; i++) await engine.recalculate({ selectionHash: `FULL:x${i}` });
     expect(engine.isCached('FULL:first')).toBe(false);
     const internal = (engine as unknown as { cache: LruCache<RecalcResult> }).cache;
     expect(internal.keysOldestFirst()).not.toContain('FULL:first');
-    // Le seul détenteur restant est la variable locale `first` : on la relâche et on tente un GC.
     const gc = (globalThis as unknown as { gc?: () => void }).gc;
     if (typeof gc === 'function') {
       gc();
       await new Promise((r) => setTimeout(r, 10));
       gc();
-      console.log(`[LRU fuite] WeakRef après éviction + gc : ${weak.deref() === undefined ? 'libérée' : 'encore vivante'}`);
+      const released = weak.deref() === undefined;
+      console.log(`[LRU fuite] WeakRef après éviction + gc : ${released ? 'libérée' : 'encore vivante'}`);
+      expect(released).toBe(true);
     } else {
       console.log('[LRU fuite] gc non exposé : vérification structurelle seulement (clé absente du Map interne)');
     }
