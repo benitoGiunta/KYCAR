@@ -33,12 +33,17 @@ import { CORSA_MODEL_ID, OPEL_MAKE_ID } from './_helpers';
 const ROOT = process.cwd();
 const app = readFileSync(resolve(ROOT, 'src/app.tsx'), 'utf8');
 
-/** Extrait le bloc JSX d'un montage de composant (`<Nom` … premier `/>` de fermeture au même niveau). */
+/**
+ * Extrait le bloc JSX d'un montage de composant : de `<Nom` jusqu'à la PREMIÈRE ligne réduite à
+ * `/>`. L'indentation du dépôt n'est pas fixe d'un montage à l'autre (le bandeau est imbriqué dans
+ * `.filter-bar`), d'où la borne « une ligne dont le seul contenu est la fermeture » plutôt qu'un
+ * nombre d'espaces figé — sans quoi la tranche déborde sur le montage SUIVANT.
+ */
 function mountOf(name: string): string {
   const start = app.indexOf(`<${name}`);
   if (start < 0) return '';
-  const end = app.indexOf('\n        />', start);
-  return end < 0 ? app.slice(start, start + 4000) : app.slice(start, end + 10);
+  const close = app.slice(start).search(/\n[ \t]*\/>/);
+  return close < 0 ? app.slice(start, start + 4000) : app.slice(start, start + close);
 }
 
 describe('R-D8-2.8-01 — `FilterBand` : les trois props listées par fix-state-2 §5', () => {
@@ -87,7 +92,7 @@ describe('R-D8-2.8-02 — `DistributionScreen` : les cinq props listées par fix
 });
 
 describe('R-D8-2.8-03 — `SavedSearchesScreen` : les deux props listées par fix-screens-2 §8.2', () => {
-  const saved = app.match(/<SavedSearchesScreen[\s\S]*?\n          \/>/)?.[0] ?? '';
+  const saved = mountOf('SavedSearchesScreen');
 
   it('`currentSnapshotId` vient du descripteur (condition d’EX-SCR-213), `taxonomy` du référentiel', () => {
     expect(saved, 'montage de SavedSearchesScreen introuvable').not.toBe('');
@@ -116,26 +121,29 @@ describe('R-D8-2.8-04 — `countMatchingRows` compte ce que le mode 2 compte, su
     expect(batch.rowCount).toBeGreaterThan(0);
     expect(countMatchingRows(batch, {}, ref)).toBe(batch.rowCount);
 
-    const cheap = countMatchingRows(batch, { priceTo: '3000' } as SelectionState, ref);
-    const dear = countMatchingRows(batch, { priceTo: '100000' } as SelectionState, ref);
+    const cheap = countMatchingRows(batch, { priceTo: 3000 } as unknown as SelectionState, ref);
+    const dear = countMatchingRows(batch, { priceTo: 100000 } as unknown as SelectionState, ref);
     expect(cheap).toBeLessThan(dear);
     expect(dear).toBeLessThanOrEqual(batch.rowCount);
-    // Vérité terrain lue directement sur la colonne, sans passer par les prédicats.
+    // Vérité terrain lue directement sur la colonne, sans passer par les prédicats : un prix
+    // ABSENT (sentinelle négative, `EX-DATA-40`) n'est jamais « ≤ 3 000 € ».
     let truth = 0;
-    for (let i = 0; i < batch.rowCount; i += 1) if (batch.priceEur[i] !== undefined && (batch.priceEur[i] as number) <= 3000) truth += 1;
+    for (let i = 0; i < batch.rowCount; i += 1) {
+      const v = batch.priceEur[i] as number;
+      if (v >= 0 && v <= 3000) truth += 1;
+    }
     expect(cheap).toBe(truth);
   });
 
   it('une sélection IMPOSSIBLE rend 0 — c’est l’état ET-VIDE-FILTRES de l’écran B (EX-SCR-174)', () => {
-    const impossible = { priceFrom: '900000', priceTo: '1000000' } as unknown as SelectionState;
+    const impossible = { priceFrom: 99000, mileageTo: 5000 } as unknown as SelectionState;
     expect(countMatchingRows(batch, impossible, ref)).toBe(0);
   });
 });
 
 describe('R-D8-2.8-05 — `topRestrictiveFilters` : le gain annoncé EST le gain mesuré', () => {
   it('« <k> offres de plus » = effectif au retrait de ce seul filtre, jamais un nombre inventé', () => {
-    // Sélection à effectif nul : un prix hors domaine du lot, plus un kilométrage bas.
-    const selection = { priceFrom: '900000', mileageTo: '5000' } as unknown as SelectionState;
+    const selection = { priceFrom: 99000, mileageTo: 5000 } as unknown as SelectionState;
     expect(countMatchingRows(batch, selection, ref)).toBe(0);
 
     const hints = topRestrictiveFilters({ selection, batch, referenceData: ref, baselineCount: 0 });
@@ -143,34 +151,41 @@ describe('R-D8-2.8-05 — `topRestrictiveFilters` : le gain annoncé EST le gain
     for (const h of hints) {
       if (h.gain === null) continue;
       const without = { ...selection } as Record<string, unknown>;
-      delete without[h.filterId];
-      const paired = removalPatchFor(h.filterId);
-      for (const id of Object.keys(paired)) delete without[id];
+      for (const id of Object.keys(removalPatchFor(h.filterId))) delete without[id];
       expect(h.gain, h.filterId).toBe(countMatchingRows(batch, without as SelectionState, ref));
       expect(h.gain).toBeGreaterThan(0);
     }
   });
 
-  it('les suggestions sont triées par gain DÉCROISSANT et plafonnées à trois (EX-SCR-26)', () => {
+  it('les suggestions sont triées par gain DÉCROISSANT, les chiffrées d’abord, plafonnées à trois', () => {
     const selection = {
-      priceFrom: '900000',
-      mileageTo: '5000',
-      fuelType: '1',
-      gearType: '1',
-      bodyType: '3',
+      priceTo: 20000,
+      mileageTo: 50000,
+      keyword: 'zzz-aucune-annonce',
+      gearType: 'A',
     } as unknown as SelectionState;
-    const hints = topRestrictiveFilters({ selection, batch, referenceData: ref, baselineCount: 0 });
-    expect(hints.length).toBeLessThanOrEqual(TOP_RESTRICTIVE_MAX);
-    expect(TOP_RESTRICTIVE_MAX).toBe(3);
-    const gains = hints.filter((h) => h.gain !== null).map((h) => h.gain as number);
+    expect(countMatchingRows(batch, selection, ref)).toBe(0);
+
+    const all = topRestrictiveFilters({ selection, batch, referenceData: ref, baselineCount: 0, limit: 10 });
+    expect(all.length).toBeGreaterThan(TOP_RESTRICTIVE_MAX);
+    const gains = all.filter((h) => h.gain !== null).map((h) => h.gain as number);
     expect([...gains].sort((a, b) => b - a)).toEqual(gains);
+    // Les suggestions chiffrées passent avant celles sans chiffre (classe `T`).
+    const firstNull = all.findIndex((h) => h.gain === null);
+    expect(all.slice(firstNull).every((h) => h.gain === null)).toBe(true);
+
+    const capped = topRestrictiveFilters({ selection, batch, referenceData: ref, baselineCount: 0 });
+    expect(capped).toHaveLength(TOP_RESTRICTIVE_MAX);
+    expect(TOP_RESTRICTIVE_MAX).toBe(3);
+    expect(capped).toEqual(all.slice(0, TOP_RESTRICTIVE_MAX));
   });
 
   it('un libellé de suggestion est celui du JETON du bandeau — jamais un identifiant de paramètre', () => {
-    const selection = { priceFrom: '900000' } as unknown as SelectionState;
+    const selection = { priceFrom: 99000, mileageTo: 5000 } as unknown as SelectionState;
     const [hint] = topRestrictiveFilters({ selection, batch, referenceData: ref, baselineCount: 0 });
     expect(hint).toBeDefined();
-    expect(hint?.label).toMatch(/Prix/);
+    // Espace fine insécable du format `fr-BE` (`formatNumberFr`) : on éprouve la FORME, pas l'octet.
+    expect(hint?.label).toMatch(/^Prix : ≥ 99\s000\s€$/u);
     expect(hint?.label).not.toMatch(/pricefrom|priceFrom/);
   });
 
@@ -185,17 +200,19 @@ describe('R-D8-2.8-05 — `topRestrictiveFilters` : le gain annoncé EST le gain
 
 describe('R-D8-2.8-06 — `removalPatchFor` retire le filtre ENTIER', () => {
   it('une borne d’intervalle emporte sa jumelle (sinon le jeton resterait à moitié posé)', () => {
-    expect(removalPatchFor('priceTo')).toEqual({ priceTo: undefined, priceFrom: undefined });
-    expect(removalPatchFor('mileageFrom')).toEqual({ mileageFrom: undefined, mileageTo: undefined });
+    // `toStrictEqual` : seul lui distingue une clé PRÉSENTE à `undefined` (un retrait) d'une clé
+    // ABSENTE (aucun retrait) — c'est exactement l'enjeu d'un patch de retrait.
+    expect(removalPatchFor('priceTo')).toStrictEqual({ priceTo: undefined, priceFrom: undefined });
+    expect(removalPatchFor('mileageFrom')).toStrictEqual({ mileageFrom: undefined, mileageTo: undefined });
   });
 
   it('un filtre sans jumelle ne retire que lui-même', () => {
-    expect(removalPatchFor('fuelType')).toEqual({ fuelType: undefined });
-    expect(removalPatchFor('makesModelsVariants')).toEqual({ makesModelsVariants: undefined });
+    expect(removalPatchFor('fuelType')).toStrictEqual({ fuelType: undefined });
+    expect(removalPatchFor('makesModelsVariants')).toStrictEqual({ makesModelsVariants: undefined });
   });
 
   it('un identifiant inconnu ne fabrique rien d’autre que son propre retrait', () => {
-    expect(removalPatchFor('filtre-inexistant')).toEqual({ 'filtre-inexistant': undefined });
+    expect(removalPatchFor('filtre-inexistant')).toStrictEqual({ 'filtre-inexistant': undefined });
   });
 });
 
@@ -205,10 +222,11 @@ describe('R-D8-2.8-07 — aucune suggestion inventée', () => {
   });
 
   it('un filtre dont le retrait ne rend AUCUNE offre de plus n’est pas suggéré', () => {
-    // `priceFrom` seul vide déjà la sélection : retirer `superDeal` ne change rien, donc il ne
-    // doit pas apparaître avec un « 0 offres de plus ».
-    const selection = { priceFrom: '900000', superDeal: '1' } as unknown as SelectionState;
-    const hints = topRestrictiveFilters({ selection, batch, referenceData: ref, baselineCount: 0 });
-    expect(hints.map((h) => h.filterId)).not.toContain('superDeal');
+    // `priceFrom` à lui seul vide déjà la sélection : retirer `mileageTo` ne rend rien, il ne doit
+    // donc pas apparaître avec un « 0 offres de plus ».
+    const selection = { priceFrom: 99000, mileageTo: 5000 } as unknown as SelectionState;
+    expect(topRestrictiveFilters({ selection, batch, referenceData: ref, baselineCount: 0 }).map((h) => h.filterId)).toEqual([
+      'priceFrom',
+    ]);
   });
 });

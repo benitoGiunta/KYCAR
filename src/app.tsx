@@ -23,10 +23,11 @@ import { buildPath, carryFiltersAcrossMode, resolveTaxonomyRoute, type TaxonomyR
 import { FilterBand } from './components/filters/FilterBand';
 import { buildActiveFilterTokens, buildSearchDescription } from './components/filters/labels';
 import type { FacetCounts } from './components/filters/types';
-import type { BandRegime } from './components/filters/band-model';
+import { countActiveFilters, type BandRegime } from './components/filters/band-model';
 import {
   deriveScreenAState,
   type LoadPhase,
+  type RestrictiveFilterHint,
   type ScreenALoadedData,
 } from './screens/market/state';
 import { MarketScreen, type MarketRegime, type PrimerShortcutId } from './screens/market/MarketScreen';
@@ -60,6 +61,7 @@ import type { SelectionInput } from './types/index';
 import type { VocabularyName } from './types/vocabularies';
 import { MEDIA_QUERY_MOBILE, MEDIA_QUERY_TABLET } from './styles/breakpoints';
 import { resolveView, routeOfView, currentLocation, type AppView } from './app/navigation';
+import { removalPatchFor, topRestrictiveFilters } from './app/restrictive-filters';
 import { CapExceededError } from './persistence/index';
 import { modelKey } from './types/reference';
 import type {
@@ -1094,6 +1096,21 @@ export function App(props: AppProps): JSX.Element {
   /** `EX-SCR-94` (`D8-14`/`FV-24`) — nom PRÉREMPLI du formulaire d'enregistrement. */
   const suggestedSearchName = useMemo(() => buildSearchDescription(activeFilterTokens), [activeFilterTokens]);
 
+  /**
+   * `EX-SCR-26` / `EX-SCR-174` (`D8-31`, liste de `fix-screens-2` §8.1) — suggestions de retrait de
+   * l'état `ET-VIDE-FILTRES` de l'écran B. Le calcul « leave-one-out » n'a lieu QUE lorsque la
+   * sélection est effectivement vide (c'est le seul état qui rend le bloc) : hors de ce cas, aucun
+   * balayage supplémentaire n'est fait. Il porte sur le lot DÉJÀ chargé et élagué au couple
+   * marque/modèle (`O17`), donc sans aucun aller provider. Sur l'écran A (mode 1), le même calcul
+   * exigerait un balayage des 100 000 annonces : `ScreenALoadedData.topRestrictiveFilters` y reste
+   * `[]` (dette signalée dans `data-controller.ts`, hors portée de `D8-31`).
+   */
+  const emptySelectionHints = useMemo<readonly RestrictiveFilterHint[]>(() => {
+    const payload = mode2?.payload;
+    if (payload === undefined || payload.rows.length !== 0) return [];
+    return topRestrictiveFilters({ selection, batch: payload.batch, referenceData, baselineCount: 0 });
+  }, [mode2, selection, referenceData]);
+
   /** `ET-FILTRE-NON-APPLIQUE` (D-03, DR-103) — bandeau nommant les filtres non appliqués. */
   const unapplied = loadedData?.unappliedFilterIds ?? [];
 
@@ -1209,6 +1226,24 @@ export function App(props: AppProps): JSX.Element {
             initialSelection={selection}
             originAndPath={location.pathname}
             referenceData={referenceData}
+            /* `EX-SCR-101` (`D8-31`, fix-state-2 §5.1) — DÉCLARATION : la taxonomie servie au
+               bandeau est celle de ce snapshot. Un `mmmv` dont la marque ou le modèle en est absent
+               est alors CONSERVÉ, marqué en ambre et compté à part (jamais retiré en silence).
+               Le prop n'accepte pas `null` : `descriptor?.capturedAt`, sans `?? null`. */
+            snapshotDate={descriptor?.capturedAt}
+            /* `EX-SRCH-14` (`D8-31`, fix-state-2 §5.2) — en mode 2, la marque courante n'est portée
+               que par la ROUTE (`carryFiltersAcrossMode` retire `mmmv` de la sélection à l'entrée) :
+               sans elle, « même marque » n'est pas décidable et le bandeau garde son comportement
+               d'avant. Absent hors mode 2, par construction. */
+            routePair={
+              view.kind === 'modelDistribution' || view.kind === 'modelListings'
+                ? { makeId: view.makeId, modelId: view.modelId }
+                : undefined
+            }
+            /* `EX-NAV-15` (fix-state-2 §5.3) — corollaire du même geste : l'écran `G` ouvert depuis
+               le mode 2 a désigné un COUPLE complet. Seule la coquille sait bâtir
+               `/marche/:makeId-:slug/:modelId-:slug` (les slugs viennent de la taxonomie). */
+            onSelectModel={(pair) => goToModel(pair.makeId, pair.modelId)}
             onHistoryReplace={(url) => navigate(url, 'replace')}
             onHistoryPush={(url) => navigate(url, 'push')}
             onRecomputeLocal={() => {
@@ -1394,6 +1429,13 @@ export function App(props: AppProps): JSX.Element {
             saved={stores.saved.list()}
             recent={stores.recent.list()}
             currentCountById={currentCounts}
+            /* `EX-SCR-213` (`D8-31`, fix-screens-2 §8.2) — condition d'affichage de l'écart :
+               il n'est rendu que si le snapshot a CHANGÉ depuis l'enregistrement. Absent ⇒ aucun
+               écart, jamais un « + 0 ». */
+            currentSnapshotId={descriptor?.snapshotId}
+            /* `EX-SCR-212` — résolution de `<Marque> <Modèle>` du périmètre et des jetons `mmmv` de
+               la description ; absent ⇒ repli sur les slugs de l'URL, jamais un identifiant nu. */
+            taxonomy={referenceData}
             onGoToMarket={() => navigate('/marche')}
             onOpen={(url, id) => {
               // `EX-CRUD-6` (DR-102) : l'ouverture met à jour `dernier_accès_le` (les valeurs figées
@@ -1612,6 +1654,19 @@ export function App(props: AppProps): JSX.Element {
           onOpenMentions={() => navigate('/mentions')}
           /* `D8-24` (`ET-CHARGE-INIT`/`ET-CHARGE-MAJ`) — un recalcul est EN COURS sur ce périmètre. */
           recalculating={mode2.status === 'loading'}
+          /* `EX-SCR-174`/`EX-SCR-26` (`D8-31`, fix-screens-2 §8.1) — bloc `ET-VIDE-FILTRES` de
+             l'écran B. `activeFilterCount` est la valeur du BANDEAU (même fonction, même sélection) ;
+             les suggestions sont mesurées « leave-one-out » sur le lot chargé. */
+          activeFilterCount={countActiveFilters(selection)}
+          topRestrictiveFilters={emptySelectionHints}
+          onRemoveFilter={(filterId: string) => applyFilters(removalPatchFor(filterId))}
+          onResetAllFilters={() => {
+            // Mode 2 : « Réinitialiser tous les filtres » vide la REQUÊTE, jamais la route — le
+            // périmètre marque/modèle est la page elle-même (`EX-NAV-2`), pas un filtre posé.
+            setUrlCorrections([]);
+            navigate(location.pathname, 'push');
+          }}
+          onSaveSearch={() => saveCurrentSearch(defaultSearchName())}
           onUiChange={(next) => applyUiState(next)}
           onApplyFilters={(patch) => applyFilters(patch)}
           onViewBrushedListings={(sel) =>
