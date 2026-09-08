@@ -43,6 +43,15 @@ export function MentionsPage(props: MentionsPageProps): JSX.Element {
           adaptateur de source réelle lorsqu’il est disponible.
         </li>
         <li>
+          {/* EX-NFR-26 (DR-152) : nommer la source réelle visée et ses conditions d'usage. Idéalement
+              exposé depuis `ProviderCapabilities` (src/providers/, hors périmètre fix-screens) plutôt
+              qu'en dur ici — voir le rapport de lot, § « Câblage attendu de fix-app ». */}
+          La source réelle visée est <strong>2dehands.be</strong> / <strong>marktplaats.nl</strong> (même
+          plateforme, groupe Adevinta) : seule la surface autorisée par leur <code>robots.txt</code>{' '}
+          est lue, jamais leur API interne. La validation juridique de ce positionnement (AC-01) n’est
+          pas levée à ce jour : c’est une hypothèse de travail, pas une autorisation constatée.
+        </li>
+        <li>
           Une source réelle ne servant qu’un échantillon biaisé par la promotion publicitaire est
           restreinte au mode 1 (agrégats) : les distributions fines du mode 2 basculent alors sur le
           jeu synthétique, signalé comme tel, plutôt que de présenter un échantillon trompeur.
