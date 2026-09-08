@@ -18,7 +18,6 @@ import { test, expect, type Page } from '@playwright/test';
 import {
   CAPS,
   LS,
-  OPEL_MAKE_ID,
   P2_PATH,
   SURFACES,
   constat,

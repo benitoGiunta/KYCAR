@@ -168,7 +168,8 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     for await (const chunk of stream) csv += String(chunk);
 
     const lines = csv.split(/\r?\n/);
-    expect(lines[0]).toMatch(/^﻿# snapshot;/);
+    // `EX-CRUD-14` : UTF-8 AVEC BOM (U+FEFF), pour qu'un tableur francophone ouvre le fichier droit.
+    expect(lines[0]).toMatch(/^\uFEFF# snapshot;/);
     expect(lines[1]).toMatch(/^# filtres;/);
     expect(stripSpaces(lines[1] ?? '')).toContain('body=3');
     expect(lines[2]).toMatch(/^# couverture;/);
