@@ -82,7 +82,9 @@ describe('serializeQuery — ordre canonique (EX-NAV-9)', () => {
     expect(serializeQuery({ powerType: 'kw' })).toBe('');
     expect(serializeQuery({ sortTypes: 'standard' })).toBe('');
     expect(serializeQuery({ hadAccident: 'N,U' })).toBe('');
-    expect(serializeQuery({ powerType: 'hp' })).toBe('powertype=hp');
+    // `DR-052`/`EX-SRCH-18bis` : `powertype` est une valeur INJECTÉE vers la source (`ARB-30`),
+    // `nonExposed` — jamais sérialisée dans l'URL de l'application, quelle que soit sa valeur.
+    expect(serializeQuery({ powerType: 'hp' })).toBe('');
   });
 
   it('omet un filtre à sa valeur par défaut, jamais réécrit vide (EX-NAV-8)', () => {

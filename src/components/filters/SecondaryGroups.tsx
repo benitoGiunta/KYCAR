@@ -22,9 +22,19 @@ export interface SecondaryGroupsProps {
   readonly expandedGroups: ReadonlySet<string>;
   readonly onToggleGroup: (group: string) => void;
   readonly onChange: OnFilterChange;
+  /** Réinitialisation PAR GROUPE (`EX-SRCH-19`, `DR-061`) — vide `resetFilterIds`, routé par
+   * l'appelant via `forcePush` (`EX-NAV-14`). */
+  readonly onResetGroup: (filterIds: readonly string[]) => void;
 }
 
-export function SecondaryGroups({ mode, selection, expandedGroups, onToggleGroup, onChange }: SecondaryGroupsProps) {
+export function SecondaryGroups({
+  mode,
+  selection,
+  expandedGroups,
+  onToggleGroup,
+  onChange,
+  onResetGroup,
+}: SecondaryGroupsProps) {
   const groups = buildSecondaryGroups(selection);
 
   return (
@@ -43,6 +53,16 @@ export function SecondaryGroups({ mode, selection, expandedGroups, onToggleGroup
                 {group.label}
                 {group.activeCount > 0 ? ` (${group.activeCount} actifs)` : ''}
               </button>
+              {group.activeCount > 0 ? (
+                <button
+                  type="button"
+                  class="kycar-secondary-group__reset"
+                  aria-label={`Réinitialiser le groupe ${group.label}`}
+                  onClick={() => onResetGroup(group.resetFilterIds)}
+                >
+                  Réinitialiser
+                </button>
+              ) : null}
             </legend>
             {expanded ? (
               <div class="kycar-secondary-group__body">

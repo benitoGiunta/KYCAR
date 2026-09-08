@@ -12,7 +12,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 
-import { FILTER_BY_ID, FILTER_DEFAULTS } from '../../state/filter-registry';
+import { FILTER_BY_ID, FILTER_DEFAULTS, FILTER_DEFS, isDependencySatisfied } from '../../state/filter-registry';
 import { resolveFilterClass } from '../../state/filter-registry';
 import type { MutableSelectionState, ScreenMode, SelectionState } from '../../state/filter-types';
 import { InteractionController } from '../../state/interaction';
@@ -24,7 +24,7 @@ import {
   type UiState,
 } from '../../state/url-codec';
 import { ActiveFilterTokens } from './ActiveFilterTokens';
-import { defaultExpandedGroups } from './band-model';
+import { countActiveFilters, defaultExpandedGroups } from './band-model';
 import { FilterSearch } from './FilterSearch';
 import { PrimaryLine } from './PrimaryLine';
 import { ScreenG, type ScreenGReferenceData } from './ScreenG';
@@ -48,6 +48,29 @@ export interface FilterBandProps {
   readonly onSelectionApplied?: (selection: SelectionState) => void;
   /** `EX-NAV-11` : notifié quand une tentative de pose est refusée pour dépassement du plafond. */
   readonly onUrlBudgetExceeded?: (message: string) => void;
+}
+
+/**
+ * `DR-059` (`EX-SCR-73`) : retire en cascade tout filtre dont la dépendance n'est plus satisfaite
+ * après un retrait — sans quoi un prédicat orphelin (ex. bornes de leasing sans `hasleasing`) reste
+ * appliqué alors que son contrôle est désactivé : l'utilisateur ne peut plus ni le voir ni le
+ * retirer. Boucle jusqu'à stabilité (une chaîne de dépendances peut se propager sur plus d'un
+ * niveau). Mutation en place de `state`, appelée uniquement sur une copie déjà détachée de l'état
+ * React.
+ */
+function cascadeRemoveOrphans(state: MutableSelectionState): void {
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const def of FILTER_DEFS) {
+      if (def.dependencies.length === 0) continue;
+      if (!(def.id in state)) continue;
+      if (!isDependencySatisfied(def, state)) {
+        delete state[def.id];
+        changed = true;
+      }
+    }
+  }
 }
 
 function mmmvSummary(selection: SelectionState, referenceData: ScreenGReferenceData | undefined): string {
@@ -120,36 +143,48 @@ export function FilterBand(props: FilterBandProps) {
       control: def.control,
       cls,
       commit: () => applyToSelection(evt.filterId, evt.value),
+      valueLength: evt.valueLength,
     });
+  };
+
+  const forcePushSelection = (next: MutableSelectionState): void => {
+    selectionRef.current = next;
+    setSelection(next);
+    props.onSelectionApplied?.(next);
+    const query = serializeQuery(next, props.uiState ?? {}, { filterDefaults: FILTER_DEFAULTS });
+    controllerRef.current?.forcePush(assembleUrl(props.originAndPath, query).url);
   };
 
   const handleRemove = (filterIds: readonly string[]): void => {
     const next: MutableSelectionState = { ...selectionRef.current };
     for (const id of filterIds) delete next[id];
-    selectionRef.current = next;
-    setSelection(next);
-    props.onSelectionApplied?.(next);
-    const query = serializeQuery(next, props.uiState ?? {}, { filterDefaults: FILTER_DEFAULTS });
-    controllerRef.current?.forcePush(assembleUrl(props.originAndPath, query).url);
+    cascadeRemoveOrphans(next); // DR-059 : les enfants orphelins partent avec leur parent
+    forcePushSelection(next);
+  };
+
+  /** Retrait UNITAIRE d'une valeur d'un filtre d'énumération multi-valeurs, depuis l'infobulle
+   * d'un jeton à cardinal (`EX-SCR-76` « en substance », `D-10`, `DR-062`). */
+  const handleRemovePartial = (filterId: string, removesCodes: readonly string[]): void => {
+    const current = selectionRef.current[filterId];
+    if (current === undefined) return;
+    const codes = (Array.isArray(current) ? current : [current]).map(String);
+    const remaining = codes.filter((c) => !removesCodes.includes(c));
+    const next: MutableSelectionState = { ...selectionRef.current };
+    if (remaining.length === 0) delete next[filterId];
+    else next[filterId] = remaining;
+    cascadeRemoveOrphans(next);
+    forcePushSelection(next);
   };
 
   const handleClearAll = (): void => {
-    const next: MutableSelectionState = {};
-    selectionRef.current = next;
-    setSelection(next);
-    props.onSelectionApplied?.(next);
-    const query = serializeQuery(next, props.uiState ?? {}, { filterDefaults: FILTER_DEFAULTS });
-    controllerRef.current?.forcePush(assembleUrl(props.originAndPath, query).url);
+    forcePushSelection({});
   };
 
-  const activeCount = useMemo(() => {
-    let n = 0;
-    for (const id of Object.keys(selection)) {
-      const def = FILTER_BY_ID.get(id);
-      if (def !== undefined && def.cls !== 'D' && !def.nonExposed) n++;
-    }
-    return n;
-  }, [selection]);
+  // `DR-135` (`EX-SCR-91`) : le compteur du bandeau doit utiliser LA MÊME règle que le reste du
+  // lot (`countActiveFilters`, `band-model.ts`), qui exclut un filtre posé à sa `defaultValue`
+  // non-absence (ex. `powertype=kw`) — un calcul en ligne ne le faisait pas, donnant deux comptes
+  // divergents (bandeau replié vs ailleurs) pour la même sélection.
+  const activeCount = useMemo(() => countActiveFilters(selection), [selection]);
 
   const screenGSummary = mmmvSummary(selection, props.referenceData);
 
@@ -184,8 +219,10 @@ export function FilterBand(props: FilterBandProps) {
           })
         }
         onChange={handleChange}
+        onResetGroup={handleRemove}
       />
       <ActiveFilterTokens
+        onRemovePartial={handleRemovePartial}
         selection={selection}
         resultCount={props.resultCount}
         onRemove={handleRemove}

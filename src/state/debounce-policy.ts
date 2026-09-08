@@ -57,11 +57,18 @@ const SELECTION_IMMEDIATE_FILTER_IDS: ReadonlySet<string> = new Set(['makesModel
  * observé par le composant appelant. Le geste prime sur le `ControlKind` générique : un composant
  * qui sait qu'il vient de recevoir une frappe passe `'keystroke'`, un relâchement de curseur passe
  * `'slider-commit'`, une case/case-à-cocher/interrupteur/select passe `'discrete-change'`.
+ *
+ * `valueLength` (`EX-SRCH-6`, `DR-058`) : longueur courante de la valeur brute saisie, UNIQUEMENT
+ * consultée pour `location` (code postal). Sous `POSTAL_CODE_MIN_CHARS`, ou si l'appelant ne la
+ * fournit pas du tout (repli conservateur — mieux vaut ne jamais committer une valeur trop courte
+ * que de le faire par défaut faute d'information), le résultat est `Number.POSITIVE_INFINITY` :
+ * aucun commit n'est JAMAIS planifié pour ce geste, quelle que soit la durée d'attente.
  */
 export function resolveDebounceMs(
   filterId: string,
   gesture: InteractionGesture,
   control: ControlKind,
+  valueLength?: number,
 ): number {
   if (gesture === 'discrete-change') {
     if (CHECKBOX_BURST_FILTER_IDS.has(filterId) || control === 'panel-search-multi') {
@@ -72,7 +79,10 @@ export function resolveDebounceMs(
   if (gesture === 'selection-immediate') return DEBOUNCE_SELECTION_IMMEDIATE_MS;
   if (gesture === 'slider-commit') return DEBOUNCE_SLIDER_COMMIT_MS;
   // gesture === 'keystroke'
-  if (POSTAL_CODE_FILTER_IDS.has(filterId)) return DEBOUNCE_POSTAL_CODE_MS;
+  if (POSTAL_CODE_FILTER_IDS.has(filterId)) {
+    if (valueLength === undefined || valueLength < POSTAL_CODE_MIN_CHARS) return Number.POSITIVE_INFINITY;
+    return DEBOUNCE_POSTAL_CODE_MS;
+  }
   if (DEPENDENT_IMMEDIATE_FILTER_IDS.has(filterId)) return DEBOUNCE_DEPENDENT_IMMEDIATE_MS;
   if (SELECTION_IMMEDIATE_FILTER_IDS.has(filterId)) return DEBOUNCE_SELECTION_IMMEDIATE_MS;
   if (control === 'text-field') return DEBOUNCE_TEXT_TYPED_MS;

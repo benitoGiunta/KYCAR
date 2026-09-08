@@ -47,8 +47,17 @@ describe('résolution du débounce — table EX-SRCH-1…8', () => {
     expect(resolveDebounceMs('keyword', 'keystroke', 'text-field')).toBe(DEBOUNCE_TEXT_TYPED_MS);
   });
 
-  it('EX-SRCH-6 — code postal : 500 ms', () => {
-    expect(resolveDebounceMs('location', 'keystroke', 'geo-composite')).toBe(DEBOUNCE_POSTAL_CODE_MS);
+  it('EX-SRCH-6 — code postal : 500 ms, une fois le seuil de 4 caractères atteint', () => {
+    // `DR-058` : le délai normatif de 500 ms ne s'applique qu'à partir du seuil de caractères —
+    // `resolveDebounceMs` a besoin de `valueLength` pour l'appliquer (seul signal disponible ;
+    // sans lui, repli conservateur `Infinity`, voir le cas suivant).
+    expect(resolveDebounceMs('location', 'keystroke', 'geo-composite', 4)).toBe(DEBOUNCE_POSTAL_CODE_MS);
+    expect(resolveDebounceMs('location', 'keystroke', 'geo-composite', 10)).toBe(DEBOUNCE_POSTAL_CODE_MS);
+  });
+
+  it('EX-SRCH-6 — sous 4 caractères saisis, ou longueur inconnue : jamais de commit planifié', () => {
+    expect(resolveDebounceMs('location', 'keystroke', 'geo-composite', 2)).toBe(Number.POSITIVE_INFINITY);
+    expect(resolveDebounceMs('location', 'keystroke', 'geo-composite')).toBe(Number.POSITIVE_INFINITY);
   });
 
   it('EX-SRCH-7 — sélecteur dépendant (zipr) : immédiat, 0 ms', () => {

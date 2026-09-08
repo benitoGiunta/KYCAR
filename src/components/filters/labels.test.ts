@@ -37,7 +37,10 @@ describe('EX-NFR-30 — 0 code brut affiché, exhaustif sur le registre', () => 
         const selection: SelectionState = { [def.id]: opt.code };
         const tokens = buildActiveFilterTokens(selection);
         expect(tokens, `filtre ${def.id}, code ${opt.code}`).toHaveLength(1);
-        expect(tokens[0]?.text).toBe(opt.label);
+        // `DR-056`/`ARB-12` : le jeton porte TOUJOURS le libellé du FILTRE, préfixé au libellé de
+        // la VALEUR (« Carburant : Essence », jamais « Essence » seul) — contre-mesure du lien
+        // tronqué. Le texte contient donc le libellé du filtre ET celui de l'option.
+        expect(tokens[0]?.text).toBe(`${def.label} : ${opt.label}`);
         // Le libellé n'est jamais vide (EX-NFR-29 : chaque code utilisé porte un libellé FR).
         expect(opt.label.length).toBeGreaterThan(0);
       }
@@ -52,7 +55,8 @@ describe('EX-NFR-30 — 0 code brut affiché, exhaustif sur le registre', () => 
     expect(second).toBeDefined();
     const tokens = buildActiveFilterTokens({ fuelType: [first!.code, second!.code] });
     expect(tokens).toHaveLength(1);
-    expect(tokens[0]?.text).toBe(`${first!.label}, ${second!.label}`);
+    // `DR-056` : préfixé du libellé du filtre (« Carburant : … »).
+    expect(tokens[0]?.text).toBe(`Carburant : ${first!.label}, ${second!.label}`);
     expect(tokens[0]?.text).not.toContain(first!.code);
   });
 
@@ -104,19 +108,20 @@ describe('formatage numérique fr-BE et jetons d’intervalle (EX-SCR-75)', () =
     expect(tokens[0]?.text.endsWith('€')).toBe(true);
   });
 
-  it('un intervalle à borne unique haute affiche "≤ valeur"', () => {
+  it('un intervalle à borne unique haute affiche "<libellé> : ≤ valeur"', () => {
+    // `DR-056` : préfixé du nom du CONCEPT (« Kilométrage », pas « Kilométrage à »).
     const tokens = buildActiveFilterTokens({ mileageTo: 100000 });
     expect(tokens).toHaveLength(1);
-    expect(tokens[0]?.text.startsWith('≤')).toBe(true);
+    expect(tokens[0]?.text).toBe(`Kilométrage : ≤ ${formatNumberFr(100000, 'km')}`);
     expect(tokens[0]?.filterIds).toEqual(['mileageTo']);
   });
 
-  it('un intervalle à borne unique basse affiche "≥ valeur"', () => {
+  it('un intervalle à borne unique basse affiche "<libellé> : ≥ valeur"', () => {
     const tokens = buildActiveFilterTokens({ dateOfRegistrationFrom: 2015 });
     expect(tokens).toHaveLength(1);
-    expect(tokens[0]?.text.startsWith('≥')).toBe(true);
+    expect(tokens[0]?.text.startsWith('Première immatriculation : ≥')).toBe(true);
     // Année : aucun suffixe d'unité (le séparateur de milliers fr-BE est l'espace fine insécable).
-    expect(tokens[0]?.text).toBe(`≥ ${formatNumberFr(2015)}`);
+    expect(tokens[0]?.text).toBe(`Première immatriculation : ≥ ${formatNumberFr(2015)}`);
     expect(tokens[0]?.text.endsWith('€')).toBe(false);
   });
 

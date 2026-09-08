@@ -15,7 +15,12 @@ import {
 
 /**
  * Test de complétude (critère de recette `EX-SCR-82`/`83`) : compare le registre de D5 à
- * `data/reference/filters-scope.json`, seule source normative des 77 identifiants/paramètres.
+ * `data/reference/filters-scope.json`, seule source normative des identifiants/paramètres — SOUS
+ * RÉSERVE de `D-14` (`R3_DONNEE_PERSONNELLE`) : `location`/`lat`/`lon` sont retirés du registre par
+ * fix-state QUEL QUE SOIT le contenu du fichier de scope (fix-engine les retire de son côté,
+ * séparément, potentiellement pas encore fusionné dans ce worktree). `radius`/`crossBorder`
+ * perdent en conséquence leur dépendance envers `location`, qui n'existe plus. Ce test est donc
+ * robuste aux deux états du fichier (77 avant la fusion de fix-engine, 74 après).
  */
 describe('registre des filtres — complétude contre filters-scope.json', () => {
   const retenus = filtersScope.retenus as ReadonlyArray<{
@@ -26,16 +31,24 @@ describe('registre des filtres — complétude contre filters-scope.json', () =>
     readonly dependencies: readonly string[];
   }>;
 
-  it('porte exactement les 77 filtres retenus, ni plus ni moins', () => {
-    expect(filtersScope.totalRetenus).toBe(77);
-    expect(FILTER_DEFS.length).toBe(77);
-    const scopeIds = new Set(retenus.map((r) => r.id));
+  /** `D-14` : retirés du registre, quel que soit le contenu du fichier de scope. */
+  const REMOVED_BY_D14: ReadonlySet<string> = new Set(['location', 'lat', 'lon']);
+  /** Dépendance envers `location` retirée en conséquence (`D-14`) — leur prérequis a disparu. */
+  const DEPENDENCY_DROPPED_BY_D14: ReadonlySet<string> = new Set(['radius', 'crossBorder']);
+  /** `DR-055` : dépendance envers `powerType` retirée (`EX-SCR-73` : « toujours posé, jamais
+   * désactivé » — `powertype` porte une `defaultValue`, une fausse dépendance le désactivait par
+   * défaut). `filters-scope.json` conserve encore cette dépendance côté relevé brut. */
+  const DEPENDENCY_DROPPED_BY_DR055: ReadonlySet<string> = new Set(['powerFrom', 'powerTo']);
+
+  it('porte les filtres retenus moins ceux exclus par D-14, ni plus ni moins', () => {
+    const scopeIds = new Set(retenus.map((r) => r.id).filter((id) => !REMOVED_BY_D14.has(id)));
     const defIds = new Set(FILTER_DEFS.map((d) => d.id));
     expect(defIds).toEqual(scopeIds);
   });
 
-  it('reprend param/label/type à l’identique pour chacun des 77', () => {
+  it('reprend param/label/type à l’identique pour chacun des filtres non exclus par D-14', () => {
     for (const r of retenus) {
+      if (REMOVED_BY_D14.has(r.id)) continue;
       const d = FILTER_BY_ID.get(r.id);
       expect(d, `filtre manquant : ${r.id}`).toBeDefined();
       expect(d?.param).toBe(r.param);
@@ -48,6 +61,11 @@ describe('registre des filtres — complétude contre filters-scope.json', () =>
     const paramToId = new Map(retenus.map((r) => [r.param, r.id]));
     for (const r of retenus) {
       if (r.dependencies.length === 0) continue;
+      if (
+        REMOVED_BY_D14.has(r.id) ||
+        DEPENDENCY_DROPPED_BY_D14.has(r.id) ||
+        DEPENDENCY_DROPPED_BY_DR055.has(r.id)
+      ) continue;
       const d = FILTER_BY_ID.get(r.id);
       const expectedIds = r.dependencies.map((p) => paramToId.get(p) ?? p).sort();
       const actualIds = [...(d?.dependencies ?? [])].sort();
@@ -69,17 +87,28 @@ describe('registre des filtres — complétude contre filters-scope.json', () =>
 });
 
 /**
- * Bilan arithmétique clos `EX-SCR-83` : 77 RETENU dont 76 EXPOSÉ (13 primaires en 9 contrôles,
- * 60 secondaires, 3 désactivés documentés) et 1 NON_EXPOSE (`atype`).
+ * Bilan arithmétique clos `EX-SCR-83`, mis à jour par la remédiation 2.6 : `D-14` retire 3 filtres
+ * du registre (`location`/`lat`/`lon`, R3) ; `DR-052`/`D-15` marquent `nonExposed` trois filtres
+ * supplémentaires — valeurs injectées vers la source (`powerType`, `hadAccident`, `countryType`,
+ * `EX-SRCH-18bis`/`ARB-30`) — en plus de `atype` ; `D-12`/`DR-066` marquent `nonExposed` `page` et
+ * `pageSize` (paramètres d'état d'interface, retirés de la ligne primaire, jamais des filtres). Le
+ * décompte passe donc de 77/76+1/13/60 à 74/68+6/12/53.
  */
-describe('registre des filtres — bilan EX-SCR-83', () => {
-  it('compte 1 seul filtre NON_EXPOSE (atype)', () => {
+describe('registre des filtres — bilan EX-SCR-83 (mis à jour DR-052/D-12/D-14/D-15)', () => {
+  it('compte 6 filtres NON_EXPOSE : atype, powerType, hadAccident, countryType, page, pageSize', () => {
     const nonExposed = FILTER_DEFS.filter((d) => d.nonExposed === true);
-    expect(nonExposed.map((d) => d.id)).toEqual(['articleType']);
+    expect(nonExposed.map((d) => d.id)).toEqual([
+      'articleType',
+      'powerType',
+      'hadAccident',
+      'countryType',
+      'page',
+      'pageSize',
+    ]);
   });
 
-  it('compte exactement 13 paramètres primaires', () => {
-    expect(PRIMARY_FILTER_DEFS.length).toBe(13);
+  it('compte exactement 12 paramètres primaires (countryType retiré, D-15)', () => {
+    expect(PRIMARY_FILTER_DEFS.length).toBe(12);
   });
 
   it('compte exactement 3 filtres de classe D, documentés', () => {
@@ -90,17 +119,18 @@ describe('registre des filtres — bilan EX-SCR-83', () => {
     }
   });
 
-  it('compte 60 filtres secondaires (exposés, non primaires, non désactivés, non non-exposés)', () => {
+  it('compte 53 filtres secondaires (exposés, non primaires, non désactivés, non non-exposés)', () => {
     const secondary = FILTER_DEFS.filter(
       (d) => !d.primary && !d.nonExposed && d.cls !== 'D',
     );
-    expect(secondary.length).toBe(60);
+    expect(secondary.length).toBe(53);
   });
 
-  it('chaque filtre exposé (hors atype) a exactement un type de contrôle non "none"', () => {
+  it('chaque filtre exposé a exactement un type de contrôle non "none"', () => {
+    // `lat`/`lon` (dérivés, jamais montrés, EX-SCR-82 #68/69) sont retirés du registre par `D-14` :
+    // plus besoin de les excepter ici, ils n'apparaissent simplement plus dans `FILTER_DEFS`.
     for (const d of FILTER_DEFS) {
       if (d.nonExposed) continue;
-      if (d.id === 'lat' || d.id === 'lon') continue; // dérivés, jamais montrés (EX-SCR-82 #68/69)
       expect(d.control, `contrôle manquant pour ${d.id}`).not.toBe('none');
     }
   });
@@ -134,18 +164,21 @@ describe('classe T/R/D — jeton observable (EX-SCR-58)', () => {
 });
 
 describe('dépendances entre filtres (EX-SRCH-14..17, EX-SCR-73)', () => {
-  it('zipr/lat/lon désactivés tant que zip est vide', () => {
+  // `D-14` retire `location`/`lat`/`lon` du registre (R3) : `radius`/`crossBorder` perdaient sinon
+  // toute dépendance satisfaisable (leur prérequis aurait disparu) — ils ne dépendent plus de
+  // `location`, `crossBorder` ne dépend plus que de `radius`.
+  it('radius (zipr) et lat/lon n’existent plus dans le registre (D-14, R3)', () => {
+    expect(FILTER_BY_ID.get('lat')).toBeUndefined();
+    expect(FILTER_BY_ID.get('lon')).toBeUndefined();
     const radius = FILTER_BY_ID.get('radius')!;
-    const lat = FILTER_BY_ID.get('lat')!;
-    expect(isDependencySatisfied(radius, {})).toBe(false);
-    expect(isDependencySatisfied(lat, {})).toBe(false);
-    expect(isDependencySatisfied(radius, { location: '1000' })).toBe(true);
+    expect(radius).toBeDefined();
+    expect(radius.dependencies).toEqual([]);
   });
 
-  it('crossBorder exige zip ET zipr', () => {
+  it('crossBorder exige radius (zipr), plus de dépendance envers zip (D-14)', () => {
     const crossBorder = FILTER_BY_ID.get('crossBorder')!;
-    expect(isDependencySatisfied(crossBorder, { location: '1000' })).toBe(false);
-    expect(isDependencySatisfied(crossBorder, { location: '1000', radius: '50' })).toBe(true);
+    expect(isDependencySatisfied(crossBorder, {})).toBe(false);
+    expect(isDependencySatisfied(crossBorder, { radius: '50' })).toBe(true);
   });
 
   it('les 9 filtres de leasing exigent hasLeasing', () => {

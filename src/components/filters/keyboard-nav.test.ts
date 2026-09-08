@@ -62,21 +62,23 @@ describe('computeBandTabOrder — EX-NFR-14 (ordre de tabulation = ordre visuel)
   });
 
   it('exclut un filtre dont la dépendance parente n’est pas satisfaite (EX-SCR-73/88)', () => {
+    // `radius` ne dépend plus de `location`, retiré du registre par `D-14` (R3) : `crossBorder`
+    // (dépend de `radius`) illustre désormais ce cas.
     const withoutParent = computeBandTabOrder({
       mode: 'mode1',
       selection: {},
       expandedGroups: new Set(['geographie']),
       activeTokenFilterIds: [],
     });
-    expect(withoutParent.some((s) => s.kind === 'filter' && s.filterId === 'radius')).toBe(false);
+    expect(withoutParent.some((s) => s.kind === 'filter' && s.filterId === 'crossBorder')).toBe(false);
 
     const withParent = computeBandTabOrder({
       mode: 'mode1',
-      selection: { location: '1000' } as SelectionState,
+      selection: { radius: '50' } as SelectionState,
       expandedGroups: new Set(['geographie']),
       activeTokenFilterIds: [],
     });
-    expect(withParent.some((s) => s.kind === 'filter' && s.filterId === 'radius')).toBe(true);
+    expect(withParent.some((s) => s.kind === 'filter' && s.filterId === 'crossBorder')).toBe(true);
   });
 
   it('place les jetons de filtres actifs en dernier, dans l’ordre fourni', () => {

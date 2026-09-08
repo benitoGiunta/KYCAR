@@ -17,6 +17,9 @@ export interface FilterChangeEvent {
   /** `undefined` = filtre retiré (valeur vidée). */
   readonly value: FilterValue | undefined;
   readonly gesture: InteractionGesture;
+  /** Longueur de la valeur brute en cours de saisie, quand le contrôle la connaît (`EX-SRCH-6`,
+   * `DR-058`) — seul `GeoComposite` (code postal) en a besoin aujourd'hui. */
+  readonly valueLength?: number;
 }
 
 export type OnFilterChange = (event: FilterChangeEvent) => void;

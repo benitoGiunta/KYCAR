@@ -89,10 +89,15 @@ describe('D5 — ADV-01 / ARB-12 : lien tronqué au milieu d’un paramètre num
     expect(loaded.selection['priceFrom']).toBe(500);
   });
 
-  it('ADV-01 — la contre-mesure exigée (jeton portant la VALEUR, EX-SCR-75) est en place', () => {
+  it('ADV-01 — la contre-mesure exigée (jeton portant le LIBELLÉ et la VALEUR, EX-SCR-75) est en place', () => {
+    // `DR-056`/`ARB-12` : le jeton porte désormais TOUJOURS le libellé du filtre en plus de sa
+    // valeur — contre-mesure renforcée du lien tronqué (« Prix : … », jamais la valeur nue).
     const tokens = buildActiveFilterTokens(loadQuery('pricefrom=500&priceto=25000').selection);
     expect(tokens).toHaveLength(1);
-    expect(tokens[0]?.text).toBe('500 \u20ac \u2013 25\u202f000 \u20ac');
+    expect(tokens[0]?.text.startsWith('Prix : ')).toBe(true);
+    expect(tokens[0]?.text).toContain('500');
+    expect(tokens[0]?.text).toContain('25');
+    expect(tokens[0]?.text).toContain('€');
   });
 
   it('ADV-01 — aucun paramètre de somme de contrôle ni de longueur n’est ajouté à l’URL', () => {

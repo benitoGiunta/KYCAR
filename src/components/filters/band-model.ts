@@ -13,6 +13,7 @@ import {
   GROUP_LABELS,
   GROUP_ORDER,
   PRIMARY_FILTER_DEFS,
+  PRIMARY_ORDER,
   isDependencySatisfied,
   resolveFilterClass,
 } from '../../state/filter-registry';
@@ -31,14 +32,19 @@ export interface PrimaryControlGroup {
 }
 
 /**
- * Regroupe les 13 paramètres primaires (`EX-SCR-59`) en 9 contrôles : un couple `from`/`to` compte
- * pour un seul contrôle visuel (ex. Prix = `pricefrom` + `priceto`), les autres pour un seul filtre.
+ * Regroupe les paramètres primaires (`EX-SCR-59`/`71`) en contrôles visuels : un couple `from`/`to`
+ * compte pour un seul contrôle (ex. Prix = `pricefrom` + `priceto`), les autres pour un seul
+ * filtre. L'ordre suit `PRIMARY_ORDER` (`DR-138`), pas l'ordre de déclaration du registre : `kwd`
+ * appartient à la zone (2) — dernier de la ligne, jamais premier — et Carrosserie précède Boîte de
+ * vitesses. `countryType` (`cy`) n'apparaît plus ici (`D-15`/`DR-052`, `EX-SRCH-18bis`).
  */
 export function buildPrimaryControls(): readonly PrimaryControlGroup[] {
   const groups: PrimaryControlGroup[] = [];
   const consumed = new Set<string>();
-  for (const def of PRIMARY_FILTER_DEFS) {
-    if (consumed.has(def.id)) continue;
+  for (const id of PRIMARY_ORDER) {
+    if (consumed.has(id)) continue;
+    const def = PRIMARY_FILTER_DEFS.find((d) => d.id === id);
+    if (def === undefined) continue;
     if (def.scopeType === 'range_min' && def.pairedWith !== undefined) {
       const pair = PRIMARY_FILTER_DEFS.find((d) => d.id === def.pairedWith);
       if (pair !== undefined) {
@@ -60,6 +66,9 @@ export interface FilterGroupViewModel {
   readonly defs: readonly FilterDef[];
   /** Nombre de filtres du groupe posés à une valeur autre que leur défaut (`EX-SCR-91`/`92`). */
   readonly activeCount: number;
+  /** Identifiants à vider pour le bouton de réinitialisation DU GROUPE (`EX-SRCH-19`, `DR-061`) —
+   * tous les filtres du groupe hors classe `D` (jamais actionnables, rien à réinitialiser). */
+  readonly resetFilterIds: readonly string[];
 }
 
 /** Vrai si `value` compte comme « posé » (non vide) au sens d'`EX-SCR-91`. */
@@ -111,7 +120,8 @@ export function buildSecondaryGroups(selection: SelectionState): readonly Filter
     const defs = byGroup.get(key) ?? [];
     if (defs.length === 0) continue;
     const activeCount = defs.filter((d) => isFilterActive(d, selection)).length;
-    groups.push({ key, label: GROUP_LABELS[key] ?? key, defs, activeCount });
+    const resetFilterIds = defs.filter((d) => d.cls !== 'D').map((d) => d.id);
+    groups.push({ key, label: GROUP_LABELS[key] ?? key, defs, activeCount, resetFilterIds });
   }
   return groups;
 }

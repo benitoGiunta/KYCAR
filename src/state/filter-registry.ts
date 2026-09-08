@@ -33,6 +33,88 @@
 
 import type { EnumOption, FilterDef, FilterValue, NumericDomain } from './filter-types';
 
+/**
+ * Libellés anglais relevés (`data/reference/filters.json#label_en`), transcrits une fois pour
+ * toutes (même discipline que les libellés FR ci-dessous : aucune lecture de fichier au moment de
+ * l'exécution, cohérent avec le bundle). Deuxième index de recherche exigé par `EX-SCR-79`
+ * (troisième avec le libellé FR et le paramètre d'URL) — `DR-057`.
+ */
+const LABEL_EN_BY_ID: Readonly<Record<string, string>> = {
+  articleType: 'Vehicle type',
+  makesModelsVariants: 'Make / Model / Version',
+  vkhFilters: 'Taxonomy category',
+  vkhFiltersModelCat: 'Model category',
+  version: 'Version / trim',
+  offer: 'Vehicle condition / offer type',
+  keyword: 'Keyword search',
+  priceFrom: 'Price from',
+  priceTo: 'Price to',
+  vatReportable: 'VAT deductible',
+  superDeal: 'SuperDeal',
+  priceEvaluation: 'Price evaluation',
+  tradeIn: 'Trade-in',
+  financeRateFrom: 'Finance rate from',
+  financeRateTo: 'Finance rate to',
+  hasLeasing: 'Leasing offer available',
+  leasingRateFrom: 'Leasing rate from',
+  leasingRateTo: 'Leasing rate to',
+  leasingDurationFrom: 'Leasing duration from',
+  leasingDurationTo: 'Leasing duration to',
+  leasingYearlyIncludedMileageFrom: 'Yearly included mileage from',
+  leasingTradeInBonus: 'Trade-in bonus',
+  leasingEnvironmentBonus: 'Environment bonus',
+  leasingAvailableNow: 'Available now',
+  leasingTargetGroup: 'Leasing target group',
+  governmentBonus: 'Government bonus',
+  mileageFrom: 'Mileage from',
+  mileageTo: 'Mileage to',
+  dateOfRegistrationFrom: 'First registration from',
+  dateOfRegistrationTo: 'First registration to',
+  dateOfModelYearFrom: 'Model year from',
+  dateOfModelYearTo: 'Model year to',
+  fuelType: 'Fuel type',
+  powerType: 'Power unit',
+  powerFrom: 'Power from',
+  powerTo: 'Power to',
+  engineMotorSizeFrom: 'Engine size from',
+  engineMotorSizeTo: 'Engine size to',
+  engineType: 'Cylinders',
+  driveTrain: 'Drivetrain',
+  gearType: 'Transmission',
+  newDriver: 'For new drivers',
+  bodyType: 'Body type',
+  doorFrom: 'Doors from',
+  doorTo: 'Doors to',
+  numberOfSeatsFrom: 'Seats from',
+  numberOfSeatsTo: 'Seats to',
+  bodyColor: 'Exterior colour',
+  paintwork: 'Paintwork',
+  interiorColor: 'Interior colour',
+  upholstery: 'Upholstery',
+  emissionClass: 'Emission class',
+  emissionSticker: 'Emission sticker',
+  batteryOwnershipType: 'Battery ownership',
+  electricRangeFrom: 'Electric range from',
+  electricRangeTo: 'Electric range to',
+  equipment: 'Equipment',
+  hadAccident: 'Damaged vehicle (BE/EU)',
+  hadAccidentNew: 'Damaged listing',
+  numberOfOwners: 'Previous owners',
+  seals: 'Seal / certified pre-owned programme',
+  sellerType: 'Seller type',
+  countryType: 'Country',
+  location: 'City / postcode',
+  radius: 'Radius',
+  region: 'Region / province',
+  crossBorder: 'Cross-border',
+  buyOnline: 'Buy online',
+  ocsListing: 'Online-checkout listings',
+  deliverableInsertion: 'Deliverable insertion',
+  smyleTail: 'Deliverable tail',
+  sortTypes: 'Sort criterion',
+  descType: 'Sort direction',
+};
+
 /* ================================================================================================
  * Groupes visuels (EX-SCR-93 — ordre normatif, stable, indépendant des filtres actifs)
  * ============================================================================================== */
@@ -295,11 +377,15 @@ const DAMAGED_LISTING_OPTS = opts([
   ['damaged-only', 'Montrer seulement'],
 ]);
 
+/**
+ * `EX-NFR-29` règle (3) : aucun libellé fr-BE/en relevé pour ces codes (`prevownersid`) — libellés
+ * forgés manuellement, marqués `[EXTRAPOLÉ]` (`DR-056`, `R-D5-09`).
+ */
 const NUMBER_OF_OWNERS_OPTS = opts([
-  [1, '1'],
-  [2, '2'],
-  [3, '3'],
-  [4, '4+'],
+  [1, '1 propriétaire [EXTRAPOLÉ]'],
+  [2, '2 propriétaires [EXTRAPOLÉ]'],
+  [3, '3 propriétaires [EXTRAPOLÉ]'],
+  [4, '4 propriétaires ou plus [EXTRAPOLÉ]'],
 ]);
 
 /** Labels (label programme) — `data/reference/filters.json#filters[id=seals].domain`. */
@@ -391,9 +477,6 @@ const ENGINE_SIZE_DOMAIN: NumericDomain = { min: 0 };
 const DOOR_DOMAIN: NumericDomain = { min: 2, max: 7 };
 const SEATS_DOMAIN: NumericDomain = { min: 1, max: 12 };
 const ELECTRIC_RANGE_DOMAIN: NumericDomain = { steps: [80, 120, 180, 250, 350, 450, 550] };
-/** Coordonnées géographiques : bornes mathématiques universelles, pas un relevé filters.json. */
-const LATITUDE_DOMAIN: NumericDomain = { min: -90, max: 90 };
-const LONGITUDE_DOMAIN: NumericDomain = { min: -180, max: 180 };
 const PAGE_DOMAIN: NumericDomain = { min: 1, max: 20 };
 /** `pageSize` : un seul palier observé (20) dans le relevé ; borne haute large pragmatique, non relevée. */
 const PAGE_SIZE_DOMAIN: NumericDomain = { min: 1, max: 100 };
@@ -403,13 +486,14 @@ const PAGE_SIZE_DOMAIN: NumericDomain = { min: 1, max: 100 };
  * ============================================================================================== */
 
 /** Champs communs par défaut, pour alléger la déclaration littérale ci-dessous. */
-function def(partial: Omit<FilterDef, 'dependencies' | 'primary'> & {
+function def(partial: Omit<FilterDef, 'dependencies' | 'primary' | 'labelEn'> & {
   readonly dependencies?: readonly string[];
   readonly primary?: boolean;
 }): FilterDef {
   return {
     dependencies: partial.dependencies ?? [],
     primary: partial.primary ?? false,
+    labelEn: LABEL_EN_BY_ID[partial.id],
     ...partial,
   };
 }
@@ -459,9 +543,15 @@ export const FILTER_DEFS: readonly FilterDef[] = [
 
   // --- Motorisation ------------------------------------------------------------------------------
   def({ id: 'fuelType', param: 'fuel', label: 'Carburant', group: 'motorisation', scopeType: 'enum_multi', control: 'checkbox-list', cls: 'R', primary: true, options: FUEL_OPTS }),
-  def({ id: 'powerType', param: 'powertype', label: 'Unité de puissance', group: 'motorisation', scopeType: 'enum_single', control: 'radio-segmented', cls: 'R', options: POWER_TYPE_OPTS, defaultValue: 'kw' }),
-  def({ id: 'powerFrom', param: 'powerfrom', label: 'Puissance de', group: 'motorisation', scopeType: 'range_min', control: 'range-pair', cls: 'R', pairedWith: 'powerTo', dependencies: ['powerType'], numericDomain: POWER_DOMAIN }),
-  def({ id: 'powerTo', param: 'powerto', label: 'Puissance à', group: 'motorisation', scopeType: 'range_max', control: 'range-pair', cls: 'R', pairedWith: 'powerFrom', dependencies: ['powerType'], numericDomain: POWER_DOMAIN }),
+  // `powertype` : valeur injectée vers la source « dans son unité canonique » (`EX-SRCH-18bis`,
+  // `ARB-30`) — jamais un filtre utilisateur, jamais sérialisée, jamais comptée (`D-15`/`DR-052`).
+  def({ id: 'powerType', param: 'powertype', label: 'Unité de puissance', group: 'motorisation', scopeType: 'enum_single', control: 'none', cls: 'R', options: POWER_TYPE_OPTS, defaultValue: 'kw', nonExposed: true }),
+  // `DR-055` — plus de `dependencies: ['powerType']` : `EX-SCR-73` dit `powertype` « toujours
+  // posé, donc jamais désactivé » (il porte une `defaultValue`, `kw`) ; sur une sélection vide
+  // (état de départ légitime, `EX-SRCH-25`), le contrôle Puissance doit rester actionnable. Une
+  // fausse dépendance produisait l'inverse : désactivé et hors ordre de tabulation par défaut.
+  def({ id: 'powerFrom', param: 'powerfrom', label: 'Puissance de', group: 'motorisation', scopeType: 'range_min', control: 'range-pair', cls: 'R', pairedWith: 'powerTo', numericDomain: POWER_DOMAIN }),
+  def({ id: 'powerTo', param: 'powerto', label: 'Puissance à', group: 'motorisation', scopeType: 'range_max', control: 'range-pair', cls: 'R', pairedWith: 'powerFrom', numericDomain: POWER_DOMAIN }),
   def({ id: 'engineMotorSizeFrom', param: 'ccmfrom', label: 'Cylindrée de', group: 'motorisation', scopeType: 'range_min', control: 'range-pair', cls: 'T', pairedWith: 'engineMotorSizeTo', numericDomain: ENGINE_SIZE_DOMAIN, unit: 'cm3' }),
   def({ id: 'engineMotorSizeTo', param: 'ccmto', label: 'Cylindrée à', group: 'motorisation', scopeType: 'range_max', control: 'range-pair', cls: 'T', pairedWith: 'engineMotorSizeFrom', numericDomain: ENGINE_SIZE_DOMAIN, unit: 'cm3' }),
   def({ id: 'engineType', param: 'cylinders', label: 'Nombre de cylindres', group: 'motorisation', scopeType: 'enum_multi', control: 'checkbox-list', cls: 'T', options: CYLINDERS_OPTS }),
@@ -482,7 +572,9 @@ export const FILTER_DEFS: readonly FilterDef[] = [
 
   // --- Écologie et électrique ----------------------------------------------------------------------
   def({ id: 'emissionClass', param: 'emclass', label: "Norme Euro / classe d'émission", group: 'ecologie', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', options: EMISSION_CLASS_OPTS, semanticsWarning: 'AT_LEAST_PRESUMED' }),
-  def({ id: 'emissionSticker', param: 'ensticker', label: 'Vignette environnementale', group: 'ecologie', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', options: EMISSION_STICKER_OPTS, semanticsWarning: 'AT_LEAST_PRESUMED' }),
+  // `defaultValue: '1'` (`EX-SCR-82` #54, `filters.json#default = 1`) : le code 1 n'est jamais émis
+  // dans l'URL (`EX-NAV-8`, `DR-133`).
+  def({ id: 'emissionSticker', param: 'ensticker', label: 'Vignette environnementale', group: 'ecologie', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', options: EMISSION_STICKER_OPTS, semanticsWarning: 'AT_LEAST_PRESUMED', defaultValue: '1' }),
   def({ id: 'batteryOwnershipType', param: 'bot', label: 'Propriété de la batterie', group: 'ecologie', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', dependencies: ['fuelType'], options: BATTERY_OWNERSHIP_OPTS }),
   def({ id: 'electricRangeFrom', param: 'erfrom', label: 'Autonomie électrique de', group: 'ecologie', scopeType: 'range_min', control: 'range-pair', cls: 'T', pairedWith: 'electricRangeTo', dependencies: ['fuelType'], numericDomain: ELECTRIC_RANGE_DOMAIN, unit: 'km' }),
   def({ id: 'electricRangeTo', param: 'erto', label: 'Autonomie électrique à', group: 'ecologie', scopeType: 'range_max', control: 'range-pair', cls: 'T', pairedWith: 'electricRangeFrom', dependencies: ['fuelType'], numericDomain: ELECTRIC_RANGE_DOMAIN, unit: 'km' }),
@@ -491,7 +583,10 @@ export const FILTER_DEFS: readonly FilterDef[] = [
   def({ id: 'equipment', param: 'eq', label: 'Équipement', group: 'equipements', scopeType: 'enum_multi', control: 'panel-search-multi', cls: 'T', options: EQUIPMENT_OPTS, semanticsWarning: 'EQ_AND_PRESUMED' }),
 
   // --- État et historique --------------------------------------------------------------------------
-  def({ id: 'hadAccident', param: 'ustate', label: 'Véhicule accidenté (BE/EU)', group: 'etat_historique', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', options: USAGE_STATE_OPTS, defaultValue: 'N,U' }),
+  // `ustate` : valeur injectée vers la source, toujours `A,N,U` (`EX-SRCH-18bis`) — jamais un
+  // filtre utilisateur ; le seul contrôle utilisateur d'accidentés est `damaged_listing` (classe D,
+  // `D-15`). Jamais sérialisée, jamais comptée, jamais réinitialisée (`DR-052`).
+  def({ id: 'hadAccident', param: 'ustate', label: 'Véhicule accidenté (BE/EU)', group: 'etat_historique', scopeType: 'enum_single', control: 'none', cls: 'T', options: USAGE_STATE_OPTS, defaultValue: 'N,U', nonExposed: true }),
   def({ id: 'hadAccidentNew', param: 'damaged_listing', label: 'Véhicule accidenté (variante récente)', group: 'etat_historique', scopeType: 'enum_single', control: 'radio-segmented', cls: 'D', options: DAMAGED_LISTING_OPTS, defaultValue: 'exclude', disabledReason: 'Rejeté par le marketplace belge (newAccidentFilter = false)' }),
   def({ id: 'numberOfOwners', param: 'prevownersid', label: 'Nombre de propriétaires précédents', group: 'etat_historique', scopeType: 'enum_single', control: 'select-indifferent', cls: 'R', options: NUMBER_OF_OWNERS_OPTS, semanticsWarning: 'AT_MOST_PRESUMED' }),
   def({ id: 'seals', param: 'sealor', label: "Label / programme d'occasion certifiée", group: 'etat_historique', scopeType: 'enum_multi', control: 'checkbox-list', cls: 'T', dependencies: ['makesModelsVariants'], options: SEALS_OPTS }),
@@ -500,13 +595,18 @@ export const FILTER_DEFS: readonly FilterDef[] = [
   def({ id: 'sellerType', param: 'custtype', label: 'Type de vendeur', group: 'vendeur', scopeType: 'enum_single', control: 'radio-segmented', cls: 'R', primary: true, options: SELLER_TYPE_OPTS }),
 
   // --- Géographie ------------------------------------------------------------------------------------
-  def({ id: 'countryType', param: 'cy', label: 'Pays', group: 'geographie', scopeType: 'enum_multi', control: 'checkbox-list', cls: 'R', primary: true, options: COUNTRY_TYPE_OPTS }),
-  def({ id: 'location', param: 'zip', label: 'Ville / code postal', group: 'geographie', scopeType: 'geo_text', control: 'geo-composite', cls: 'R' }),
-  def({ id: 'radius', param: 'zipr', label: 'Rayon', group: 'geographie', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', dependencies: ['location'], options: RADIUS_OPTS }),
-  def({ id: 'lat', param: 'lat', label: 'Latitude', group: 'geographie', scopeType: 'number', control: 'none', cls: 'T', dependencies: ['location'], numericDomain: LATITUDE_DOMAIN }),
-  def({ id: 'lon', param: 'lon', label: 'Longitude', group: 'geographie', scopeType: 'number', control: 'none', cls: 'T', dependencies: ['location'], numericDomain: LONGITUDE_DOMAIN }),
+  // `cy` : valeur injectée vers la source « selon le marketplace du snapshot » (`EX-SRCH-18bis`) —
+  // jamais un choix utilisateur ; retiré de la ligne primaire pour la même raison (`D-15`/`DR-052`,
+  // amende `EX-SCR-59` #9, à porter par fix-docs). Jamais sérialisée, jamais comptée.
+  def({ id: 'countryType', param: 'cy', label: 'Pays', group: 'geographie', scopeType: 'enum_multi', control: 'none', cls: 'R', options: COUNTRY_TYPE_OPTS, nonExposed: true }),
+  // `location` (`zip`), `lat`, `lon` — retirés du registre (`D-14`, `R3_DONNEE_PERSONNELLE`,
+  // `EX-DATA-49`) : aucun filtre géographique fin en 2.6, quel que soit le contenu de
+  // `data/reference/filters-scope.json` (fix-engine les retire de son côté séparément). `radius`
+  // et `crossBorder` perdent leur dépendance envers `location` (leur prérequis a disparu) plutôt
+  // que de rester dépendants d'un identifiant qui n'existe plus dans le registre.
+  def({ id: 'radius', param: 'zipr', label: 'Rayon', group: 'geographie', scopeType: 'enum_single', control: 'select-indifferent', cls: 'T', options: RADIUS_OPTS }),
   def({ id: 'region', param: 'region', label: 'Région / province', group: 'geographie', scopeType: 'text', control: 'text-field', cls: 'D', dependencies: ['countryType'], disabledReason: 'Domaine de valeurs non relevé et filtre désactivé à la source' }),
-  def({ id: 'crossBorder', param: 'crossborder', label: 'Inclure les véhicules au-delà de la frontière', group: 'geographie', scopeType: 'boolean', control: 'boolean-toggle', cls: 'T', dependencies: ['location', 'radius'], booleanTrueCode: '1' }),
+  def({ id: 'crossBorder', param: 'crossborder', label: 'Inclure les véhicules au-delà de la frontière', group: 'geographie', scopeType: 'boolean', control: 'boolean-toggle', cls: 'T', dependencies: ['radius'], booleanTrueCode: '1' }),
 
   // --- Fraîcheur et achat en ligne ---------------------------------------------------------------------
   def({ id: 'buyOnline', param: 'ot_osc', label: 'Achat en ligne (Smyle / OCS)', group: 'fraicheur', scopeType: 'boolean', control: 'boolean-toggle', cls: 'T', booleanTrueCode: '1' }),
@@ -518,9 +618,24 @@ export const FILTER_DEFS: readonly FilterDef[] = [
   def({ id: 'sortTypes', param: 'sort', label: 'Critère de tri', group: 'tri', scopeType: 'enum_single', control: 'select-indifferent', cls: 'R', options: SORT_TYPES_OPTS, defaultValue: 'standard' }),
   def({ id: 'descType', param: 'desc', label: 'Sens du tri', group: 'tri', scopeType: 'enum_single', control: 'radio-segmented', cls: 'R', dependencies: ['sortTypes'], options: DESC_TYPE_OPTS, defaultValue: '0' }),
 
-  // --- Liste d'annonces (écran D uniquement) -----------------------------------------------------------
-  def({ id: 'page', param: 'page', label: 'Page', group: 'liste_annonces', scopeType: 'number', control: 'number-field', cls: 'T', numericDomain: PAGE_DOMAIN, defaultValue: 1 }),
-  def({ id: 'pageSize', param: 'size', label: 'Taille de page', group: 'liste_annonces', scopeType: 'number', control: 'number-field', cls: 'T', numericDomain: PAGE_SIZE_DOMAIN, defaultValue: 20 }),
+  // --- Liste d'annonces (écran D) — paramètres d'ÉTAT D'INTERFACE, pas des filtres ---------------
+  // `page`/`size` (`D-12`, `DR-066`) : un numéro de page ne détermine PAS le jeu de données local —
+  // les classer `T` (comme avant la remédiation) invalide `localDatasetKey` et provoque un aller
+  // réseau par page. `nonExposed: true` les sort du bandeau, de `tFilterIds` (aucune des deux
+  // composantes T/R), de `countActiveFilters` et de la sérialisation PAR LE REGISTRE : ils restent
+  // néanmoins des `FilterDef` RÉSOLUBLES (`FILTER_BY_ID`/`FILTER_BY_PARAM`) pour tout consommateur
+  // qui a besoin de leur domaine numérique, mais leur présence dans l'URL et leur écriture passent
+  // par `UI_STATE_PARAMS`/`serializeUiPair` (`url-codec.ts`), `historyMode: 'replace'`, jamais par
+  // `serializeFilterPair` (exclu par la même garde que `EX-SRCH-18bis`, `def.nonExposed`). Voir
+  // aussi `sel` (`DR-067`), paramètre d'état d'interface neuf qui n'a jamais eu de `FilterDef` (il
+  // ne borne aucun domaine de filtre, seulement l'affichage de l'écran D).
+  // `cls: 'R'` ici est un point posé plutôt qu'une classification T/R fonctionnelle : `D-12`
+  // exige explicitement ces deux paramètres « hors classes T/R » (`R-D7-20`) — `nonExposed` les
+  // exclut déjà de `tFilterIds`/`EXPOSED_FILTER_DEFS`/`serializeFilterPair`, ce qui est la seule
+  // garantie qui compte. `EX-SCR-82` (`draft-screens.md`) les classait encore `T` avant `D-12` ;
+  // `registry-scope.test.ts` documente cet écart plutôt que de le laisser dériver silencieusement.
+  def({ id: 'page', param: 'page', label: 'Page', group: 'liste_annonces', scopeType: 'number', control: 'none', cls: 'R', numericDomain: PAGE_DOMAIN, defaultValue: 1, nonExposed: true }),
+  def({ id: 'pageSize', param: 'size', label: 'Taille de page', group: 'liste_annonces', scopeType: 'number', control: 'none', cls: 'R', numericDomain: PAGE_SIZE_DOMAIN, defaultValue: 20, nonExposed: true }),
 ];
 
 /* ================================================================================================
@@ -530,8 +645,31 @@ export const FILTER_DEFS: readonly FilterDef[] = [
 export const FILTER_BY_ID: ReadonlyMap<string, FilterDef> = new Map(FILTER_DEFS.map((d) => [d.id, d]));
 export const FILTER_BY_PARAM: ReadonlyMap<string, FilterDef> = new Map(FILTER_DEFS.map((d) => [d.param, d]));
 
-/** Filtres réellement exposés dans le bandeau (exclut `atype`, seul `NON_EXPOSE`). */
+/** Filtres réellement exposés dans le bandeau (exclut les `nonExposed` : `atype`, `hadAccident`,
+ * `powerType`, `countryType`, `page`, `pageSize` — `DR-052`, `D-12`/`DR-066`). */
 export const EXPOSED_FILTER_DEFS: readonly FilterDef[] = FILTER_DEFS.filter((d) => d.nonExposed !== true);
+
+/**
+ * Ordre normatif des contrôles primaires (`EX-SCR-59`/`71`, `DR-138`) : `kwd` appartient à la
+ * zone (2) — dernier de la ligne primaire, pas premier — et Carrosserie (6) précède Boîte de
+ * vitesses (7). `countryType` (`cy`) est retiré de cette table : `EX-SRCH-18bis`/`ARB-30` en fait
+ * une valeur injectée vers la source, jamais un choix utilisateur (`D-15`/`DR-052`), ce qui amende
+ * la 9ᵉ ligne d'`EX-SCR-59` (« Pays ») — fix-docs porte la requalification documentaire.
+ * `PRIMARY_FILTER_DEFS` reste l'ensemble non ordonné (marqueur `primary`) pour tout consommateur
+ * qui n'a besoin que de l'appartenance ; `buildPrimaryControls` (`band-model.ts`) applique CET
+ * ordre explicite plutôt que l'ordre de déclaration du registre.
+ */
+export const PRIMARY_ORDER: readonly string[] = [
+  'makesModelsVariants',
+  'priceFrom',
+  'mileageFrom',
+  'dateOfRegistrationFrom',
+  'fuelType',
+  'bodyType',
+  'gearType',
+  'sellerType',
+  'keyword',
+];
 
 export const PRIMARY_FILTER_DEFS: readonly FilterDef[] = FILTER_DEFS.filter((d) => d.primary);
 

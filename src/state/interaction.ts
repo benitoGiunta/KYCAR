@@ -5,12 +5,16 @@
  *
  *   - Débounce par type de contrôle/geste (`EX-SRCH-1`…`8`), délégué à `debounce-policy.ts` — un
  *     timer par filtre, remis à zéro à chaque nouveau geste sur ce même filtre (dernier gagne).
- *   - Une entrée d'historique par filtre EFFECTIVEMENT appliqué (post-debounce), `pushState`
- *     (`EX-NAV-12`) ; regroupement des rafales de moins de 800 ms en une seule entrée (`EX-NAV-13`) :
- *     chaque changement intermédiaire de la rafale réécrit l'URL par `replaceState`, et c'est
- *     l'ÉCOULEMENT de la fenêtre d'inactivité de 800 ms — pas le dernier changement lui-même — qui
- *     déclenche le `pushState` final. `forcePush` couvre les cas toujours `pushState` d'`EX-NAV-14`
- *     (changement de route, réinitialisation, pagination), qui court-circuitent le regroupement.
+ *   - Une entrée d'historique par filtre EFFECTIVEMENT appliqué (post-debounce) ; regroupement des
+ *     rafales de moins de 800 ms en une seule entrée (`EX-NAV-13`) : le PREMIER changement d'une
+ *     rafale ouvre une entrée d'historique NEUVE par `pushState` (`EX-NAV-12`), chaque changement
+ *     SUIVANT de la même rafale met à jour cette même entrée par `replaceState` ; l'écoulement de
+ *     la fenêtre d'inactivité de 800 ms ne produit PLUS d'entrée supplémentaire, elle a déjà été
+ *     créée au premier changement (`DR-015` : corrige un défaut où l'ordre inverse —
+ *     `replaceState` d'abord, `pushState` à l'expiration — écrasait l'entrée PRÉCÉDANT la rafale au
+ *     lieu de créer la sienne propre, rendant le bouton précédent inopérant).
+ *     `forcePush` couvre les cas toujours `pushState` d'`EX-NAV-14` (changement de route,
+ *     réinitialisation, pagination), qui court-circuitent le regroupement.
  *   - Regroupement des rafales de filtres de classe `R` (`EX-SRCH-1bis`) : sous le seuil de
  *     3 changements en 300 ms, chaque changement recalcule immédiatement ; au 3ᵉ changement dans la
  *     fenêtre, l'application entre en mode groupé et un SEUL recalcul est planifié 200 ms après le
@@ -42,22 +46,28 @@ export interface HistoryBurstOptions {
 export class HistoryBurstGrouper {
   private readonly groupWindowMs: number;
   private timer: ReturnType<typeof setTimeout> | null = null;
-  private lastUrl: string | null = null;
 
   constructor(private readonly opts: HistoryBurstOptions) {
     this.groupWindowMs = opts.groupWindowMs ?? 800;
   }
 
-  /** Un filtre vient d'être appliqué (post-debounce) : réécrit l'URL par `replaceState` et relance
-   * la fenêtre d'inactivité de 800 ms qui, à son terme, transforme l'état courant en une entrée
-   * d'historique définitive (`pushState`). */
+  /** Un filtre vient d'être appliqué (post-debounce). Premier changement d'une rafale (aucune
+   * fenêtre d'inactivité en cours) : `pushState`, qui CRÉE l'entrée d'historique de cette rafale
+   * (`EX-NAV-12` : le bouton précédent doit revenir à l'état d'AVANT ce changement, jamais
+   * l'écraser). Changement suivant de la MÊME rafale (fenêtre encore ouverte) : `replaceState`, qui
+   * met à jour cette même entrée sans en produire une seconde (`EX-NAV-13`). Dans les deux cas, la
+   * fenêtre de 800 ms est relancée ; à son expiration, rien de plus ne se produit — l'entrée existe
+   * déjà et porte la dernière valeur reçue (`DR-015`). */
   onApplied(url: string): void {
-    this.opts.replaceState(url);
-    this.lastUrl = url;
+    const isFirstOfBurst = this.timer === null;
     if (this.timer !== null) clearTimeout(this.timer);
+    if (isFirstOfBurst) {
+      this.opts.pushState(url);
+    } else {
+      this.opts.replaceState(url);
+    }
     this.timer = setTimeout(() => {
       this.timer = null;
-      if (this.lastUrl !== null) this.opts.pushState(this.lastUrl);
     }, this.groupWindowMs);
   }
 
@@ -69,7 +79,6 @@ export class HistoryBurstGrouper {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    this.lastUrl = null;
     this.opts.pushState(url);
   }
 
@@ -174,6 +183,11 @@ export interface ScheduleChangeInput {
    * (`EX-NAV-12`).
    */
   readonly commit: () => string;
+  /** Longueur de la valeur brute en cours de saisie, quand elle est connue de l'appelant — seul
+   * signal dont dispose `resolveDebounceMs` pour appliquer le seuil de caractères d'`EX-SRCH-6`
+   * (`DR-058`) : un filtre gouverné par un tel seuil (`location`) sans longueur fournie n'est
+   * JAMAIS committé (repli conservateur), cohérent avec « non déclenché avant N caractères ». */
+  readonly valueLength?: number;
 }
 
 /**
@@ -201,15 +215,24 @@ export class InteractionController {
   /** Planifie un changement de filtre selon le débounce de son geste (`EX-SRCH-1`…`8`). Un nouveau
    * geste sur le MÊME filtre avant l'échéance annule et remplace le précédent (dernier gagne). */
   scheduleChange(input: ScheduleChangeInput): void {
-    const ms = resolveDebounceMs(input.filterId, input.gesture, input.control);
+    const ms = resolveDebounceMs(input.filterId, input.gesture, input.control, input.valueLength);
     const existing = this.pendingByFilter.get(input.filterId);
     if (existing !== undefined) clearTimeout(existing);
+    this.pendingByFilter.delete(input.filterId);
+
+    // `EX-SRCH-6` (`DR-058`) : sous le seuil de caractères, aucun commit n'est JAMAIS planifié —
+    // pas même différé — jusqu'à ce qu'un geste ultérieur atteigne le seuil.
+    if (!Number.isFinite(ms)) return;
 
     const fire = (): void => {
       this.pendingByFilter.delete(input.filterId);
       const url = input.commit();
       this.history.onApplied(url);
-      if (input.cls === 'T' || input.cls === 'DYNAMIC_BODY') {
+      // `DR-137` : seules les classes RÉSOLUES `'T'`/`'R'` atteignent ce contrôleur —
+      // `resolveFilterClass` a déjà tranché `DYNAMIC_BODY` en amont (`filter-registry.ts`). Un
+      // appelant qui transmettrait encore `DYNAMIC_BODY` ici serait un défaut de câblage, pas un
+      // cas normal à couvrir silencieusement.
+      if (input.cls === 'T') {
         this.opts.reload();
       } else {
         this.rBurst.notifyChange();

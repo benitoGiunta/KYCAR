@@ -73,8 +73,10 @@ describe('D5 — ADV-10 / ARB-56 : les 77 filtres retenus à leurs valeurs les p
   it('la mesure réelle reste sous les 2 000 caractères (ARB-56 annonçait ≈ 1 720)', () => {
     const query = serializeQuery(widestSelection(), {}, OPTS);
     const url = assembleUrl(ORIGIN, query);
-    // 73 filtres sérialisables (les 3 filtres D et `atype` ne le sont pas — EX-SCR-57).
-    expect(query.split('&').length).toBe(73);
+    // 65 filtres sérialisables (les 3 filtres D et les 6 `nonExposed` ne le sont pas — EX-SCR-57,
+    // DR-052/D-12/D-14 : `location`/`lat`/`lon` retirés du registre, `powerType`/`hadAccident`/
+    // `countryType`/`page`/`pageSize` marqués `nonExposed`).
+    expect(query.split('&').length).toBe(65);
     expect(url.length).toBeLessThanOrEqual(MAX_URL_LENGTH);
     expect(url.length).toBeGreaterThan(1_500);
     // `eq` seul, à ses 136 valeurs : le poste dominant annoncé par EX-NAV-10 (« ≈ 540 »).
