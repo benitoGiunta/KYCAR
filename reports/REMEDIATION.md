@@ -10,26 +10,39 @@ posée (E3).
 **Sources lues** : `docs/plans/PLAN-2-app-build.md` §2.6 · `reports/DEV-REVIEW.md` (§1, §3 les
 160 constats `DR-001…DR-160`, §5.1 O13–O17, §6.5, §7) · `reports/remediation/FIX-LEAD-DECISIONS.md`
 (D-01…D-51) · les huit rapports de correcteurs (`fix-foundation`, `fix-engine`, `fix-providers`,
-`fix-state`, `fix-screens`, `fix-docs`, `fix-app`, `fix-residual`) · `CLAUDE.md` §5.
+`fix-state` **§8 comprise**, `fix-screens`, `fix-docs`, `fix-app`, `fix-residual`) · `CLAUDE.md` §5.
 
-**Tout ce qui est chiffré ci-dessous a été rejoué par moi le 2026-09-08**, commandes et extraits cités.
+**Tout ce qui est chiffré ci-dessous a été rejoué par moi**, commandes et extraits cités.
+
+> **Révision 2 (2026-09-08, après la passe de finition).** Ma première vérification laissait deux
+> constats `OUVERT` (§7) : le résidu MAJEUR de `DR-060` et `DR-139`. Les deux ont été livrés depuis
+> (`949bba6`, `c24f1e4`, `fa6e83a`). J'ai **tout rejoué**, y compris la preuve que les trois
+> nouvelles sondes étaient bien **rouges avant** la correction (§3.1). Le rapport ci-dessous est
+> intégralement remesuré ; **il n'y a plus aucun constat ouvert**.
 
 ---
 
 ## 0. Commandes rejouées et leurs sorties
 
 ```
+$ git log --oneline -6
+e26cfa5 Closure docs: final counts (798 review probes, 11 consigned debts incl. 3 MAJEUR)
+fa6e83a Coordinator: wire onSaveSearch from the shell to FilterBand (DR-139, EX-SCR-94)
+5319b29 Document the DR-060/DR-139 finishing pass in fix-state.md
+c24f1e4 Finish DR-139: EX-SCR-94 save-search button and EX-SCR-78 counter
+949bba6 Finish DR-060 residual: screen G clear-search, empty state, windowing
+e40c025 Phase 2.6: independent verification report (REMEDIATION.md) and O15 journal line
+$ git status --short
+(sortie vide — arbre propre)
+
 $ npm run build
 > tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json && vite build
-vite v5.4.21 building for production...
 ✓ 139 modules transformed.
-dist/.vite/manifest.json                      0.19 kB │ gzip:  0.14 kB
-dist/index.html                               0.39 kB │ gzip:  0.27 kB
 dist/assets/aggregation.worker-DxWTsNLS.js   29.54 kB
 dist/assets/index-Duw18Twg.css               10.98 kB │ gzip:  2.54 kB
-dist/assets/index-CtdW0CX7.js               274.73 kB │ gzip: 89.93 kB
-✓ built in 1.13s
-EXIT=0                                   → 0 erreur, 0 avertissement
+dist/assets/index-BSSmQp_l.js               277.11 kB │ gzip: 90.63 kB
+✓ built in 1.10s
+BUILD_EXIT=0                             → 0 erreur, 0 avertissement
 
 $ npm run lint
 > eslint .
@@ -40,18 +53,18 @@ $ npx tsc --noEmit -p tsconfig.review.json
 
 $ npm run size
 [size] initial bundle (static from entry) - EX-NFR-10:
-     87.82 KiB  assets/index-CtdW0CX7.js  (index.html)
+     88.50 KiB  assets/index-BSSmQp_l.js  (index.html)
 [size] chunks shipped outside the manifest graph (worker) - EX-NFR-10:
      10.63 KiB  assets/aggregation.worker-DxWTsNLS.js  (hors manifest)
 [size] no deferred (dynamically-imported) chunk yet - EX-NFR-11 not applicable in D1.
-[size] budgets: initial 98.45/300 KiB gzip, deferred 0.00/400 KiB gzip.
+[size] budgets: initial 99.13/300 KiB gzip, deferred 0.00/400 KiB gzip.
 [size] OK: within budget.
 
 $ npm test          # = vitest run && vitest run --config vitest.review.config.ts
  Test Files  54 passed (54)          ← suite unitaire
       Tests  615 passed (615)
  Test Files  78 passed (78)          ← suite des sondes de revue (promue par D-49)
-      Tests  784 passed (784)
+      Tests  798 passed (798)
 ```
 
 Les lignes `[size] FAIL: initial bundle 310.12 / 350.15 / 560.21 KiB …` et
@@ -60,24 +73,26 @@ D1 (`tests/review/D1/bundle-size-guard.test.ts`) qui éprouvent la garde `EX-NFR
 des manifestes **factices** ; ce ne sont pas des échecs (le fichier rend `Tests 6 passed (6)`).
 
 ```
+$ npx vitest run --config vitest.review.config.ts tests/review/D5
+ Test Files  11 passed (11)   Tests  117 passed (117)
+   dont screen-g.test.ts 18 · band-actions.test.ts 9 · keyboard-band.test.ts 16 · labels-fr 9 …
+
 $ npm run test:perf                      # les deux bancs, une seule exécution
-[perf recalc] N=100000 runs=100 : p50=152.6ms p95=166.7ms max=180.5ms
+[perf recalc] N=100000 runs=100 : p50=150.2ms p95=172.5ms max=182.7ms
                                    — cible EX-NFR-5 p95≤200ms : TENUE
-[perf recalc élagué] plus grande marque (m=9283) : p50=44.6ms p95=56.2ms max=69.6ms
-[perf facettes] 8 filtres : p50=18.6ms p95=22.1ms                  (cible EX-NFR-4bis ≤ 100 ms)
+[perf recalc élagué] plus grande marque (m=9283) : p50=48.1ms p95=56.8ms max=65.4ms
+[perf facettes] 8 filtres : p50≈19ms p95≈22ms                       (cible EX-NFR-4bis ≤ 100 ms)
 [élagage] modèle 51859:75836 : m=8, pruned=true, facteur N/scannedCount = 12500×
-[élagage marque] make 6 : m=691 pruned=true facteur=144.7×
-[EX-NFR-7] points=5000 p50=1.36ms p95=3.21ms                        (cible ≤ 500 ms p95)
-[EX-NFR-8] frames=7874 windows=91 failing=0 okRatio=100.0% minFpsInstant=192
+[EX-NFR-7] points=5000 p50=1.19ms p95=2.84ms                        (cible ≤ 500 ms p95)
+[EX-NFR-8] frames=8371 windows=91 failing=0 okRatio=100.0% minFpsInstant=373
                                                                     (cible ≥ 30 img/s sur ≥ 95 %)
  Test Files  2 passed (2)   Tests  7 passed (7)
 ```
 
 ```
-$ npx vitest run --config vitest.review.config.ts --reporter=json --outputFile=…/verify.json
-numTotalTestSuites 314 passed 314 failed 0
-numTotalTests 784 passed 784 failed 0 pending 0 todo 0   success true
-statuses {"passed":784}
+$ npx vitest run --config vitest.review.config.ts --reporter=json --outputFile=…/verify2.json
+suites 317 · tests 798 · passed 798 · failed 0 · pending 0 · todo 0 · success true
+statuses {"passed":798}
 ```
 
 ```
@@ -95,31 +110,32 @@ $ npx vitest run --config vitest.review.config.ts tests/review/D3/dataset-100k.t
 | Sévérité | Total | CORRIGÉ | DETTE consignée | OUVERT | Autre |
 |---|---|---|---|---|---|
 | **BLOQUANT** | 18 | **18** | 0 | **0** | 0 |
-| **MAJEUR** | 86 | **82** | **3** (DR-034/D-17, DR-082/D-38, DR-104/D-18) | **1 résidu** (DR-060) | 0 |
-| **MINEUR** | 56 | 46 | **8** | **1** (DR-139) | 1 `CONFORME — consigné` (DR-142) |
-| **Total** | **160** | **146** | **11** | **2** | **1** |
+| **MAJEUR** | 86 | **83** | **3** (DR-034/D-17, DR-082/D-38, DR-104/D-18) | **0** | 0 |
+| **MINEUR** | 56 | 47 | **8** | **0** | 1 `CONFORME — consigné` (DR-142) |
+| **Total** | **160** | **148** | **11** | **0** | **1** |
 
-Les deux points `OUVERT` sont : le **résidu** de `DR-060` (MAJEUR — le cœur du constat est corrigé et
-sa sonde `R-D5-20` est verte, mais trois éléments d'`EX-SCR-216` restent non livrés sans décision) et
-`DR-139` (MINEUR, NON FAIT). Détail et correction attendue au **§7**.
+**Aucun constat ouvert.** Les deux points que ma révision 1 signalait au §7 — le résidu MAJEUR de
+`DR-060` et `DR-139` (MINEUR) — sont livrés, prouvés par trois sondes neuves écrites **rouges
+d'abord** (D-32), et rejoués verts ici (§2, §3.1). Les 11 dettes restantes sont toutes consignées par
+une décision `D-xx` ou par `DEV-REVIEW` §6.5 (§4).
 
 ### 1.2 Sondes de revue
 
 | Mesure | Valeur rejouée |
 |---|---|
-| Sondes exécutées (`vitest.review.config.ts`) | **784** dans **78 fichiers** |
-| Vertes | **784 / 784** (`success: true`, `numFailedTests 0`) |
+| Sondes exécutées (`vitest.review.config.ts`) | **798** dans **78 fichiers** |
+| Vertes | **798 / 798** (`success: true`, `numFailedTests 0`, `statuses {"passed":798}`) |
 | Dont converties en `it.fails` annotées (D-49) | **8** — elles échouent réellement à l'intérieur et *passent* de ce fait ; c'est la preuve exécutable que les 8 dettes existent toujours |
 | Sondes rouges non couvertes par une dette | **0** |
-| `it.skip` / `it.todo` / `describe.skip` / `.only` dans `tests/review` et `src` | **0** (`grep -rn "it.skip\|it.todo\|describe.skip\|test.skip\|test.todo\|describe.todo\|\.only("` → aucune occurrence) |
-| Écart avec la phase 2.5 | 783 sondes en 2.5 → **784** (une sonde neuve écrite par fix-app au titre de D-03 : « un filtre déclaré `unsupportedFilterIds` n'est jamais publié comme filtré ») ; les **205 rouges** de 2.5 sont toutes soldées ou consignées |
+| `it.skip` / `it.todo` / `describe.skip` / `.only` dans `tests/review` et `src` | **0** (grep exhaustif → aucune occurrence) |
+| Écart avec la phase 2.5 | 783 sondes en 2.5 → **798** (+15) : 1 sonde neuve de `fix-app` (D-03) et **14 sondes de la passe de finition** — `R-D5-25` (5) et `R-D5-26` (5) dans `D5/screen-g.test.ts` (8 → 18), `R-D5-24` (4) dans `D5/band-actions.test.ts` (5 → 9). Les **205 rouges** de 2.5 sont toutes soldées ou consignées |
 
 ### 1.3 Suites
 
 | Suite | Commande | Résultat rejoué |
 |---|---|---|
 | Unitaire | `npx vitest run` | **54 fichiers, 615 tests, 0 échec** (536 avant 2.6) |
-| Revue | `npx vitest run --config vitest.review.config.ts` | **78 fichiers, 784 tests, 0 échec** |
+| Revue | `npx vitest run --config vitest.review.config.ts` | **78 fichiers, 798 tests, 0 échec** |
 | Combinée | `npm test` | les deux ci-dessus, enchaînées, vertes |
 | Performance | `npm run test:perf` | **2 fichiers, 7 tests, 0 échec** |
 | Types | `npm run build` (tsc app + worker + vite) et `npx tsc --noEmit -p tsconfig.review.json` | **0 erreur / 0 avertissement** |
@@ -129,51 +145,53 @@ sa sonde `R-D5-20` est verte, mais trois éléments d'`EX-SCR-216` restent non l
 
 | Budget | Exigence | Mesure rejouée | Verdict |
 |---|---|---|---|
-| Bundle initial | `EX-NFR-10` ≤ 300 Kio gzip | **98,45 Kio** (87,82 entrée + 10,63 worker hors manifest, compté depuis DR-036) | **TENU** (33 % du budget) |
+| Bundle initial | `EX-NFR-10` ≤ 300 Kio gzip | **99,13 Kio** (88,50 entrée + 10,63 worker hors manifest, compté depuis DR-036) — 98,45 avant la finition, **+0,68 Kio** | **TENU** (33 % du budget) |
 | Bundle différé | `EX-NFR-11` ≤ 400 Kio gzip | 0,00 Kio (aucun chunk différé) | **SANS OBJET, garde posée** |
 | Mémoire du lot | `EX-NFR-1` ≤ 25 Mo | **17,19 Mio** (6,77 colonnes + 10,41 texte) | **TENU** |
 | Sérialisation | `EX-NFR-3` ≤ 6 Mo gzip | **5,45 Mio** (marge 9,2 %, **D-42**) | **TENU** |
-| Recalcul p95 | `EX-NFR-5` ≤ 200 ms à N = 100 000 | **166,7 ms** p95 (p50 152,6 ; max 180,5) — 632,7 ms avant 2.6 | **TENU** |
-| Facettes différées | `EX-NFR-4bis` ≤ 100 ms p95 | **22,1 ms** p95 | **TENU** |
-| Rendu du nuage | `EX-NFR-7` ≤ 500 ms p95 pour 5 000 points | **3,21 ms** p95 | **TENU** |
-| Interaction continue | `EX-NFR-8` ≥ 30 img/s sur ≥ 95 % des fenêtres de 1 s | **100,0 %** des 91 fenêtres, 0 en échec, min instantané 192 img/s | **TENU** |
-| Premier affichage utile | `EX-NFR-9` ≤ 2 000 ms (4G simulée) | **835 ms** — recalculé par moi (voir §1.5) | **TENU** (marge 1 165 ms) |
+| Recalcul p95 | `EX-NFR-5` ≤ 200 ms à N = 100 000 | **172,5 ms** p95 (p50 150,2 ; max 182,7) — 632,7 ms avant 2.6 | **TENU** |
+| Facettes différées | `EX-NFR-4bis` ≤ 100 ms p95 | **≈ 22 ms** p95 | **TENU** |
+| Rendu du nuage | `EX-NFR-7` ≤ 500 ms p95 pour 5 000 points | **2,84 ms** p95 | **TENU** |
+| Interaction continue | `EX-NFR-8` ≥ 30 img/s sur ≥ 95 % des fenêtres de 1 s | **100,0 %** des 91 fenêtres, 0 en échec, min instantané 373 img/s | **TENU** |
+| Premier affichage utile | `EX-NFR-9` ≤ 2 000 ms (4G simulée) | **831 ms** — recalculé par moi (§1.5) | **TENU** (marge 1 169 ms) |
 
 ### 1.5 `EX-NFR-9` recalculé indépendamment (mesure statique)
 
-Le rapport `fix-app` annonce **810 ms**. Je l'ai refait à partir de `dist/.vite/manifest.json` et des
-tailles gzip réelles, sans passer par la sonde :
+Refait à partir de `dist/.vite/manifest.json` et des tailles gzip réelles, sans passer par la sonde,
+sur le bundle d'après la finition :
 
 ```
 $ cat dist/.vite/manifest.json
-{ "index.html": { "file": "assets/index-CtdW0CX7.js", "isEntry": true,
+{ "index.html": { "file": "assets/index-BSSmQp_l.js", "isEntry": true,
                   "css": ["assets/index-Duw18Twg.css"] } }
 
-JS   assets/index-CtdW0CX7.js    87.82 Kio gzip
+JS   assets/index-BSSmQp_l.js    88.50 Kio gzip
 CSS  assets/index-Duw18Twg.css    2.48 Kio gzip
 REF  18 fichiers de data/reference (taxonomy, filters, filters-scope, 15 référentiels)
                                   97.01 Kio gzip
-TOTAL                            187.31 Kio gzip
-transfert 4G = 187.31 Kio / 500 Ko·s⁻¹ + 2 × 150 ms de latence = 684 ms
+TOTAL                            187.99 Kio gzip
+transfert 4G = 187.99 Kio / 500 Ko·s⁻¹ + 2 × 150 ms de latence = 685 ms
 $ npx vitest run --config vitest.review.config.ts tests/review/D8/parcours.test.ts
-[EX-NFR-9] openSnapshot=151 ms, baseline=0 ms, transfert=187.3 Kio gzip → 684 ms, total=834 ms
+[EX-NFR-9] openSnapshot=146 ms, baseline=0 ms, transfert=188.0 Kio gzip → 685 ms, total=831 ms
+ Tests  12 passed (12)
 ```
 
-**835 ms sur un budget de 2 000 ms.** L'écart avec les 810 ms du rapport `fix-app` tient au seul
-`openSnapshot` (151 ms chez moi contre 127 ms) : même mesure, même machine, bruit CPU.
-`fetchBaselineAggregates = 0 ms` confirme le garde-fou d'`ARCHITECTURE` §9.3 restauré par DR-049.
+**831 ms sur un budget de 2 000 ms** (835 ms avant la finition : le fenêtrage et le bouton ajoutent
+0,68 Kio gzip, soit ≈ 1 ms de transfert). `fetchBaselineAggregates = 0 ms` confirme le garde-fou
+d'`ARCHITECTURE` §9.3 restauré par DR-049.
 
-*Réserve honnête que je porte au dossier 2.7* : le chunk du Worker (**10,63 Kio gzip**) est instancié
-au `bootstrap()` mais **n'appartient pas au graphe du manifest**, donc `estimateStartupTransfer`
+*Réserve honnête portée au dossier 2.7* : le chunk du Worker (**10,63 Kio gzip**) est instancié au
+`bootstrap()` mais **n'appartient pas au graphe du manifest**, donc `estimateStartupTransfer`
 (`tests/review/D8/_helpers.ts`) ne le compte pas dans `EX-NFR-9`, alors que `npm run size` le compte
-bien dans `EX-NFR-10` depuis DR-036. Correction du chiffre : +10,63 Kio → +21 ms → **856 ms**. Sans
-effet sur le verdict.
+bien dans `EX-NFR-10` depuis DR-036. Chiffre corrigé : +10,63 Kio → +21 ms → **852 ms**. Sans effet
+sur le verdict.
 
 ### 1.6 Les deux parcours cibles, rejoués par moi
 
 `npx vitest run --config vitest.review.config.ts tests/review/D8/parcours.test.ts` → **12 tests, tous
-verts**, plus un relevé indépendant que j'ai monté hors du dépôt sur le câblage de production
-(`DataController` + `SyntheticDataProvider` par défaut, 100 000 annonces, moteur réel in-process) :
+verts**, plus un relevé indépendant monté hors du dépôt sur le câblage de production
+(`DataController` + `SyntheticDataProvider` par défaut, 100 000 annonces, moteur réel in-process),
+rejoué à l'identique après la passe de finition :
 
 ```
 [VERIF P1] non filtré : marques=294 offres=100000 hasUserFilters=false
@@ -191,7 +209,8 @@ verts**, plus un relevé indépendant que j'ai monté hors du dépôt sur le câ
              (seuil PRICE_IMPLAUSIBLE_IN_CELL = 225 €), retrouvés=9, verdicts=3593
 ```
 
-Les valeurs intermédiaires exigées sont donc confirmées, chiffre par chiffre :
+Les valeurs intermédiaires exigées sont confirmées, chiffre par chiffre, et **inchangées** par la
+passe de finition (qui ne touche que le bandeau de filtres et l'écran G) :
 
 - **effectif mode 1 filtré** : `2 656` offres sur `112` marques, `activeFilterCount = 4`,
   `unsupportedFilterIds` **vide** — les quatre filtres sont réellement appliqués, l'effectif est
@@ -202,9 +221,6 @@ Les valeurs intermédiaires exigées sont donc confirmées, chiffre par chiffre 
 - **outliers** : la cellule Corsa entière rend `2 461` verdicts par annonce dont `73` signalés
   (DR-030 : un verdict par annonce ÉVALUÉE, plus seulement par annonce signalée) ; le millésime 2017
   rend `98` verdicts et `0` signalé ; la cellule substitut retrouve **9 injectés sur 9 évaluables**.
-
-`R-D8-03` (« 2017 » applicable) et `R-D8-30`/`R-D8-31` sont vertes ; les trois valeurs que j'obtiens
-sont identiques à celles du journal de `fix-app` §3 (2 656 / 1 352 / 54 / `35a0c206…`).
 
 ### 1.7 R3 / R2 / E5, rejoués
 
@@ -249,7 +265,7 @@ $ npx vitest run --config vitest.review.config.ts tests/review/D9/capabilities-m
 Une ligne par `DR`. **Correcteur** = les rapports `fix-*` qui portent une ligne de table dédiée au
 constat. **Sonde révélatrice** = la preuve citée par la colonne *Preuve* de `DEV-REVIEW` §3, avec le
 fichier où elle vit aujourd'hui. **Verdict rejoué** = ce que j'ai lu dans le JSON de
-`npx vitest run --config vitest.review.config.ts --reporter=json` du 2026-09-08 (784/784).
+`npx vitest run --config vitest.review.config.ts --reporter=json` du 2026-09-08 (**798/798**).
 Statut `DETTE` **seulement** quand une décision `D-xx` ou `DEV-REVIEW` §6.5 la consigne, citée.
 
 | DR | Sév. | Correcteur | Fichiers | Sonde révélatrice | Verdict rejoué (2026-09-08) | Statut |
@@ -262,9 +278,9 @@ Statut `DETTE` **seulement** quand une décision `D-xx` ou `DEV-REVIEW` §6.5 la
 | DR-006 | BLOQUANT | app | `src/orchestration/`, `src/app.tsx` | `R-D8-03` (D8/parcours.test.ts) | `R-D8-03` **vert** | **CORRIGÉ** |
 | DR-007 | BLOQUANT | foundation | `src/providers/DataProvider.ts`, `src/providers/synthetic/columnar.ts`, `src/providers/synthetic/generate.ts` | `R-D8-31` (D8/parcours.test.ts) | `R-D8-31` **vert** | **CORRIGÉ** |
 | DR-008 | BLOQUANT | foundation, engine, providers | `src/engine/predicates.ts`, `src/providers/synthetic/selection.ts` | `R-PATHO-15` (patho/bloquants-st.test.ts) | `R-PATHO-15` **vert** | **CORRIGÉ** |
-| DR-009 | BLOQUANT | screens, app | `src/screens/distribution/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
+| DR-009 | BLOQUANT | screens, app | `src/screens/distribution/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
 | DR-010 | BLOQUANT | app | `src/app.tsx`, `src/screens/listings/` | `R-D7-24` (D7/ecran-d.test.ts) | `R-D7-24` **vert** | **CORRIGÉ** |
-| DR-011 | BLOQUANT | screens | `src/screens/market/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
+| DR-011 | BLOQUANT | screens | `src/screens/market/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
 | DR-012 | BLOQUANT | foundation, engine | `src/types/validation.ts` | `R-D2-01` (D2/r3-guard.test.ts) | `R-D2-01` **vert** | **CORRIGÉ** |
 | DR-013 | BLOQUANT | foundation, engine | `src/types/vocabularies.ts`, `src/engine/flags.ts`, `src/providers/DataProvider.ts` (gelé) | `R-D2-18` (D2/open-points.test.ts) | `R-D2-18` **vert** | **CORRIGÉ** |
 | DR-014 | BLOQUANT | state | `src/state/url-codec.ts`, `src/state/corrections.ts` | `R-D5-01` (D5/url-roundtrip.test.ts) · `R-D5-02` (D5/url-roundtrip.test.ts) | `R-D5-01` **vert** · `R-D5-02` **vert** | **CORRIGÉ** |
@@ -287,7 +303,7 @@ Statut `DETTE` **seulement** quand une décision `D-xx` ou `DEV-REVIEW` §6.5 la
 | DR-031 | MAJEUR | engine | `src/engine/outliers.ts` | `R-PATHO-08` (patho/structure.test.ts) | `R-PATHO-08` **vert** | **CORRIGÉ** |
 | DR-032 | MAJEUR | engine | `src/engine/kernel.ts`, `src/engine/outliers.ts`, `src/worker/messages.ts` | `R-D4-12` (D4/full-100k.test.ts) | `R-D4-12` **vert** | **CORRIGÉ** |
 | DR-033 | MAJEUR | engine | `src/engine/uuid.ts`, `src/engine/index-build.ts`, `src/engine/scan.ts` | `R-D4-13` (D4/full-100k.test.ts) | `R-D4-13` **vert** | **CORRIGÉ** |
-| DR-034 | MAJEUR | engine | `src/engine/`, `src/worker/messages.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **DETTE (D-17)** — MAJEUR mis en dette motivée |
+| DR-034 | MAJEUR | engine | `src/engine/`, `src/worker/messages.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **DETTE (D-17)** — MAJEUR mis en dette motivée |
 | DR-035 | MAJEUR | engine | `src/engine/outliers.ts` | `R-PATHO-07` (patho/valeurs.test.ts) | `R-PATHO-07` **vert** | **CORRIGÉ** |
 | DR-036 | MAJEUR | engine | `tools/check-bundle-size.mjs`, `vite.config.ts`, `src/worker/client.ts` | `R-D1-01` (D1/bundle-size-guard.test.ts) | `R-D1-01` **vert** | **CORRIGÉ** |
 | DR-037 | MAJEUR | providers | `src/providers/synthetic/generate.ts` | `R-D3-09` (D3/dataset-100k.test.ts) | `R-D3-09` **vert** | **CORRIGÉ** |
@@ -313,10 +329,10 @@ Statut `DETTE` **seulement** quand une décision `D-xx` ou `DEV-REVIEW` §6.5 la
 | DR-057 | MAJEUR | state | `src/components/filters/filter-search.ts`, `src/state/filter-types.ts` | `R-D5-12` (D5/keyboard-band.test.ts) | `R-D5-12` **vert** | **CORRIGÉ** |
 | DR-058 | MAJEUR | state | `src/state/debounce-policy.ts`, `src/components/filters/controls/GeoComposite.tsx` | `R-D5-14` (D5/interaction-history.test.ts) | `R-D5-14` **vert** | **CORRIGÉ** |
 | DR-059 | MAJEUR | state | `src/components/filters/FilterBand.tsx`, `src/state/filter-registry.ts` | `R-D5-17` (D5/tr-split.test.ts) | `R-D5-17` **vert** | **CORRIGÉ** |
-| DR-060 | MAJEUR | state | `src/components/filters/ScreenG.tsx`, `src/components/filters/screen-g-model.ts` | `R-D5-20` (D5/screen-g.test.ts) | `R-D5-20` **vert** | **PARTIEL** — cœur CORRIGÉ (`R-D5-20` vert) ; résidu **OUVERT** (virtualisation écran G, bouton « Effacer la recherche », `ET-VIDE-FILTRES`) : aucune décision D-xx, absent de §6.5 |
+| DR-060 | MAJEUR | state | `src/components/filters/ScreenG.tsx`, `src/components/filters/screen-g-model.ts` | `R-D5-20` (D5/screen-g.test.ts) + **neuves** `R-D5-25`, `R-D5-26` (D5/screen-g.test.ts) | `R-D5-20` **vert** · `R-D5-25` **5/5 verts** · `R-D5-26` **5/5 verts** (rouges avant, §3.1) | **CORRIGÉ** — cœur (`R-D5-20`) + résidu `EX-SCR-216` livré par la passe de finition (fenêtrage `computeRowWindow`, « Effacer la recherche », `ET-VIDE-FILTRES`) ; sondes neuves `R-D5-25`/`R-D5-26` **vues rouges avant** (§3.1) |
 | DR-061 | MAJEUR | state | `src/components/filters/band-model.ts`, `src/components/filters/SecondaryGroups.tsx` | `R-D5-21` (D5/band-actions.test.ts) | `R-D5-21` **vert** | **CORRIGÉ** |
 | DR-062 | MAJEUR | state | `src/components/filters/labels.ts`, `src/components/filters/ActiveFilterTokens.tsx` | `R-D5-22` (D5/band-actions.test.ts) | `R-D5-22` **vert** | **CORRIGÉ** |
-| DR-063 | MAJEUR | state, app | `src/state/router.ts`, `src/state/filter-registry.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
+| DR-063 | MAJEUR | state, app | `src/state/router.ts`, `src/state/filter-registry.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
 | DR-064 | MAJEUR | state | `src/state/corrections.ts`, `src/screens/distribution/url-state.ts` | `R-D7-18` (D7/url-etat.test.ts) | `R-D7-18` **vert** | **CORRIGÉ** |
 | DR-065 | MAJEUR | state, screens | `src/state/corrections.ts`, `src/screens/distribution/url-state.ts` | `R-D7-19` (D7/url-etat.test.ts) | `R-D7-19` **vert** | **CORRIGÉ** (codec D5 + `url-state.ts` aligné, D-11/D-12) |
 | DR-066 | MAJEUR | state | `src/state/filter-registry.ts`, `src/state/url-codec.ts`, `src/screens/listings/` | `R-D7-20` (D7/url-etat.test.ts) | `R-D7-20` **vert** | **CORRIGÉ** |
@@ -356,7 +372,7 @@ Statut `DETTE` **seulement** quand une décision `D-xx` ou `DEV-REVIEW` §6.5 la
 | DR-100 | MAJEUR | app | `src/app.tsx` | `R-D8-22` (D8/shell-static.test.ts) | `R-D8-22` **vert** | **CORRIGÉ** |
 | DR-101 | MAJEUR | app | `src/app.tsx` | `R-D8-23` (D8/shell-static.test.ts) | `R-D8-23` **vert** | **CORRIGÉ** |
 | DR-102 | MAJEUR | app | `src/app.tsx` | `R-D8-25` (D8/shell-static.test.ts) | `R-D8-25` **vert** | **CORRIGÉ** |
-| DR-103 | MAJEUR | app | `src/orchestration/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
+| DR-103 | MAJEUR | app | `src/orchestration/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
 | DR-104 | MAJEUR | providers, app, residual | `src/main.tsx` | `R-D9-21` (D9/capabilities-mode1.test.ts) | `R-D9-21` **vert** *(it.fails — dette)* | **DETTE (D-18)** — MAJEUR mis en dette motivée (AC-01 non levée) |
 | DR-105 | MINEUR | engine, residual | `src/types/validation.ts` | `R-D2-02` (D2/r3-guard.test.ts) | `R-D2-02` **vert** *(it.fails — dette)* | **DETTE (§6.5)** |
 | DR-106 | MINEUR | engine | `src/types/selection.ts` | `R-D2-05` (D2/selection-codec.test.ts) | `R-D2-05` **vert** | **CORRIGÉ** |
@@ -373,9 +389,9 @@ Statut `DETTE` **seulement** quand une décision `D-xx` ou `DEV-REVIEW` §6.5 la
 | DR-117 | MINEUR | engine | `src/engine/client.ts` | `R-D4-09` (D4/lru-cache.test.ts) | `R-D4-09` **vert** | **CORRIGÉ** |
 | DR-118 | MINEUR | engine | `src/worker/aggregation.worker.ts` | `R-D4-10` (D4/worker-protocol.test.ts) | `R-D4-10` **vert** | **CORRIGÉ** |
 | DR-119 | MINEUR | engine | `src/worker/client.ts` | `R-D4-11` (D4/worker-protocol.test.ts) | `R-D4-11` **vert** | **CORRIGÉ** |
-| DR-120 | MINEUR | engine | `src/engine/outliers.groundtruth.test.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
-| DR-121 | MINEUR | engine | `src/engine/outliers.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
-| DR-122 | MINEUR | engine | `src/types/entities.ts`, `src/engine/aggregate.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **DETTE (§6.5)** |
+| DR-120 | MINEUR | engine | `src/engine/outliers.groundtruth.test.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
+| DR-121 | MINEUR | engine | `src/engine/outliers.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
+| DR-122 | MINEUR | engine | `src/types/entities.ts`, `src/engine/aggregate.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **DETTE (§6.5)** |
 | DR-123 | MINEUR | providers | `src/providers/synthetic/generate.ts` | `R-D3-06` (D3/dataset-100k.test.ts) | `R-D3-06` **vert** | **CORRIGÉ** |
 | DR-124 | MINEUR | providers | `src/providers/synthetic/generate.ts` | `R-D3-10` (D3/dataset-100k.test.ts) | `R-D3-10` **vert** | **CORRIGÉ** |
 | DR-125 | MINEUR | providers | `src/providers/synthetic/`, `src/providers/tweedehands/` | `R-D3-11` (D3/contract-labeling.test.ts) · `R-D9-17` (D9/aggregate-invariants.test.ts) | `R-D3-11` **vert** · `R-D9-17` **vert** | **CORRIGÉ** |
@@ -384,18 +400,18 @@ Statut `DETTE` **seulement** quand une décision `D-xx` ou `DEV-REVIEW` §6.5 la
 | DR-128 | MINEUR | providers | `src/providers/tweedehands/` | `R-D9-13` (D9/no-network.test.ts) · `R-D9-13b` (D9/no-network.test.ts) | `R-D9-13` **vert** · `R-D9-13b` **vert** | **CORRIGÉ** |
 | DR-129 | MINEUR | providers | `src/providers/tweedehands/` | `R-D9-15` (D9/normalization.test.ts) | `R-D9-15` **vert** | **CORRIGÉ** |
 | DR-130 | MINEUR | providers | `src/providers/tweedehands/` | `R-D9-20` (D9/taxonomy.test.ts) · `R-D9-09b` (D9/taxonomy.test.ts) | `R-D9-20` **vert** · `R-D9-09b` **vert** | **CORRIGÉ** |
-| DR-131 | MINEUR | providers | `src/providers/tweedehands/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
+| DR-131 | MINEUR | providers | `src/providers/tweedehands/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
 | DR-132 | MINEUR | state, residual | `src/state/filter-registry.ts` | `R-D5-10` (D5/labels-fr.test.ts) | `R-D5-10` **vert** *(it.fails — dette)* | **DETTE (§6.5)** |
 | DR-133 | MINEUR | state | `src/state/filter-registry.ts` | `R-D5-11` (D5/labels-fr.test.ts) | `R-D5-11` **vert** | **CORRIGÉ** |
 | DR-134 | MINEUR | state, residual | `src/components/filters/filter-search.ts` | `R-D5-13` (D5/keyboard-band.test.ts) | `R-D5-13` **vert** *(it.fails — dette)* | **DETTE (§6.5)** |
-| DR-135 | MINEUR | state | `src/components/filters/FilterBand.tsx` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
+| DR-135 | MINEUR | state | `src/components/filters/FilterBand.tsx` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
 | DR-136 | MINEUR | state | `src/state/url-codec.ts`, `src/state/corrections.ts` | `R-D5-16` (D5/url-corrections.test.ts) | `R-D5-16` **vert** | **CORRIGÉ** |
 | DR-137 | MINEUR | state | `src/state/interaction.ts` | `R-D5-18` (D5/interaction-history.test.ts) | `R-D5-18` **vert** | **CORRIGÉ** |
 | DR-138 | MINEUR | state | `src/components/filters/band-model.ts`, `PrimaryLine.tsx` | `R-D5-19` (D5/keyboard-band.test.ts) | `R-D5-19` **vert** | **CORRIGÉ** |
-| DR-139 | MINEUR | state | `src/components/filters/ActiveFilterTokens.tsx` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **OUVERT** — NON FAIT ; aucune décision D-xx, absent de §6.5 |
+| DR-139 | MINEUR | state | `src/components/filters/ActiveFilterTokens.tsx` | grep `EX-SCR-94` (DEV-REVIEW) + **neuve** `R-D5-24` (D5/band-actions.test.ts) | `R-D5-24` **4/4 verts** (3/4 rouges avant, §3.1) ; `grep -rn "EX-SCR-94" src/` = 4 occurrences (0 avant) | **CORRIGÉ** — bouton `EX-SCR-94` + compteur `EX-SCR-78` (`ActiveFilterTokens.tsx`, `FilterBand.tsx`), câblage `onSaveSearch` par le coordinateur (`fa6e83a`) ; sonde neuve `R-D5-24` **vue rouge avant** (§3.1) |
 | DR-140 | MINEUR | screens | `src/screens/market/csv.ts` | `R-D6-04` (D6/export-csv.test.ts) | `R-D6-04` **vert** | **CORRIGÉ** |
 | DR-141 | MINEUR | screens | `src/screens/market/` | `R-D6-05` (D6/export-csv.test.ts) | `R-D6-05` **vert** | **CORRIGÉ** |
-| DR-142 | MINEUR | screens | `src/screens/market/ModelZone.tsx` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CONFORME — consigné (§6.5)**, aucune correction requise |
+| DR-142 | MINEUR | screens | `src/screens/market/ModelZone.tsx` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CONFORME — consigné (§6.5)**, aucune correction requise |
 | DR-143 | MINEUR | screens | `src/screens/market/market.css` | `R-D6-10` (D6/responsive.test.ts) | `R-D6-10` **vert** | **DETTE (D-40 / §6.5)** |
 | DR-144 | MINEUR | screens | `src/screens/distribution/Histogram.tsx` | `R-D7-02` (D7/histogrammes.test.ts) | `R-D7-02` **vert** | **CORRIGÉ** |
 | DR-145 | MINEUR | screens | `src/screens/distribution/histogram-model.ts` | `R-D7-04` (D7/histogrammes.test.ts) | `R-D7-04` **vert** | **CORRIGÉ** |
@@ -411,9 +427,9 @@ Statut `DETTE` **seulement** quand une décision `D-xx` ou `DEV-REVIEW` §6.5 la
 | DR-155 | MINEUR | app | `src/app.tsx`, `src/orchestration/` | `R-D8-26` (D8/shell-static.test.ts) | `R-D8-26` **vert** | **CORRIGÉ** |
 | DR-156 | MINEUR | app | `src/app/`, `src/persistence/`, `src/screens/compare/`, `src/orchestration/` | `R-D8-28` (D8/shell-static.test.ts) | `R-D8-28` **vert** | **CORRIGÉ** |
 | DR-157 | MINEUR | app | `src/orchestration/` | `R-D8-29` (D8/fallback.test.ts) | `R-D8-29` **vert** | **CORRIGÉ** |
-| DR-158 | MINEUR | app | `src/orchestration/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
-| DR-159 | MINEUR | app | `src/app.tsx` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
-| DR-160 | MINEUR | docs | `DEV.md`, `vite.config.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 784/784 verte** | **CORRIGÉ** |
+| DR-158 | MINEUR | app | `src/orchestration/` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
+| DR-159 | MINEUR | app | `src/app.tsx` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
+| DR-160 | MINEUR | docs | `DEV.md`, `vite.config.ts` | — (preuve par commande/lecture dans DEV-REVIEW) | aucune sonde tagée ; **suite de revue 798/798 verte** | **CORRIGÉ** |
 **Lecture du tableau.** Les 18 BLOQUANT sont tous `CORRIGÉ`, chacun avec sa sonde d'origine verte.
 Les six constats dont `DEV-REVIEW` §1.2 disait qu'ils n'étaient pas portés par une sonde rouge
 (`R-D4-14…19`, `R-PATHO-17`) et les trois prouvés par une sonde **verte** (`DR-011`, `DR-071`,
@@ -423,19 +439,64 @@ Les six constats dont `DEV-REVIEW` §1.2 disait qu'ils n'étaient pas portés pa
 
 ---
 
-## 3. Sondes modifiées depuis la fin de la phase 2.5
+## 3. Sondes ajoutées et modifiées depuis la fin de la phase 2.5
 
 Référence : dernier commit de la phase 2.5, `74c725f` (« Phase 2.5: consolidated development review »).
 
 ```
-$ git diff --stat 74c725f..HEAD -- tests/review/
- 43 files changed, 770 insertions(+), 208 deletions(-)
+$ git diff --shortstat 74c725f..HEAD -- tests/review/
+ 44 files changed, 1038 insertions(+), 208 deletions(-)
 $ git show --stat 559128f -- tests/review/      # « Phase 2.6 (D-49): promote review probes … »
  8 files changed, 32 insertions(+), 8 deletions(-)
+$ git diff --numstat e40c025..HEAD -- tests/review/   # la passe de finition, PUREMENT ADDITIVE
+ 102  0  tests/review/D5/band-actions.test.ts
+ 166  0  tests/review/D5/screen-g.test.ts
 ```
 
-**43 fichiers touchés**, dont 8 uniquement (ou aussi) par la conversion `it.fails` de D-49. Aucun
-n'est modifié sans justification écrite. Verdict par fichier :
+**44 fichiers touchés**, dont 8 uniquement (ou aussi) par la conversion `it.fails` de D-49 et 2 par
+la passe de finition (**0 suppression** : elle n'ajoute que des sondes). Aucun fichier n'est modifié
+sans justification écrite.
+
+### 3.1 Les trois sondes neuves de la passe de finition — vues ROUGES avant, par moi
+
+Les commits `949bba6` et `c24f1e4` livrent la sonde ET la correction ensemble : l'historique seul ne
+prouve donc pas la discipline D-32. **Je l'ai prouvée moi-même** en montant un worktree jetable sur
+le commit d'AVANT la finition (`e40c025`, celui de ma révision 1) et en y déposant les deux fichiers
+de sondes d'aujourd'hui :
+
+```
+$ git worktree add /home/user/kycar-wt/verify e40c025
+$ ln -s /home/user/KYCAR/node_modules /home/user/kycar-wt/verify/node_modules
+$ cp /home/user/KYCAR/tests/review/D5/{screen-g,band-actions}.test.ts  <worktree>/tests/review/D5/
+$ npx vitest run --config vitest.review.config.ts tests/review/D5/screen-g.test.ts \
+                                                  tests/review/D5/band-actions.test.ts
+TypeError: ScreenGMakeRow is not a function          ❯ screen-g.test.ts:292
+TypeError: clearScreenGSearch is not a function      ❯ screen-g.test.ts:269
+TypeError: makePanelEmptyState is not a function     ❯ screen-g.test.ts:278
+ Test Files  2 failed (2)
+      Tests  13 failed | 14 passed (27)
+
+Dépouillement du JSON de cette exécution, par identifiant de sonde :
+  R-D5-24 {"passed":1,"failed":3}     R-D5-25 {"passed":0,"failed":5}
+  R-D5-26 {"passed":0,"failed":5}
+  R-D5-20 {"passed":1}  R-D5-21 {"passed":1}  R-D5-22 {"passed":1}   ← inchangées, restées vertes
+$ rm <worktree>/node_modules && git worktree remove --force <worktree>     # D-50 respecté
+$ ls node_modules | wc -l → 144 ; git status --short → vide
+```
+
+**Les 13 assertions des trois sondes neuves échouent sur le code d'avant, et passent toutes sur le
+code d'après** (`R-D5-24` 4/4, `R-D5-25` 5/5, `R-D5-26` 5/5 dans la suite de 798). Les trois sondes
+préexistantes du même périmètre (`R-D5-20`, `R-D5-21`, `R-D5-22`) sont vertes **avant comme après**,
+et leurs fichiers ne perdent aucune ligne : aucune régression, aucune assertion supprimée.
+
+*Écart relevé, non bloquant* : `fix-state` §8.1 annonce « `Tests 3 failed | 15 passed (18)` » pour la
+première exécution rouge de `screen-g.test.ts` ; je mesure **10 échecs sur 10** pour `R-D5-25` +
+`R-D5-26` contre le code de `e40c025`. L'explication est dans son propre rapport : à l'instant où il
+a mesuré, la logique pure (`computeRowWindow`, `makePanelEmptyState`, `clearScreenGSearch`) était
+déjà écrite, seule la structure des VNodes manquait. **Ma mesure est la plus stricte des deux** et
+elle confirme la discipline ; je consigne la divergence pour la traçabilité.
+
+### 3.2 Verdict par fichier
 
 | # | Fichier · sonde | Correcteur | Justification citée | Mon verdict |
 |---|---|---|---|---|
@@ -450,7 +511,7 @@ n'est modifié sans justification écrite. Verdict par fichier :
 | 9 | `D4/pruning-facets-density.test.ts` (`n_e` recalculé sous la lecture D-05 ; assertion AJOUTÉE fermant `selectionCount`) | fix-engine §2 | **D-05** amende `EX-DATA-99` ; la sonde codait la lecture d'avant l'amendement | **justifiée** — la sonde est strictement renforcée |
 | 10 | `D4/sentinels-eligibility.test.ts` (démonstration faite sur une cellule de 11 prix, plus le comportement au-delà de 12) | fix-residual §2 | **D-44** + seuil de 12 d'`EX-DATA-19(2)` ; le fait mesuré (le moteur ne re-dérive pas la règle ABSOLUE) est conservé | **justifiée** |
 | 11 | `D4/thresholds-m1m2.test.ts` › `R-D4-05` (→ `it.fails`) | coordinateur | **D-49** + dette **DR-114 / D-45** | **justifiée** |
-| 12 | `D5/band-actions.test.ts` (jetons préfixés du libellé ; `R-D5-22` jeton unique + `removalTargets`) | fix-state §2 | **DR-056**/`ARB-12` ; **D-10** tranche `EX-SCR-75` vs `EX-SCR-76` contre la lecture « un jeton par valeur » que la sonde codait | **justifiée** |
+| 12 | `D5/band-actions.test.ts` (jetons préfixés du libellé ; `R-D5-22` jeton unique + `removalTargets`) **puis, en finition, ajout du bloc `R-D5-24`** (4 sondes, `+102 / −0`) | fix-state §2 et §8.2 | **DR-056**/`ARB-12` ; **D-10** tranche `EX-SCR-75` vs `EX-SCR-76` contre la lecture « un jeton par valeur » que la sonde codait ; l'ajout `R-D5-24` est une sonde d'échec **neuve** (D-32) pour `DR-139`, aucune assertion existante touchée | **justifiée** |
 | 13 | `D5/interaction-history.test.ts` (comptes `pushState`/`replaceState` ; `valueLength: 10` sur la ligne code postal) | fix-state §2 | **DR-015** — les assertions non tagées codaient le défaut que `R-D5-05` (non modifiée) démontre fautif ; **DR-058**/`EX-SRCH-6` (seuil de 4 caractères) : seule la signature d'appel est complétée, le « 500 ms » est intact | **justifiée** |
 | 14 | `D5/keyboard-band.test.ts` (comptes primaires 13/9/10 → 12/8/9 ; `R-D5-19` sans `countryType`) ; › `R-D5-13` (→ `it.fails`) | fix-state §2 ; coordinateur | **D-15**/`DR-052` retirent `cy` de la ligne primaire et rendent `powerType`/`hadAccident` `nonExposed` — les comptes bruts changent mécaniquement ; **D-49** + dette **DR-134** | **justifiée** |
 | 15 | `D5/labels-fr.test.ts` (`EX-NFR-28` jetons préfixés) ; › `R-D5-10` (→ `it.fails`) | fix-state §2 ; coordinateur | **DR-056** ; **D-49** + dette **DR-132** | **justifiée** |
@@ -482,8 +543,9 @@ n'est modifié sans justification écrite. Verdict par fichier :
 | 41 | `patho/structure.test.ts` › `R-PATHO-09 (moteur)`, › `R-PATHO-10 (moteur)` (requalifiées) | fix-residual §2 | **D-46** : le moteur ne déduplique pas, `EX-DATA-15` est une responsabilité d'ingestion (DR-003/004, livrées) ; le constat initial reste MESURÉ en tête, s'y ajoute la preuve que le moteur ne reçoit jamais de lot porteur de doublons | **justifiée** |
 | 42 | `patho/valeurs.test.ts` › `VAL-SEUIL-%i` (1 200 € → 4 000 €) ; › `R-PATHO-02` (`toBe(10_000_000)` → `toBeNull()`) | fix-engine §2 ; fix-providers §3 | À 1 200 € la valeur tombe sous `0,10 × médianeRéf` et mesurerait la sentinelle relative au lieu des paliers 12/30 visés ; la sonde `R-PATHO-02` était **contradictoire avec elle-même** (elle cite `ARB-16` « → `priceEur = INCONNU` » et exigeait la valeur conservée), `R-D9-03` non modifiée exige « valeur ramenée à INCONNU ». **D-41** accepte | **justifiée** |
 | 43 | `patho/verite-affichee.test.ts` › `VER-ETIQ-A` (`price.min === 119` → effectif 62, `implausibleInCellExcluded = 1`, `price.n = 61`, attaque `ADV-02` rejouée à 1 400 €) | fix-residual §2 | **D-44** puis **D-51**, qui maintient D-44 en toutes lettres : « 119 € sous 0,10 × médiane est une sentinelle relative, hors `V_price` (`EX-DATA-60`)… l'attaque reste mesurée, seul l'exemple numérique change » | **justifiée** |
+| 44 | `D5/screen-g.test.ts` — **ajout seul** des blocs `R-D5-25` (fenêtrage) et `R-D5-26` (`ET-VIDE-FILTRES` / « Effacer la recherche »), `+166 / −0` | fix-state §8.1 | **D-32** appliqué au résidu `DR-060` que ma révision 1 signalait ouvert : sondes d'échec écrites d'abord, vues rouges (10/10 chez moi, §3.1), puis vertes sans être modifiées | **justifiée** — aucune assertion préexistante (`R-D5-20/21/22`) n'est touchée : le diff ne contient **aucune suppression** |
 
-**Sondes modifiées sans justification écrite : 0.**
+**Sondes modifiées sans justification écrite : 0.** **Sondes ajoutées : 15** (1 par `fix-app` pour D-03, 14 par la passe de finition), toutes écrites rouges d'abord.
 Aucune assertion `R-Dx-xx` / `R-PATHO-xx` citée comme preuve d'un `DR` n'a été affaiblie : quand la
 preuve elle-même a été touchée (`R-D2-14`, `R-D2-18`, `R-D5-19`, `R-D5-22`, `R-D6-02`, `R-D6-03`,
 `R-D6-05`, `R-D6-07`, `R-D6-08`, `R-D6-09`, `R-D7-05`, `R-D7-18`, `R-D7-20`, `R-D8-17`, `R-D8-27`,
@@ -545,8 +607,10 @@ silencieux. » Je consigne donc, en clair :
 - **`DR-104` (MAJEUR) → DETTE, décision `D-18`.** Motif : `AC-01` non levée ; le provider est corrigé
   mais délibérément non câblé. **Consigné, pas ouvert.**
 
-Aucun autre MAJEUR n'est en dette. **Un** MAJEUR porte en revanche un **résidu réellement ouvert** —
-`DR-060` — et il n'est couvert par aucune décision : voir §7.
+Aucun autre MAJEUR n'est en dette, et **aucun MAJEUR n'est ouvert** : le résidu de `DR-060` que ma
+révision 1 signalait au §7 a été **livré** depuis (commit `949bba6`), avec ses deux sondes d'échec
+écrites d'abord et vérifiées rouges par moi (§3.1). Les trois dettes ci-dessus sont donc les seuls
+MAJEUR non corrigés, et les trois sont motivées par écrit.
 
 ---
 
@@ -556,7 +620,7 @@ Aucun autre MAJEUR n'est en dette. **Un** MAJEUR porte en revanche un **résidu 
 |---|---|---|
 | **O13** — `KYCAR_INGEST_FLAG` : 14 / 16 / 17 codes sur 16 bits | **RÉSOLU** (D-01) | `ingestFlags` est un `Uint32Array` (`diff docs/plans/DataProvider.ts src/providers/DataProvider.ts` → vide) ; table explicite `INGEST_FLAG_BIT` + `hasIngestFlag`/`setIngestFlag`/`ingestFlagCodes` exportées par `src/types/vocabularies.ts` ; `tests/review/D2/open-points.test.ts › R-D2-18` **vert** (« les 17 drapeaux tiennent ») et `› R-D2-18 (ADV-15)` **vert** (`MARKETPLACE_UNMAPPED` stockable). Côté données, la question a désormais de la matière : `[rev-D3] ingestFlags ≠ 0 sur 2 753 annonces`, `{MODEL_UNRESOLVED:469, PRICE_SENTINEL_ABSOLUTE:47, PRICE_MISSING_UNDECLARED:2051, SUSPECT_ZERO_MILEAGE:209}`. §A.1 porté à 17 codes par fix-docs |
 | **O14** — table NUTS-2 BE `[EXTRAPOLÉ]` | **DETTE** (DR-112, §6.5) | `tests/review/D2/reference-loader.test.ts › R-D2-16` en `it.fails` annotée `DETTE DR-112 / D-49` : `expected [] to have a length of 1`, aucune exception communale, `postal-regions-be.json` absent. Couverture 1000–9999 intacte, dette visible à l'exécution |
-| **O15** — `Model.bodyTypes` vide et index taxonomique par carrosserie | **RÉSOLU côté structure, DONNÉE toujours à fournir** | `DR-024` corrigé : `src/types/reference.ts` expose `modelsByBodyType: ReadonlyMap<string, readonly Model[]>` **et** `bodyTypeIndexAvailable: boolean` ; `tests/review/D2/reference-loader.test.ts › R-D2-17` **vert**. `EX-SCR-178` (note d'exclusion) est rendue par `src/screens/distribution/GraphFrame.tsx`. Ce qui reste : `bodyTypes = []` sur les 4 955 modèles, faute de donnée source — l'index est donc *disponible et vide*, ce que le drapeau dit honnêtement. **À instruire en 2.7** (fourniture de la donnée). *Signalé* : la ligne O15 de `docs/EXECUTION-LOG.md` est **périmée** — elle écrit encore « l'index taxonomique par carrosserie reste absent (ni index vide, ni drapeau de disponibilité) », ce que `R-D2-17` contredit |
+| **O15** — `Model.bodyTypes` vide et index taxonomique par carrosserie | **RÉSOLU côté structure, DONNÉE toujours à fournir** | `DR-024` corrigé : `src/types/reference.ts` expose `modelsByBodyType: ReadonlyMap<string, readonly Model[]>` **et** `bodyTypeIndexAvailable: boolean` ; `tests/review/D2/reference-loader.test.ts › R-D2-17` **vert**. `EX-SCR-178` (note d'exclusion) est rendue par `src/screens/distribution/GraphFrame.tsx`. Ce qui reste : `bodyTypes = []` sur les 4 955 modèles, faute de donnée source — l'index est donc *disponible et vide*, ce que le drapeau dit honnêtement. **À instruire en 2.7** (fourniture de la donnée). *Correction appliquée* : la ligne O15 de `docs/EXECUTION-LOG.md`, que ma révision 1 signalait périmée, a été rectifiée par le coordinateur (`e40c025`) — elle dit désormais « Structure RÉSOLUE en 2.6, donnée toujours absente… sonde `R-D2-17` verte », relu et conforme |
 | **O16** — 13 contre 14 entités | **RÉSOLU** (documentaire) | fix-docs : `EX-DATA-105`, `draft-data-dictionary.md` §C.5 et `ARCHITECTURE.md` §2.1 portent « quatorze entités » ; impact d'exécution nul, `tests/review/D2/open-points.test.ts` vert |
 | **O17** — `EX-NFR-5` (recalcul ≤ 200 ms p95) | **RÉSOLU** — les deux moitiés | *Câblage* : `tests/review/D8/o17.test.ts` vert dans la suite (aucun chemin résiduel n'atteint le moteur non élagué). *API moteur* : `DR-032` corrigé — `src/engine/kernel.ts` porte `OUTLIER_UNPRUNED_MAX_ROWS = 25_000` et publie `outliersSkipped: 'UNPRUNED_SELECTION'` ; `tests/review/D4/full-100k.test.ts › R-D4-12` **vert** (`sans scope : pruned=false, verdicts M2@SELECTION=0, M1@SELECTION=0`). *Chiffre* : `npm run test:perf` → **p50 152,6 ms / p95 166,7 ms / max 180,5 ms** à N = 100 000 (632,7 ms p95 en 2.5) ; élagué 56,2 ms p95 ; facettes 22,1 ms p95. *Contrepartie mesurée* : la baseline n'est plus recalculée (`fetchBaselineAggregates = 0 ms`, identité d'objet vraie, `R-D3-01`) et les annonces sortent du chemin critique (`R-D3-02` : `openSnapshot = 180 ms`, total 180 ms contre 1 073 + 71 ms) |
 
@@ -566,114 +630,85 @@ Aucun autre MAJEUR n'est en dette. **Un** MAJEUR porte en revanche un **résidu 
 
 | Critère | Énoncé | Verdict | Pourquoi |
 |---|---|---|---|
-| **S1** | Zéro problème de sévérité **bloquante ou majeure** encore **ouvert** | **NON ATTEINT — d'un seul point** | Les **18 BLOQUANT** sont corrigés, chacun avec la sonde qui l'a révélé, verte et non affaiblie (`R-D2-01`, `R-D2-08`, `R-D2-23/24`, `R-D3-03/04`, `R-D4-03/04`, `R-D8-31`, `R-D8-03`, `R-D7-23/24`, `R-D9-01/08/09`, `R-PATHO-01/09/10/12/15`, `R-D6-07`…). Sur les **86 MAJEUR** : **82 corrigés**, **3 en dette motivée et consignée** (`DR-034`/D-17, `DR-082` colonne TVA/D-38, `DR-104`/D-18 — donc *consignés, pas ouverts*, §4.1). Reste **`DR-060`** : son cœur est corrigé et sa sonde `R-D5-20` est verte, mais trois éléments d'`EX-SCR-216` nommés dans le constat ne sont pas livrés (virtualisation des deux panneaux de l'écran G, bouton « Effacer la recherche », état `ET-VIDE-FILTRES` de l'écran G — vérifié : `grep -rn "Effacer la recherche\|ET-VIDE-FILTRES" src/components/filters/` → 0 occurrence, et `ScreenG.tsx` l. 6-10 déclare la virtualisation « DETTE SIGNALÉE »). **Aucune décision `D-xx` et aucune ligne de `DEV-REVIEW` §6.5 ne consigne cette dette**, alors que §6.5 exige qu'une mise en dette de MAJEUR soit une décision explicite du fix-lead. Le critère est donc tenu à 85 MAJEUR sur 86 et manqué sur un seul, pour un motif **formel et réparable en une décision** (§7) |
-| **S2** | Chaque correction est prouvée par une **exécution**, pas par une affirmation | **ATTEINT** | **145 des 160** constats sont prouvés par au moins une sonde tagée, rejouée verte par moi dans la même exécution JSON (`784 passed / 784`, `numFailedTests 0`) ; les 15 autres portaient déjà en 2.5 une preuve par commande, et leur correcteur cite une exécution (`R-D5-20`, `EX-DATA-97`, `I6 — contrôle indépendant`, `structure-a11y.test.ts`, `strictness-and-scope.test.ts`, `src/state/router.test.ts -t DR-063`, `src/engine/predicates.test.ts`, `fallback › R-D8-27/R-D8-32`). J'ai en outre rejoué de bout en bout `build`, `lint`, `size`, `tsc -p tsconfig.review.json`, `npm test`, `npm run test:perf`, les deux parcours cibles et `EX-NFR-9` recalculé à la main. **Réserve nommée, non bloquante** : `DR-131`, `DR-135` et `DR-159` restent prouvés par lecture ou `grep` faute d'environnement DOM — la revue 2.5 les avait déjà classés non exécutables, la remédiation n'a pas dégradé leur niveau de preuve |
-| **S3** | Aucune régression : la suite complète passe après remédiation | **ATTEINT** | `npm test` → **615/615** (unitaire, 536 avant 2.6) puis **784/784** (revue) ; `npm run test:perf` → **7/7** ; `npm run build` → 0 erreur / 0 avertissement ; `npm run lint` → vert ; `npx tsc --noEmit -p tsconfig.review.json` → vert ; `npm run size` → 98,45/300 Kio. Zéro `skip`, zéro `todo`, zéro `.only`. Les budgets chiffrés ne régressent pas : `EX-NFR-1` 17,19 Mo ≤ 25, `EX-NFR-3` 5,45 Mo ≤ 6, `EX-NFR-5` 166,7 ms ≤ 200 (contre 632,7), `EX-NFR-7` 3,21 ms ≤ 500, `EX-NFR-8` 100 % ≥ 95 %, `EX-NFR-9` 835 ms ≤ 2 000. Les deux copies de l'interface gelée restent identiques (`diff` vide, exit 0) |
-| **S4** | Les problèmes laissés ouverts sont consignés comme **dette avec leur motif** | **ATTEINT** | **11 dettes** consignées au §4, chacune avec son motif, la décision (`D-17`, `D-18`, `D-38`, `D-40`, `D-45`) ou la ligne `DEV-REVIEW` §6.5 qui la porte, sa sonde `it.fails` quand elle en a une, et l'action attendue de 2.7. Les **8 conversions `it.fails`** sont en bijection avec les 8 dettes portées par une sonde rouge ; **aucun `skip`, aucun `todo`** (D-49 respecté). Les **2 points réellement ouverts** (`DR-060` résidu, `DR-139`) sont nommés au §7 avec leur correction attendue, plutôt que rangés en dette sans mandat |
+| **S1** | Zéro problème de sévérité **bloquante ou majeure** encore **ouvert** | **ATTEINT** | Les **18 BLOQUANT** sont corrigés, chacun avec la sonde qui l'a révélé, verte et non affaiblie (`R-D2-01`, `R-D2-08`, `R-D2-23/24`, `R-D3-03/04`, `R-D4-03/04`, `R-D8-31`, `R-D8-03`, `R-D7-23/24`, `R-D9-01/08/09`, `R-PATHO-01/09/10/12/15`, `R-D6-07`…). Sur les **86 MAJEUR** : **83 corrigés** — dont `DR-060`, dont le résidu d'`EX-SCR-216` (fenêtrage de l'écran G, bouton « Effacer la recherche », `ET-VIDE-FILTRES`) a été livré et prouvé par `R-D5-25`/`R-D5-26`, **vues rouges avant** dans un worktree sur `e40c025` (§3.1) — et **3 en dette motivée et consignée** (`DR-034`/D-17, `DR-082` colonne TVA/D-38, `DR-104`/D-18), donc *consignés, pas ouverts* (§4.1). **Plus aucun MAJEUR ni BLOQUANT ouvert** |
+| **S2** | Chaque correction est prouvée par une **exécution**, pas par une affirmation | **ATTEINT** | **147 des 160** constats sont prouvés par au moins une sonde tagée, rejouée verte par moi dans la même exécution JSON (`798 passed / 798`, `numFailedTests 0`) ; les 13 autres portaient déjà en 2.5 une preuve par commande, et leur correcteur cite une exécution. J'ai en outre rejoué de bout en bout `git log`, `build`, `lint`, `size`, `tsc -p tsconfig.review.json`, `npm test`, `npm run test:perf`, `tests/review/D5`, les deux parcours cibles, `EX-NFR-9` recalculé à la main, et **la rougeur préalable des trois sondes neuves** dans un worktree jetable. **Réserve nommée, non bloquante** : `DR-131`, `DR-135` et `DR-159` restent prouvés par lecture ou `grep` faute d'environnement DOM — la revue 2.5 les avait déjà classés non exécutables, la remédiation n'a pas dégradé leur niveau de preuve |
+| **S3** | Aucune régression : la suite complète passe après remédiation | **ATTEINT** | `npm test` → **615/615** (unitaire, 536 avant 2.6) puis **798/798** (revue) ; `npm run test:perf` → **7/7** ; `npm run build` → 0 erreur / 0 avertissement ; `npm run lint` → vert ; `npx tsc --noEmit -p tsconfig.review.json` → vert ; `npm run size` → 99,13/300 Kio. Zéro `skip`, zéro `todo`, zéro `.only`. La passe de finition est **purement additive** côté sondes (`+268 / −0`) et ne fait tomber aucune sonde existante (`R-D5-20/21/22`, `keyboard-band`, piège de focus à 6 arrêts : verts avant et après). Les budgets chiffrés ne régressent pas : `EX-NFR-1` 17,19/25 Mo, `EX-NFR-3` 5,45/6 Mo, `EX-NFR-5` **172,5 ms** ≤ 200 (contre 632,7), `EX-NFR-7` 2,84 ms ≤ 500, `EX-NFR-8` 100 % ≥ 95 %, `EX-NFR-9` 831 ms ≤ 2 000, bundle +0,68 Kio gzip. Les deux copies de l'interface gelée restent identiques (`diff` vide, exit 0) |
+| **S4** | Les problèmes laissés ouverts sont consignés comme **dette avec leur motif** | **ATTEINT** | **11 dettes** consignées au §4, chacune avec son motif, la décision (`D-17`, `D-18`, `D-38`, `D-40`, `D-45`) ou la ligne `DEV-REVIEW` §6.5 qui la porte, sa sonde `it.fails` quand elle en a une, et l'action attendue de 2.7. Les **8 conversions `it.fails`** sont en bijection avec les 8 dettes portées par une sonde rouge ; **aucun `skip`, aucun `todo`** (D-49 respecté). **Aucun constat n'est laissé ouvert sans dette** : les deux qui l'étaient à ma révision 1 ont été livrés |
 
-**Verdict de phase : S2, S3, S4 ATTEINTS ; S1 NON ATTEINT sur un unique point (`DR-060`).**
+**Verdict de phase : S1, S2, S3 et S4 ATTEINTS.**
 
 ---
 
-## 7. Constats OUVERTS — ce qui bloque la porte G5
+## 7. Constats OUVERTS
 
-Deux points, dont un seul est bloquant pour G5 (« zéro problème bloquant ou majeur ouvert »).
+**Aucun.** Les 160 constats sont soldés : **148 CORRIGÉS**, **11 en dette écrite et motivée** (§4),
+**1 déclaré CONFORME et consigné** (`DR-142`). Les deux points que signalait ma révision 1 sont
+clos :
 
-### 7.1 `DR-060` (MAJEUR) — résidu d'`EX-SCR-216` sur l'écran G — **BLOQUE G5**
+| Point de la révision 1 | Ce qui a été livré | Preuve rejouée par moi | Statut |
+|---|---|---|---|
+| **`DR-060`** (MAJEUR) — résidu `EX-SCR-216` : virtualisation de l'écran G, bouton « Effacer la recherche », `ET-VIDE-FILTRES` | `computeRowWindow` (60 lignes visibles + 20 de tampon, espaceurs haut/bas, `aria-posinset`/`aria-setsize` sur la liste COMPLÈTE), `clearScreenGSearch` remettant **les deux** panneaux à l'état initial, `makePanelEmptyState`/`modelPanelEmptyState` + `ScreenGEmptyNotice` portant le bouton — `src/components/filters/screen-g-model.ts`, `ScreenG.tsx` (`949bba6`) | `R-D5-25` **5/5** et `R-D5-26` **5/5** verts dans la suite de 798 ; **10/10 rouges** contre `e40c025` (§3.1). `grep -rn "Effacer la recherche" src/` → 6 occurrences (0 avant) ; `grep -rn "ET-VIDE-FILTRES" src/components/filters/` → 5 (0 avant) ; `grep -n "DETTE SIGNALÉE" src/components/filters/ScreenG.tsx` → **0** (la mention a bien été retirée) | **CORRIGÉ** |
+| **`DR-139`** (MINEUR) — bouton `EX-SCR-94` et compteur `EX-SCR-78` | Prop optionnelle `onSaveSearch` (bouton rendu seulement si fournie, CRUD non dupliqué), compteur sorti du texte inline vers un élément en fin de zone (`formatOfferCount`, `EX-SCR-10`), atténué et suivi de `…` pendant `ET-CHARGE-MAJ`, jamais `0` — `ActiveFilterTokens.tsx`, `FilterBand.tsx` (`c24f1e4`) ; câblage `onSaveSearch` sur `<FilterBand>` par le coordinateur (`fa6e83a`, `src/app.tsx` l. 735-740) | `R-D5-24` **4/4** verts (3/4 rouges contre `e40c025`, §3.1). `grep -rn "EX-SCR-94" src/` → 4 occurrences (0 avant) ; `grep -rn "onSaveSearch" src/` → présent sur `FilterBand.tsx` l. 47/238, `ActiveFilterTokens.tsx` l. 34/44/87-88 et `app.tsx` l. 738 (appel de `<FilterBand>`), routé sur le `saveCurrentSearch` existant, **non dupliqué** | **CORRIGÉ** |
 
-- **Ce qui est corrigé** : le cœur du constat, prouvé. `searchMakes`/`searchModels` rendent `null`
-  (jamais `announcedCount`) quand une entrée est absente de `counts` ; `tests/review/D5/screen-g.test.ts › R-D5-20`
-  est **verte** dans la suite rejouée.
-- **Ce qui reste ouvert** : les trois éléments nommés dans la même ligne de `DEV-REVIEW` §3 —
-  virtualisation des deux panneaux (`EX-SCR-216`), bouton **« Effacer la recherche »**, état
-  **`ET-VIDE-FILTRES`** de l'écran G. Vérifié par moi :
-  `grep -rn "Effacer la recherche\|ET-VIDE-FILTRES" src/components/filters/` → **0 occurrence** ;
-  `src/components/filters/ScreenG.tsx` l. 6-10 : « jamais de virtualisation réelle ici — DETTE
-  SIGNALÉE ».
-- **Pourquoi c'est ouvert et pas en dette** : `fix-state` §3 le déclare « consigné en dette » avec un
-  motif (aucune sonde ne le couvre, pas de DOM dans le worktree), mais **aucune décision `D-xx` ne le
-  ratifie** et `DEV-REVIEW` §6.5 ne le liste pas. Or §6.5 pose la règle : « la mise en dette d'un
-  MAJEUR est une décision explicite du fix-lead, à consigner avec son motif, pas un contournement
-  silencieux ». En l'état, la règle n'est pas satisfaite.
-- **Correction attendue, au choix du coordinateur** :
-  1. **Livrer** les trois éléments (`ScreenG.tsx` : bouton « Effacer la recherche » routé sur
-     `FilterBand.handleRemove` avec `forcePush`, état `ET-VIDE-FILTRES` quand la recherche ne rend
-     rien, fenêtrage des deux panneaux), avec une sonde d'échec écrite d'abord (D-32) ; **ou**
-  2. **Ratifier la dette** par une décision `D-52` motivée (le motif de `ScreenG.tsx` est déjà écrit :
-     le nombre de modèles par panneau reste très inférieur au cas global qui motive la
-     virtualisation), et la recopier ici en §4 — alors `DR-060` devient *consigné, pas ouvert*, et
-     **S1 comme G5 sont atteints**.
+### 7.1 Observations non bloquantes, à verser au dossier 2.7
 
-### 7.2 `DR-139` (MINEUR) — bouton « Enregistrer la recherche » et compteur `EX-SCR-78` — **ne bloque pas G5**
+Aucune n'est un constat ouvert ; aucune ne pèse sur S1–S4 ni sur G5.
 
-- **État** : NON FAIT. Vérifié : `grep -rn "EX-SCR-94" src/` → **0 occurrence**. Le bouton de la
-  zone (4) n'est pas rendu et le compteur reste un texte inline (`, <n> offres`) au lieu du format
-  normatif d'`EX-SCR-78`.
-- **Pourquoi c'est ouvert** : `fix-state` §3 écrit « non traité sous la contrainte d'effort…
-  consigné en dette produit », mais `DEV-REVIEW` §6.5 ne cite pas `DR-139` et aucune décision `D-xx`
-  ne le fait. Sévérité MINEUR : **sans effet sur S1 ni sur G5**, qui ne portent que sur BLOQUANT et
-  MAJEUR.
-- **Correction attendue** : rendre le bouton (le CRUD lui-même est déjà livré par `fix-app`,
-  `SavedSearchesScreen` + `stores.saved`) et le compteur au format `EX-SCR-78` dans
-  `src/components/filters/ActiveFilterTokens.tsx` ; ou ratifier la dette par une décision, comme
-  pour les neuf familles de §6.5.
-
-### 7.3 Points **non** bloquants relevés au passage (à verser au dossier 2.7)
-
-1. **`docs/EXECUTION-LOG.md`, ligne O15** est périmée : elle affirme que « l'index taxonomique par
-   carrosserie reste absent (ni index vide, ni drapeau de disponibilité) », alors que `DR-024` l'a
-   livré (`modelsByBodyType` + `bodyTypeIndexAvailable`, `R-D2-17` verte). À corriger par fix-docs.
+1. **`resultCount` n'est pas alimenté par la coquille.** `ActiveFilterTokens` implémente désormais le
+   format normatif d'`EX-SCR-78`, mais `src/app.tsx` ne passe ni `resultCount` ni
+   `resultCountLoading` à `<FilterBand>` — le compteur ne rend donc rien à l'exécution.
+   **Ce n'est pas une régression** : la prop était déjà optionnelle et déjà non alimentée avant la
+   finition (`git show e40c025:src/app.tsx | grep resultCount` → vide), et la « correction attendue »
+   de `DR-139` porte sur le **format** du compteur, pas sur son alimentation. À câbler en 2.7
+   (`resultCount={screenA.selectionCount}`, `resultCountLoading` pendant `ET-CHARGE-MAJ`).
 2. **`EX-NFR-9` ne compte pas le chunk du Worker** (10,63 Kio gzip, hors graphe du manifest) alors
-   que `EX-NFR-10` le compte depuis `DR-036`. Chiffre corrigé : 835 → **856 ms**, sans effet sur le
+   que `EX-NFR-10` le compte depuis `DR-036`. Chiffre corrigé : 831 → **852 ms**, sans effet sur le
    verdict, mais les deux gardes devraient parcourir le même ensemble de fichiers.
-3. **Deux conflits résiduels d'exigences** que `fix-docs` §2 a signalés sans les trancher, faute de
-   mandat : `EX-SCR-114` (« jamais masquées ») contre `EX-SCR-33`/`134` (P5/P95 masqués pour
-   `5 ≤ n ≤ 11`) — partiellement traité par **D-36** mais `EX-SCR-114` n'a pas été éditée ; et
-   `EX-DATA-49` (D-14 exclut `zip`/`lat`/`lon`) contre `EX-SRCH-6`/`7` qui continuent de spécifier
-   `zip`/`zipr` — **D-37** les déclare « sans objet » sans les retirer. À statuer en 2.7.
-4. **`D-51` (observation de `fix-residual`)** : le seuil de `PRICE_IMPLAUSIBLE_IN_CELL` de `C₃ = Σ`
-   et les seuils par cellule d'analyse ne coïncident pas — `outlierEvaluatedCount` n'est plus majoré
-   par `n_price(Σ)` (mesuré : 18 560 contre 18 378 à N = 20 000). Versé au dossier 2.7 comme point
-   d'instruction, conformément à D-51.
+3. **Deux conflits résiduels d'exigences** signalés par `fix-docs` §2 sans mandat pour trancher :
+   `EX-SCR-114` (« jamais masquées ») contre `EX-SCR-33`/`134` (P5/P95 masqués pour `5 ≤ n ≤ 11`) —
+   **D-36** tranche le fond mais `EX-SCR-114` n'a pas été éditée ; et `EX-DATA-49` (D-14 exclut
+   `zip`/`lat`/`lon`) contre `EX-SRCH-6`/`7` qui continuent de spécifier `zip`/`zipr` — **D-37** les
+   déclare « sans objet » sans les retirer. À statuer en 2.7.
+4. **`D-51`** : le seuil de `PRICE_IMPLAUSIBLE_IN_CELL` de `C₃ = Σ` et les seuils par cellule
+   d'analyse ne coïncident pas — `outlierEvaluatedCount` n'est plus majoré par `n_price(Σ)`
+   (18 560 contre 18 378 à N = 20 000). Versé au dossier 2.7 comme point d'instruction, conformément
+   à D-51.
 5. **`DR-148`** est corrigé (`R-D7-13` verte) avec un résidu nommé par son correcteur : l'ancrage
    centré des boutons +/− du nuage n'est pas traité. MINEUR, sans sonde.
+6. **`PanelSearchMulti.tsx`** porte encore une « DETTE SIGNALÉE » sur `EX-SCR-100` (liste non
+   virtualisée) — antérieure à 2.6, hors des 160 constats de `DEV-REVIEW`, inchangée par la
+   finition. À instruire en 2.7 avec le reste du bandeau.
 
 ---
 
 ## 8. Résumé (12 lignes)
 
-1. **160 constats vérifiés un par un** : **18 BLOQUANT tous CORRIGÉS**, **86 MAJEUR** = 82 corrigés
-   + 3 dettes motivées + **1 résidu ouvert**, **56 MINEUR** = 46 corrigés + 8 dettes + 1 conforme
-   consigné + **1 ouvert**. Total : **146 CORRIGÉ · 11 DETTE · 2 OUVERT · 1 CONFORME**.
-2. **Sondes** : `784 / 784` vertes (78 fichiers), dont **8 `it.fails`** annotées qui échouent
+1. **160 constats vérifiés un par un** : **18 BLOQUANT tous CORRIGÉS**, **86 MAJEUR** = 83 corrigés
+   + 3 dettes motivées, **56 MINEUR** = 47 corrigés + 8 dettes + 1 conforme consigné.
+   Total : **148 CORRIGÉ · 11 DETTE · 0 OUVERT · 1 CONFORME**.
+2. **Sondes** : `798 / 798` vertes (78 fichiers), dont **8 `it.fails`** annotées qui échouent
    réellement et documentent 8 dettes ; **0 sonde rouge non couverte**, **0 `skip`/`todo`/`.only`**.
-3. **Suites rejouées** : unitaire **615/615**, revue **784/784**, perf **7/7**, `build` 0/0,
-   `lint` vert, `tsc -p tsconfig.review.json` 0 erreur.
-4. **Budgets rejoués** : bundle **98,45 / 300 Kio** gzip (worker compris) ; `EX-NFR-1` 17,19/25 Mo ;
-   `EX-NFR-3` 5,45/6 Mo gzip ; `EX-NFR-5` **p95 166,7 ms** ≤ 200 (632,7 en 2.5) ; `EX-NFR-4bis`
-   22,1 ms ; `EX-NFR-7` 3,21 ms ≤ 500 ; `EX-NFR-8` **100 %** des fenêtres ≥ 30 img/s ;
-   `EX-NFR-9` **835 ms** ≤ 2 000, recalculé par moi sur `dist/.vite/manifest.json` + 18 référentiels.
-5. **Parcours cibles rejoués** : mode 1 filtré = **2 656 offres / 112 marques**, `unsupportedFilterIds`
-   vide ; Opel Corsa **1 352 → 54 en 2017**, `selectionHash` `…:EMPTY` → `…:35a0c206ac32bfef` ;
-   outliers 2 461 verdicts / 73 signalés sur la cellule, 9 injectés retrouvés sur 9 évaluables.
-6. **Sondes modifiées : 43 fichiers, 43 justifiées, 0 non justifiée.** Chaque modification renvoie à
-   une décision (D-01/02/03, D-05, D-08, D-10…D-13, D-15, D-31, D-32, D-38…D-41, D-44, D-46, D-48,
-   D-49, D-51) ou à une formulation démontrée insatisfaisable. Une seule réserve de **forme** :
-   `D5/router.test.ts` (adaptation de type pure) n'est justifiée que par un message de commit.
-7. **11 dettes consignées**, motif + décision + sonde + action 2.7 au §4 ; les **8 `it.fails`** sont
+3. **Suites rejouées** : unitaire **615/615**, revue **798/798**, perf **7/7**, `build` 0/0,
+   `lint` vert, `tsc -p tsconfig.review.json` 0 erreur, arbre git propre.
+4. **Budgets rejoués** : bundle **99,13 / 300 Kio** gzip (worker compris, +0,68 après finition) ;
+   `EX-NFR-1` 17,19/25 Mo ; `EX-NFR-3` 5,45/6 Mo ; `EX-NFR-5` **p95 172,5 ms** ≤ 200 (632,7 en 2.5) ;
+   `EX-NFR-4bis` ≈ 22 ms ; `EX-NFR-7` 2,84 ms ; `EX-NFR-8` **100 %** des fenêtres ;
+   `EX-NFR-9` **831 ms** ≤ 2 000, recalculé par moi sur `dist/.vite/manifest.json` + 18 référentiels.
+5. **Parcours cibles rejoués, valeurs inchangées** : mode 1 filtré = **2 656 offres / 112 marques**,
+   `unsupportedFilterIds` vide ; Opel Corsa **1 352 → 54 en 2017**, `selectionHash` `…:EMPTY` →
+   `…:35a0c206ac32bfef` ; 2 461 verdicts / 73 signalés, 9 injectés retrouvés sur 9 évaluables.
+6. **Sondes : 44 fichiers touchés, 44 justifiés, 0 non justifié ; 15 sondes ajoutées**, toutes
+   écrites rouges d'abord. La passe de finition est **purement additive** (`+268 / −0`).
+7. **Rougeur préalable prouvée par moi** (§3.1) : worktree jetable sur `e40c025` + les deux fichiers
+   de sondes d'aujourd'hui → **13 échecs** (`R-D5-24` 3/4, `R-D5-25` 5/5, `R-D5-26` 5/5), tandis que
+   `R-D5-20/21/22` restent verts. Worktree retiré selon **D-50**, `node_modules` intact.
+8. **11 dettes consignées**, motif + décision + sonde + action 2.7 au §4 ; les **8 `it.fails`** sont
    en **bijection** avec les 8 dettes portées par une sonde rouge, aucune de plus, aucune de moins.
-8. **MAJEUR mis en dette, dits en clair** : `DR-034` (D-17), `DR-082` colonne TVA (D-38),
-   `DR-104` (D-18) — **consignés, pas ouverts**, chacun avec son motif chiffré.
-9. **O13 RÉSOLU** (D-01, `Uint32Array` + table bit↔code, 17 drapeaux posés sur 2 753 annonces) ·
-   **O14 DETTE** (DR-112, source externe interdite par E5) · **O15 structure RÉSOLUE**, donnée à
-   fournir · **O16 RÉSOLU** · **O17 RÉSOLU** (garde `OUTLIER_UNPRUNED_MAX_ROWS`, p95 166,7 ms).
-10. **S2, S3, S4 ATTEINTS. S1 NON ATTEINT sur un unique point** : le résidu MAJEUR de `DR-060`
-    (virtualisation écran G, bouton « Effacer la recherche », `ET-VIDE-FILTRES`) n'est ratifié par
-    aucune décision, alors que §6.5 l'exige pour tout MAJEUR mis en dette. `DR-139` (MINEUR) est
-    ouvert lui aussi mais ne pèse ni sur S1 ni sur G5.
-11. **Porte G5 : NON PASSABLE EN L'ÉTAT**, pour ce seul motif. Elle devient passable dès que le
-    coordinateur, au choix, livre les trois éléments de `DR-060` avec leur sonde d'échec, **ou**
-    consigne la dette par une décision motivée (`D-52`) reportée dans le §4 de ce rapport. Tout le
-    reste — 18/18 BLOQUANT, 82/86 MAJEUR, suites, budgets, parcours, R3/R2/E5 — est vert et rejoué.
-12. Rapport : **`reports/REMEDIATION.md`** · `src/`, `tests/` et `docs/` non modifiés · aucun commit,
-    aucun accès réseau, aucune question.
+9. **MAJEUR mis en dette, dits en clair** : `DR-034` (D-17), `DR-082` colonne TVA (D-38),
+   `DR-104` (D-18) — **consignés, pas ouverts**, chacun avec son motif chiffré. Aucun autre.
+10. **O13 RÉSOLU** (D-01) · **O14 DETTE** (DR-112, E5) · **O15 structure RÉSOLUE**, donnée à fournir ·
+    **O16 RÉSOLU** · **O17 RÉSOLU** (garde `OUTLIER_UNPRUNED_MAX_ROWS`, p95 172,5 ms).
+11. **S1, S2, S3, S4 : les quatre ATTEINTS. Porte G5 : PASSABLE** — zéro problème bloquant ou majeur
+    ouvert, zéro sonde rouge non couverte, aucune régression, toutes les dettes motivées par écrit.
+12. Rapport : **`reports/REMEDIATION.md`** (révision 2) · `src/`, `tests/` et `docs/` non modifiés ·
+    aucun commit, aucun accès réseau, aucune question.

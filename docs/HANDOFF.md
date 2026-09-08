@@ -132,7 +132,7 @@ quand la dette sera levée :
 | DR-082 (MAJEUR, colonne « TVA » seule) | aucun champ `taxDeductible` dans l'interface gelée ; Conso. et CO₂ sont livrées | D-38 |
 | DR-105, DR-112, DR-132, DR-134, DR-147, DR-143 | RGPD E15–E17 hors R3, `postal-regions-be.json` (source externe interdite par E5), libellés `zipr`, suggestions Levenshtein, mention des graphes A-08, grille compacte 4 lignes | §6.5 DEV-REVIEW, D-40, D-49 |
 
-**Points à instruire en 2.7** : D-51 (seuil d'implausibilité de Σ ≠ seuils par cellule d'analyse :
+**Points à instruire en 2.7** : `resultCount`/`resultCountLoading` de `<FilterBand>` non alimentés par la coquille (gap antérieur à 2.6, relevé par fix-verify `REMEDIATION.md` §7.1) ; D-51 (seuil d'implausibilité de Σ ≠ seuils par cellule d'analyse :
 `outlierEvaluatedCount` majoré par l'échantillon purgé des seules sentinelles absolues) ; O15
 (`Model.bodyTypes` toujours vide, donnée à fournir) ; `EX-NFR-16`/`EX-NFR-6` (axe-core et rendu réel,
 non exécutables en environnement node sans dépendance interdite).
