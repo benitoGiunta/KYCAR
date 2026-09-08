@@ -162,7 +162,9 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
   test('CONSTAT E2E-26 — aucune correction d’URL n’est signalée ni réécrite (EX-NAV-21, EX-NAV-22, ET-URL-CORRIGEE)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-03/D8-26 (CORRIGÉ) : la coquille CONSOMME `loadQuery(...).corrections` — réécriture
+    // `replaceState` vers la requête canonique et bandeau `ET-URL-CORRIGEE` au format normatif.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-26',

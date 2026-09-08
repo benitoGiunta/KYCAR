@@ -8,7 +8,7 @@
  * page /mentions ne possèdent rien : ils reçoivent des données déjà résolues et remontent des
  * intentions par callbacks. Injection de dépendances (`AppProps`) pour la testabilité.
  */
-import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 
 import type { DataController, Mode2Payload, StartResult } from './orchestration/data-controller';
@@ -567,6 +567,17 @@ export function App(props: AppProps): JSX.Element {
       if (parsed.clipped) setBanner('Sélection de comparaison écrêtée à 4 modèles (le reste de l’URL a été ignoré).');
     }
   }, [view.kind, location.search]);
+
+  /**
+   * `EX-SCR-198` (`D8-06`/`FV-15`) — « **Passer sous** 2 modèles redirige vers l'écran B du modèle
+   * restant » : l'exigence décrit une TRANSITION (un retrait de colonne), pas l'état initial. Une
+   * visite à froid de `/comparer` sans sélection ne doit donc pas rebondir vers l'écran A — sans
+   * quoi l'écran C devient inatteignable et sa colonne « + Ajouter un modèle » (`EX-SCR-197`)
+   * n'existe plus. Ce drapeau retient qu'une comparaison a réellement été peuplée dans cette
+   * session : seule sa réduction déclenche la redirection.
+   */
+  const compareWasPopulated = useRef(false);
+  if (compareKeys.length >= 2) compareWasPopulated.current = true;
 
   const [compareRows, setCompareRows] = useState<readonly CompareModelRow[]>([]);
   const [compareLoading, setCompareLoading] = useState(false);
@@ -1328,6 +1339,12 @@ export function App(props: AppProps): JSX.Element {
             // 1 modèle → écran B de ce modèle. `CompareScreen` étant sans hook, l'appel arrive
             // pendant le rendu : il est différé d'un tick pour ne pas naviguer depuis un rendu.
             onRedirect={(target: CompareRedirectTarget) => {
+              // La redirection est décidée sur l'état RÉEL de la sélection de comparaison, pas sur
+              // `rows` (qui est vide tant que `enterMode2` n'a pas répondu, y compris au tout premier
+              // rendu d'une URL `/comparer?m=…` parfaitement peuplée).
+              if (!compareWasPopulated.current || compareLoading) return;
+              if (target.kind === 'market' && compareKeys.length !== 0) return;
+              if (target.kind === 'model' && compareKeys.length !== 1) return;
               setTimeout(() => {
                 if (target.kind === 'market') navigate(marketUrlFrom());
                 else goToModel(target.makeId, target.modelId);

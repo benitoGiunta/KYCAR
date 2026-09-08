@@ -18,7 +18,16 @@ import { expect, type Page, type TestInfo } from '@playwright/test';
 
 /** Parcours 1 — « budget ≤ 20 000 €, coupé, BE, < 100 000 km » sur le snapshot synthétique. */
 export const P1_QUERY = '?body=3&kmto=100000&priceto=20000';
-export const P1_EXPECTED = { makes: 112, offers: 2656 } as const;
+/**
+ * `D8-26` / `D-31` — valeurs REMESURÉES le 8 septembre 2026 contre le build de la phase 2.8.
+ * Elles valaient `{ makes: 112, offers: 2656 }` lors de la campagne 2.9a. La vague F1 a modifié le
+ * jeu SYNTHÉTIQUE lui-même : `D8-16` fait REJETER à l'ingestion toute annonce sans `listingUrl`
+ * (`LISTING_URL_MISSING`, 152 rejets à 100 000, cf. `reports/remediation-2.8/fix-providers.md` §6.5),
+ * si bien que le corpus servi n'est plus exactement le même. Le parcours et l'exigence mesurée sont
+ * INCHANGÉS (`EX-NAV-9`, `EX-SCR-106` : les trois cardinaux sont ceux de la population filtrée) ;
+ * seules les constantes de référence suivent la donnée. Écart contrôlé : −24 offres, −5 marques.
+ */
+export const P1_EXPECTED = { makes: 107, offers: 2632 } as const;
 
 /** Parcours 2 — Opel Corsa (`54`/`1918`), puis restriction à l'année 2017. */
 export const OPEL_MAKE_ID = 54;

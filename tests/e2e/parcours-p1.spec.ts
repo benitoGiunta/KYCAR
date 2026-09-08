@@ -72,7 +72,14 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
 
     // (4) pays BE : `EX-SRCH-18bis` interdit d'en faire un filtre utilisateur — le périmètre belge
     //     est celui du snapshot, attesté par son identifiant, et `cy` n'est JAMAIS dans l'URL.
-    await expect(page.locator('.kycar-snapshot-token')).toContainText(/be-/i);
+    // D8-14/FV-17/D-31 : `EX-SCR-43` demande un jeton COURT `Snapshot <JJ/MM>` et renvoie le détail
+    // (identifiant, âge, fraîcheur) en INFOBULLE — l'identifiant complet ne figure plus dans le
+    // texte visible du jeton. Le fait mesuré ici (le périmètre belge est attesté par l'identifiant
+    // du snapshot servi, et `cy` n'est jamais dans l'URL) est inchangé : il se lit désormais sur
+    // l'attribut `title`, à l'endroit exact où l'exigence l'a déplacé.
+    await expect(page.locator('.kycar-snapshot-token')).toHaveAttribute('title', /snapshot du /i);
+    await expect(page.locator('.kycar-snapshot-token')).toContainText(/^Snapshot \d{2}\/\d{2}$/);
+    expect(await page.locator(String.raw`.kycar-footer-diagnostic dd`).nth(2).textContent()).toMatch(/be-/i);
     expect(page.url()).not.toContain('cy=');
 
     // `EX-NAV-9` — ordre canonique alphabétique par nom de paramètre.
@@ -219,7 +226,10 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
   test('CONSTAT E2E-04 — le cardinal « modèles » de la barre de synthèse vaut 0 alors que la population filtrée en compte (EX-SCR-106)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-02/D8-26 (CORRIGÉ) : `DataController.loadAllModels` charge les agrégats MODÈLE de tout le
+    // marché filtré en un aller de portée marché, et la coquille les fusionne juste après
+    // `loadMarket` — le cardinal « modèles » et les zones-modèles n'attendent plus un clic.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-04',
@@ -238,7 +248,10 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
   test('CONSTAT E2E-05 — le résumé de carte-marque annonce « 0 modèles » avant dépliage (EX-SCR-107 ligne 1)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-02/D8-26 (CORRIGÉ) : `DataController.loadAllModels` charge les agrégats MODÈLE de tout le
+    // marché filtré en un aller de portée marché, et la coquille les fusionne juste après
+    // `loadMarket` — le cardinal « modèles » et les zones-modèles n'attendent plus un clic.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-05',

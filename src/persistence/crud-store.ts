@@ -193,6 +193,7 @@ export class CappedCollection<T extends Versioned> {
    * (EX-CRUD-18). Aucune entrée n'est jamais retirée (même « from-newer » ou « legacy-unmigratable »).
    */
   load(): LoadedRecord<T>[] {
+    this.persistIndexRepair();
     const legacyRaw = this.readLegacyRaw();
     let mutated = false;
     const legacy = legacyRaw.map((entry) => {
@@ -214,6 +215,40 @@ export class CappedCollection<T extends Versioned> {
     const seen = new Set(this.idOf === undefined ? [] : perEntry.map((r) => this.idOf!(r.value)));
     const tail = this.idOf === undefined ? legacy : legacy.filter((r) => !seen.has(this.idOf!(r.value)));
     return [...perEntry, ...tail];
+  }
+
+  /**
+   * `E2E-25` — PERSISTE la réparation de l'index dès la lecture. Réconcilier en mémoire à chaque
+   * lecture suffit à ne plus JAMAIS perdre une entrée pour l'utilisateur, mais l'index STOCKÉ
+   * restait court jusqu'à la mutation suivante — et l'onglet qui avait perdu la course pouvait
+   * encore l'écraser. La réparation est donc écrite immédiatement, uniquement quand elle change
+   * réellement quelque chose (aucune écriture, donc aucun événement `storage`, sur un index sain :
+   * la convergence est garantie et la boucle inter-onglets ne s'entretient pas).
+   */
+  private persistIndexRepair(): void {
+    if (this.idOf === undefined || typeof this.backend.keys !== 'function') return;
+    const stored = this.backend.get(this.indexKey);
+    if (stored === null) return;
+    let ids: string[];
+    try {
+      const parsed: unknown = JSON.parse(stored);
+      if (!Array.isArray(parsed)) return;
+      ids = parsed.filter((v): v is string => typeof v === 'string');
+    } catch {
+      return;
+    }
+    const repaired = this.reconcileWithStoredEntries(ids);
+    if (repaired.length !== ids.length) this.backend.set(this.indexKey, JSON.stringify(repaired));
+  }
+
+  /**
+   * `E2E-25` — réparation de l'index déclenchée par un événement `storage` d'un AUTRE onglet.
+   * C'est le moment où la course a eu lieu : l'onglet qui vient d'écrire son index a pu écraser
+   * l'identifiant du voisin, et l'événement lui parvient juste après sa propre écriture. Réparer
+   * ici referme la fenêtre résiduelle, sans verrou (`D-16` : `navigator.locks` reste écarté).
+   */
+  reconcileIndex(): void {
+    this.persistIndexRepair();
   }
 
   /** Valeurs seules, ordre de stockage. */

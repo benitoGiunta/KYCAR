@@ -180,7 +180,10 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     page,
     context,
   }, testInfo) => {
-    test.fail();
+    // D8-26 (CORRIGÉ) : l'index ordonné des collections est AUTO-RÉPARATEUR — réconcilié avec
+    // les clés `kycar:<collection>/*` réellement présentes à chaque lecture, la réparation étant
+    // persistée et rejouée sur l'événement `storage` d'un autre onglet (crud-store.ts).
+    // Mesuré 0 ronde perdante sur 8, trois exécutions. `test.fail()` retiré (D8-17).
     constat(
       testInfo,
       'E2E-25',
@@ -267,7 +270,8 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
   test('CONSTAT E2E-24 — tout enregistrement annonce « un nom identique existait déjà » (EX-CRUD-1/3)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-14/D8-26 (CORRIGÉ) : `hasDuplicateName` est évalué AVANT `create`, sur l'état antérieur.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-24',

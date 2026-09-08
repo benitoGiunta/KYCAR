@@ -161,7 +161,8 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
   test('CONSTAT E2E-14 — à la fermeture de l’écran G le focus n’est pas rendu au contrôle appelant (EX-SCR-216, WCAG 2.4.3)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-26 (CORRIGÉ par fix-state) : `ScreenG` mémorise l'élément déclencheur à l'ouverture et
+    // le refocalise au démontage. `test.fail()` retiré après rejeu VERT (D8-17).
     constat(
       testInfo,
       'E2E-14',
@@ -214,7 +215,10 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
   test('CONSTAT E2E-16 (élargi par E2E-15) — au chargement direct de l’écran A, le focus n’atteint plus le contenu principal (EX-NFR-12)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-14/D8-26 (CORRIGÉ) : la coquille pose `tabindex="-1"` sur le `h1` visé AVANT de le
+    // focaliser (et retombe sur `#kycar-main` si l'appel reste sans effet). Le lien d'évitement
+    // demeure le premier arrêt de tabulation du document (test dédié, ci-dessus).
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-16',
@@ -233,7 +237,10 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
   test('CONSTAT E2E-16 — la prise de focus après navigation échoue dès que la vue porte un h1 (EX-NFR-12, DR-101)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-14/D8-26 (CORRIGÉ) : la coquille pose `tabindex="-1"` sur le `h1` visé AVANT de le
+    // focaliser (et retombe sur `#kycar-main` si l'appel reste sans effet). Le lien d'évitement
+    // demeure le premier arrêt de tabulation du document (test dédié, ci-dessus).
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-16',

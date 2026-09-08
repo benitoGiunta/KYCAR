@@ -58,7 +58,17 @@
   }
 }
 
-/* Hidden on screen; only ever shown by the `@media print` rule above. */
-.print-filter-summary {
-  display: none;
+/*
+ * Hidden ON SCREEN only.
+ *
+ * `E2E-22` / `FV-13` (D8-14) — cette règle était écrite HORS media : à specificite egale
+ * (`.print-filter-summary`, 0-1-0) et placee APRES le bloc `@media print`, elle l'emportait aussi a
+ * l'impression. Le resume des filtres n'atteignait donc JAMAIS le papier, quelle que soit sa place
+ * dans l'arbre — deuxieme cause du constat, distincte de l'ancetre masque (`.filter-bar`), corrigee
+ * elle aussi. Le masquage est desormais borne au media `screen`.
+ */
+@media screen {
+  .print-filter-summary {
+    display: none;
+  }
 }

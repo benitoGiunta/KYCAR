@@ -83,7 +83,11 @@ test.describe('EX-NFR-31 — feuille @media print minimale', () => {
   test('CONSTAT E2E-22 — le résumé des filtres actifs n’atteint jamais le papier (EX-NFR-31 règle 3)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-14/D8-26 (CORRIGÉ) : DEUX causes. Le résumé est désormais FRÈRE de `.filter-bar` (un
+    // ancêtre en `display:none` masquait sa descendance), et la règle « masqué à l'écran » de
+    // `print.css`, écrite hors media et placée après le bloc `@media print`, l'emportait à
+    // specificité égale jusque sur le papier : elle est bornée à `@media screen`.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-22',
@@ -102,7 +106,9 @@ test.describe('EX-NFR-31 — feuille @media print minimale', () => {
   test('CONSTAT E2E-23 — le résumé des filtres tient sur une ligne et cite des noms de paramètres bruts (EX-NFR-31 règle 3)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-14/D8-26 (CORRIGÉ) : le résumé est construit depuis `buildActiveFilterTokens`, le MÊME
+    // modèle que les jetons du bandeau (« Carrosserie : Coupé »), un filtre par ligne.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-23',

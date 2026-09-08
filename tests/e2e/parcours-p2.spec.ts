@@ -159,7 +159,9 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
   test('CONSTAT E2E-02 — le nuage G4 ne trace aucun point sur une cellule de 1 352 annonces (EX-SCR-151..160, EX-DATA-99)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-01/D8-26 (CONSTAT E2E-02, CORRIGÉ) : `src/worker/client.ts::loadDataset` n'envoie plus le lot
+    // colonnaire en `Transferable` — il part par copie structurée, l'hôte garde ses tampons.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-02',
@@ -186,7 +188,9 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
       regimeOf(testInfo) === 'compact',
       'EX-NFR-19 : la bascule de projection n’existe pas en régime dégradé (projection 2D imposée)',
     );
-    test.fail();
+    // D8-01/D8-26 (CONSTAT E2E-03, CORRIGÉ) : `src/worker/client.ts::loadDataset` n'envoie plus le lot
+    // colonnaire en `Transferable` — il part par copie structurée, l'hôte garde ses tampons.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-03',
@@ -210,7 +214,9 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
       regimeOf(testInfo) === 'compact',
       'EX-NFR-19 : brossage désactivé par contrat en régime dégradé',
     );
-    test.fail();
+    // D8-01/D8-26 (CONSTAT E2E-06, CORRIGÉ) : `src/worker/client.ts::loadDataset` n'envoie plus le lot
+    // colonnaire en `Transferable` — il part par copie structurée, l'hôte garde ses tampons.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-06',
@@ -231,7 +237,9 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
   test('CONSTAT E2E-01 — l’écran D lève « detached ArrayBuffer » et ne rend aucune annonce (EX-SCR-201..210)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-01/D8-26 (CONSTAT E2E-01, CORRIGÉ) : `src/worker/client.ts::loadDataset` n'envoie plus le lot
+    // colonnaire en `Transferable` — il part par copie structurée, l'hôte garde ses tampons.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-01',
@@ -255,7 +263,6 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     page,
     context,
   }, testInfo) => {
-    test.fail();
     constat(
       testInfo,
       'E2E-07',
@@ -271,7 +278,10 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     await expect(page.locator('.kycar-pager')).toContainText('page 1 /');
 
     // Tri mono-colonne par en-tête (`EX-SCR-206`).
-    await page.getByRole('button', { name: /^Prix/ }).click();
+    // D8-26/D-31 : le locator `/^Prix/` non ancré était AMBIGU dès que l'écran D rend réellement —
+    // il capturait aussi le repli « Prix et valeur » du bandeau de filtres (le test échouait avant
+    // d'y arriver, E2E-01). Il est ancré sur l'en-tête de la table ; l'assertion est inchangée.
+    await page.locator('.kycar-listings-table').getByRole('button', { name: 'Prix', exact: true }).click();
     await expect(page.locator('th[aria-sort="ascending"]')).toHaveCount(1);
 
     // `EX-SCR-201`/`164` — seul lien SORTANT : nouvel onglet vers l'annonce d'origine.
@@ -284,7 +294,9 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
   test('CONSTAT E2E-08 — les graphes additionnels G5 et G8–G15 rendent des tables de données VIDES (EX-SCR-144, EX-NFR-15)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-01/D8-26 (CONSTAT E2E-08, CORRIGÉ) : `src/worker/client.ts::loadDataset` n'envoie plus le lot
+    // colonnaire en `Transferable` — il part par copie structurée, l'hôte garde ses tampons.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-08',
@@ -308,7 +320,9 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
   test('CONSTAT E2E-09 — la part de particuliers de l’en-tête vaut 0 % (EX-SCR-142 ligne 2, EX-NFR-29)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-01/D8-26 (CONSTAT E2E-09, CORRIGÉ) : `src/worker/client.ts::loadDataset` n'envoie plus le lot
+    // colonnaire en `Transferable` — il part par copie structurée, l'hôte garde ses tampons.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-09',
@@ -327,7 +341,9 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
   test('CONSTAT E2E-10 — l’export « Annonces du périmètre (CSV) » de l’écran B ne produit aucun fichier (EX-CRUD-16)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-01/D8-26 (CONSTAT E2E-10, CORRIGÉ) : `src/worker/client.ts::loadDataset` n'envoie plus le lot
+    // colonnaire en `Transferable` — il part par copie structurée, l'hôte garde ses tampons.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-10',

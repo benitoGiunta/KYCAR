@@ -23,6 +23,7 @@ import {
   open,
   readMarketSummary,
   regimeOf,
+  waitForMarket,
 } from './_helpers';
 
 /** Le régime que l'application déclare elle-même, lu dans le panneau Diagnostic (`EX-SCR-47`). */
@@ -96,7 +97,13 @@ test.describe('EX-NFR-18 / EX-NFR-19 — régimes responsive', () => {
     await open(page, `${SURFACES.A}${P1_QUERY}`);
 
     const card = page.locator('.kycar-market-card').first();
-    await card.locator('.kycar-market-card-header').click();
+    // D8-04a/FV-04/D-31 : depuis la remédiation 2.8, un clic sur l'EN-TÊTE de carte POSE le filtre
+    // `mmmv` sur la marque (`EX-SCR-110`) au lieu de déplier la carte — c'était précisément le
+    // premier des quatre écarts `mmmv` relevés par la vérification finale. Le dépliage a son propre
+    // contrôle, le bouton de pied de carte (`EX-SCR-122`), qui est aussi celui que la suite du test
+    // utilise déjà pour REPLIER. Le fait mesuré (les zones se déplient puis se replient au seuil du
+    // régime) est inchangé ; seul le contrôle actionné suit l'exigence.
+    await card.locator('.kycar-market-card-footer button').click();
     await expect(card.locator('.kycar-market-zone-list')).toContainText('fourchette centrale', { timeout: 30_000 });
     const expanded = await card.locator('.kycar-market-zone-list > *').count();
     expect(expanded).toBeGreaterThan(expectedCollapse);
@@ -180,10 +187,32 @@ test.describe('EX-NFR-18 / EX-NFR-19 — régimes responsive', () => {
     expect(label).toContain('4 modèles');
   });
 
-  test('CONSTAT E2E-21 — le bandeau de filtres et l’écran G sont rendus sans aucune feuille de style (EX-SCR-89..98, EX-SCR-215)', async ({
+  /**
+   * DETTE D8-15 (ratifiée par le fix-lead, `FIX-LEAD-DECISIONS-2.8.md` §A) — `EX-SCR-95`, réglages
+   * « Assainissement KYCAR ». Panneau de préférences sans effet sur une valeur affichée, jugé hors
+   * budget de la remédiation 2.8 et requalifié en DETTE PRODUIT. Le test reste écrit et ROUGE PAR
+   * CONSTRUCTION (`test.fail()`, jamais `test.skip`) : la dette est ainsi visible dans chaque
+   * exécution de la recette, et ce test redeviendra vert le jour où le panneau sera livré.
+   */
+  test('DETTE D8-15 — les réglages « Assainissement KYCAR » ne sont offerts nulle part (EX-SCR-95)', async ({
     page,
   }, testInfo) => {
     test.fail();
+    await open(page, SURFACES.A);
+    await waitForMarket(page);
+    const found = await page
+      .getByText(/assainissement/i)
+      .count();
+    mesure(testInfo, 'EX-SCR-95 — points d’entrée « Assainissement KYCAR » trouvés', String(found));
+    expect(found, 'EX-SCR-95 : un panneau de réglages d’assainissement doit être atteignable').toBeGreaterThan(0);
+  });
+
+  test('CONSTAT E2E-21 — le bandeau de filtres et l’écran G sont rendus sans aucune feuille de style (EX-SCR-89..98, EX-SCR-215)', async ({
+    page,
+  }, testInfo) => {
+    // D8-26 (CORRIGÉ par fix-state) : `src/components/filters/filter-band.css` et `screen-g.css`
+    // existent et sont importés en effet de bord par leurs composants — le bandeau et l'écran G
+    // sont peints. `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-21',

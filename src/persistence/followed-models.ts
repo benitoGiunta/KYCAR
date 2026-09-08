@@ -73,7 +73,13 @@ export class FollowedModelStore {
   }
 
   subscribe(onChange: () => void): () => void {
-    return subscribeCrossTab(FOLLOWED_MODELS_KEY, onChange);
+    // `E2E-25` (`EX-CRUD-19`, `ADV-13`) : l'écriture d'un autre onglet est l'instant EXACT où une
+    // course sur l'index a pu se produire — l'index est réconcilié avec les blobs réellement
+    // présents AVANT de notifier l'écran, de sorte qu'aucune entrée ne reste orpheline.
+    return subscribeCrossTab(FOLLOWED_MODELS_KEY, () => {
+      this.col.reconcileIndex();
+      onChange();
+    });
   }
 }
 

@@ -66,7 +66,9 @@ test.describe('EX-NFR-16 — axe-core WCAG 2.1 A/AA sur les huit surfaces', () =
   test('CONSTAT E2E-13 — surface D : l’écran ne rend pas, EX-NFR-16 ne peut y être prononcée (EX-NFR-16)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-01/D8-26 (CORRIGÉ) : l'écran D rend réellement depuis que le lot colonnaire n'est plus
+    // transféré au worker — le verdict d'accessibilité de la surface D est enfin PRONONÇABLE,
+    // et il est vert. `test.fail()` retiré après rejeu contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-13',
@@ -100,7 +102,9 @@ test.describe('EX-NFR-16 — axe-core WCAG 2.1 A/AA sur les huit surfaces', () =
   test('CONSTAT E2E-12 — surface G : attributs ARIA non autorisés et contrôles imbriqués dans la modale (EX-NFR-16, EX-SCR-215/216)', async ({
     page,
   }, testInfo) => {
-    test.fail();
+    // D8-26 (CORRIGÉ par fix-state) : la modale marque/modèle porte `aria-selected` sur le
+    // `li[role=option]` lui-même et n'imbrique plus de contrôle focalisable dans l'option.
+    // `test.fail()` retiré après rejeu VERT contre Chromium réel (D8-17).
     constat(
       testInfo,
       'E2E-12',
