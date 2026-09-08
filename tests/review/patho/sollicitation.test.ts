@@ -77,8 +77,14 @@ describe('patho — sollicitation par les filtres (ADV-10 / ARB-56)', () => {
     const url = assembleUrl(ORIGIN, query);
 
     // `ARB-56` : « les 77 filtres retenus posés chacun à une valeur non défaut plausible occupent
-    // ≈ 1 720 caractères, `eq` large compris ; la marge est donc réelle mais non infinie. »
-    expect(Object.keys(selection).length).toBeGreaterThanOrEqual(70);
+    // ≈ 1 720 caractères, `eq` large compris ; la marge est donc réelle mais non infinie. » Le
+    // périmètre du registre a rétréci depuis (65 filtres exposés posables) : `D-14` (R3) retire
+    // `location`/`lat`/`lon` (−3), `DR-052`/`EX-SRCH-18bis` marquent `nonExposed` `powerType`,
+    // `hadAccident`, `countryType` (−3, valeurs injectées vers la source), `D-12`/`DR-066`
+    // marquent `nonExposed` `page`/`pageSize` (−2, paramètres d'état d'interface). Le budget de
+    // 2 000 caractères n'est qu'ENCORE PLUS confortablement respecté (moins de paramètres à
+    // sérialiser) — c'est ce que ce test vérifie, le seuil bas suit le nouveau périmètre réel.
+    expect(Object.keys(selection).length).toBeGreaterThanOrEqual(60);
     expect(url.withinBudget).toBe(true);
     expect(url.length).toBeLessThan(MAX_URL_LENGTH);
     // Aucune troncature : l'URL contient bien un paramètre par filtre posé.
@@ -215,7 +221,12 @@ describe('patho — rafale de filtres R (ADV-12 / ARB-57)', () => {
         vi.advanceTimersByTime(50);
       }
       vi.advanceTimersByTime(1000);
-      expect(replaced).toHaveLength(20);
+      // `DR-015` : le premier changement de la rafale OUVRE l'entrée d'historique (`pushState`),
+      // les 19 suivants la mettent à jour en place (`replaceState`) — un seul `pushState` pour
+      // toute la rafale, cohérent avec l'intitulé du test (« pas vingt »). Avant la correction
+      // c'était l'inverse (`replaceState` d'abord, `pushState` à l'expiration), ce qui écrasait
+      // l'entrée PRÉCÉDANT la rafale au lieu de créer la sienne (`R-D5-05`, non modifiée).
+      expect(replaced).toHaveLength(19);
       expect(pushed).toHaveLength(1); // regroupement 800 ms
       controller.dispose();
     } finally {

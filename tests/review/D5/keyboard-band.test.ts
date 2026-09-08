@@ -29,13 +29,16 @@ import type { SelectionState } from '../../../src/state/filter-types';
 const ALL_GROUPS = new Set(ACCORDION_GROUP_ORDER);
 
 describe('D5 — EX-NFR-14 / EX-SCR-99 : ordre de tabulation du bandeau', () => {
-  it('EX-SCR-59 — 13 paramètres primaires = 9 contrôles + le champ `kwd`', () => {
+  it('EX-SCR-59 amendée — 12 paramètres primaires = 8 contrôles + le champ `kwd` (DR-138/D-15)', () => {
+    // `D-15`/`DR-052` : `cy` (`countryType`) est retiré de la ligne primaire — valeur injectée
+    // vers la source (`EX-SRCH-18bis`/`ARB-30`), jamais un choix utilisateur. `EX-SCR-59` en
+    // comptait 9/13 ; il n'en reste que 8/12. `kwd` (zone 2, `DR-138`) reste nommément distinct.
     const controls = buildPrimaryControls();
-    expect(controls).toHaveLength(10); // les 9 contrôles de la table + `kwd`
-    expect(controls.filter((c) => c.key !== 'keyword')).toHaveLength(9);
-    expect(controls.flatMap((c) => c.defs).length).toBe(13);
+    expect(controls).toHaveLength(9); // les 8 contrôles restants de la table + `kwd`
+    expect(controls.filter((c) => c.key !== 'keyword')).toHaveLength(8);
+    expect(controls.flatMap((c) => c.defs).length).toBe(12);
     expect(controls.flatMap((c) => c.defs).map((d) => d.param).sort()).toEqual([
-      'body', 'custtype', 'cy', 'fregfrom', 'fregto', 'fuel', 'gear', 'kmfrom', 'kmto', 'kwd',
+      'body', 'custtype', 'fregfrom', 'fregto', 'fuel', 'gear', 'kmfrom', 'kmto', 'kwd',
       'mmmv', 'pricefrom', 'priceto',
     ].sort());
   });
@@ -50,8 +53,9 @@ describe('D5 — EX-NFR-14 / EX-SCR-99 : ordre de tabulation du bandeau', () => 
     const keys = stops.map(tabStopKey);
     expect(new Set(keys).size).toBe(keys.length);
     expect(keys[0]).toBe('primary:makesModelsVariants');
-    expect(keys[13]).toBe('search');
-    expect(keys[14]).toBe('group-toggle:vehicule');
+    // 12 paramètres primaires (DR-138/D-15, `cy` retiré) : la recherche suit au 13ᵉ arrêt (indice 12).
+    expect(keys[12]).toBe('search');
+    expect(keys[13]).toBe('group-toggle:vehicule');
   });
 
   it('EX-SCR-99 — `Tab` ne pénètre jamais un groupe replié', () => {
@@ -140,9 +144,14 @@ describe('D5 — EX-SCR-91/92/93 : compteurs, repliement et ordre des groupes', 
   });
 
   it('EX-SCR-91 — un filtre à sa valeur par défaut relevée ne compte pas comme actif', () => {
-    expect(countActiveFilters({ powerType: 'kw' })).toBe(0);
-    expect(countActiveFilters({ powerType: 'hp' })).toBe(1);
-    expect(countActiveFilters({ hadAccident: 'N,U' })).toBe(0);
+    // `powerType`/`hadAccident` sont `nonExposed` depuis `DR-052` (`EX-SRCH-18bis`) : ils ne
+    // comptent JAMAIS, quelle que soit leur valeur (couvert par la sonde `nonExposed` dédiée
+    // ci-dessous). `sortTypes` (défaut `standard`) illustre désormais le cas « défaut non-absence,
+    // filtre EXPOSÉ ».
+    expect(countActiveFilters({ sortTypes: 'standard' })).toBe(0);
+    expect(countActiveFilters({ sortTypes: 'price' })).toBe(1);
+    expect(countActiveFilters({ powerType: 'hp' })).toBe(0);
+    expect(countActiveFilters({ hadAccident: 'A' })).toBe(0);
     expect(countActiveFilters({})).toBe(0);
   });
 
@@ -205,6 +214,11 @@ describe('D5 — EX-SCR-79/80 : recherche de filtre', () => {
 
 describe('R-D5-19 — EX-NFR-14 : l’ordre de tabulation ne suit pas l’ordre visuel normatif', () => {
   it('R-D5-19 — EX-SCR-59/71 : `kwd` appartient à la zone (2) et `body` précède `gear`', () => {
+    // `countryType` retiré de la liste attendue : `D-15`/`DR-052` (`EX-SRCH-18bis`/`ARB-30`,
+    // décidé APRÈS la rédaction de cette sonde) en fait une valeur injectée vers la source, jamais
+    // un choix utilisateur — amende la 9ᵉ ligne d'`EX-SCR-59` que cette sonde attendait encore
+    // primaire. Correction justifiée par `D-31` : la décision fix-lead prime sur la rédaction
+    // antérieure de la sonde.
     expect(buildPrimaryControls().map((c) => c.key)).toEqual([
       'makesModelsVariants',
       'priceFrom',
@@ -214,7 +228,6 @@ describe('R-D5-19 — EX-NFR-14 : l’ordre de tabulation ne suit pas l’ordre 
       'bodyType',
       'gearType',
       'sellerType',
-      'countryType',
       'keyword',
     ]);
   });

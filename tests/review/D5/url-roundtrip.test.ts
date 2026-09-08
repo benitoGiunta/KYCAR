@@ -154,13 +154,27 @@ describe('D5 — aller-retour URL exhaustif sur le périmètre des 77 filtres', 
       else if (results.every((r) => !r.serialized || (r.q1 === r.q2 && r.corrections === 0))) ok.push(def.param);
       else broken.push(def.param);
     }
-    // Décompte factuel : 73 des 77 filtres du périmètre font l'aller-retour au caractère près.
-    // Les 4 restants ne sont pas éprouvables par cette sonde : `atype` (NON_EXPOSE, sans domaine
-    // dans le registre — voir R-D5-04) et les 3 filtres de classe D, jamais sérialisés
-    // (`EX-SCR-57`). Les cas rompus sont isolés dans les sondes R-D5-01/R-D5-02 ci-dessous.
-    expect({ ok: ok.length, notSerialized, broken }).toEqual({
-      ok: 73,
-      notSerialized: ['atype', 'damaged_listing', 'region', 'dlv_max'],
+    // Décompte factuel, mis à jour par `DR-059` (`EX-SCR-73`) : le codec refuse désormais de
+    // sérialiser un filtre dont la DÉPENDANCE n'est pas satisfaite (`src/state/url-codec.ts`,
+    // `serializeFilterPair`, même défense en profondeur que `cls === 'D'` — nécessaire pour que
+    // `R-D5-17` passe : un prédicat de leasing orphelin de `hasleasing` ne doit plus survivre à un
+    // aller-retour). Cette sonde construit chaque `roundTrip` en ISOLANT le filtre testé, SANS son
+    // parent — tout filtre `dependencies.length > 0` bascule donc ici de « ok » à
+    // « notSerialized » : les 9 filtres de leasing (`hasleasing`), `bot`/`erfrom`/`erto`
+    // (carburant électrique), `crossborder` (`radius`), `desc` (`sortTypes`),
+    // `sealor`/`version0`/`cat`/`mcat` (`mmmv`). Ce n'est pas une régression de l'aller-retour
+    // EX-NAV-6/7/9 (prouvé génériquement par les sondes précédentes de ce fichier, restées vertes)
+    // : c'est la conséquence directe et attendue de `DR-059`, dont la preuve (`R-D5-17`) exige
+    // précisément ce nouveau comportement. S'y ajoutent les six paramètres `nonExposed` de
+    // `DR-052`/`D-12` (`powertype`, `ustate`, `cy`, `page`, `size`, en plus d'`atype` déjà là).
+    expect({ ok: ok.length, notSerialized: notSerialized.slice().sort(), broken }).toEqual({
+      ok: 47,
+      notSerialized: [
+        'atype', 'bot', 'cat', 'crossborder', 'cy', 'damaged_listing', 'desc', 'dlv_max', 'erfrom',
+        'erto', 'leasingratefrom', 'leasingrateto', 'lsavno', 'lsdufrom', 'lsduto', 'lsenbo',
+        'lstagr', 'lstrinbo', 'lsyeinmifrom', 'mcat', 'page', 'powertype', 'region', 'sealor',
+        'size', 'ustate', 'version0',
+      ].sort(),
       broken: [],
     });
   });

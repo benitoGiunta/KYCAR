@@ -55,11 +55,12 @@ describe('D5 — EX-NFR-30 : 0 code brut affiché', () => {
   it('EX-NFR-28 — libellés de filtres, de groupes et jetons entièrement en français', () => {
     for (const def of FILTER_DEFS) expect(def.label.trim().length).toBeGreaterThan(0);
     expect(Object.values(GROUP_LABELS).every((l) => l.trim().length > 0)).toBe(true);
+    // `DR-056`/`ARB-12` : chaque jeton porte désormais le libellé du filtre, préfixé à sa valeur.
     const tokens = buildActiveFilterTokens({ fuelType: ['B', 'D'], priceFrom: 5_000, vatReportable: '1' });
     expect(tokens.map((t) => t.text)).toEqual([
-      '≥ 5 000 €',
+      'Prix : ≥ 5 000 €',
       'TVA déductible / récupérable',
-      'Essence, Diesel',
+      'Carburant : Essence, Diesel',
     ]);
   });
 

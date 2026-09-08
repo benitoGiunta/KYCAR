@@ -27,7 +27,13 @@ describe('D5 — EX-SRCH-1…8 : les délais chiffrés de l’annexe C', () => {
       ['EX-SRCH-3 curseur', resolveDebounceMs('priceFrom', 'slider-commit', 'range-pair')],
       ['EX-SRCH-4 numérique', resolveDebounceMs('priceFrom', 'keystroke', 'range-pair')],
       ['EX-SRCH-5 texte', resolveDebounceMs('keyword', 'keystroke', 'text-field')],
-      ['EX-SRCH-6 code postal', resolveDebounceMs('location', 'keystroke', 'geo-composite')],
+      // `DR-058` : le 4ᵉ argument (longueur courante) est le seul signal dont dispose
+      // `resolveDebounceMs` pour appliquer le seuil de caractères d'`EX-SRCH-6` (« 500 ms, et non
+      // déclenché avant 4 caractères saisis ») — cette ligne mesure le délai UNE FOIS le seuil
+      // atteint (10 caractères saisis, ce qui reste `resolveDebounceMs`, sonde inchangée dans son
+      // intention normative : « 500 ms »). Adaptation de signature justifiée par `DR-058`/`D-31` :
+      // avant cette correction, la fonction n'avait aucun moyen de refuser un commit prématuré.
+      ['EX-SRCH-6 code postal', resolveDebounceMs('location', 'keystroke', 'geo-composite', 10)],
       ['EX-SRCH-7 zipr', resolveDebounceMs('radius', 'discrete-change', 'select-indifferent')],
       ['EX-SRCH-8 mmmv', resolveDebounceMs('makesModelsVariants', 'selection-immediate', 'structured-picker')],
     ];
@@ -67,6 +73,12 @@ describe('D5 — EX-SRCH-1bis : regroupement des rafales de classe R (3 en 300 m
 });
 
 describe('D5 — EX-NAV-12/13/14 : entrées d’historique', () => {
+  // `DR-015` : cette sonde et la suivante figeaient l'ordre BOGUÉ (`replaceState` à chaque
+  // application, `pushState` à l'expiration de la fenêtre) que `R-D5-05` ci-dessous démontre
+  // fautif — replaceState écrasait l'entrée PRÉCÉDANT la rafale au lieu de créer la sienne
+  // propre, rendant le bouton précédent inopérant. Assertions de COMPTAGE adaptées au nouvel
+  // ordre mandaté par `DR-015` (`pushState` au premier changement, `replaceState` ensuite, rien
+  // à l'expiration) ; aucune assertion de `R-D5-05` n'est modifiée (justification `D-31`).
   it('20 changements rapprochés (< 800 ms) ne produisent qu’UNE entrée pushState', () => {
     const replaceState = vi.fn();
     const pushState = vi.fn();
@@ -75,11 +87,11 @@ describe('D5 — EX-NAV-12/13/14 : entrées d’historique', () => {
       grouper.onApplied(`/marche?eq=${i}`);
       vi.advanceTimersByTime(100);
     }
-    expect(pushState).not.toHaveBeenCalled();
+    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(pushState).toHaveBeenCalledWith('/marche?eq=0');
+    expect(replaceState).toHaveBeenCalledTimes(19);
     vi.advanceTimersByTime(800);
     expect(pushState).toHaveBeenCalledTimes(1);
-    expect(pushState).toHaveBeenCalledWith('/marche?eq=19');
-    expect(replaceState).toHaveBeenCalledTimes(20);
     grouper.dispose();
   });
 
@@ -87,9 +99,13 @@ describe('D5 — EX-NAV-12/13/14 : entrées d’historique', () => {
     const pushState = vi.fn();
     const grouper = new HistoryBurstGrouper({ replaceState: vi.fn(), pushState });
     grouper.onApplied('/marche?fuel=D');
-    grouper.forcePush('/marche/16-opel/1174-corsa');
-    vi.advanceTimersByTime(5_000);
+    // `DR-015` : ce premier changement a déjà ouvert sa propre entrée par `pushState`.
     expect(pushState).toHaveBeenCalledTimes(1);
+    grouper.forcePush('/marche/16-opel/1174-corsa');
+    expect(pushState).toHaveBeenCalledTimes(2);
+    expect(pushState).toHaveBeenLastCalledWith('/marche/16-opel/1174-corsa');
+    vi.advanceTimersByTime(5_000);
+    expect(pushState).toHaveBeenCalledTimes(2);
     grouper.dispose();
   });
 
@@ -143,7 +159,9 @@ describe('D5 — EX-NAV-12/13/14 : entrées d’historique', () => {
     expect(commit).not.toHaveBeenCalled();
     vi.advanceTimersByTime(400);
     expect(commit).toHaveBeenCalledTimes(1);
-    expect(replaceState).toHaveBeenCalledTimes(1);
+    // `DR-015` : le commit unique de ce test est le PREMIER changement de sa rafale (`replaceState`
+    // n'a encore rien à mettre à jour) — l'entrée d'historique est donc ouverte par `pushState`.
+    expect(replaceState).not.toHaveBeenCalled();
     controller.dispose();
   });
 });
