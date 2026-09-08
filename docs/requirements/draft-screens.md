@@ -1322,7 +1322,10 @@ comparé`.
 `EX-SCR-114` — **Ces trois fourchettes plus l'effectif sont l'exigence textuelle du
 commanditaire** (« le nombre d'offre de ce modèle de cette marque et la fourchette de prix,
 d'année et de kilomètre »). Elles ne sont donc jamais masquées, à aucun régime responsive
-(en `compact` elles passent sur quatre lignes, cf. `EX-SCR-135`).
+(en `compact` elles passent sur quatre lignes, cf. `EX-SCR-135`). Précision : « jamais masquées »
+porte sur la **présence** des trois fourchettes et de l'effectif ; leur **contenu** suit les paliers
+d'effectif d'`EX-SCR-33` (ARB-17) — pour `5 ≤ n ≤ 11`, `P5`/`P95` sont remplacés par `min`/`max` et le
+jeton `n = <n>`, la ligne de fourchette reste affichée. [amendée 2.6 — D-36]
 
 `EX-SCR-115` — **Provenance des fourchettes, et honnêteté du chiffre.** `topModels` ne fournit
 que `listingsCount`, et `priceInfo` ne fournit que des **minima**

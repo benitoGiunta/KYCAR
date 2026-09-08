@@ -337,8 +337,8 @@ d'`EX-DATA-107` s'affiche en plus et n'est pas refermable.
 | EX-SRCH-3 | Curseur / intervalle à paliers (glissière) | bornes `pricefrom/to`, `kmfrom/to` lorsqu'un palier est cliqué | Au relâchement du curseur (`pointerup`), pas pendant le glissement | 150 ms après relâchement (absorbe un micro-ajustement tactile) |
 | EX-SRCH-4 | Champ numérique en saisie libre | `pricefrom/to`, `kmfrom/to`, `powerfrom/to`, `fregfrom/to` en saisie manuelle | Différée après la dernière frappe | 500 ms |
 | EX-SRCH-5 | Champ texte libre | `kwd` | Différée après la dernière frappe | 400 ms |
-| EX-SRCH-6 | Champ code postal | `zip` | Différée, déclenche la résolution géographique une fois un format plausible atteint (4 chiffres BE) | 500 ms, et non déclenché avant 4 caractères saisis |
-| EX-SRCH-7 | Sélecteur dépendant activé seulement après son parent | `zipr` (dépend de `zip`) | Immédiate au changement, contrôle désactivé tant que `zip` n'est pas valide | 0 ms |
+| EX-SRCH-6 | Champ code postal | `zip` | **Sans objet** : `zip` est exclu du périmètre retenu (motif `R3_DONNEE_PERSONNELLE`, `EX-DATA-49`, D-14). La ligne est conservée pour la traçabilité de la table `EX-SRCH-1…8` [amendée 2.6 — D-37] | — |
+| EX-SRCH-7 | Sélecteur dépendant activé seulement après son parent | `zipr` (dépend de `zip`) | **Sans objet** : dépend de `zip`, exclu (D-14) [amendée 2.6 — D-37] | — |
 | EX-SRCH-8 | Sélection marque (mode 1) / clic zone-modèle (navigation mode 2) | `mmmv`, changement de route | Immédiate | 0 ms |
 | EX-SRCH-9 | Bouton de réinitialisation (§B.4) | tout groupe ou la totalité | Immédiate | 0 ms |
 

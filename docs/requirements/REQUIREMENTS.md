@@ -339,6 +339,8 @@ Aucune formule ni disposition n'est réécrite au-delà de ce que la décision c
 | `EX-DATA-119` (§ C.3, table physique) | A | `makeId` : `Int16Array` → `Int32Array` ; `ingestFlags` : `Uint16Array` → `Uint32Array` ; total colonnes ≈ 71 → ≈ 75 | `D-01`, `D-02` |
 | § A.1 (table des vocabulaires, `KYCAR_INGEST_FLAG`) | A | Décompte corrigé : 14 → 17 codes | `D-01` |
 | § C.5 (récapitulatif chiffré, « Entités ») | A | Décompte corrigé : 13 → 14 | `O16` |
+| `EX-SCR-114` | B | Précision : « jamais masquées » porte sur la présence des fourchettes ; leur contenu suit les paliers ARB-17 (`EX-SCR-33`) | `D-36` |
+| `EX-SRCH-6`, `EX-SRCH-7` | C | Sans objet : `zip`/`zipr` exclus du périmètre (motif R3, D-14) | `D-37` |
 | `EX-NAV-5` | C | Paramètre KYCAR `make` retiré ; `mmmv` est le seul paramètre marque/modèle, en mode 1 comme en mode 2 | `D-09` |
 | `EX-NAV-10bis` | C | Ajout des paramètres d'état d'interface `page`, `size`, `sel` (hors `selectionHash`, ne changent jamais `Σ`) | `D-11`, `D-12` |
 | `EX-NAV-15` | C | Transition mode 1 → mode 2 réécrite autour de `mmmv` (absorbé par la route) au lieu de `make` | `D-09` |
