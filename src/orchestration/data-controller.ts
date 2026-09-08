@@ -118,6 +118,22 @@ function withTimeout<T>(p: Promise<T>, timeoutMs: number): Promise<T> {
   });
 }
 
+/**
+ * `DR-158` (`EX-NFR-23`, `EX-SCR-28`) — validation de FORME d'une réponse d'agrégats. Une réponse
+ * structurellement invalide (`rows` absent ou non tableau…) est refusée à `start()` avec un code
+ * `E-PROV-…` affichable, jamais acceptée comme « ready » pour éclater plus tard en `TypeError`.
+ */
+export function validateAggregateResult(value: unknown): string | null {
+  if (value === null || typeof value !== 'object') return 'E-PROV-INVALID_SHAPE';
+  const r = value as Partial<AggregateResult<MakeAggregate>>;
+  if (!Array.isArray(r.rows)) return 'E-PROV-INVALID_ROWS';
+  if (typeof r.snapshotId !== 'string') return 'E-PROV-INVALID_SNAPSHOT_ID';
+  if (typeof r.selectionCount !== 'number' || !Number.isFinite(r.selectionCount)) {
+    return 'E-PROV-INVALID_SELECTION_COUNT';
+  }
+  return null;
+}
+
 export class DataController {
   private readonly provider: DataProvider;
   private readonly ref: ReferenceData;
@@ -164,8 +180,19 @@ export class DataController {
     const attempts = this.retry.delaysMs.length + 1;
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
-        const handle = await withTimeout(this.provider.openSnapshot(), this.retry.timeoutMs);
-        const baseline = await this.provider.fetchBaselineAggregates(handle);
+        // `DR-091` (`EX-NFR-21`) : le délai couvre la SÉQUENCE d'acquisition entière — un
+        // `fetchBaselineAggregates` qui ne répond jamais suspendait `start()` indéfiniment.
+        const { handle, baseline } = await withTimeout(
+          (async (): Promise<{ handle: SnapshotHandle; baseline: AggregateResult<MakeAggregate> }> => {
+            const h = await this.provider.openSnapshot();
+            const b = await this.provider.fetchBaselineAggregates(h);
+            return { handle: h, baseline: b };
+          })(),
+          this.retry.timeoutMs,
+        );
+        // `DR-158` : forme validée AVANT publication (jamais un « ready » qui éclatera au loadMarket).
+        const invalid = validateAggregateResult(baseline);
+        if (invalid !== null) throw new Error(invalid);
         this.handle = handle;
         this.descriptor = handle.descriptor;
         this.cachedBaseline = baseline;
@@ -222,14 +249,41 @@ export class DataController {
     const query = serializeSelection(selection, { defaults: FILTER_DEFAULTS });
 
     // Sélection vide : agrégats de base (précalculés / cache), sans balayage (EX-NFR-9).
-    if (!hasUserFilters || this.handle === null) {
-      const baseline = this.cachedBaseline;
-      if (baseline === null) throw new Error('DataController.loadMarket: aucun snapshot ni cache disponible');
-      return this.screenDataFrom(baseline.rows, hasUserFilters && this.handle !== null, selection);
+    if (!hasUserFilters) {
+      const baseline = this.requireBaseline();
+      return this.screenDataFrom(baseline.rows, false, selection);
+    }
+
+    // `DR-103` (`EX-SCR-29`, `EX-NFR-23`) — mode dégradé AVEC filtres posés : le cache ne porte que
+    // la baseline. On ne sert JAMAIS cette baseline comme un agrégat filtré : les filtres sont
+    // déclarés non appliqués et l'écran l'annonce (`ET-FILTRE-NON-APPLIQUE`).
+    if (this.handle === null) {
+      const baseline = this.requireBaseline();
+      return this.screenDataFrom(baseline.rows, false, selection, {
+        unappliedFilterIds: Object.keys(selection),
+        unappliedReason: 'DEGRADED_CACHE',
+      });
     }
 
     const result = await this.provider.fetchAggregates(this.handle, query, 'MAKE');
+    const unsupported = result.unsupportedFilterIds ?? [];
+    // `D-03` — un seul filtre non appliqué suffit : l'effectif rendu est un PLANCHER, jamais
+    // l'effectif filtré. On publie la baseline en la disant explicitement non filtrée.
+    if (unsupported.length > 0) {
+      const baseline = this.requireBaseline();
+      return this.screenDataFrom(baseline.rows, false, selection, {
+        unappliedFilterIds: unsupported,
+        unappliedReason: 'PROVIDER_UNSUPPORTED',
+      });
+    }
     return this.screenDataFrom(result.rows as readonly MakeAggregate[], true, selection);
+  }
+
+  /** Agrégats de base disponibles, ou l'échec EXPLICITE d'`EX-NFR-23` (jamais un résultat vide). */
+  private requireBaseline(): AggregateResult<MakeAggregate> {
+    const baseline = this.cachedBaseline;
+    if (baseline === null) throw new Error('DataController.loadMarket: aucun snapshot ni cache disponible');
+    return baseline;
   }
 
   /** Agrégats de modèle d'une marque (chargement paresseux à l'expansion d'une carte, EX-SCR-132). */
@@ -264,7 +318,10 @@ export class DataController {
 
     const provider = this.mode2Provider();
     const tSelection = `make=${makeId};model=${modelId}`;
-    const batch = await provider.fetchListingColumns!(this.handle, tSelection);
+    const handle = this.handle;
+    const batch = await this.withRetry('DataController.enterMode2', () =>
+      provider.fetchListingColumns!(handle, tSelection),
+    );
 
     const engine = this.ensureEngine();
     if (this.loadedDatasetKey !== batch.localDatasetKey) {
@@ -319,6 +376,26 @@ export class DataController {
     this.loadedDatasetKey = null;
   }
 
+  /**
+   * `DR-157` (`EX-NFR-21`) — même politique que `start()` appliquée à un aller mode 2 : délai de
+   * 5 000 ms par tentative, réessais 1 s / 2 s / 4 s, puis échec EXPLICITE (jamais un écran figé sur
+   * « Chargement des distributions… »).
+   */
+  private async withRetry<T>(label: string, run: () => Promise<T>): Promise<T> {
+    let lastError: Error | null = null;
+    const attempts = this.retry.delaysMs.length + 1;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        return await withTimeout(run(), this.retry.timeoutMs);
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        const delay = this.retry.delaysMs[attempt];
+        if (delay !== undefined) await this.sleep(delay);
+      }
+    }
+    throw new Error(`${label}: ${lastError?.message ?? 'PROVIDER_ERROR'}`);
+  }
+
   private ensureEngine(): AggregationEngine {
     if (this.engine === null) this.engine = this.engineFactory();
     return this.engine;
@@ -335,9 +412,14 @@ export class DataController {
     makeAggregates: readonly MakeAggregate[],
     hasUserFilters: boolean,
     selection: SelectionState,
+    unapplied?: {
+      readonly unappliedFilterIds: readonly string[];
+      readonly unappliedReason: 'PROVIDER_UNSUPPORTED' | 'DEGRADED_CACHE';
+    },
   ): ScreenALoadedData {
     const descriptor = this.descriptor;
     return {
+      ...(unapplied ?? {}),
       makeAggregates,
       modelAggregatesByMake: new Map(),
       hasUserFilters,

@@ -144,15 +144,38 @@ describe('EX-NFR-22 / 23 — repli sur cache, jamais un vide', () => {
     expect(screen.makeAggregates.reduce((s, a) => s + a.listingCount, 0)).toBe(3000);
   });
 
-  it('avec cache mais filtres posés : loadMarket ne peut pas servir un agrégat filtré depuis le cache → il retombe sur la baseline en la disant « sans filtre »', async () => {
+  it('R-D8-27 (DR-103) — avec cache mais filtres posés : la baseline n’est JAMAIS servie comme filtrée ; les filtres sont NOMMÉS non appliqués (ET-FILTRE-NON-APPLIQUE)', async () => {
     const controller = newController(rejecting, { cache: await seededCache() });
     await controller.start();
     const screen = await controller.loadMarket({ priceTo: 5000 });
-    // Comportement observé : baseline complète renvoyée (3000) avec hasUserFilters = false alors que
-    // activeFilterCount = 1 — consigné dans le rapport (l'écran A annonce un état « sans filtre »).
+    // La baseline reste servie (EX-NFR-22 : dernier résultat connu, jamais un vide), mais l'écran
+    // reçoit de quoi dire « agrégats filtrés indisponibles » (EX-SCR-29) au lieu d'un état « sans
+    // filtre » silencieux sous un filtre actif.
     expect(screen.makeAggregates.reduce((s, a) => s + a.listingCount, 0)).toBe(3000);
     expect(screen.activeFilterCount).toBe(1);
     expect(screen.hasUserFilters).toBe(false);
+    expect(screen.unappliedFilterIds).toEqual(['priceTo']);
+    expect(screen.unappliedReason).toBe('DEGRADED_CACHE');
+  });
+
+  it('D-03 — un filtre déclaré `unsupportedFilterIds` par le provider n’est jamais publié comme appliqué : le plancher est refusé, les filtres sont nommés', async () => {
+    const declaring: DataProvider = {
+      ...mode1OnlyProvider(),
+      fetchAggregates: async (h, sel, level, scope) => {
+        const inner = await synthetic.fetchAggregates(h, sel, level, scope);
+        // Plancher honnête d'un provider qui n'a pas su appliquer `equipment` (DR-005, règle 2).
+        return { ...inner, rows: [], selectionCount: 0, unsupportedFilterIds: ['equipment'] };
+      },
+    };
+    const controller = newController(declaring);
+    await controller.start();
+    const screen = await controller.loadMarket({ equipment: ['1'], priceTo: 5000 });
+    expect(screen.hasUserFilters).toBe(false);
+    expect(screen.unappliedFilterIds).toEqual(['equipment']);
+    expect(screen.unappliedReason).toBe('PROVIDER_UNSUPPORTED');
+    // Jamais le plancher à 0 marque présenté comme un résultat filtré (EX-NFR-23).
+    expect(screen.makeAggregates.length).toBeGreaterThan(0);
+    expect(screen.activeFilterCount).toBe(2);
   });
 
   it('avec cache : enterMode2 échoue EXPLICITEMENT (jamais un vide) — le cache ne porte pas d’annonces', async () => {
@@ -168,15 +191,16 @@ describe('EX-NFR-22 / 23 — repli sur cache, jamais un vide', () => {
     await expect(controller.loadMarket({})).rejects.toThrow(/aucun snapshot ni cache/);
   });
 
-  it('données invalides (baseline sans tableau `rows`) : start() les accepte comme « ready », l’erreur n’éclate qu’au loadMarket (TypeError JS, pas un code E-PROV)', async () => {
+  it('R-D8-32 (DR-158) — données invalides (baseline sans tableau `rows`) : la FORME est validée à start(), qui échoue avec un code E-PROV affichable (jamais un « ready » qui éclate plus tard)', async () => {
     const invalid: DataProvider = {
       ...mode1OnlyProvider(),
-      fetchBaselineAggregates: () => Promise.resolve({ snapshotId: 'x', selection: 'FULL:EMPTY', selectionCount: 3000, rows: undefined } as unknown as AggregateResult<MakeAggregate>),
+      fetchBaselineAggregates: () => Promise.resolve({ snapshotId: 'x', selection: '', selectionCount: 3000, rows: undefined } as unknown as AggregateResult<MakeAggregate>),
     };
     const controller = newController(invalid);
     const result = await controller.start();
-    expect(result.status).toBe('ready'); // observé : aucune validation structurelle de la réponse provider
-    await expect(controller.loadMarket({})).rejects.toThrow(TypeError);
+    expect(result.status).toBe('failed');
+    expect(result.errorCode).toMatch(/^E-PROV-/);
+    await expect(controller.loadMarket({})).rejects.toThrow(/aucun snapshot ni cache/);
   });
 });
 

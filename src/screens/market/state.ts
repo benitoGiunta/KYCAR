@@ -55,6 +55,16 @@ export interface ScreenALoadedData {
    * dont le chargement a été TENTÉ, `failedMakeIds.size + makeAggregates.length` en général (sauf
    * chevauchement impossible par construction : un `makeId` en échec n'a pas d'agrégat). */
   readonly totalMakesAttempted: number;
+  /**
+   * `ET-FILTRE-NON-APPLIQUE` (`D-03`, `DR-103`) — identifiants des filtres POSÉS par l'utilisateur
+   * que la couche de données n'a PAS pu appliquer : soit le provider les a déclarés
+   * (`AggregateResult.unsupportedFilterIds`), soit l'application tourne sur le cache dégradé, qui ne
+   * porte que la baseline. Liste non vide ⇒ les chiffres affichés sont NON FILTRÉS et doivent être
+   * annoncés comme tels (`hasUserFilters` reste `false`) — jamais servis comme filtrés.
+   */
+  readonly unappliedFilterIds?: readonly string[];
+  /** Motif de `unappliedFilterIds` : refus du provider, ou repli sur le cache dégradé. */
+  readonly unappliedReason?: 'PROVIDER_UNSUPPORTED' | 'DEGRADED_CACHE';
 }
 
 export type LoadPhase =
