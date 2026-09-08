@@ -295,3 +295,26 @@
     min-height: 96px;
   }
 }
+
+/* Feuille de tri compacte - EX-SCR-135 (DR-072) : declencheur 44px, liste d'options native (<details>,
+   composant sans hook, cf. SummaryBar.tsx). */
+.kycar-sort-sheet-trigger {
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.kycar-sort-sheet-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.kycar-sort-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+}
