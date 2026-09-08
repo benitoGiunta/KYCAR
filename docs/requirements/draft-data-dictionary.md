@@ -118,7 +118,7 @@ rattachement au code le plus proche.
 | `KYCAR_REGION` | 11 (BE) | **CRÉÉ** — NUTS-2 2021 | table § A.8 |
 | `KYCAR_PRICE_STATUS` | 3 | **CRÉÉ** | § A.5.3 |
 | `KYCAR_MEASUREMENT_STANDARD` | 3 | **CRÉÉ** (`WLTP`, `NEDC`, `UNKNOWN`) | § A.5.5 |
-| `KYCAR_INGEST_FLAG` | 14 | **CRÉÉ** | § A.6 |
+| `KYCAR_INGEST_FLAG` | 17 | **CRÉÉ** | § A.6 [amendée 2.6 — D-01] |
 | `KYCAR_OUTLIER_FLAG` | 6 | **CRÉÉ** | § B.6 |
 | `KYCAR_PUBLICATION_STATE` | `[À CONFIRMER]` | `publication.accurateState` relevé, domaine non énuméré | — |
 
@@ -709,6 +709,13 @@ apparaît, comme nom de propriété, de colonne, de clé JSON ou de paramètre, 
 schéma de persistance ou un jeu de données du dépôt.
 **Justification** : c'est la traduction du critère de succès S5 générique des lots de dev en
 vérification exécutable, telle qu'exigée par R4.
+**Note (D-14)** : les paramètres de requête utilisateur `zip` (alias `location`), `lat` et `lon`
+sont **exclus du périmètre retenu** de `data/reference/filters-scope.json`, avec le motif
+`R3_DONNEE_PERSONNELLE` — même traitement que `cid` (E14). Ce sont des **paramètres d'entrée de
+recherche**, distincts des champs d'adresse ou de géolocalisation *stockés* dans une annonce (E8,
+E11) : R3 les exclut aussi de ce rôle. Aucun filtre géographique fin n'existe en 2.6 ; le pays et
+la région restent disponibles. Le test de balayage exigé par la présente exigence couvre les trois
+paramètres. [amendée 2.6 — D-14]
 
 ## A.8 Code postal → région : table de correspondance belge
 
@@ -1158,6 +1165,12 @@ code de clé croissant.
 sans fonction unique, chaque développeur choisit sa méthode de quantile par groupe et son
 traitement des classes inconnues, et les chiffres cessent d'être reproductibles — ce qu'`A-09`
 interdit.
+**Dette consignée (2.6, D-17)** : `GROUPSTAT`/`NTILE` ne sont **pas** implémentées dans le moteur
+du worker en 2.6 — cette exigence n'est **pas tenue au sens strict** (protocole worker), motif mis
+en dette plutôt qu'en correction : aucune valeur affichée n'est fausse, le calcul équivalent est
+fait sur le thread principal en 78,6 ms p50 pour un budget de 300 ms (`EX-SCR-189`), et le coût
+d'un module moteur complet plus l'extension du protocole worker dépasse le budget de la
+remédiation 2.6. Reportée en 2.7.
 
 **EX-DATA-83ter — `NTILE(V, k)`, tranches de rang.** Soit `V^↑ = x_1 ≤ … ≤ x_n` l'échantillon
 valide trié et `k ≥ 2`. La tranche `t ∈ [1, k]` contient les rangs `i` tels que
@@ -1440,12 +1453,15 @@ détermine directement la mémoire du rendu — **13 champs à ≈ 68 octets par
 clause « aucun autre champ n'est transmis à la vue » reste entière : tout besoin d'un quatorzième
 champ exige d'amender cette exigence.
 
-**EX-DATA-99 — éligibilité au tracé.** Une annonce est éligible si et seulement si
-`priceStatus = QUOTED` et si `firstRegistrationYear` et `mileageKm` sont tous deux valides au sens
-d'EX-DATA-60. Les annonces non éligibles sont comptées et **leur motif est ventilé** : `noPrice`,
-`noYear`, `noMileage`, `suspectValue` — une annonce cumulant plusieurs motifs est comptée dans le
-premier de cette liste qui s'applique, de sorte que la somme des quatre compteurs et du nombre
-d'éligibles vaut exactement `N`.
+**EX-DATA-99 — éligibilité au tracé.** Une annonce est éligible si et seulement si son **prix est
+valide** au sens d'EX-DATA-60 — c'est-à-dire `priceStatus = QUOTED`, **et** ni
+`PRICE_SENTINEL_ABSOLUTE`, **et** ni `PRICE_IMPLAUSIBLE_IN_CELL` pour la cellule du tracé en
+cours (cohérent avec EX-DATA-16(e), EX-DATA-19 et `ARB-15`) — et si `firstRegistrationYear` et
+`mileageKm` sont tous deux valides au sens d'EX-DATA-60. Les annonces non éligibles sont comptées
+et **leur motif est ventilé** : `noPrice`, `noYear`, `noMileage`, `suspectValue` (ce dernier motif
+couvre `PRICE_SENTINEL_ABSOLUTE` et `PRICE_IMPLAUSIBLE_IN_CELL`) — une annonce cumulant plusieurs
+motifs est comptée dans le premier de cette liste qui s'applique, de sorte que la somme des
+quatre compteurs et du nombre d'éligibles vaut exactement `N`. [amendée 2.6 — D-05]
 **Justification de la ventilation** : sans elle, une nuée qui perd 40 % de sa sélection ne dit pas
 pourquoi, et l'utilisateur conclut à un marché étroit au lieu d'un défaut de donnée.
 
@@ -1486,20 +1502,22 @@ axes ; l'ordre étant celui de l'identifiant, l'échantillon est reproductible s
 pseudo-aléatoire ni graine à transporter, ce qui rend la vue identique d'une session à l'autre et
 testable.
 
-**EX-DATA-100bis — `SAMPLE(V, k, seed)`.** Si `|V| ≤ k`, `SAMPLE` retourne `V` entier, dans l'ordre
-`listingId` croissant. Sinon : (1) `V` est ordonné par `listingId` **croissant**, en comparaison
-octet à octet sur la forme canonique minuscule (`EX-DATA-94`) ; (2) un générateur
-**`xoshiro128**`** est initialisé par la graine constante `seed = 0x4B594341` (« KYCA »), inscrite
-ici et nulle part ailleurs ; (3) un mélange de **Fisher-Yates descendant** est appliqué à l'ordre
-obtenu ; (4) les `k` premiers éléments sont retenus, puis **réordonnés par `listingId` croissant**
-avant transmission à la vue. La graine ne dépend **ni** de la sélection, **ni** du snapshot,
-**ni** de l'horloge. `SAMPLE` satisfait la clause de déterminisme d'`EX-DATA-82` : un test du lot
-D4 vérifie que deux permutations du même multiensemble produisent le même échantillon octet à
-octet.
+**EX-DATA-100bis — propriété : indépendance à l'ordre d'entrée.** L'échantillon tracé à l'écran
+est **identique, octet à octet**, quelle que soit la permutation en entrée du multiensemble
+éligible `Elig` : deux appels sur deux permutations de la même sélection produisent la même liste
+de `listingId` tracés, dans le même ordre. C'est une **propriété**, satisfaite par
+l'échantillonnage systématique et déterministe d'`EX-DATA-101`, qui trie `Elig` par `listingId`
+avant tout tirage et n'emploie **ni générateur pseudo-aléatoire ni graine** — `EX-DATA-101` est
+l'algorithme qui fait foi, `EX-DATA-100bis` n'en décrit pas un second. Aucune graine n'est
+exportée ni affichée nulle part (la mention d'échantillonnage d'`EX-DATA-103` cite `n_e`, `K`, le
+nombre de points et le mode, sans graine). `EX-DATA-100bis` satisfait la clause de déterminisme
+d'`EX-DATA-82` : un test du lot D4 vérifie que deux permutations du même multiensemble produisent
+le même échantillon octet à octet.
 **Justification** : « graine fixée » ne fixait ni l'algorithme, ni l'ordre sur lequel il opère ;
 sur une sélection de 40 000 annonces dont 12 outliers, deux implémentations conformes retenaient
 typiquement 4 et 8 de ces outliers — l'annonce cherchée était présente ou absente sans qu'aucune
-règle ne tranche.
+règle ne tranche. L'échantillonnage systématique sur `listingId` d'`EX-DATA-101` referme cette
+question sans recourir à un générateur ni à une graine à transporter. [amendée 2.6 — D-06]
 
 **EX-DATA-102 — couche de densité, toujours calculée.** Indépendamment du plafond de points, la vue
 publie une grille `G = binsAnnée × binsKilométrage`, où les bins d'année et de kilométrage sont
@@ -1551,7 +1569,7 @@ atteindre 200.
 | I4 | `∀m : Σ_{bins émis} count = n_m(Σ)` |
 | I5 | `priceQuotedCount + priceOnRequestCount + priceMissingCount = N` |
 | I6 | `outlierEvaluatedCount + outlierNotEvaluatedCount = priceQuotedCount` |
-| I7 | `Σ_{cellules de G} count = n_e`, et pour toute colonne d'année la somme des effectifs de cellules vaut l'effectif du bin d'année correspondant |
+| I7 | `Σ_{cellules de G} count = n_e`, et pour toute colonne d'année la somme des effectifs de cellules vaut l'effectif du bin d'année correspondant — **la marginale porte sur l'ensemble éligible `Elig` (`n_e`), pas sur `V_year(Σ)`** : la grille de densité `G` est binée sur `Elig`, et c'est cette marginale-là, non celle de l'histogramme `G3`, que l'invariant vérifie [amendée 2.6 — D-25] |
 | I8 | `BIN(permutation(V), …) = BIN(V, …)` octet à octet ; `min(V)` appartient au premier bin émis et `max(V)` au dernier |
 
 ---
@@ -1560,8 +1578,8 @@ atteindre 200.
 
 ## C.0 Inventaire des entités
 
-**EX-DATA-105.** Le modèle compte **treize entités**, dont quatre seulement sont persistées par
-snapshot.
+**EX-DATA-105.** Le modèle compte **quatorze entités**, dont quatre seulement sont persistées par
+snapshot. [amendée 2.6 — O16]
 
 | Entité | Rôle | Portée |
 |---|---|---|
@@ -1626,9 +1644,14 @@ d'application, qui a eu raison de ne pas l'ajouter de sa propre initiative.
 - `unknownCountByField` — pour chaque champ, le nombre d'annonces dont la valeur est absente ou
   inconnue. C'est ce qui rend la **couverture métrique** auditable plutôt que déclarative.
 **EX-DATA-107.** `sourceKind` est obligatoire et affiché dans l'interface dès qu'il vaut
-`SYNTHETIC`.
+`SYNTHETIC`. **Ce n'est pas un champ porté par `AggregateResult` ni par `ListingColumnBatch`**
+(interfaces gelées en 2.3, non amendées pour ce motif) : l'application l'obtient par la méthode
+`describe()` du `DataProvider` ouvert, mise en regard du `snapshotId` que chaque objet servi porte
+déjà — ce couple `describe()` + `snapshotId` suffit à identifier sans ambiguïté la provenance
+d'un résultat affiché, sans qu'aucune entité calculée n'ait à porter elle-même l'étiquette.
 **Justification** : le lot D3 produit un dataset synthétique avec outliers injectés, et un
 utilisateur ne doit jamais pouvoir confondre une distribution générée avec un marché réel.
+[amendée 2.6 — D-24]
 
 **EX-DATA-108 — `selectionHash`.** Toute entité calculée est clefée par `selectionHash` :
 les 16 premiers caractères hexadécimaux du SHA-256 de la sérialisation canonique de l'état de
@@ -1641,6 +1664,15 @@ globalement vide (aucun filtre `T` ni `R`) a donc pour hachage la chaîne réser
 **Justification** : la même règle de canonisation sert de clé de cache, de clé d'entité calculée et
 de base de l'URL partageable, donc deux états de filtres sémantiquement identiques ne peuvent pas
 produire deux caches ni deux liens différents.
+**Précision (D-23, T-m)** : « la même règle » désigne l'**algorithme** de canonisation (tri,
+jointure, omission des valeurs par défaut), pas un espace d'identifiants unique. Cette règle
+s'applique à **deux espaces d'identifiants distincts** : côté D2 (`selectionHash`, ce document),
+les filtres sont triés sur leur **identifiant KYCAR** ; côté D5 (URL applicative), ils sont triés
+sur le **paramètre AutoScout24** relevé. Les deux chaînes produites pour un même état de filtres
+diffèrent donc par construction dès que le nom KYCAR et le nom AutoScout24 diffèrent (`location`
+vs `zip`, `countryType` vs `cy`, …) — ce n'est pas une incohérence : chaque implémentation renvoie
+à l'autre par la table de correspondance identifiant KYCAR ↔ paramètre AutoScout24, et aucune des
+deux ne prétend produire la chaîne de l'autre. [amendée 2.6 — D-23]
 
 ## C.1 Stratégie de calcul — précalcul ou calcul à la volée
 
@@ -1704,7 +1736,7 @@ simultanément pendant le balayage de sélection, par la technique du « masque 
 un » ; il est **interdit** de relancer un balayage par filtre ou par valeur.
 Deux hachages dérivés sont définis et calculés dans ce même balayage :
 • `selectionHashWithoutTaxonomy` — la sélection privée de tous les prédicats de taxonomie
-(`make`, `mmmv`, `cat`, `mcat`, et la contrainte de route de l'écran B). C'est **la** sélection du
+(`mmmv`, `cat`, `mcat`, et la contrainte de route de l'écran B). C'est **la** sélection du
 compteur `<n> offres` d'`EX-SCR-46`, et de lui seul.
 • `selectionHashWithoutFilter(filterId)` — la sélection privée d'un filtre, base des `FacetCount`.
 **Budget** : `EX-DATA-110` est complété d'un poste `facettes et sélections dérivées : 90 ms`, et le
@@ -1814,6 +1846,10 @@ d'objets.
 **Justification** : un balayage de sélection lit 3 à 12 champs sur 82 ; en disposition
 ligne-par-ligne il traverserait l'intégralité des 82 champs de chaque annonce, soit un facteur 7 à
 27 de lecture mémoire inutile, ce qui rendrait le budget de 60 ms d'EX-DATA-110 inatteignable.
+**Amendement 2.6** : `makeId` passe d'`Int16Array` à `Int32Array` (`D-02`) et `ingestFlags`
+d'`Uint16Array` à `Uint32Array` (`D-01`), portant le total des colonnes numériques et énumérées de
+≈ 71 à **≈ 75**, soit +4 octets par ligne sur ≈ 251 (+1,6 %), sans effet sur le budget d'`EX-NFR-3`
+(≤ 6 Mo gzip). [amendée 2.6 — D-01, D-02]
 
 | Colonne | Type physique | Octets/ligne |
 |---|---|---:|
@@ -1822,12 +1858,13 @@ ligne-par-ligne il traverserait l'intégralité des 82 champs de chaque annonce,
 | `mileageKm` | `Int32Array`, sentinelle `−1` | 4 |
 | `firstRegistrationYearMonth` | `Int32Array` encodé `12·année + (mois−1)`, sentinelle `−1` | 4 |
 | `modelId` | `Int32Array`, `0` pour non résolu | 4 |
-| `makeId` | `Int16Array` | 2 |
+| `makeId` | `Int32Array` (élargi 2.6, `D-02`/DR-007 : 158 des 295 marques ont un identifiant AutoScout24 > 32 767) | 4 |
 | `powerKw`, `co2EmissionsGPerKm ×10`, `consumptionCombinedL100Km ×10`, `electricRangeKm` | 4 × `Int16Array`, sentinelle `−1` | 8 |
 | `modelYear` | `Int16Array`, sentinelle `−1` | 2 |
 | `fuelCategory`, `bodyType`, `transmission`, `drivetrain`, `offerType`, `usageState`, `sellerType`, `regionCode`, `countryCode`, `priceStatus`, `priceEvaluationCategory`, `adTier`, `bodyColor`, `upholsteryType`, `euEmissionStandard`, `doorCount`, `seatCount`, `previousOwnerCount`, `imageCount` | 19 × `Uint8Array`, sentinelle `255` | 19 |
-| drapeaux booléens et `ingestFlags` | 2 × `Uint16Array` de bits | 4 |
-| **Total colonnes numériques et énumérées** | | **≈ 71** |
+| drapeaux booléens (`booleanFlags`) | `Uint16Array` de bits | 2 |
+| `ingestFlags` | `Uint32Array` de bits (élargi 2.6, `D-01`/DR-013 : 17 codes, encodage positionnel, table explicite `INGEST_FLAG_BIT`, 15 bits de réserve — voir § A.1, § A.6) | 4 |
+| **Total colonnes numériques et énumérées** | | **≈ 75** |
 | `listingUrl`, `modelVersionRaw`, `modelVersionClean`, `fuelSourceLabelRaw`, `trimTokens` | zone de chaînes contiguë + `Uint32Array` d'offsets | ≈ 180 en moyenne |
 
 **EX-DATA-120.** Les colonnes numériques utilisent une **sentinelle typée** pour l'inconnu
@@ -1882,7 +1919,7 @@ arrondis sont ceux de l'écran (`EX-DATA-6`, `ARB-21`).
 | Champs au dictionnaire principal | **82** |
 | Champs exclus par conception | **21**, dont **14 au titre de R3** |
 | Vocabulaires nommés | **27** |
-| Entités | **13** |
+| Entités | **14** [amendée 2.6 — O16] |
 | Exigences `EX-DATA-*` | **139** (127 d'origine + 12 créées par l'arbitrage du stress-test) |
 | Méthodes de détection d'outlier | **2 détecteurs (M1, M2) + 1 contrôle externe (M3)** |
 | Invariants exécutables du moteur d'agrégation | **8** |
