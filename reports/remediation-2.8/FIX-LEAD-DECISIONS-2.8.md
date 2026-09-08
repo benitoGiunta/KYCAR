@@ -67,3 +67,11 @@ Coordinateur : porte G7, journal, handoff, push → 2.9b acceptance (Fable/max) 
 | D8-21 | `npm run lint` rouge avant l'étape 0 (scripts de preuve 2.7 sous `reports/`) | Ratifié : `reports/**` ignoré par ESLint (artefacts de preuve, pas du code livré). |
 | D8-22 | `R-D3-02` (temps mural d'`openSnapshot`, marge ~10 %) sensible à la charge machine | Conservée telle quelle ; fix-verify la rejoue **hors charge** (aucun autre agent actif). Si elle reste en défaut à vide, fix-providers relève la marge par une mesure médiane sur 5 exécutions (D-31 justifiée). |
 | D8-23 | Résidu DR-122 : `MakeAggregate` sans `displayRange`/`rank`/`makeName` | `rank` et `displayRange` sont dérivés au rendu (tri, A-05) ; `makeName` vient de la taxonomie par `makeId`. Aucun ajout d'interface ; annexe A précisée par fix-docs (« dérivés, non portés par l'entité »). |
+
+## D. Arbitrages après la vague F1
+
+| # | Sujet | Décision |
+|---|---|---|
+| D8-24 | Sous-points FV-18 laissés par fix-screens (squelettes ET-CHARGE-INIT, interactions de brossage des histogrammes, légendes discrètes + brossage désactivé sous 4 offres, atténuation ET-CHARGE-MAJ) | **Pas de dette** : ET-CHARGE-INIT et ET-CHARGE-MAJ (atténuation + barre) sont câblés par **fix-app** (signal `recalculating` du contrôleur → prop `DistributionScreen.recalculating`) ; brossage horizontal / `Ctrl`+clic / double-clic (`EX-SCR-149`) et légendes discrètes + brossage désactivé sous 4 offres (`EX-SCR-159`) sont livrés par un agent de finition **fix-screens-finition** (Sonnet/high, worktree, fichiers `Histogram.tsx`, `brush-model.ts`, `ScatterCloud.tsx` légendes, sondes D7), en parallèle de fix-app. |
+| D8-25 | Quatre sondes D7 rouges après la fusion engine + screens (`EX-SCR-144/191`, `EX-NFR-15`, `EX-SCR-176`, mode `modelId = 0`) : 13 figures au lieu de 14 | Cause : D8-06 « G15 masqué si un seul pays » s'applique désormais parce que le moteur fournit les données ; les fixtures des sondes n'ont qu'un pays. **Les sondes sont corrigées** (fixture à ≥ 2 pays pour les cas « 14 graphes » ; un cas dédié atteste le masquage à un pays), justification D8-06/D-31. Porteur : fix-screens-finition. |
+| D8-26 | Retrait des annotations `test.fail()` E2E pour les constats corrigés par fix-state (E2E-12, E2E-14, E2E-21) | Porteur : fix-app (seul propriétaire de `tests/e2e/` en F2), après avoir rejoué chaque test vert. |
