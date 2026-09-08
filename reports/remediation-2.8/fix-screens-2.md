@@ -382,7 +382,7 @@ $ npx tsc --noEmit -p tsconfig.review.json                    → 0 erreur (exit
 $ npx eslint src/screens tests/review/D6 tests/review/D7      → aucune sortie (exit 0)
 $ npx vitest run --no-file-parallelism src/screens            → 16 fichiers, 241 tests, 241 verts
 $ npx vitest run --config vitest.review.config.ts --no-file-parallelism tests/review/D6
-                                                              → 13 fichiers,  94 tests,  94 verts
+                                                              → 14 fichiers,  94 tests,  94 verts
 $ npx vitest run --config vitest.review.config.ts --no-file-parallelism tests/review/D7
                                                               →  9 fichiers, 128 tests, 128 verts
 $ npx vitest run --config vitest.review.config.ts --no-file-parallelism tests/review/D8 tests/review/patho
