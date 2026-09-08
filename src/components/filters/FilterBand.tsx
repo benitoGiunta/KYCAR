@@ -24,7 +24,7 @@ import {
   type UiState,
 } from '../../state/url-codec';
 import { ActiveFilterTokens } from './ActiveFilterTokens';
-import { defaultExpandedGroups } from './band-model';
+import { countActiveFilters, defaultExpandedGroups } from './band-model';
 import { FilterSearch } from './FilterSearch';
 import { PrimaryLine } from './PrimaryLine';
 import { ScreenG, type ScreenGReferenceData } from './ScreenG';
@@ -180,14 +180,11 @@ export function FilterBand(props: FilterBandProps) {
     forcePushSelection({});
   };
 
-  const activeCount = useMemo(() => {
-    let n = 0;
-    for (const id of Object.keys(selection)) {
-      const def = FILTER_BY_ID.get(id);
-      if (def !== undefined && def.cls !== 'D' && !def.nonExposed) n++;
-    }
-    return n;
-  }, [selection]);
+  // `DR-135` (`EX-SCR-91`) : le compteur du bandeau doit utiliser LA MÊME règle que le reste du
+  // lot (`countActiveFilters`, `band-model.ts`), qui exclut un filtre posé à sa `defaultValue`
+  // non-absence (ex. `powertype=kw`) — un calcul en ligne ne le faisait pas, donnant deux comptes
+  // divergents (bandeau replié vs ailleurs) pour la même sélection.
+  const activeCount = useMemo(() => countActiveFilters(selection), [selection]);
 
   const screenGSummary = mmmvSummary(selection, props.referenceData);
 
