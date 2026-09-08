@@ -18,7 +18,10 @@ import type { SchemaStatus } from '../../persistence/schema';
 export interface SavedSearchesScreenProps {
   readonly saved: readonly LoadedRecord<SavedSearch>[];
   readonly recent: readonly LoadedRecord<RecentEntry>[];
-  readonly onOpen: (url: string) => void;
+  /** `EX-CRUD-6` (DR-102) : l'hôte reçoit aussi l'`id` de l'entrée ouverte pour mettre à jour
+   * `dernier_accès_le` (`SavedSearchStore.touch`). Absent pour une entrée d'HISTORIQUE, qui n'a pas
+   * d'identité persistée. */
+  readonly onOpen: (url: string, id?: string) => void;
   readonly onRename: (id: string, nom: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onClearHistory: () => void;
@@ -50,7 +53,10 @@ function fmtDate(iso: string): string {
 
 function SavedRow(props: {
   readonly record: LoadedRecord<SavedSearch>;
-  readonly onOpen: (url: string) => void;
+  /** `EX-CRUD-6` (DR-102) : l'hôte reçoit aussi l'`id` de l'entrée ouverte pour mettre à jour
+   * `dernier_accès_le` (`SavedSearchStore.touch`). Absent pour une entrée d'HISTORIQUE, qui n'a pas
+   * d'identité persistée. */
+  readonly onOpen: (url: string, id?: string) => void;
   readonly onRename: (id: string, nom: string) => void;
   readonly onDelete: (id: string) => void;
   /** `EX-SCR-212`/`213` (DR-089). `undefined` = pas encore résolu, `null` = indisponible. */
@@ -90,7 +96,7 @@ function SavedRow(props: {
             type="button"
             class="kycar-saved-open"
             disabled={!openable}
-            onClick={() => props.onOpen(value.url)}
+            onClick={() => props.onOpen(value.url, value.id)}
           >
             {value.nom}
           </button>

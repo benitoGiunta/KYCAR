@@ -16,12 +16,15 @@
  *     EX-SCR-158) — PAS `from,to` (ancien format, incompatible avec D5, DR-065).
  *   - `sely`   : bornes du brossage sur l'axe Y, même format `lo-hi`.
  *
- * `page`/`sel` (D-12, écran D) : la déclaration d'état d'interface et le codec définitifs sont
- * livrés par fix-state (DR-066/067, `src/state/`, hors périmètre fix-screens). En attendant leur
- * fusion, ce module expose des fonctions LOCALES MINIMALES (`// TODO fix-state contract`) que
- * l'écran D consomme dès maintenant — le coordinateur les remplacera par le codec définitif à la
- * fusion (voir le rapport de lot, § « Contrat d'URL consommé »).
+ * `page`/`sel` (D-12, écran D) : DÉCLARÉS par fix-state dans `UI_STATE_PARAMS` (`src/state/url-codec.ts`,
+ * DR-066/067) et LUS par `loadQuery` (`src/state/corrections.ts`). Ce module ne redéclare plus rien :
+ * il traduit seulement la valeur brute du codec D5 en état d'écran (et retour), comme pour `g4v` et
+ * `selx`/`sely`. `historyModeFor` rend le mode d'historique du contrat D5 (`replace` pour `g4v`,
+ * `page`, `size`, `sel` ; `push` pour un brossage) — la coquille n'invente aucune politique.
  */
+
+import { loadQuery } from '../../state/corrections';
+import { UI_STATE_PARAMS, type HistoryMode } from '../../state/url-codec';
 
 /** Variante commutable du nuage G4 (EX-SCR-151). */
 export type G4Variant = 'stack' | 'scatter';
@@ -45,6 +48,10 @@ export interface DistributionUiState {
   readonly brushX: BrushRange | null;
   /** Bornes du brossage Y, ou `null`. */
   readonly brushY: BrushRange | null;
+  /** `page` (D-12, DR-066) — pagination 1-based de l'écran D. Défaut `1`, jamais émis (EX-NAV-8). */
+  readonly page?: number;
+  /** `sel` (D-12, DR-067, EX-SCR-202) — restriction d'AFFICHAGE de l'écran D (bornes de prix). */
+  readonly sel?: BrushRange | null;
 }
 
 /** Défaut vide (aucun paramètre D7 dans l'URL). */
@@ -74,6 +81,13 @@ function parseRange(raw: string | null | undefined): BrushRange | null {
   const to = Number(m[2]);
   if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
   return from <= to ? { from, to } : { from: to, to: from };
+}
+
+/** `page` (D-12) : entier 1-based ; toute autre forme retombe sur la page 1 (jamais une erreur). */
+function parsePage(raw: string | null | undefined): number {
+  if (raw == null) return 1;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 ? n : 1;
 }
 
 /** `g4v` (D-11) : vocabulaire d'URL `a`/`b` ↔ représentation interne `stack`/`scatter`. */
@@ -116,7 +130,31 @@ export function readDistributionUiState(params: {
     logHistograms,
     brushX: parseRange(params.get('selx')),
     brushY: parseRange(params.get('sely')),
+    page: parsePage(params.get('page')),
+    sel: parseRange(params.get('sel')),
   };
+}
+
+/**
+ * Lecture depuis la REQUÊTE BRUTE en passant par le codec canonique de D5 (`loadQuery`, table de
+ * corrections `EX-NAV-21`) : c'est le chemin que la coquille emprunte (`EX-NAV-18` — le rendu est
+ * une fonction pure de l'URL). Les corrections éventuelles restent disponibles pour l'appelant.
+ */
+export function readDistributionUiStateFromQuery(search: string): DistributionUiState {
+  const ui = loadQuery(search).uiState;
+  const get = (key: string): string | null => {
+    const raw = ui[key];
+    if (raw === undefined) return null;
+    return Array.isArray(raw) ? (raw[0] ?? null) : (raw as string);
+  };
+  return readDistributionUiState({
+    get,
+    forEach: (cb) => {
+      for (const [key, value] of Object.entries(ui)) {
+        cb(Array.isArray(value) ? (value[0] ?? '') : (value as string), key);
+      }
+    },
+  });
 }
 
 /**
@@ -132,6 +170,9 @@ export function writeDistributionUiState(state: DistributionUiState): readonly (
   }
   if (state.brushX) out.push(['selx', `${state.brushX.from}-${state.brushX.to}`]);
   if (state.brushY) out.push(['sely', `${state.brushY.from}-${state.brushY.to}`]);
+  // `page` (D-12) : défaut 1 JAMAIS émis (EX-NAV-8). `sel` : absent = rien.
+  if (state.page !== undefined && state.page > 1) out.push(['page', String(state.page)]);
+  if (state.sel) out.push(['sel', `${state.sel.from}-${state.sel.to}`]);
   return out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 }
 
@@ -144,39 +185,39 @@ export function toggleLogHistogram(state: DistributionUiState, n: number): Distr
 }
 
 /* ================================================================================================
- * Écran D — `page` et `sel` (D-12, DR-066/067)
- * ================================================================================================
- * // TODO fix-state contract — ces deux paramètres sont déclarés ICI en fonctions locales MINIMALES
- * // le temps que fix-state (i) sorte `page` du registre de filtres classe `T` pour en faire un
- * // paramètre d'état d'interface (DR-066), et (ii) déclare `sel` de même (DR-067). Le coordinateur
- * // remplacera cette lecture locale par le codec définitif de `src/state` à la fusion — voir le
- * // rapport de lot, § « Contrat d'URL consommé ».
+ * Écran D — `page` et `sel` (D-12, DR-066/067) : contrat D5 CONSOMMÉ, plus aucune déclaration locale
  * ============================================================================================== */
 
-/** Lit `page` depuis un jeu de paires clé→valeur (1-based, EX-NAV-10bis). Repli sur `1` si absent,
- * non entier ou `< 1` — jamais une page négative ou fractionnaire. */
+/** Les deux paramètres sont déclarés par fix-state dans `UI_STATE_PARAMS` — vérifié à l'exécution
+ * plutôt que dupliqué : si le contrat D5 changeait, la lecture ci-dessus cesserait d'être fondée. */
+const UI_PARAM_HISTORY_MODE: ReadonlyMap<string, HistoryMode> = new Map(
+  UI_STATE_PARAMS.map((p) => [p.param, p.historyMode] as const),
+);
+
+/**
+ * Mode d'historique d'un changement d'état d'interface (`EX-NAV-12`/`13`, contrat D5) : `push` dès
+ * qu'un paramètre déclaré `push` change (un brossage est une action d'historique à part entière),
+ * `replace` sinon (`g4v`, `page`, `size`, `sel`, `g<n>log`).
+ */
+export function historyModeFor(prev: DistributionUiState, next: DistributionUiState): HistoryMode {
+  const before = new Map(writeDistributionUiState(prev).map(([k, v]) => [k, v] as const));
+  const after = new Map(writeDistributionUiState(next).map(([k, v]) => [k, v] as const));
+  const changed = new Set<string>();
+  for (const [k, v] of after) if (before.get(k) !== v) changed.add(k);
+  for (const [k] of before) if (!after.has(k)) changed.add(k);
+  for (const param of changed) {
+    if (UI_PARAM_HISTORY_MODE.get(param) === 'push') return 'push';
+  }
+  return 'replace';
+}
+
+/** Page 1-based de l'écran D lue depuis l'état d'interface (contrat D5, `D-12`). */
 export function readListingsPage(params: { get(key: string): string | null }): number {
-  const raw = params.get('page');
-  if (raw === null) return 1;
-  const n = Number(raw);
-  return Number.isInteger(n) && n >= 1 ? n : 1;
+  return parsePage(params.get('page'));
 }
 
-/** Sérialise `page` : DÉFAUT (1) JAMAIS ÉMIS (EX-NAV-8). */
-export function writeListingsPage(page: number): readonly (readonly [string, string])[] {
-  return page > 1 ? [['page', String(page)]] : [];
-}
-
-/** Restriction d'affichage de l'écran D (`EX-SCR-202`) : bornes `<lo>-<hi>` sur le PRIX — seul axe
- * commun aux deux projections du nuage (G4a : X = prix ; G4b : Y = prix), donc l'axe le plus robuste
- * pour un lien « Voir ces annonces » indépendant de la variante active au moment du brossage. Cette
- * hypothèse est celle que `DistributionScreen::onViewBrushedListings` (DR-079) encode déjà ; elle
- * n'est PAS un filtre (Σ inchangée), seulement une restriction d'AFFICHAGE des lignes de l'écran D. */
+/** Restriction d'affichage `sel` (`EX-SCR-202`, bornes de PRIX — axe commun aux deux projections du
+ * nuage). Ce n'est PAS un filtre : Σ ne change jamais, seules les LIGNES MONTRÉES sont restreintes. */
 export function readListingsSel(params: { get(key: string): string | null }): BrushRange | null {
   return parseRange(params.get('sel'));
-}
-
-/** Sérialise `sel`. Absent : rien n'est émis (EX-NAV-8). */
-export function writeListingsSel(sel: BrushRange | null): readonly (readonly [string, string])[] {
-  return sel ? [['sel', `${sel.from}-${sel.to}`]] : [];
 }

@@ -21,18 +21,18 @@ describe('resolveView (routage de la coquille D8)', () => {
     expect(resolveView('/')).toEqual({ kind: 'market' });
     expect(resolveView('/comparer')).toEqual({ kind: 'compare' });
     expect(resolveView('/recherches')).toEqual({ kind: 'savedSearches' });
-    expect(resolveView('/marche/16-opel/1174-corsa')).toEqual({
+    expect(resolveView('/marche/54-opel/1918-corsa')).toEqual({
       kind: 'modelDistribution',
-      makeId: 16,
+      makeId: 54,
       makeSlug: 'opel',
-      modelId: 1174,
+      modelId: 1918,
       modelSlug: 'corsa',
     });
-    expect(resolveView('/marche/16-opel/1174-corsa/annonces')).toEqual({
+    expect(resolveView('/marche/54-opel/1918-corsa/annonces')).toEqual({
       kind: 'modelListings',
-      makeId: 16,
+      makeId: 54,
       makeSlug: 'opel',
-      modelId: 1174,
+      modelId: 1918,
       modelSlug: 'corsa',
     });
   });

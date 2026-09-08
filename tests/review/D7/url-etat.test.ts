@@ -80,12 +80,18 @@ describe('D7 · paramètres d’état d’interface (EX-NAV-10bis)', () => {
 });
 
 describe('D7 ↔ D5 · cohérence du contrat d’URL', () => {
-  it('R-D7-18 — `g4v` : D7 écrit `stack`/`scatter`, la table de corrections de D5 n’admet que `a`/`b`', () => {
+  it('R-D7-18 — `g4v` : D7 et D5 partagent désormais le MÊME vocabulaire d’URL `a`/`b` (D-11)', () => {
+    // D-31 : les trois littéraux `stack` de cette sonde sont remplacés par le vocabulaire canonique
+    // `a`. Justification : `D-11` (FIX-LEAD-DECISIONS.md) tranche que « le codec D5 est l'autorité
+    // sur l'URL » et fixe `g4v ∈ {a, b}` ; `G4V_VALUES` (src/state/corrections.ts) n'admet que ces
+    // deux codes. La sonde exigeait l'inverse (que D5 accepte `stack`), ce qui contredit l'arbitrage
+    // qu'elle est censée vérifier. La PROPRIÉTÉ testée — un `g4v` écrit par D7 traverse `loadQuery`
+    // sans correction et sans perte — est inchangée ; seul le vocabulaire est corrigé.
     const written = writeDistributionUiState({ ...EMPTY_UI_STATE, g4Variant: 'stack' });
-    expect(written).toEqual([['g4v', 'stack']]);
-    const loaded = loadQuery('g4v=stack');
+    expect(written).toEqual([['g4v', 'a']]);
+    const loaded = loadQuery('g4v=a');
     expect(loaded.corrections).toHaveLength(0); // aucune correction ne devrait être levée
-    expect(loaded.uiState['g4v']).toBe('stack'); // et la valeur devrait survivre au chargement
+    expect(loaded.uiState['g4v']).toBe('a'); // et la valeur devrait survivre au chargement
   });
 
   it('R-D7-19 — `selx` : D7 sérialise `from,to` alors que D5 véhicule `lo-hi` ; le brossage ne survit pas au rechargement', () => {
@@ -102,9 +108,16 @@ describe('D7 ↔ D5 · cohérence du contrat d’URL', () => {
     // Un numéro de page ne détermine pas le JEU DE DONNÉES local (§5.1) : le classer `T` invalide le
     // cache `localDatasetKey` et provoque un `fetchListingColumns` par page.
     expect(pageFilter!.cls).not.toBe('T');
-    // Et l'écran D ne publie aucun paramètre de page : l'état n'est pas représentable dans l'URL.
-    const keys = writeDistributionUiState({ ...EMPTY_UI_STATE }).map(([k]) => k);
+    // D-31 : l'état écrit passe de `{...EMPTY_UI_STATE}` à `{...EMPTY_UI_STATE, page: 3}`.
+    // Justification : `EX-NAV-8` (« un défaut n'est JAMAIS émis ») et le premier test de CE fichier
+    // (`writeDistributionUiState(EMPTY_UI_STATE)` doit valoir `[]`) rendent la formulation d'origine
+    // insatisfaisable — publier `page` sur l'état VIDE émettrait le défaut `page=1`. La propriété
+    // testée — l'écran D publie sa pagination dans l'URL (D-12/DR-066), l'état est représentable —
+    // est inchangée : elle est vérifiée sur une page non triviale.
+    const keys = writeDistributionUiState({ ...EMPTY_UI_STATE, page: 3 }).map(([k]) => k);
     expect(keys).toContain('page');
+    // Le paramètre publié est bien celui déclaré par le contrat D5 (`UI_STATE_PARAMS`).
+    expect(UI_STATE_PARAMS.map((p) => p.param)).toContain('page');
   });
 
   it('R-D7-26 — EX-SCR-202 : le paramètre `sel` (restriction d’affichage de l’écran D) n’est lu par aucun module', () => {

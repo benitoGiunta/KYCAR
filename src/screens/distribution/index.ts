@@ -30,7 +30,11 @@ export { buildHistogram, histogramTable } from './histogram-model';
 export type { HistogramModel } from './histogram-model';
 export {
   readDistributionUiState,
+  readDistributionUiStateFromQuery,
   writeDistributionUiState,
+  historyModeFor,
+  readListingsPage,
+  readListingsSel,
   effectiveG4Variant,
   toggleLogHistogram,
   EMPTY_UI_STATE,

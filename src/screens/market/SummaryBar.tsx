@@ -40,7 +40,7 @@ const SORT_FIELDS: readonly MakeSortField[] = ['offres', 'median', 'alpha', 'mod
 export function SummaryBar(props: SummaryBarProps): JSX.Element {
   const compact = props.regime === 'compact';
   return (
-    <div class="kycar-market-summary-bar">
+    <div class="kycar-market-summary-bar summary-bar">
       <div class="kycar-market-summary-counts">
         {props.makeCount === 0 ? (
           '0 marque · 0 modèle · aucune offre'

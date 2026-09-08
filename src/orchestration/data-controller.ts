@@ -24,6 +24,7 @@ import {
   type DataProvider,
   type MakeAggregate,
   type ModelAggregate,
+  type ProviderCapabilities,
   type SnapshotDescriptor,
   type SnapshotHandle,
 } from '../providers/DataProvider';
@@ -167,6 +168,12 @@ export class DataController {
 
   get snapshotDescriptor(): SnapshotDescriptor | null {
     return this.descriptor;
+  }
+
+  /** `EX-DATA-107` (`D-24`/`D-43`, DR-094/DR-152) — capacités DÉCLARÉES du provider mode 1 : c'est
+   * la source de vérité de la provenance affichée (jamais un littéral figé dans un écran). */
+  get capabilities(): ProviderCapabilities {
+    return this.provider.describe();
   }
 
   /**
@@ -367,6 +374,33 @@ export class DataController {
       selectionHash,
       unappliedFilterIds: unsupported,
     };
+  }
+
+  /**
+   * `EX-SCR-212`/`213` (DR-089) — effectif ACTUEL d'une sélection enregistrée, sur le snapshot
+   * courant. `null` quand il ne peut pas être établi (aucun snapshot, provider en échec) : l'écran
+   * affiche « effectif actuel indisponible », jamais un zéro inventé.
+   */
+  async countForSelection(selection: SelectionState): Promise<number | null> {
+    if (this.handle === null) return null;
+    try {
+      return await this.provider.fetchSelectionCount(
+        this.handle,
+        serializeSelection(selection, { defaults: FILTER_DEFAULTS }),
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  /** `EX-SCR-214bis` (DR-090) — même mécanisme, par couple marque/modèle suivi. */
+  async countForModel(makeId: number, modelId: number): Promise<number | null> {
+    if (this.handle === null) return null;
+    try {
+      return await this.provider.fetchSelectionCount(this.handle, `make=${makeId};model=${modelId}`);
+    } catch {
+      return null;
+    }
   }
 
   /** Libère le moteur (démontage, changement de snapshot). */

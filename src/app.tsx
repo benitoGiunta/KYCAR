@@ -17,6 +17,7 @@ import type { ModelAggregate } from './providers/DataProvider';
 import type { SelectionState } from './state/filter-types';
 import { assembleUrl, serializeQuery } from './state/url-codec';
 import { loadQuery } from './state/corrections';
+import { serializeSelection } from './types/selection';
 import { FILTER_DEFAULTS } from './state/filter-registry';
 import { buildPath, carryFiltersAcrossMode, resolveTaxonomyRoute, type TaxonomyRouteResult } from './state/router';
 import { FilterBand } from './components/filters/FilterBand';
@@ -25,13 +26,15 @@ import {
   type LoadPhase,
   type ScreenALoadedData,
 } from './screens/market/state';
-import { MarketScreen, type PrimerShortcutId } from './screens/market/MarketScreen';
+import { MarketScreen, type MarketRegime, type PrimerShortcutId } from './screens/market/MarketScreen';
+import type { AggregateCsvMeta } from './screens/market/csv';
 import { GRID_LOAD_BATCH_SIZE } from './screens/market/thresholds';
 import type { MakeSortField, SortDirection } from './screens/market/sort';
 import {
   DistributionScreen,
   EMPTY_UI_STATE,
-  readDistributionUiState,
+  historyModeFor,
+  readDistributionUiStateFromQuery,
   writeDistributionUiState,
   type DistributionUiState,
 } from './screens/distribution/index';
@@ -49,6 +52,9 @@ import {
 import { SavedSearchesScreen } from './screens/saved/index';
 import { FollowedScreen } from './screens/followed/index';
 import { MentionsPage } from './screens/mentions/index';
+import type { SelectionInput } from './types/index';
+import type { VocabularyName } from './types/vocabularies';
+import { MEDIA_QUERY_MOBILE, MEDIA_QUERY_TABLET } from './styles/breakpoints';
 import { resolveView, routeOfView, currentLocation, type AppView } from './app/navigation';
 import { CapExceededError } from './persistence/index';
 import type {
@@ -79,6 +85,30 @@ const PRIMER_SELECTIONS: Readonly<Record<PrimerShortcutId, SelectionState>> = {
   'mileage-100000': { mileageTo: 100000 },
   'registration-2020': { dateOfRegistrationFrom: 2020 },
 };
+
+/**
+ * `EX-DATA-107` (`DR-094`, `D-24`) — le câblage par défaut sert des données SYNTHÉTIQUES : la
+ * coquille le dit sur TOUS les écrans de marché (A/B/D), depuis `describe()`/`StartResult`, pas
+ * seulement dans `/mentions` et l'en-tête CSV.
+ */
+const SYNTHETIC_NOTICE =
+  'Données synthétiques de démonstration — chiffres générés, sans valeur de marché réelle.';
+
+/** `EX-NFR-14` (DR-101) — titre de document par vue (annoncé au changement de route). */
+const VIEW_TITLES: Readonly<Record<AppView['kind'], string>> = {
+  market: 'Survol du marché',
+  modelDistribution: 'Distribution d’un modèle',
+  modelListings: 'Annonces du modèle',
+  compare: 'Comparer des modèles',
+  savedSearches: 'Recherches enregistrées',
+  followed: 'Modèles suivis',
+  mentions: 'Mentions légales',
+  notFound: 'Page introuvable',
+};
+
+/** `EX-SCR-43` — âges du jeton de snapshot (vert < 7 j, ambre < 30 j, rouge au-delà). */
+const SNAPSHOT_FRESH_DAYS = 7;
+const SNAPSHOT_STALE_DAYS = 30;
 
 interface Mode2State {
   readonly key: string;
@@ -148,6 +178,28 @@ export function App(props: AppProps): JSX.Element {
     }
   }, [view, taxonomyRoute, location.pathname, location.search, navigate]);
 
+  /**
+   * `EX-SCR-20`/`135` et `EX-NFR-19` (`DR-071`, `DR-072`, `DR-081`) — la coquille est le SEUL
+   * propriétaire du viewport : elle détecte le régime responsive par `matchMedia`, le passe
+   * explicitement aux écrans, et le met à jour à chaud (aucun remontage nécessaire).
+   */
+  const [regime, setRegime] = useState<MarketRegime>(() => detectRegime());
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const queries = [window.matchMedia(MEDIA_QUERY_MOBILE), window.matchMedia(MEDIA_QUERY_TABLET)];
+    const onChange = (): void => setRegime(detectRegime());
+    for (const q of queries) q.addEventListener('change', onChange);
+    return () => {
+      for (const q of queries) q.removeEventListener('change', onChange);
+    };
+  }, []);
+
+  // ---- État d'interface de l'écran B/D lu par le codec canonique de D5 (D-11/D-12) --------------
+  const ui = useMemo<DistributionUiState>(
+    () => readDistributionUiStateFromQuery(location.search),
+    [location.search],
+  );
+
   // ---- Démarrage du contrôleur (acquisition du snapshot, EX-NFR-21/22) --------------------------
   const [start, setStart] = useState<StartResult | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
@@ -194,12 +246,15 @@ export function App(props: AppProps): JSX.Element {
   }, [start, view.kind, currentQuery, reloadMarket, selection]);
 
   // ---- Historique récent (EX-CRUD-11) : marché et route canonique d'écran B ---------------------
+  // `DR-159` : une entrée n'est ajoutée que si le JEU DE FILTRES change — un changement d'état
+  // d'interface (`selx`, `sely`, `g4v`, `page`, échelles log) n'est pas « une recherche différente ».
+  const filterSignature = `${location.pathname}?${serializeSelection(selection, { defaults: FILTER_DEFAULTS })}`;
   useEffect(() => {
     if (view.kind === 'market' || view.kind === 'modelDistribution') {
       stores.recent.visit(location.pathname + location.search);
       bumpCrud();
     }
-  }, [location.pathname, location.search, view.kind]);
+  }, [filterSignature, view.kind]);
 
   // ---- Mode 2 : entrée dans l'écran B/D (O17, élagage avant M1/M2) -------------------------------
   const [mode2, setMode2] = useState<Mode2State | null>(null);
@@ -240,17 +295,23 @@ export function App(props: AppProps): JSX.Element {
   }, [view.kind, location.search]);
 
   const [compareRows, setCompareRows] = useState<readonly CompareModelRow[]>([]);
+  const [compareLoading, setCompareLoading] = useState(false);
   useEffect(() => {
     if (view.kind !== 'compare' || start === null) {
       return;
     }
     let live = true;
+    setCompareLoading(compareKeys.length > 0);
     void (async () => {
       const rows: CompareModelRow[] = [];
       for (const key of compareKeys) {
         const models = await controller.loadModelsForMake({}, key.makeId).catch(() => [] as readonly ModelAggregate[]);
         const agg = models.find((m) => m.modelId === key.modelId);
         if (agg !== undefined) {
+          // `EX-SCR-196` (DR-088) : les barres G1/G3 par colonne viennent du VRAI recalcul mode 2 du
+          // modèle (`enterMode2`), jamais d'un graphe fabriqué. Un échec laisse la colonne sans
+          // buckets (cadre « Données indisponibles »), sans faire tomber les autres colonnes.
+          const payload = await controller.enterMode2(key.makeId, key.modelId).catch(() => null);
           rows.push({
             makeId: key.makeId,
             modelId: key.modelId,
@@ -259,15 +320,56 @@ export function App(props: AppProps): JSX.Element {
             price: agg.price,
             year: agg.year,
             mileage: agg.mileage,
+            status: payload === null ? 'error' : 'ready',
+            ...(payload === null
+              ? {}
+              : {
+                  priceBuckets: payload.recalc.priceHistogram.map(toCompareBucket),
+                  yearBuckets: payload.recalc.yearHistogram.map(toCompareBucket),
+                }),
           });
+          if (live) setCompareRows([...rows]);
         }
       }
-      if (live) setCompareRows(rows);
+      if (live) {
+        setCompareRows(rows);
+        setCompareLoading(false);
+      }
     })();
     return () => {
       live = false;
     };
   }, [view.kind, compareKeys, start, controller, referenceData]);
+
+  /**
+   * `EX-SCR-212`/`213` (DR-089) et `EX-SCR-214bis` (DR-090) — effectifs ACTUELS des écrans E et F,
+   * recalculés sur la requête canonique de chaque entrée (jamais l'effectif figé à l'enregistrement).
+   * `null` = indisponible (provider en échec) ; absent de la carte = pas encore résolu.
+   */
+  const [currentCounts, setCurrentCounts] = useState<ReadonlyMap<string, number | null>>(new Map());
+  useEffect(() => {
+    if (start === null) return;
+    if (view.kind !== 'savedSearches' && view.kind !== 'followed') return;
+    let live = true;
+    void (async () => {
+      const next = new Map<string, number | null>();
+      if (view.kind === 'savedSearches') {
+        for (const record of stores.saved.list()) {
+          const query = record.value.url.split('?')[1] ?? '';
+          next.set(record.value.id, await controller.countForSelection(loadQuery(query).selection));
+        }
+      } else {
+        for (const record of stores.followed.list()) {
+          const { makeId, modelId } = record.value;
+          next.set(`${makeId}:${modelId}`, await controller.countForModel(makeId, modelId));
+        }
+      }
+      if (live) setCurrentCounts(next);
+    })();
+    return () => {
+      live = false;
+    };
+  }, [view.kind, start, controller, stores, crudTick]);
 
   // ---- Handlers d'écran A -----------------------------------------------------------------------
   const prefs = stores.preferences.read();
@@ -397,13 +499,196 @@ export function App(props: AppProps): JSX.Element {
     [],
   );
 
+  /**
+   * `EX-NFR-29` (DR-077) — résolveurs de libellés FR partagés par les écrans B et D et par les
+   * exports CSV : l'index d'octet stocké en colonne EST le rang de la valeur dans son vocabulaire
+   * (`KYCAR_SELLER_TYPE[0] = « Particulier »`), donc la part de particuliers de l'en-tête d'écran B
+   * se lit réellement au lieu de rester indisponible. Un code hors domaine rend le code brut.
+   */
+  const labelOf = useCallback(
+    (vocabulary: VocabularyName) =>
+      (code: number): string =>
+        referenceData.vocabularies.get(vocabulary)?.values[code]?.label ?? String(code),
+    [referenceData],
+  );
+  const distributionLabels = useMemo(
+    () => ({
+      fuel: labelOf('KYCAR_FUEL_CATEGORY'),
+      sellerType: labelOf('KYCAR_SELLER_TYPE'),
+      evaluation: labelOf('KYCAR_PRICE_EVALUATION'),
+      country: labelOf('KYCAR_MARKETPLACE'),
+    }),
+    [labelOf],
+  );
+  const listingsLabels = useMemo(
+    () => ({
+      fuel: labelOf('KYCAR_FUEL_CATEGORY'),
+      sellerType: labelOf('KYCAR_SELLER_TYPE'),
+      country: labelOf('KYCAR_MARKETPLACE'),
+      region: labelOf('KYCAR_REGION'),
+      usageState: labelOf('KYCAR_USAGE_STATE'),
+      evaluation: labelOf('KYCAR_PRICE_EVALUATION'),
+    }),
+    [labelOf],
+  );
+
+  /**
+   * `ARB-09`/`EX-SCR-149` (DR-009) et `EX-SCR-184` (DR-079) — pose un correctif de filtres RÉELS sur
+   * la sélection courante : le patch est FUSIONNÉ dans la sélection du bandeau, l'URL est réécrite
+   * (entrée d'historique : c'est une action utilisateur) et le recalcul suit (mode 1 par l'effet de
+   * marché, mode 2 par la clé d'entrée qui dépend de la requête).
+   */
+  const applyFilters = useCallback(
+    (patch: SelectionInput, extraUi: Readonly<Record<string, string>> = {}): void => {
+      const next: SelectionState = { ...selection };
+      for (const [id, value] of Object.entries(patch)) {
+        if (value === undefined || value === null || (Array.isArray(value) && value.length === 0)) {
+          delete (next as Record<string, unknown>)[id];
+        } else {
+          (next as Record<string, unknown>)[id] = value;
+        }
+      }
+      const q = serializeQuery(next, extraUi, { filterDefaults: FILTER_DEFAULTS });
+      navigate(assembleUrl(location.pathname, q).url, 'push');
+    },
+    [selection, navigate, location.pathname],
+  );
+
+  /** Chemin de l'écran D d'un couple (route canonique, `EX-SCR-140`). */
+  const listingsPath = useCallback(
+    (makeId: number, modelId: number): string =>
+      buildPath({
+        name: 'modelListings',
+        makeId,
+        makeSlug: referenceData.makeById.get(makeId)?.slug ?? String(makeId),
+        modelId,
+        modelSlug: referenceData.modelByKey.get(`${makeId}:${modelId}`)?.slug ?? String(modelId),
+      }),
+    [referenceData],
+  );
+
+  /** Écrit l'état d'interface D7/D-12 dans l'URL, au mode d'historique du contrat D5 (`historyModeFor`). */
+  const applyUiState = useCallback(
+    (next: DistributionUiState, path: string = location.pathname): void => {
+      const uiObj: Record<string, string> = Object.fromEntries(writeDistributionUiState(next));
+      const q = serializeQuery(selection, uiObj, { filterDefaults: FILTER_DEFAULTS });
+      navigate(assembleUrl(path, q).url, historyModeFor(ui, next));
+    },
+    [selection, navigate, location.pathname, ui],
+  );
+
+  /** `EX-NFR-22` (DR-092) — « Réessayer » relance RÉELLEMENT le provider, puis rejoue le marché. */
+  const onStarted = useCallback(
+    (r: StartResult): void => {
+      setStart(r);
+      if (view.kind === 'market') void reloadMarket(selection);
+    },
+    [view.kind, reloadMarket, selection],
+  );
+
+  /** `EX-SCR-45` — fil d'Ariane : Marché › Marque Modèle › Annonces (le chemin, pas l'historique). */
+  const breadcrumb = useMemo<readonly { readonly label: string; readonly href?: string }[]>(() => {
+    if (view.kind === 'modelDistribution' || view.kind === 'modelListings') {
+      const name = modelName(referenceData, view.makeId, view.modelId);
+      const modelHref = buildPath({
+        name: 'modelDistribution',
+        makeId: view.makeId,
+        makeSlug: referenceData.makeById.get(view.makeId)?.slug ?? String(view.makeId),
+        modelId: view.modelId,
+        modelSlug: referenceData.modelByKey.get(`${view.makeId}:${view.modelId}`)?.slug ?? String(view.modelId),
+      });
+      const trail: { label: string; href?: string }[] = [
+        { label: 'Marché', href: marketUrlFrom({ makeId: view.makeId, modelId: view.modelId }) },
+      ];
+      if (view.kind === 'modelListings') {
+        trail.push({ label: name, href: modelHref }, { label: 'Annonces' });
+      } else {
+        trail.push({ label: name });
+      }
+      return trail;
+    }
+    return [{ label: VIEW_TITLES[view.kind] }];
+  }, [view, referenceData, marketUrlFrom]);
+
+  /** `EX-SCR-47` — panneau Diagnostic du pied de page (état d'orchestration, jamais une donnée R3). */
+  const diagnostics = useMemo<readonly (readonly [string, string])[]>(
+    () => [
+      ['Statut du démarrage', start?.status ?? 'en cours'],
+      ['Source', start?.sourceKind ?? 'inconnue'],
+      ['Snapshot', controller.snapshotDescriptor?.snapshotId ?? '—'],
+      ['Annonces du snapshot', String(controller.snapshotDescriptor?.listingCount ?? '—')],
+      ['Code d’erreur', start?.errorCode ?? 'aucun'],
+      ['Dernière tentative', start?.attemptedAt ?? '—'],
+      ['Requête canonique', currentQuery === '' ? '(aucun filtre)' : currentQuery],
+      ['Régime d’affichage', regime],
+    ],
+    [start, controller, currentQuery, regime],
+  );
+
+  /**
+   * `EX-NFR-14`/`16` (DR-101) — titre de document PAR VUE et prise de focus après navigation : le
+   * lecteur d'écran annonce la nouvelle page, le clavier repart du `h1` (et non du début du document).
+   */
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const suffix = view.kind === 'modelDistribution' || view.kind === 'modelListings'
+      ? modelName(referenceData, view.makeId, view.modelId)
+      : '';
+    document.title = `KYCAR — ${VIEW_TITLES[view.kind]}${suffix === '' ? '' : ` · ${suffix}`}`;
+    const main = document.getElementById('kycar-main');
+    const heading = (main?.querySelector('h1') ?? main) as HTMLElement | null;
+    if (heading !== null && typeof heading.focus === 'function') heading.focus();
+  }, [view, referenceData]);
+
   // ---- Composition ------------------------------------------------------------------------------
   const degraded = start?.status === 'degraded-cache' || controller.isDegraded;
   const filterBandMode = view.kind === 'modelDistribution' || view.kind === 'modelListings' ? 'mode2' : 'mode1';
+  const descriptor = controller.snapshotDescriptor;
+  // `D-24`/`D-43` (DR-094/DR-152) : la provenance vient de `describe()` et du descripteur de
+  // snapshot, jamais d'un littéral d'écran.
+  const sourceKind = start?.sourceKind ?? descriptor?.sourceKind ?? controller.capabilities.sourceKind;
+  const loadedData = marketPhase.phase === 'loaded' ? marketPhase.data : null;
+
+  /** `EX-DATA-123bis` (DR-070/140/141) — métadonnées réelles des 3 lignes d'en-tête du CSV écran A. */
+  const aggregateCsvMeta: AggregateCsvMeta = {
+    snapshotId: descriptor?.snapshotId ?? '',
+    capturedAt: descriptor?.capturedAt ?? '',
+    sourceKind: sourceKind ?? 'INCONNU',
+    filterQuery: currentQuery,
+    sampleCoverage: descriptor?.coverageNote ?? 'NON_APPLICABLE',
+    metricCoverage: '',
+  };
+
+  /** `EX-NFR-31` (DR-154) — résumé TEXTUEL des filtres actifs, imprimé à la place du bandeau. */
+  const printFilterSummary =
+    currentQuery === '' ? 'Aucun filtre actif' : `Filtres actifs : ${currentQuery.replace(/&/g, ' · ')}`;
+
+  /** `ET-FILTRE-NON-APPLIQUE` (D-03, DR-103) — bandeau nommant les filtres non appliqués. */
+  const unapplied = loadedData?.unappliedFilterIds ?? [];
 
   return (
     <div class="kycar-app" data-crud-rev={crudTick}>
-      <AppHeader degraded={degraded} banner={banner} onDismissBanner={() => setBanner(null)} onNavigate={navigate} />
+      {/* `EX-NFR-12` (DR-101) — lien d'évitement : premier élément focalisable de la page. */}
+      <a class="kycar-skip-link no-print" href="#kycar-main">
+        Aller au contenu principal
+      </a>
+      <AppHeader
+        degraded={degraded}
+        degradedSince={start?.status === 'degraded-cache' ? (descriptor?.capturedAt ?? null) : null}
+        errorCode={start?.errorCode ?? null}
+        attemptedAt={start?.attemptedAt ?? null}
+        sourceKind={sourceKind}
+        snapshotId={descriptor?.snapshotId ?? null}
+        snapshotDate={descriptor?.capturedAt ?? null}
+        compareCount={compareKeys.length}
+        followedCount={stores.followed.list().length}
+        banner={banner}
+        unappliedFilterIds={unapplied}
+        onDismissBanner={() => setBanner(null)}
+        onNavigate={navigate}
+        onRetry={() => void controller.start().then(onStarted)}
+        breadcrumb={breadcrumb}
+      />
 
       {view.kind === 'market' || view.kind === 'modelDistribution' || view.kind === 'modelListings' ? (
         <div class="filter-bar kycar-filter-bar">
@@ -419,6 +704,11 @@ export function App(props: AppProps): JSX.Element {
               if (view.kind === 'market') void reloadMarket(selection);
             }}
             onReload={() => {
+              // `EX-NAV-24` (DR-155) : un remplacement de snapshot purge la sélection de comparaison
+              // (des identifiants d'un autre snapshot) et libère le moteur (jeu de données obsolète).
+              setCompareKeys([]);
+              setCompareRows([]);
+              controller.dispose();
               void controller.start().then((r) => {
                 setStart(r);
                 if (view.kind === 'market') void reloadMarket(selection);
@@ -426,12 +716,24 @@ export function App(props: AppProps): JSX.Element {
             }}
             onUrlBudgetExceeded={(msg) => setBanner(msg)}
           />
+          {/* `EX-NFR-31` (DR-154) : le bandeau de filtres disparaît à l'impression, ce résumé le remplace. */}
+          <p class="kycar-print-filter-summary print-filter-summary">{printFilterSummary}</p>
         </div>
       ) : null}
 
       <main class="kycar-main">
-        {renderView()}
+        {/* `EX-NFR-12`/`16` (DR-101) : cible du lien d'évitement et du focus après navigation. */}
+        <div id="kycar-main" tabIndex={-1} class="kycar-main-inner">
+          {renderView()}
+        </div>
       </main>
+
+      <AppFooter
+        sourceKind={sourceKind}
+        snapshotDate={descriptor?.capturedAt ?? null}
+        diagnostics={diagnostics}
+        onNavigate={navigate}
+      />
     </div>
   );
 
@@ -479,7 +781,7 @@ export function App(props: AppProps): JSX.Element {
               compareSelection={new Set(compareKeys.map((k) => `${k.makeId}:${k.modelId}`))}
               compareAtCapacity={compareKeys.length >= MAX_COMPARE}
               onToggleCompare={toggleCompare}
-              onRetryProvider={() => void reloadMarket(selection)}
+              onRetryProvider={() => void controller.start().then(onStarted)}
               onRetryMakeModels={(makeId) => onToggleExpand(makeId, true)}
               onRemoveFilter={(filterId) => {
                 const next = { ...selection };
@@ -496,6 +798,8 @@ export function App(props: AppProps): JSX.Element {
                 applyMode1Query({ ...selection, makesModelsVariants: mmmv });
               }}
               currentMmmv={typeof selection.makesModelsVariants === 'string' ? selection.makesModelsVariants : undefined}
+              regime={regime}
+              csvMeta={aggregateCsvMeta}
             />
           </>
         );
@@ -510,6 +814,7 @@ export function App(props: AppProps): JSX.Element {
         return (
           <CompareScreen
             rows={compareRows}
+            loading={compareLoading}
             atCapacity={compareKeys.length >= MAX_COMPARE}
             onRemove={(makeId, modelId) => setCompareKeys((prev) => removeFromCompare(prev, { makeId, modelId }))}
             onOpen={goToModel}
@@ -522,7 +827,15 @@ export function App(props: AppProps): JSX.Element {
           <SavedSearchesScreen
             saved={stores.saved.list()}
             recent={stores.recent.list()}
-            onOpen={(url) => navigate(url)}
+            currentCountById={currentCounts}
+            onGoToMarket={() => navigate('/marche')}
+            onOpen={(url, id) => {
+              // `EX-CRUD-6` (DR-102) : l'ouverture met à jour `dernier_accès_le` (les valeurs figées
+              // d'`ARB-45` — `effectifInitial`, `snapshotInitial` — ne bougent jamais).
+              if (id !== undefined) stores.saved.touch(id);
+              bumpCrud();
+              navigate(url);
+            }}
             onRename={(id, nom) => {
               try {
                 stores.saved.rename(id, nom);
@@ -547,6 +860,11 @@ export function App(props: AppProps): JSX.Element {
           <FollowedScreen
             rows={stores.followed.list()}
             nameOf={(makeId, modelId) => modelName(referenceData, makeId, modelId)}
+            currentCountOf={(makeId, modelId) => {
+              const key = `${makeId}:${modelId}`;
+              return currentCounts.has(key) ? (currentCounts.get(key) ?? null) : 'loading';
+            }}
+            onGoToMarket={() => navigate('/marche')}
             onOpen={goToModel}
             onUnfollow={(makeId, modelId) => {
               stores.followed.unfollow(makeId, modelId);
@@ -559,8 +877,8 @@ export function App(props: AppProps): JSX.Element {
         return (
           <MentionsPage
             snapshotDate={controller.snapshotDescriptor?.capturedAt}
-            sourceKind={start?.sourceKind ?? null}
-            providerId={controller.snapshotDescriptor?.providerVersion}
+            sourceKind={start?.sourceKind ?? controller.capabilities.sourceKind}
+            providerId={`${controller.capabilities.providerId} ${controller.capabilities.providerVersion} · snapshot ${controller.snapshotDescriptor?.snapshotId ?? '—'}`}
           />
         );
 
@@ -632,6 +950,8 @@ export function App(props: AppProps): JSX.Element {
     const toolbar = (
       <div class="kycar-model-toolbar no-print">
         <h1 class="kycar-model-title">{payload.makeModelName || name}</h1>
+        {/* `EX-CRUD-4` (DR-102) : « Enregistrer cette recherche » est disponible sur les DEUX écrans. */}
+        <MarketToolbar onSave={saveCurrentSearch} canSave={true} />
         <div class="kycar-model-actions">
           <button type="button" aria-pressed={followed} onClick={() => toggleFollow(makeId, modelId)}>
             {followed ? 'Ne plus suivre' : 'Suivre'}
@@ -672,15 +992,17 @@ export function App(props: AppProps): JSX.Element {
       </div>
     );
 
+    // `EX-DATA-123bis` (DR-070/140/141) — métadonnées RÉELLES du snapshot servi, jamais inventées.
+    const csvMeta: CsvMeta = {
+      snapshotId: payload.batch.snapshotId,
+      capturedAt: controller.snapshotDescriptor?.capturedAt ?? '',
+      sourceKind: payload.sourceKind,
+      filterQuery: currentQuery,
+      sampleCoverage: controller.snapshotDescriptor?.coverageNote ?? 'NON_APPLICABLE',
+      metricCoverage: '',
+    };
+
     if (which === 'listings') {
-      const csvMeta: CsvMeta = {
-        snapshotId: payload.batch.snapshotId,
-        capturedAt: controller.snapshotDescriptor?.capturedAt ?? '',
-        sourceKind: payload.sourceKind,
-        filterQuery: currentQuery,
-        sampleCoverage: 'NON_APPLICABLE',
-        metricCoverage: '',
-      };
       return (
         <>
           {toolbar}
@@ -691,16 +1013,16 @@ export function App(props: AppProps): JSX.Element {
             selectionCount={payload.rows.length}
             makeModelName={payload.makeModelName}
             csvMeta={csvMeta}
+            labels={listingsLabels}
             onOpenListing={(row) => openListing(payload.batch, row)}
+            page={ui.page ?? 1}
+            onPageChange={(page) => applyUiState({ ...ui, page })}
+            sel={ui.sel ?? null}
           />
         </>
       );
     }
 
-    const ui: DistributionUiState =
-      typeof URLSearchParams !== 'undefined'
-        ? readDistributionUiState(new URLSearchParams(location.search))
-        : EMPTY_UI_STATE;
     return (
       <>
         {toolbar}
@@ -710,16 +1032,43 @@ export function App(props: AppProps): JSX.Element {
           rows={payload.rows}
           ui={ui}
           makeModelName={payload.makeModelName}
-          onUiChange={(next) => {
-            const uiObj: Record<string, string> = Object.fromEntries(writeDistributionUiState(next));
-            const q = serializeQuery(selection, uiObj, { filterDefaults: FILTER_DEFAULTS });
-            navigate(assembleUrl(location.pathname, q).url, 'replace');
+          labels={distributionLabels}
+          csvMeta={csvMeta}
+          degraded={regime === 'compact'}
+          isFollowed={followed}
+          onUiChange={(next) => applyUiState(next)}
+          onApplyFilters={(patch) => applyFilters(patch)}
+          onViewBrushedListings={(sel) =>
+            applyUiState({ ...EMPTY_UI_STATE, sel }, listingsPath(makeId, modelId))
+          }
+          onViewListings={() => navigate(assembleUrl(listingsPath(makeId, modelId), currentQuery).url)}
+          onCompare={() => {
+            toggleCompare(makeId, modelId, true);
+            navigate('/comparer');
           }}
+          onFollow={() => toggleFollow(makeId, modelId)}
           onOpenListing={(row) => openListing(payload.batch, row)}
         />
       </>
     );
   }
+}
+
+/** `EX-SCR-196` (DR-088) — bucket de comparaison depuis un bin du moteur (mêmes bornes, même compte). */
+function toCompareBucket(b: { lowerBound: number; upperBound: number; count: number }): {
+  lowerBound: number;
+  upperBound: number;
+  count: number;
+} {
+  return { lowerBound: b.lowerBound, upperBound: b.upperBound, count: b.count };
+}
+
+/** `EX-NFR-18` — régime responsive courant, mesuré sur les points de rupture partagés de `src/styles`. */
+function detectRegime(): MarketRegime {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'large';
+  if (window.matchMedia(MEDIA_QUERY_MOBILE).matches) return 'compact';
+  if (window.matchMedia(MEDIA_QUERY_TABLET).matches) return 'intermediate';
+  return 'large';
 }
 
 /** Nom lisible d'un couple marque/modèle depuis la taxonomie (repli explicite si inconnu). */
@@ -735,20 +1084,71 @@ function defaultSearchName(): string {
   return `Recherche du ${new Intl.DateTimeFormat('fr-BE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`;
 }
 
-/** En-tête applicatif : navigation principale + bandeaux d'état (dégradé, message ponctuel). */
+/** Âge du snapshot en jours pleins, ou `null` si la date est absente/illisible (`EX-SCR-43`). */
+function snapshotAgeDays(capturedAt: string | null): number | null {
+  if (capturedAt === null) return null;
+  const t = new Date(capturedAt).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.floor((Date.now() - t) / 86_400_000);
+}
+
+/** Date courte `JJ/MM/AAAA` (`EX-SCR-29`, bandeau dégradé daté). */
+function frDate(iso: string | null): string {
+  if (iso === null) return 'date inconnue';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : new Intl.DateTimeFormat('fr-BE', { dateStyle: 'short' }).format(d);
+}
+
+/** Horodatage court `JJ/MM/AAAA HH:MM` de la dernière tentative de mise à jour (`EX-NFR-22`). */
+function frDateTime(iso: string | null): string {
+  if (iso === null) return 'inconnue';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : new Intl.DateTimeFormat('fr-BE', { dateStyle: 'short', timeStyle: 'short' }).format(d);
+}
+
+/**
+ * En-tête applicatif S0 (`EX-SCR-42`…`46`, DR-100) : QUATRE onglets (`Marché`, `Comparer (n)`,
+ * `Recherches`, `Suivis (n)`), le jeton de snapshot daté (`EX-SCR-43`, âge 7/30 j), le fil d'Ariane
+ * (`EX-SCR-45`) et les bandeaux d'état — dégradé DATÉ avec `Réessayer` et code d'erreur (`DR-093`),
+ * source SYNTHETIC (`DR-094`), filtres non appliqués (`D-03`), message ponctuel.
+ * `/mentions` n'est PAS un onglet : c'est un lien du pied de page (`EX-SCR-47`).
+ */
 function AppHeader(props: {
   readonly degraded: boolean;
+  readonly degradedSince: string | null;
+  readonly errorCode: string | null;
+  readonly attemptedAt: string | null;
+  readonly sourceKind: string | null;
+  readonly snapshotId: string | null;
+  readonly snapshotDate: string | null;
+  readonly compareCount: number;
+  readonly followedCount: number;
   readonly banner: string | null;
+  readonly unappliedFilterIds: readonly string[];
   readonly onDismissBanner: () => void;
   readonly onNavigate: (url: string) => void;
+  readonly onRetry: () => void;
+  readonly breadcrumb: readonly { readonly label: string; readonly href?: string }[];
 }): JSX.Element {
   const links: ReadonlyArray<{ readonly href: string; readonly label: string }> = [
     { href: '/marche', label: 'Marché' },
     { href: '/comparer', label: 'Comparer' },
     { href: '/recherches', label: 'Recherches' },
     { href: '/suivis', label: 'Suivis' },
-    { href: '/mentions', label: 'Mentions' },
   ];
+  /** `EX-SCR-42` — les deux onglets à cardinal portent leur compteur dans leur libellé. */
+  const labelOfTab = (href: string, label: string): string => {
+    if (href === '/comparer') return `Comparer (${props.compareCount})`;
+    if (href === '/suivis') return `Suivis (${props.followedCount})`;
+    return label;
+  };
+  // `EX-SCR-44` : comparer exige au moins 2 modèles — l'onglet reste visible mais inopérant.
+  const compareDisabled = props.compareCount < 2;
+  const age = snapshotAgeDays(props.snapshotDate);
+  const freshness = age === null ? 'inconnu' : age < SNAPSHOT_FRESH_DAYS ? 'frais' : age < SNAPSHOT_STALE_DAYS ? 'ancien' : 'perime';
+
   return (
     <header class="app-header kycar-header">
       <a class="kycar-brand" href="/marche" onClick={(e) => { e.preventDefault(); props.onNavigate('/marche'); }}>
@@ -756,20 +1156,77 @@ function AppHeader(props: {
       </a>
       <nav aria-label="Navigation principale">
         <ul class="kycar-nav">
-          {links.map((l) => (
-            <li key={l.href}>
-              <a href={l.href} onClick={(e) => { e.preventDefault(); props.onNavigate(l.href); }}>
-                {l.label}
-              </a>
-            </li>
-          ))}
+          {links.map((l) => {
+            const disabled = l.href === '/comparer' && compareDisabled;
+            return (
+              <li key={l.href}>
+                <a
+                  href={l.href}
+                  aria-disabled={disabled ? 'true' : undefined}
+                  class={disabled ? 'kycar-nav-link kycar-nav-link--disabled' : 'kycar-nav-link'}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!disabled) props.onNavigate(l.href);
+                  }}
+                >
+                  {labelOfTab(l.href, l.label)}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       </nav>
+
+      {/* `EX-SCR-43` — jeton de snapshot : identifiant, date et âge (7 j / 30 j). */}
+      <p class={`kycar-snapshot-token kycar-snapshot-token--${freshness}`}>
+        Snapshot {props.snapshotId ?? '—'} du {frDate(props.snapshotDate)}
+        {age === null ? '' : ` (${age} j)`}
+      </p>
+
+      {/* `EX-DATA-107` (DR-094) — la source est dite sur TOUS les écrans, pas seulement /mentions. */}
+      {props.sourceKind === 'SYNTHETIC' ? (
+        <p class="status-banner kycar-banner-synthetic" role="status">
+          {SYNTHETIC_NOTICE}
+        </p>
+      ) : null}
+
+      {/* `EX-SCR-45` — fil d'Ariane. */}
+      <nav class="kycar-breadcrumb no-print" aria-label="Fil d’Ariane">
+        <ol>
+          {props.breadcrumb.map((crumb, i) => (
+            <li key={`${crumb.label}-${i}`}>
+              {crumb.href === undefined ? (
+                <span aria-current="page">{crumb.label}</span>
+              ) : (
+                <a href={crumb.href} onClick={(e) => { e.preventDefault(); props.onNavigate(crumb.href as string); }}>
+                  {crumb.label}
+                </a>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
+
       {props.degraded ? (
         <div class="status-banner kycar-banner-degraded" role="status">
-          Mode dégradé : dernier résultat connu affiché (les données n’ont pas pu être rafraîchies).
+          Mode dégradé — Données du {frDate(props.degradedSince)} — dernière tentative de mise à jour
+          échouée le {frDateTime(props.attemptedAt)} (code {props.errorCode ?? 'inconnu'}). Les
+          agrégats marqués d’un astérisque proviennent du cache ; l’export est désactivé.
+          <button type="button" class="no-print" onClick={props.onRetry}>
+            Réessayer
+          </button>
         </div>
       ) : null}
+
+      {props.unappliedFilterIds.length > 0 ? (
+        <div class="status-banner kycar-banner-unapplied" role="status">
+          Agrégats filtrés indisponibles — {props.unappliedFilterIds.length === 1 ? 'le filtre' : 'les filtres'}{' '}
+          {props.unappliedFilterIds.join(', ')}{' '}
+          {props.unappliedFilterIds.length === 1 ? "n’a pas pu être appliqué" : "n’ont pas pu être appliqués"} :
+          les chiffres affichés sont ceux de la sélection NON filtrée.
+        </div>
+      ) : null}
+
       {props.banner !== null ? (
         <div class="status-banner kycar-banner-message" role="status">
           <span>{props.banner}</span>
@@ -779,6 +1236,42 @@ function AppHeader(props: {
         </div>
       ) : null}
     </header>
+  );
+}
+
+/**
+ * Pied de page obligatoire (`EX-SCR-47`, DR-100) : mention juridique, date du snapshot, lien
+ * `/mentions` et panneau Diagnostic repliable (`<details>`, aucun état à porter).
+ */
+function AppFooter(props: {
+  readonly sourceKind: string | null;
+  readonly snapshotDate: string | null;
+  readonly diagnostics: readonly (readonly [string, string])[];
+  readonly onNavigate: (url: string) => void;
+}): JSX.Element {
+  return (
+    <footer class="kycar-footer">
+      <p class="kycar-footer-legal">
+        Source : AutoScout24 — agrégat non affilié. Données du {frDate(props.snapshotDate)}
+        {props.sourceKind === 'SYNTHETIC' ? ' — jeu de données synthétique de démonstration' : ''}.
+      </p>
+      <p class="kycar-footer-links no-print">
+        <a href="/mentions" onClick={(e) => { e.preventDefault(); props.onNavigate('/mentions'); }}>
+          Mentions légales
+        </a>
+      </p>
+      <details class="kycar-footer-diagnostic no-print">
+        <summary>Diagnostic</summary>
+        <dl>
+          {props.diagnostics.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+    </footer>
   );
 }
 

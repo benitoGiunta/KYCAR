@@ -46,7 +46,7 @@ describe('schema / migration (EX-CRUD-18)', () => {
 
 describe('recherches sauvegardées (EX-CRUD-1..6)', () => {
   it('dérive le mode 2 d’une route d’écran B et le mode 1 d’une route de marché', () => {
-    expect(deriveMode('/marche/16-opel/1174-corsa?km_max=100000')).toBe(2);
+    expect(deriveMode('/marche/54-opel/1918-corsa?km_max=100000')).toBe(2);
     expect(deriveMode('/marche?prix_max=10000')).toBe(1);
   });
 

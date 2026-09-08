@@ -198,7 +198,7 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
     case 'loading':
       return (
         <div class="kycar-market-screen" aria-busy="true">
-          <div class="kycar-market-summary-bar">— marques · — modèles · — offres</div>
+          <div class="kycar-market-summary-bar summary-bar">— marques · — modèles · — offres</div>
           <div class="kycar-market-grid">
             {Array.from({ length: 6 }, (_, i) => (
               <div key={i} class="kycar-market-card">
@@ -299,7 +299,11 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
       return (
         <div class="kycar-market-screen">
           <div class="kycar-market-banners">
-            <div class={`kycar-market-banner kycar-market-banner--${c3.tone}`}>{c3.text}</div>
+            {/* `EX-NFR-31` (DR-154) : la région `summary-bar-c3` du contrat `print.css` est le
+                bandeau de couverture C3 — TOUJOURS imprimé (règle 2 de la feuille d'impression). */}
+            <div class="kycar-market-banner-c3 summary-bar-c3">
+              <div class={`kycar-market-banner kycar-market-banner--${c3.tone}`}>{c3.text}</div>
+            </div>
             {state.kind === 'partial' ? (
               <div class="kycar-market-banner kycar-market-banner--ambre">
                 {state.failedMakeIds.size} marques sur {state.totalMakesAttempted} n’ont pas pu être chargées

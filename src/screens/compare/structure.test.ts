@@ -48,7 +48,7 @@ const RANGE: MetricRange = { min: 1, max: 9, p05: 2, p50: 5, p95: 8, n: 100 };
 
 describe('écran C — structure/accessibilité', () => {
   const rows: CompareModelRow[] = [
-    { makeId: 16, modelId: 1174, name: 'Opel Corsa', listingCount: 1200, price: RANGE, year: RANGE, mileage: RANGE },
+    { makeId: 54, modelId: 1918, name: 'Opel Corsa', listingCount: 1200, price: RANGE, year: RANGE, mileage: RANGE },
     { makeId: 9, modelId: 33, name: 'BMW 320', listingCount: 800, price: RANGE, year: RANGE, mileage: RANGE },
   ];
   const tree = CompareScreen({ rows, atCapacity: false, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {} });
@@ -76,7 +76,7 @@ describe('écran C — structure/accessibilité', () => {
 
 describe('écran F — structure/accessibilité', () => {
   const tree = FollowedScreen({
-    rows: [{ value: { schemaVersion: 1, makeId: 16, modelId: 1174, ajouteLe: '2026-09-01T00:00:00Z' }, status: { kind: 'current' } }],
+    rows: [{ value: { schemaVersion: 1, makeId: 54, modelId: 1918, ajouteLe: '2026-09-01T00:00:00Z' }, status: { kind: 'current' } }],
     nameOf: () => 'Opel Corsa',
     onOpen: () => {},
     onUnfollow: () => {},
