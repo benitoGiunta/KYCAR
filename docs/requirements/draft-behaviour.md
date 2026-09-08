@@ -494,10 +494,11 @@ d'exploration libre du marché.
 
 **EX-SRCH-26 — Seuil d'avertissement, sans blocage.** Si le mode 1 sans filtre (ou avec des filtres
 très larges) renvoie plus de **60 marques** avec au moins un résultat, un bandeau non bloquant
-s'affiche : « Xxx marques correspondent — affinez pour une vue plus lisible », avec un raccourci
-vers les filtres les plus discriminants (prix, carrosserie). Le nombre 60 est choisi comme un ordre
-de grandeur au-delà duquel une grille de cartes-marques cesse d'être parcourable en un seul écran
-sans défilement long, sans empêcher l'utilisateur de continuer.
+s'affiche : « `<n>` marques correspondent — affinez pour comparer » (texte harmonisé sur
+`EX-SCR-32`, autorité de l'annexe B sur la disposition écran, `R-A09`), avec un raccourci vers les
+filtres les plus discriminants (prix, carrosserie). Le nombre 60 est choisi comme un ordre de
+grandeur au-delà duquel une grille de cartes-marques cesse d'être parcourable en un seul écran sans
+défilement long, sans empêcher l'utilisateur de continuer. [amendée 2.6 — T-t]
 
 **EX-SRCH-27 — Aucun plafond de traitement côté moteur.** Le moteur d'agrégation doit rester capable
 de traiter la borne haute de H5 (10⁶ annonces) sans filtre posé ; la limite de §EX-SRCH-26 est une

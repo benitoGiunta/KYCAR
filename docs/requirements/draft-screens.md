@@ -295,20 +295,19 @@ et P2 de `FINDING-allowed-surface.md`, dont l'avertissement que **la représenta
 l'échantillon n'est pas prouvée** (`adProduct.tier` suggère un tri influencé par le produit
 publicitaire).
 
-`EX-SCR-32` — **`ET-TROP-RESULTATS` — la population dépasse le seuil de rendu.** Seuils :
-écran A, franchissement de **60 marques** avec au moins un résultat (`EX-SCR-124bis`) ; écran B,
-plus de 20 000 annonces individuelles à tracer, seuil inchangé. Comportement : le rendu n'est pas
-dégradé silencieusement. Un bandeau informatif indique
-`<n> marques correspondent — affinez pour comparer` (écran A) ou
-`<n> annonces — la nuée affiche l'échantillon SAMPLE(V, 20 000, seed) d'EX-DATA-100bis`
-(écran B). Le bandeau porte le bouton `Tout afficher` qui active le rendu virtualisé (écran A)
-ou le rendu par densité `G7` (écran B). Les **agrégats restent calculés sur la population
-entière**, jamais sur l'échantillon d'affichage ; cette distinction est écrite dans l'infobulle
-de chaque statistique concernée. Le nombre d'outliers annoncé par la nuée et par sa table
-équivalente (`EX-NFR-15`) est **celui de la population entière**, jamais celui de l'échantillon
-tracé ; l'infobulle le dit. Ni le seuil de « plus de 40 marques » ni la mention
-« 20 affichées » n'appartiennent plus à cette exigence : les seuils de l'écran A sont portés par
-`EX-SCR-124bis` et par lui seul.
+`EX-SCR-32` — **`ET-TROP-RESULTATS` — la population dépasse le seuil de rendu.** Seuil : écran A,
+franchissement de **60 marques** avec au moins un résultat (`EX-SCR-124bis`). Comportement : le
+rendu n'est pas dégradé silencieusement. Un bandeau informatif indique
+`<n> marques correspondent — affinez pour comparer` (écran A). Le bandeau porte le bouton
+`Tout afficher` qui active le rendu virtualisé. Ni le seuil de « plus de 40 marques » ni la
+mention « 20 affichées » n'appartiennent plus à cette exigence : les seuils de l'écran A sont
+portés par `EX-SCR-124bis` et par lui seul. **`ET-TROP-RESULTATS` ne s'applique pas au nuage `G4`
+de l'écran B** (`EX-SCR-177`) : au-delà de `K = 5 000` (`EX-DATA-100`), c'est `EX-SCR-157` qui
+gouverne, sans seuil à 20 000 ni graine (`EX-DATA-101` est sans aléa, `EX-DATA-100bis`). Sous ce
+régime, les **agrégats restent calculés sur la population entière**, jamais sur l'échantillon
+d'affichage — la distinction est écrite dans l'infobulle de chaque statistique concernée — et le
+nombre d'outliers annoncé par la nuée et par sa table équivalente (`EX-NFR-15`) est **celui de la
+population entière**, jamais celui de l'échantillon tracé. [amendée 2.6 — D-06, D-08]
 
 `EX-SCR-33` — **`ET-EFFECTIF-FAIBLE` — effectif insuffisant pour une statistique.**
 **Dans toute cette exigence, `n` désigne `n_m(Σ)` au sens d'`EX-DATA-59` pour la métrique de la
@@ -1480,11 +1479,16 @@ bouton `Réessayer` portant sur cette seule carte. La carte reste cliquable au n
 `<k> marques sur <n> n'ont pas pu être chargées`. La grille n'est **jamais** vidée pour une
 erreur partielle.
 
-`EX-SCR-134` — **`ET-EFFECTIF-FAIBLE` appliqué à la zone-modèle.** Pour `1 ≤ n ≤ 4`, la
-médiane est remplacée par `n trop faible` et les fourchettes restent affichées (min et max sont
-définis dès `n = 1`, auquel cas `EX-SCR-4` produit une valeur unique). Pour `n = 1`, la
-troisième ligne affiche `1 seule offre` à la place de `méd. …`, et la barre de part relative
-est rendue à sa longueur réelle, jamais à zéro.
+`EX-SCR-134` — **`ET-EFFECTIF-FAIBLE` appliqué à la zone-modèle.** Les paliers d'`EX-SCR-33`
+s'appliquent sans exception à la zone-modèle — ce sont les mêmes paliers pour toute l'application,
+il n'existe pas de variante propre à l'écran A. Pour `1 ≤ n ≤ 4`, la médiane est remplacée par
+`n trop faible` et les fourchettes restent affichées (min et max sont définis dès `n = 1`, auquel
+cas `EX-SCR-4` produit une valeur unique). Pour `n = 1`, la troisième ligne affiche `1 seule
+offre` à la place de `méd. …`, et la barre de part relative est rendue à sa longueur réelle,
+jamais à zéro. Pour `5 ≤ n ≤ 11`, `P5`/`P95` sont **masqués** et remplacés par le jeton ambre
+`n = <n>` accolé au titre de la zone-modèle, conformément à `EX-SCR-33` ; min et max restent
+affichés. `effectifTier` (au sens d'`EX-SCR-33`) est la source unique de ces paliers dans la
+zone-modèle. [amendée 2.6 — D-04]
 
 ### 5.7 Responsive de l'écran A
 
@@ -1710,11 +1714,14 @@ Justification de l'inversion des canaux : en nuage prix × année, c'est le kilo
 valeurs extrêmes doivent ressortir, et la couleur est un canal plus précis que la taille pour
 une variable continue lue point par point.
 
-`EX-SCR-157` — **Chevauchement et opacité.** Points à 55 % d'opacité, contour de 0,5 px à
-100 % d'opacité pour que deux points superposés restent dénombrables. Au-delà de 5 000 points,
-`G4b` bascule automatiquement d'un rendu SVG à un rendu `canvas`, et au-delà de 20 000 points
-affiche le bandeau `ET-TROP-RESULTATS` avec la mention d'échantillonnage à graine fixée
-(la graine est écrite dans l'infobulle, afin que deux utilisateurs voient le même échantillon).
+`EX-SCR-157` — **Chevauchement, opacité et échantillonnage.** Points à 55 % d'opacité, contour de
+0,5 px à 100 % d'opacité pour que deux points superposés restent dénombrables. Au-delà de
+5 000 points, `G4b` bascule automatiquement d'un rendu SVG à un rendu `canvas` **et**, au même
+seuil `K = 5 000` (`EX-DATA-100`, qui gouverne), affiche la mention d'échantillonnage
+d'`EX-DATA-103` (`n_e`, `K`, le nombre de points tracés, le mode d'échantillonnage). **Il
+n'existe pas de second seuil à 20 000** : le bandeau `ET-TROP-RESULTATS` ne s'applique pas au
+nuage. Aucune graine n'est affichée — `EX-DATA-101` n'en emploie aucune (`EX-DATA-100bis`).
+[amendée 2.6 — D-06, D-08]
 
 `EX-SCR-158` — **Interactions de `G4`** :
 - **Survol d'un point** → infobulle de **6 lignes** : `modelVersionInput` tronqué à
@@ -1991,10 +1998,11 @@ filtre.
 
 `EX-SCR-177` — **`ET-TROP-RESULTATS` sur l'écran B.** Seuil : 20 000 annonces individuelles.
 `G1`, `G2`, `G3`, `G5`, `G6`, `G7`, `G9`, `G10`, `G12`, `G13`, `G14` et `G15` restent calculés
-sur la **population entière** ; seuls `G4` et `G8` travaillent différemment : `G4` trace
-20 000 points échantillonnés à graine fixée, `G8` estime son modèle sur la population entière
-mais n'affiche que les 20 premiers écarts. Cette asymétrie est écrite dans l'infobulle de `G4`
-et dans celle de `G8`, pas seulement dans ce document.
+sur la **population entière**. **`G4` est hors du périmètre d'`ET-TROP-RESULTATS`** : son propre
+régime au-delà de `K = 5 000` est celui d'`EX-SCR-157` (`EX-DATA-100`), sans seuil à 20 000 ni
+graine. Seul `G8` travaille différemment au-delà du seuil de 20 000 : il estime son modèle sur la
+population entière mais n'affiche que les 20 premiers écarts. Cette asymétrie est écrite dans
+l'infobulle de `G8`. [amendée 2.6 — D-08]
 
 `EX-SCR-178` — **Notes d'exclusion par graphe.** Sous chaque graphe, une ligne de 16 px en gris
 à 60 % indique, dès que `k ≥ 1` : `<k> annonces exclues (<motif>)`. Motifs normatifs :

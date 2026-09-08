@@ -1440,12 +1440,15 @@ détermine directement la mémoire du rendu — **13 champs à ≈ 68 octets par
 clause « aucun autre champ n'est transmis à la vue » reste entière : tout besoin d'un quatorzième
 champ exige d'amender cette exigence.
 
-**EX-DATA-99 — éligibilité au tracé.** Une annonce est éligible si et seulement si
-`priceStatus = QUOTED` et si `firstRegistrationYear` et `mileageKm` sont tous deux valides au sens
-d'EX-DATA-60. Les annonces non éligibles sont comptées et **leur motif est ventilé** : `noPrice`,
-`noYear`, `noMileage`, `suspectValue` — une annonce cumulant plusieurs motifs est comptée dans le
-premier de cette liste qui s'applique, de sorte que la somme des quatre compteurs et du nombre
-d'éligibles vaut exactement `N`.
+**EX-DATA-99 — éligibilité au tracé.** Une annonce est éligible si et seulement si son **prix est
+valide** au sens d'EX-DATA-60 — c'est-à-dire `priceStatus = QUOTED`, **et** ni
+`PRICE_SENTINEL_ABSOLUTE`, **et** ni `PRICE_IMPLAUSIBLE_IN_CELL` pour la cellule du tracé en
+cours (cohérent avec EX-DATA-16(e), EX-DATA-19 et `ARB-15`) — et si `firstRegistrationYear` et
+`mileageKm` sont tous deux valides au sens d'EX-DATA-60. Les annonces non éligibles sont comptées
+et **leur motif est ventilé** : `noPrice`, `noYear`, `noMileage`, `suspectValue` (ce dernier motif
+couvre `PRICE_SENTINEL_ABSOLUTE` et `PRICE_IMPLAUSIBLE_IN_CELL`) — une annonce cumulant plusieurs
+motifs est comptée dans le premier de cette liste qui s'applique, de sorte que la somme des
+quatre compteurs et du nombre d'éligibles vaut exactement `N`. [amendée 2.6 — D-05]
 **Justification de la ventilation** : sans elle, une nuée qui perd 40 % de sa sélection ne dit pas
 pourquoi, et l'utilisateur conclut à un marché étroit au lieu d'un défaut de donnée.
 
@@ -1486,20 +1489,22 @@ axes ; l'ordre étant celui de l'identifiant, l'échantillon est reproductible s
 pseudo-aléatoire ni graine à transporter, ce qui rend la vue identique d'une session à l'autre et
 testable.
 
-**EX-DATA-100bis — `SAMPLE(V, k, seed)`.** Si `|V| ≤ k`, `SAMPLE` retourne `V` entier, dans l'ordre
-`listingId` croissant. Sinon : (1) `V` est ordonné par `listingId` **croissant**, en comparaison
-octet à octet sur la forme canonique minuscule (`EX-DATA-94`) ; (2) un générateur
-**`xoshiro128**`** est initialisé par la graine constante `seed = 0x4B594341` (« KYCA »), inscrite
-ici et nulle part ailleurs ; (3) un mélange de **Fisher-Yates descendant** est appliqué à l'ordre
-obtenu ; (4) les `k` premiers éléments sont retenus, puis **réordonnés par `listingId` croissant**
-avant transmission à la vue. La graine ne dépend **ni** de la sélection, **ni** du snapshot,
-**ni** de l'horloge. `SAMPLE` satisfait la clause de déterminisme d'`EX-DATA-82` : un test du lot
-D4 vérifie que deux permutations du même multiensemble produisent le même échantillon octet à
-octet.
+**EX-DATA-100bis — propriété : indépendance à l'ordre d'entrée.** L'échantillon tracé à l'écran
+est **identique, octet à octet**, quelle que soit la permutation en entrée du multiensemble
+éligible `Elig` : deux appels sur deux permutations de la même sélection produisent la même liste
+de `listingId` tracés, dans le même ordre. C'est une **propriété**, satisfaite par
+l'échantillonnage systématique et déterministe d'`EX-DATA-101`, qui trie `Elig` par `listingId`
+avant tout tirage et n'emploie **ni générateur pseudo-aléatoire ni graine** — `EX-DATA-101` est
+l'algorithme qui fait foi, `EX-DATA-100bis` n'en décrit pas un second. Aucune graine n'est
+exportée ni affichée nulle part (la mention d'échantillonnage d'`EX-DATA-103` cite `n_e`, `K`, le
+nombre de points et le mode, sans graine). `EX-DATA-100bis` satisfait la clause de déterminisme
+d'`EX-DATA-82` : un test du lot D4 vérifie que deux permutations du même multiensemble produisent
+le même échantillon octet à octet.
 **Justification** : « graine fixée » ne fixait ni l'algorithme, ni l'ordre sur lequel il opère ;
 sur une sélection de 40 000 annonces dont 12 outliers, deux implémentations conformes retenaient
 typiquement 4 et 8 de ces outliers — l'annonce cherchée était présente ou absente sans qu'aucune
-règle ne tranche.
+règle ne tranche. L'échantillonnage systématique sur `listingId` d'`EX-DATA-101` referme cette
+question sans recourir à un générateur ni à une graine à transporter. [amendée 2.6 — D-06]
 
 **EX-DATA-102 — couche de densité, toujours calculée.** Indépendamment du plafond de points, la vue
 publie une grille `G = binsAnnée × binsKilométrage`, où les bins d'année et de kilométrage sont
