@@ -37,6 +37,7 @@ export type SentinelPolicy =
   | { readonly kind: 'numeric'; readonly value: typeof NUMERIC_UNKNOWN } // -1
   | { readonly kind: 'enumByte'; readonly value: typeof ENUM_UNKNOWN_BYTE } // 255
   | { readonly kind: 'reserved-zero' } // `modelId` : 0 = non résolu, pas une sentinelle d'inconnu
+  | { readonly kind: 'tristate-zero' } // `vatDeductible` : 0 = INCONNU, 1 = NON, 2 = OUI (D8-08)
   | { readonly kind: 'none' }; // colonne toujours connue (ex. `makeId`, OBL) ou zone de bits/chaînes
 
 /** Descripteur d'une colonne physique du batch. */
@@ -56,6 +57,7 @@ export interface ColumnDescriptor {
 const NUM: SentinelPolicy = { kind: 'numeric', value: NUMERIC_UNKNOWN };
 const ENUMB: SentinelPolicy = { kind: 'enumByte', value: ENUM_UNKNOWN_BYTE };
 const NONE: SentinelPolicy = { kind: 'none' };
+const VATD: SentinelPolicy = { kind: 'tristate-zero' };
 
 /**
  * Le schéma colonnaire complet, dans l'ordre d'EX-DATA-119 et de `ListingColumnBatch`.
@@ -101,6 +103,10 @@ export const LISTING_COLUMNS: readonly ColumnDescriptor[] = [
   { name: 'seatCount', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: null, scale: 1, hotPath: true },
   { name: 'previousOwnerCount', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: null, scale: 1, hotPath: true },
   { name: 'imageCount', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: null, scale: 1, hotPath: true },
+  // Champ # 10 `isTaxDeductible` (colonne « TVA » d'EX-SCR-203, D8-08 / DR-082). Tri-état sur un
+  // octet : l'inconnu vaut `0`, PAS la sentinelle 255 des autres colonnes énumérées — le champ
+  // source est un booléen optionnel et les trois états tiennent dans 0/1/2 (`VAT_DEDUCTIBLE`).
+  { name: 'vatDeductible', physical: 'Uint8Array', sentinel: VATD, vocabulary: null, scale: 1, hotPath: false },
 
   // Drapeaux de bits
   { name: 'booleanFlags', physical: 'bitset16', sentinel: NONE, vocabulary: null, scale: 1, hotPath: true },
@@ -167,6 +173,9 @@ export interface Listing {
 
   readonly booleanFlags: number;
   readonly ingestFlags: number;
+
+  /** TVA déductible (EX-SCR-203) : `true`, `false`, ou `null` si la source ne le dit pas (D8-08). */
+  readonly vatDeductible: boolean | null;
 
   readonly listingUrl: string;
   readonly modelVersionRaw: string | null;

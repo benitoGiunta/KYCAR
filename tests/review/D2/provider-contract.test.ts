@@ -104,6 +104,7 @@ function batchVide(): ListingColumnBatch {
     seatCount: u8,
     previousOwnerCount: u8,
     imageCount: u8,
+    vatDeductible: u8,
     booleanFlags: new Uint16Array(0),
     ingestFlags: new Uint32Array(0),
     stringBlob: u8,

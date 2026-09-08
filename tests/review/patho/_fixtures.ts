@@ -170,6 +170,8 @@ export function buildBatch(specs: readonly RowSpec[], options: BuildBatchOptions
   const seatCount = new Uint8Array(n);
   const previousOwnerCount = new Uint8Array(n);
   const imageCount = new Uint8Array(n);
+  // D8-08 : colonne TVA tri-état, `0` = INCONNU.
+  const vatDeductible = new Uint8Array(n);
   const booleanFlags = new Uint16Array(n);
   const ingestFlags = new Uint32Array(n);
 
@@ -286,6 +288,7 @@ export function buildBatch(specs: readonly RowSpec[], options: BuildBatchOptions
     seatCount,
     previousOwnerCount,
     imageCount,
+    vatDeductible,
     booleanFlags,
     ingestFlags,
     stringBlob,

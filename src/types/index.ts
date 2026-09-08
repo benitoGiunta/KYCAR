@@ -34,13 +34,17 @@ export {
   NUMERIC_UNKNOWN,
   ENUM_UNKNOWN_BYTE,
   MODEL_ID_UNRESOLVED,
+  VAT_DEDUCTIBLE,
   isNumericKnown,
   isEnumByteKnown,
   readNumeric,
   readEnumByte,
   encodeNumeric,
   encodeEnumByte,
+  readVatDeductible,
+  encodeVatDeductible,
 } from './sentinels';
+export type { VatDeductibleCode } from './sentinels';
 
 // Modèle colonnaire.
 export type { ColumnDescriptor, ColumnPhysicalType, SentinelPolicy, Listing } from './columns';

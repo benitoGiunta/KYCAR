@@ -55,6 +55,8 @@ export interface MutableColumns {
   seatCount: Uint8Array;
   previousOwnerCount: Uint8Array;
   imageCount: Uint8Array;
+  /** TVA déductible, tri-état `VAT_DEDUCTIBLE` (0 inconnu / 1 non / 2 oui) — D8-08. */
+  vatDeductible: Uint8Array;
   booleanFlags: Uint16Array;
   ingestFlags: Uint32Array;
 }
@@ -92,6 +94,8 @@ export function allocColumns(rowCount: number): MutableColumns {
     seatCount: new Uint8Array(rowCount),
     previousOwnerCount: new Uint8Array(rowCount),
     imageCount: new Uint8Array(rowCount),
+    // D8-08 : `0` = INCONNU est la valeur d'allocation, donc l'état neutre par défaut.
+    vatDeductible: new Uint8Array(rowCount),
     booleanFlags: new Uint16Array(rowCount),
     ingestFlags: new Uint32Array(rowCount),
   };
@@ -186,6 +190,7 @@ export function subsetBatch(
     cols.seatCount[k] = source.seatCount[i] as number;
     cols.previousOwnerCount[k] = source.previousOwnerCount[i] as number;
     cols.imageCount[k] = source.imageCount[i] as number;
+    cols.vatDeductible[k] = source.vatDeductible[i] as number;
     cols.booleanFlags[k] = source.booleanFlags[i] as number;
     cols.ingestFlags[k] = source.ingestFlags[i] as number;
     const strings: string[] = new Array(STRING_FIELDS);

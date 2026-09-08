@@ -100,6 +100,7 @@ const servedProvider: DataProvider = {
       seatCount: new Uint8Array(0),
       previousOwnerCount: new Uint8Array(0),
       imageCount: new Uint8Array(0),
+      vatDeductible: new Uint8Array(0),
       booleanFlags: new Uint16Array(0),
       ingestFlags: new Uint32Array(0),
       stringBlob: new Uint8Array(0),

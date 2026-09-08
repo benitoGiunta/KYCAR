@@ -23,6 +23,38 @@ export const ENUM_UNKNOWN_BYTE = 255 as const;
 export const MODEL_ID_UNRESOLVED = 0 as const;
 
 /**
+ * Encodage TRI-ÉTAT de la colonne `vatDeductible` (D8-08 / DR-082 ; colonne « TVA » d'EX-SCR-203,
+ * annexe A champ # 10 `isTaxDeductible`). C'est la SEULE colonne du lot dont l'inconnu vaut `0` et
+ * non la sentinelle `255` : le champ source est un booléen OPTIONNEL, donc à trois états, et le
+ * réduire à un booléen aurait fait passer « la source ne le dit pas » pour « non déductible » —
+ * exactement ce qu'EX-DATA-2 interdit.
+ */
+export const VAT_DEDUCTIBLE = {
+  /** La source ne porte pas l'information (INCONNU, EX-DATA-2). */
+  UNKNOWN: 0,
+  /** TVA NON déductible. */
+  NO: 1,
+  /** TVA déductible. */
+  YES: 2,
+} as const;
+
+/** Code stocké dans la colonne `vatDeductible` : `0`, `1` ou `2`. */
+export type VatDeductibleCode = (typeof VAT_DEDUCTIBLE)[keyof typeof VAT_DEDUCTIBLE];
+
+/** Lit la colonne `vatDeductible` en repliant `0` (inconnu) sur `null` — jamais sur `false`. */
+export function readVatDeductible(code: number): boolean | null {
+  if (code === VAT_DEDUCTIBLE.YES) return true;
+  if (code === VAT_DEDUCTIBLE.NO) return false;
+  return null;
+}
+
+/** Encode un booléen optionnel de TVA déductible vers la colonne : `null`/`undefined` → `0`. */
+export function encodeVatDeductible(value: boolean | null | undefined): VatDeductibleCode {
+  if (value === null || value === undefined) return VAT_DEDUCTIBLE.UNKNOWN;
+  return value ? VAT_DEDUCTIBLE.YES : VAT_DEDUCTIBLE.NO;
+}
+
+/**
  * Nombre de champs textuels par ligne dans `ListingColumnBatch.stringOffsets`.
  * Réexporté depuis `DataProvider.ts` (l'interface gelée fait foi) pour que le schéma colonnaire de
  * D2 et l'interface partagent une seule constante.

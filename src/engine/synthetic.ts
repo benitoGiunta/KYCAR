@@ -157,6 +157,8 @@ export function generateSyntheticDataset(options: SyntheticOptions): SyntheticDa
   const previousOwnerCount = new Uint8Array(n);
   const imageCount = new Uint8Array(n);
 
+  // D8-08 : colonne TVA tri-état, `0` = INCONNU partout (le générateur de D3 la peuplera).
+  const vatDeductible = new Uint8Array(n);
   const booleanFlags = new Uint16Array(n);
   const ingestFlags = new Uint32Array(n);
 
@@ -338,6 +340,7 @@ export function generateSyntheticDataset(options: SyntheticOptions): SyntheticDa
     seatCount,
     previousOwnerCount,
     imageCount,
+    vatDeductible,
     booleanFlags,
     ingestFlags,
     stringBlob,

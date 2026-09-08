@@ -64,6 +64,7 @@ function batchTransferables(batch: ListingColumnBatch): ArrayBuffer[] {
     batch.seatCount,
     batch.previousOwnerCount,
     batch.imageCount,
+    batch.vatDeductible,
     batch.booleanFlags,
     batch.ingestFlags,
     batch.stringBlob,

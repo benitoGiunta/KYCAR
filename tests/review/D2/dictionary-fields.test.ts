@@ -48,6 +48,13 @@ describe('D2 — disposition physique (EX-DATA-119) : 8 champs échantillonnés'
     expect(10_000).toBeLessThan(32767);
   });
 
+  it('# 10 vatDeductible — Uint8Array tri-état, inconnu = 0 (D8-08), hors chemin chaud', () => {
+    expect(col('vatDeductible')?.physical).toBe('Uint8Array');
+    expect(col('vatDeductible')?.sentinel).toEqual({ kind: 'tristate-zero' });
+    expect(col('vatDeductible')?.vocabulary).toBeNull();
+    expect(col('vatDeductible')?.hotPath).toBe(false);
+  });
+
   it('# 60/65/66/80 — compteurs sur Uint8Array, sentinelle 255, bornes < 255', () => {
     for (const name of ['previousOwnerCount', 'doorCount', 'seatCount', 'imageCount']) {
       expect(col(name)?.physical).toBe('Uint8Array');
@@ -57,8 +64,12 @@ describe('D2 — disposition physique (EX-DATA-119) : 8 champs échantillonnés'
     expect(LISTING_NUMERIC_BOUNDS['imageCount']?.max).toBe(50);
   });
 
-  it('EX-DATA-119 : exactement 19 colonnes énumérées sur un octet et 2 champs de bits', () => {
-    expect(LISTING_COLUMNS.filter((c) => c.physical === 'Uint8Array')).toHaveLength(19);
+  it('EX-DATA-119 : exactement 20 colonnes énumérées sur un octet et 2 champs de bits', () => {
+    // D8-08 / DR-082 : la colonne `vatDeductible` (« TVA » d'EX-SCR-203) amende l'interface gelée
+    // 2.3 et porte le compte de 19 à 20. L'assertion normative (le descripteur est aligné sur
+    // `ListingColumnBatch`, colonne par colonne) est inchangée — seule la cardinalité suit
+    // l'amendement, comme pour D-01 / D-02 en 2.6.
+    expect(LISTING_COLUMNS.filter((c) => c.physical === 'Uint8Array')).toHaveLength(20);
     // D-01 : `ingestFlags` est passé de `bitset16` à `bitset32` ; il y a toujours 2 champs de bits.
     expect(LISTING_COLUMNS.filter((c) => c.physical === 'bitset16' || c.physical === 'bitset32')).toHaveLength(2);
   });

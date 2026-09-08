@@ -306,6 +306,14 @@ export interface ListingColumnBatch {
   readonly seatCount: Uint8Array;
   readonly previousOwnerCount: Uint8Array;
   readonly imageCount: Uint8Array;
+  /**
+   * TVA déductible (`EX-SCR-203` colonne « TVA », annexe A champ # 10 `isTaxDeductible`). Colonne
+   * ajoutée par D8-08 / DR-082 : le booléen optionnel de la source a TROIS états et une colonne
+   * booléenne n'aurait pas su dire « inconnu ». Encodage TRI-ÉTAT, seule colonne du lot dont
+   * l'inconnu vaut `0` et non `255` (`VAT_DEDUCTIBLE` dans `src/types`) :
+   *   0 = INCONNU (la source ne porte pas l'information) · 1 = NON déductible · 2 = OUI déductible.
+   */
+  readonly vatDeductible: Uint8Array;
 
   // --- Drapeaux de bits (booléens + ingestFlags, dont PRICE_SENTINEL_ABSOLUTE — R-A06) ---
   readonly booleanFlags: Uint16Array;

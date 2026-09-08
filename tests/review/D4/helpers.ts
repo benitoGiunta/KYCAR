@@ -97,6 +97,8 @@ export function makeBatch(
   const seatCount = enumCol();
   const previousOwnerCount = enumCol();
   const imageCount = enumCol();
+  // D8-08 : colonne TVA tri-état, `0` = INCONNU (et non la sentinelle 255 des autres octets).
+  const vatDeductible = new Uint8Array(n);
   const booleanFlags = new Uint16Array(n);
   const ingestFlags = new Uint32Array(n);
 
@@ -173,6 +175,7 @@ export function makeBatch(
     seatCount,
     previousOwnerCount,
     imageCount,
+    vatDeductible,
     booleanFlags,
     ingestFlags,
     stringBlob: new Uint8Array(0),
