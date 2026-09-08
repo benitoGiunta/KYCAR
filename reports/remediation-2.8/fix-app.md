@@ -43,6 +43,9 @@ bandeau sur C, doublon C3), **D8-14, D8-15, D8-20, D8-24, D8-26**, plus les cons
 | 23 | **E2E-25** (`EX-CRUD-19`, `ADV-13`) — deux onglets écrivant au même instant perdaient une entrée : les deux blobs écrits, l'index n'en citait qu'un, l'entrée orpheline jamais réindexée (**7 à 8 rondes perdantes sur 8**) | `src/persistence/kv.ts` : `KvBackend.keys(prefix)` optionnel (localStorage + mémoire). `crud-store.ts` : index **auto-réparateur** — réconcilié avec les clés `kycar:<collection>/*` réellement présentes à chaque lecture, réparation **persistée**, et rejouée sur l'événement `storage` d'un autre onglet (`reconcileIndex()`, appelé par les trois banques). Aucun `navigator.locks` (`D-16` intact) | **Sonde neuve** `tests/review/D8/index-autorepair.test.ts` : **3 cas rouges sur 5** avant, 5/5 après. **E2E** `persistance.spec.ts::E2E-25` : **0 ronde perdante sur 8, trois exécutions** ; `test.fail()` retiré | **FAIT** |
 | 24 | **Relevé de fix-engine §6.1** — `OutlierIndex.has()` et `isEvaluated()` répondaient « oui » sur un verdict `INSUFFICIENT_DATA`/`INSUFFICIENT_SPREAD`, c'est-à-dire sur une annonce que le moteur déclare NON évaluable : `\|A\|` (`EX-DATA-101`) gonflé, sucettes G8 et colonne « signalée » de l'écran D fausses | `src/screens/outlier-index.ts` : `realFlags()` exclut les deux codes de non-évaluabilité (`isNotEvaluableOutlierCode`), utilisé par `has()`, `isEvaluated()` et `flaggedCount` | **Sonde neuve** `tests/review/D8/outlier-index.test.ts` : **2 cas rouges sur 5** avant, 5/5 après | **FAIT** |
 | 25 | **D8-26** — retrait des `test.fail()` des constats corrigés par fix-state (E2E-12, E2E-14, E2E-21) | `tests/e2e/a11y.spec.ts`, `clavier.spec.ts`, `responsive.spec.ts` | Rejoués VERTS contre Chromium réel avant retrait (`E2E-12` axe-core sur la modale, `E2E-14` restitution du focus, `E2E-21` feuilles du bandeau et de l'écran G) | **FAIT** |
+| 26 | **`E2E-19` (tablet), révélé par D8-14/FV-21** — le panneau Diagnostic étendu porte des valeurs LONGUES (journal des rejets, drapeaux d'ingestion, champs inconnus) ; sa grille `max-content 1fr` prenait leur largeur intrinsèque : lignes de 1 909 px, document à 836 px pour un viewport de 768 | `src/app/app.css` : les deux pistes du `dl` sont bornées (`minmax(0, …)`), le texte revient à la ligne (`overflow-wrap: anywhere`) | **E2E** `responsive.spec.ts::E2E-19` au projet `tablet` : rouge (« surfaces à débordement horizontal : A, B, C ») → vert (« aucune ») | **FAIT** |
+| 27 | **`E2E-19` (tablet), régime intermédiaire jamais exercé** — 5 pistes de ~134 px face à des contrôles gardant leur largeur intrinsèque (`min-width: 9rem`, deux champs de 6 rem, grille d'options à 2 colonnes) | `src/components/filters/filter-band.css` (**hors périmètre nominal**, voir §5 point 5) : dans le SEUL régime `intermediaire`, les contrôles se réduisent à leur piste, les bornes d'intervalle s'empilent, les options repassent sur une colonne | Mesure directe au navigateur : `scrollWidth` du document 836 → 793 → **768** pour `clientWidth` 768 ; `responsive.spec.ts` `tablet` 8/8 | **FAIT** |
+| 28 | **`EX-NAV-11` (mobile), plafond d'URL non éprouvé sur l'application différée** — la feuille compacte appliquait par `forcePushSelection`, réservé aux RETRAITS : une application pouvait dépasser 2 000 caractères sans refus ni message | `src/components/filters/FilterBand.tsx` (**hors périmètre nominal**, §5 point 5) : `handleApplyCompactSheet` éprouve `wouldExceedBudget` avant d'appliquer, refuse avec `URL_BUDGET_EXCEEDED_MESSAGE` et LAISSE la feuille ouverte (le brouillon n'est pas perdu) | **E2E** `partage-url.spec.ts::EX-NAV-11` au projet `mobile` : rouge (aucun bandeau) → vert ; desktop et tablet inchangés (14/14) | **FAIT** |
 
 ---
 
@@ -100,6 +103,9 @@ d'agrégats par option côté provider — **hors budget de ce lot, à instruire
 | `tests/e2e/parcours-p1.spec.ts` | « périmètre belge attesté par l'identifiant du snapshot » | l'identifiant est lu sur l'attribut `title` du jeton et dans le panneau Diagnostic, au lieu du texte visible du jeton | `EX-SCR-43` / `FV-17` demandent explicitement un jeton COURT `Snapshot <JJ/MM>` avec le détail en infobulle : l'exigence a DÉPLACÉ l'information, le test la lit à son nouvel emplacement. Le fait mesuré (périmètre belge attesté, `cy` jamais dans l'URL) est intact. |
 | `tests/e2e/parcours-p2.spec.ts` | `E2E-07`, tri par en-tête | `getByRole('button', { name: /^Prix/ })` → ancré sur `.kycar-listings-table`, `exact: true` | Le locator non ancré est AMBIGU dès que l'écran D rend réellement : il capturait aussi le repli « Prix et valeur » du bandeau de filtres. Le test échouait avant d'y arriver (E2E-01). L'assertion (`aria-sort` unique) est inchangée. |
 | `tests/e2e/responsive.spec.ts` | « les cartes-marques restent pleinement fonctionnelles » | le dépliage passe par le bouton de pied de carte au lieu d'un clic sur l'en-tête | **D8-04a** : le clic sur l'en-tête POSE `mmmv` (`EX-SCR-110`) — c'était le premier des quatre écarts `mmmv` relevés par la vérification finale. Le dépliage a son propre contrôle (`EX-SCR-122`), celui que la suite du test utilisait déjà pour REPLIER. |
+| `tests/e2e/responsive.spec.ts` | `CONSTAT E2E-18` | le dépliage passe par le bouton de pied de carte, et le libellé est ATTENDU (`expect.poll`) | Même cause que la ligne précédente (D8-04a) pour le contrôle ; l'attente vient de D8-02 : les zones-modèles sont un enrichissement PROGRESSIF, lu une fois le chargement arrivé. Le fait mesuré (le libellé annonce le seuil RÉEL du régime, 4 en compact) est inchangé. |
+| `tests/e2e/parcours-p1.spec.ts` | `CONSTAT E2E-04` | lecture unique → `expect.poll` | Idem : le cardinal « modèles » arrive après le premier affichage utile (`EX-NFR-9`). L'assertion (« jamais `0` sur une population qui en compte ») est inchangée. |
+| `tests/e2e/parcours-p1.spec.ts`, `partage-url.spec.ts`, `persistance.spec.ts`, `clavier.spec.ts`, `parcours-p2.spec.ts` | pose de filtres, onglets, écran D | chemins d'interaction rendus SENSIBLES AU RÉGIME via trois aides partagées (`openFilterSheet`, `applyFilterSheet`, `openNav`) | **D8-15** : la coquille fournit désormais `regime`, donc `EX-SCR-96`/`97`/`98` s'appliquent réellement — les contrôles vivent dans une feuille plein écran à application différée, les quatre onglets derrière un tiroir, l'écran D en cartes. Chaque test décrit le MÊME parcours ; seul le chemin suit l'exigence. Les assertions propres au TABLEAU de l'écran D (`E2E-07`) sont `test.skip` en compact — inadéquation de plate-forme (`EX-SCR-209`), comme les skips de contrat déjà présents. |
 | `tests/e2e/*.spec.ts` (7 fichiers) | 26 `test.fail()` | retirés, chacun remplacé par un commentaire nommant la correction | Règle D8-17/D8-26 : le test E2E qui a révélé l'écart est la preuve, non modifié, rejoué VERT avant retrait. |
 | `tests/e2e/responsive.spec.ts` | **`DETTE D8-15`** (nouveau) | ajouté en `test.fail()` | Dette produit RATIFIÉE par le fix-lead (`EX-SCR-95`, réglages « Assainissement KYCAR ») : elle est rendue visible à chaque exécution de la recette plutôt que passée sous silence, et redeviendra verte le jour où le panneau sera livré. |
 
@@ -132,17 +138,48 @@ Aucune autre assertion n'a été modifiée.
 4. **Bandeau `ET-URL-CORRIGEE` et durée de vie.** Il vit dans un état de SESSION distinct de
    `location` : `EX-SCR-38bis` exige qu'il ne soit **pas restauré par un retour arrière** vers la
    même URL corrigée. Il est vidé par `applyFilters`, `onResetAllFilters` et `onSelectionApplied`.
+5. **Deux corrections HORS périmètre nominal, assumées et signalées.** `D8-15` m'impose de fournir
+   `regime` au bandeau ; ce câblage rend `EX-SCR-96`/`97` réellement atteignables pour la première
+   fois et met au jour deux implémentations de régime incomplètes, dans des fichiers appartenant à
+   `fix-state` : le débordement horizontal du régime intermédiaire (`filter-band.css`) et le plafond
+   d'URL `EX-NAV-11` non éprouvé sur l'application différée de la feuille compacte
+   (`FilterBand.tsx`). Aucun agent ne reste sur `src/components/filters/` dans l'arbre principal, et
+   les laisser aurait signifié livrer une exigence normative en défaut avec deux tests rouges. Les
+   deux corrections sont minimales, bornées au seul régime concerné, et portent en commentaire
+   l'attribution « complété par fix-app (D8-15), hors de son périmètre nominal ». **À ratifier par le
+   fix-lead.**
+6. **`EX-NFR-9` contre `D8-02`.** L'agrégation MODÈLE de portée marché est un SECOND balayage du jeu
+   servi. Lancée dans la foulée du rendu, elle disputait le thread principal à la peinture des cartes
+   et faisait passer la médiane du premier affichage utile de 1 493 ms à 1 903 ms pour un budget de
+   2 000 ms. Le « premier affichage utile », au sens de l'exigence, est la GRILLE DE CARTES ; les
+   zones-modèles sont un enrichissement progressif. Le chargement part donc après un plancher de
+   400 ms puis un créneau d'inactivité (`requestIdleCallback`, repli minuté). Mesures au §6.
 
 ---
 
 ## 6. Mesures
 
-### `EX-NFR-9` — budget de démarrage (statique, `dist/`)
+### `EX-NFR-9` — premier affichage utile en 4G simulée (budget 2 000 ms)
 
-`npm run test:review tests/review/D8/nfr9-size.test.ts` : bundle initial et référentiels sous les
-budgets (`≤ 300 Kio` gzip, `≤ 900 Ko` transférés, `≤ 1 800 ms`). `npm run size` : voir §7.
-Le chargement des agrégats-modèles de D8-02 est **hors du chemin critique** : il est déclenché après
-`loadMarket`, dans un effet séparé, et son échec ne dégrade que les zones-modèles.
+Mesure au navigateur, profil normatif (≈ 4 Mb/s, latence 150 ms), cache vidé et désactivé, cinq
+mesures par projet (`tests/e2e/perf.spec.ts`). La série complète est publiée pour que la marge réelle
+soit lisible.
+
+| Projet | Référence 2.9a (avant 2.8) | **Après D8-02, sans plancher** | **Après D8-02, avec plancher de 400 ms** |
+|---|---|---|---|
+| desktop, `/marche` nu | médiane **1 493 ms** (1495/1489/1493/1494/1493) | médiane **1 903 ms** (1606/2117/1577/1903/2073) | médiane **1 510 ms** (1503/1510/1541/1512/1508) |
+| desktop, URL déjà filtrée | médiane **1 589 ms** | médiane **1 758 ms** | médiane **1 609 ms** |
+
+Lecture : l'agrégation MODÈLE de portée marché (`D8-02`) est un SECOND balayage du jeu servi.
+Déclenchée dans la foulée du rendu, elle disputait le thread principal à la peinture des cartes —
++410 ms sur la médiane et surtout une variance qui n'existait pas (écart-type de 5 ms → 240 ms),
+c'est-à-dire des exécutions AU-DESSUS du budget. Rendue à la boucle d'inactivité après un plancher
+de 400 ms, elle sort du chemin critique : la médiane revient à **+17 ms** de la référence, sur un
+budget de 2 000 ms, et les zones-modèles arrivent ~0,5 s après les cartes. Transfert au premier
+affichage : **208 Kio** (référence 195 Kio ; l'écart est la croissance du bundle, pas ce chargement).
+
+Budgets statiques inchangés (`tests/review/D8/nfr9-size.test.ts`) : bundle initial et référentiels
+sous `≤ 300 Kio` gzip, `≤ 900 Ko` transférés, `≤ 1 800 ms`. `npm run size` : **111,86 / 300 Kio**.
 
 ### `D8-01` — coût de la copie structurée
 
@@ -183,20 +220,60 @@ aucun code supplémentaire n'est nécessaire côté coquille au-delà de cette p
 
 ## 8. Vérification finale de ce lot
 
+### 8.1 Hors navigateur
+
 ```
 npx tsc --noEmit -p tsconfig.json         → 0 erreur
 npx tsc --noEmit -p tsconfig.worker.json  → 0 erreur
 npx tsc --noEmit -p tsconfig.review.json  → 0 erreur
 npx eslint src tests                      → vert
-npm run test:unit                         → 675 passed
-npm run test:review                       → voir §8.1
+npm run test:unit                         → 675 passed (58 fichiers)
+npm run test:review                       → 933 passed, 4 failed (87 fichiers)
 npm run build                             → 0 erreur / 0 warning
-npm run size                              → voir §8.1
-npm run test:e2e (3 projets)              → voir §8.2
+npm run size                              → initial 112,01 / 300 Kio gzip — OK
 ```
+
+Les **4 sondes rouges** sont EXACTEMENT les quatre de **D8-25**, propriété de `fix-screens-finition`
+(`tests/review/D7/ecran-b.test.ts` : `EX-SCR-144/191`, `EX-NFR-15`/`EX-SCR-188`, `EX-SCR-176`, mode
+`modelId = 0` — 13 figures au lieu de 14, fixtures mono-pays face au masquage de G15 par D8-06).
+Elles sont rouges à l'identique avant et après ce lot ; **aucune sonde de mon périmètre n'est rouge**.
+Le total de sondes de revue passe de 908 à **937** : +29 pour la nouvelle
+`tests/review/D8/shell-wiring-2.8.test.ts`, plus les 5 + 5 de `outlier-index` et
+`index-autorepair` (déjà comptées dans les 908 après leur ajout).
+
+### 8.2 Recette navigateur — `npm run test:e2e`, TROIS projets
+
+```
+237 tests · 228 passés · 9 sautés · 0 ÉCHEC INATTENDU · 9 min 24 s · exit 0
+```
+
+- **`test.fail()` restants : 3** — le même test dans les trois projets,
+  `responsive.spec.ts::DETTE D8-15` (`EX-SCR-95`, réglages « Assainissement KYCAR »), rattaché à la
+  **dette produit RATIFIÉE par le fix-lead** (`FIX-LEAD-DECISIONS-2.8.md` D8-15). Il est écrit et
+  rouge par construction pour que la dette soit visible à chaque exécution de la recette.
+- **`test.fail()` retirés : 26** — la totalité des constats `E2E-01` … `E2E-26`, chacun rejoué VERT
+  contre Chromium réel avant retrait, chacun remplacé par un commentaire nommant sa correction.
+- **9 sautés** : inadéquations de plate-forme, jamais un masquage — `E2E-04` (cardinal « modèles »
+  absent en compact, `EX-SCR-135`), `E2E-03`/`E2E-06`/brossage (projection 2D dégradée sous 768 px,
+  `EX-NFR-19`), `E2E-07` (l'écran D est rendu en cartes en compact, `EX-SCR-209`), `E2E-17`/`E2E-18`
+  (écarts propres au régime dégradé/compact, sautés ailleurs).
+- **Échecs inattendus : 0.**
 
 ---
 
 ## 9. Résumé (12 lignes)
 
-*(rempli en fin de lot)*
+D8-01 (BLOQUANT) : le lot colonnaire n'est plus transféré au worker — copie structurée, 2,6 ms
+médiane à 100 000 lignes ; l'écran D, le nuage G4, huit graphes, l'export CSV et « % particuliers »
+reviennent à la vie, et le parcours cible 2 se termine (14/14 en navigateur). D8-02 (BLOQUANT) : les
+agrégats MODÈLE du marché filtré sont chargés en un aller, hors du chemin critique — « 908 modèles »
+au lieu de « 0 », zones rendues sans clic, `EX-NFR-9` à +17 ms de sa référence. D8-03 : corrections
+d'URL consommées (`replaceState` + `ET-URL-CORRIGEE`). D8-04a-c : les trois écarts `mmmv` du ressort
+de la coquille. D8-05 : facettes différées, effectifs d'écran G, compteur de la zone (4) et double
+compteur du fil d'Ariane hors taxonomie. D8-06 : props B/C/D câblées, bandeau C1 sur `/comparer`,
+pile de bandeaux `EX-SCR-38` plafonnée à deux + `+k`. D8-24 : le payload survit au recalcul, d'où
+`ET-CHARGE-MAJ`. D8-14/D8-15/D8-20 : impression, focus, `mk`, amorce, jeton de snapshot, Diagnostic,
+favicon, hors ligne, régimes, bandeau Carrosserie. E2E-25 : index CRUD auto-réparateur, 0 perte sur
+8 rondes (contre 7-8/8). Trois sondes D8 neuves, 26 `test.fail()` retirés, 3 restants (dette D8-15
+ratifiée). **228 passés / 0 échec inattendu** sur les trois projets ; `npm test` vert hors les 4
+sondes D7 de D8-25. Deux corrections HORS périmètre (§5, point 5) sont soumises au fix-lead.
