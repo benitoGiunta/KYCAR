@@ -161,18 +161,44 @@ describe('Sondes de mutation — chaque invariant détecte une violation', () =>
 
 describe('I6 — contrôle indépendant (le moteur dérive notEvaluated par soustraction)', () => {
   it('evaluated ≤ n_price(Σ) et notEvaluated ≥ quoted − n_price(Σ), recomptés hors moteur', () => {
+    // Sonde AMENDÉE (D-31, justification D-44) : `V_price` d'EX-DATA-60 exclut les DEUX sentinelles
+    // d'EX-DATA-19 — l'absolue (drapeau d'ingestion) et la relative à la cellule
+    // (`prix < 0,10 × médianeRéf(C₃ = Σ)`, calculée à l'analyse). Le recomptage indépendant refait
+    // donc les deux passes du moteur, sans lui emprunter ni son seuil ni son compte.
     let quoted = 0;
-    let priceValid = 0;
+    const validPrices: number[] = [];
     for (let i = 0; i < batch.rowCount; i++) {
       const status = batch.priceStatus[i] as number;
       if (status === PRICE_STATUS_QUOTED) quoted++;
-      if (isPriceValid(batch.priceEur[i] as number, status, batch.ingestFlags[i] as number)) priceValid++;
+      if (isPriceValid(batch.priceEur[i] as number, status, batch.ingestFlags[i] as number)) {
+        validPrices.push(batch.priceEur[i] as number);
+      }
     }
+    const sortedValid = Float64Array.from(validPrices).sort();
+    const medianRef =
+      sortedValid.length === 0 ? null
+      : sortedValid.length % 2 === 1 ? (sortedValid[(sortedValid.length - 1) / 2] as number)
+      : ((sortedValid[sortedValid.length / 2 - 1] as number) + (sortedValid[sortedValid.length / 2] as number)) / 2;
+    const seuil = medianRef !== null && sortedValid.length >= 12 ? 0.1 * medianRef : null;
+    let implausible = 0;
+    if (seuil !== null) for (const p of validPrices) if (p < seuil) implausible++;
+    const priceValid = validPrices.length - implausible;
     const s = full.selectionStats;
+    console.log(
+      `[I6 indépendant] quoted=${quoted} valides(absolu)=${validPrices.length} seuil relatif=${seuil} ` +
+        `implausibles=${implausible} n_price=${priceValid}`,
+    );
+    expect(seuil).toBe(full.implausibleThreshold);
+    expect(implausible).toBe(full.implausibleInCellExcluded);
     expect(s.priceQuotedCount).toBe(quoted);
     expect(s.price.n).toBe(priceValid);
-    expect(s.outlierEvaluatedCount).toBeLessThanOrEqual(priceValid);
-    expect(s.outlierNotEvaluatedCount).toBeGreaterThanOrEqual(quoted - priceValid);
+    // M1/M2 évaluent dans la cellule d'ANALYSE de chaque annonce (C₁/C₂/C₃ selon le choix de
+    // cellule), pas dans `C₃ = Σ` : une annonce sous `0,10 × médianeRéf(Σ)` peut être parfaitement
+    // plausible dans sa propre cellule et y être évaluée. La borne indépendante de `evaluated` est
+    // donc l'échantillon purgé des seules sentinelles ABSOLUES, seul majorant commun aux deux
+    // découpages (mesuré : evaluated = 18 560, n_price(Σ) = 18 378, valides absolus = 18 830).
+    expect(s.outlierEvaluatedCount).toBeLessThanOrEqual(validPrices.length);
+    expect(s.outlierNotEvaluatedCount).toBeGreaterThanOrEqual(quoted - validPrices.length);
     // Le contrôle D2 est tautologique par construction du moteur : il ne peut jamais échouer sur une sortie réelle.
     expect(s.outlierNotEvaluatedCount).toBe(s.priceQuotedCount - s.outlierEvaluatedCount);
     console.log(`[I6 indépendant] quoted=${quoted} n_price=${priceValid} evaluated=${s.outlierEvaluatedCount} notEvaluated=${s.outlierNotEvaluatedCount}`);

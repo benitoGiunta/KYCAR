@@ -139,13 +139,48 @@ describe('patho — étiquetage des fourchettes (ADV-02 / ADV-03 → ARB-19, ARB
     expect(card.price.caption).toBe('fourchette centrale (90 % des offres)');
     expect(card.price.label).not.toContain('119');
     expect(card.price.label).not.toContain('289');
-    expect(agg.price.min).toBe(119);
+
+    // Sonde AMENDÉE (D-31, justification D-44). L'annonce à 119 € est sous
+    // `0,10 × médianeRéf(C₃ = Σ)` (médiane ≈ 13 000 € ⇒ seuil ≈ 1 300 €) : c'est une sentinelle
+    // RELATIVE au sens d'EX-DATA-19(2), donc hors de `V_price` au titre d'EX-DATA-60, exactement
+    // comme une sentinelle absolue. Elle reste comptée dans l'effectif (ARB-15, 62 annonces).
+    // CONSÉQUENCE consignée au rapport : le CHIFFRE littéral d'`ADV-02` (« 119 € ») n'est plus
+    // atteignable dans une cellule d'au moins 12 prix valides ; l'ATTAQUE d'ADV-02 l'est toujours,
+    // et c'est elle que la sonde mesure — une fourchette brute [1 400 €, 289 000 €] reste absurde
+    // et c'est `ARB-19` (étiquetage), non la donnée, qui la rend lisible.
+    expect(agg.listingCount).toBe(62);
+    expect(recalc.implausibleInCellExcluded).toBe(1);
+    expect(agg.price.n).toBe(61);
+    expect(agg.price.min).toBeGreaterThan(1300);
     expect(agg.price.max).toBe(289000);
 
     // `ARB-19` : la fourchette brute existe, en libellé secondaire nommé.
     expect(card.priceRawTooltip).toContain('du moins cher au plus cher');
-    expect(card.priceRawTooltip).toContain('119');
     expect(card.priceRawTooltip).toContain('289');
+
+    // Même attaque, avec un prix bas que la règle relative NE capte PAS (≥ 0,10 × médianeRéf) :
+    // la fourchette brute reste trompeuse, et `ARB-19` reste la seule réponse.
+    const adv02 = recalcOfSpecs([
+      { makeId: 54, modelId: 1918, priceEur: 1400, year: 2010, mileageKm: 200000 },
+      ...cell(60, { makeId: 54, modelId: 1918, basePrice: 13000, spread: 0.2 }),
+      { makeId: 54, modelId: 1918, priceEur: 289000, year: 2024, mileageKm: 1000 },
+    ]);
+    const aggAdv = adv02.makeAggregates[0]!;
+    expect(aggAdv.price.min).toBe(1400);
+    expect(aggAdv.price.max).toBe(289000);
+    const cardAdv = buildMakeCardViewModel(aggAdv, {
+      make: undefined,
+      modelAggregates: adv02.modelAggregates,
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(cardAdv.price.label).not.toContain('1 400');
+    expect(cardAdv.price.label).not.toContain('289');
+    expect(cardAdv.priceRawTooltip).toContain('du moins cher au plus cher');
+    expect(cardAdv.priceRawTooltip).toContain('289');
   });
 
   it('VER-ETIQ-ZONE — la zone-modèle porte le même libellé normatif et son infobulle brute', () => {

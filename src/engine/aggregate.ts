@@ -7,8 +7,13 @@
  *   - la partition du statut de prix (I5) ;
  *   - les trois histogrammes `DistributionBucket[]` (EX-DATA-75/77, I4).
  *
- * Les échantillons valides suivent EX-DATA-60 (validité par métrique). Les quantiles sont exacts
- * (EX-DATA-111). La couverture d'échantillon (`sampleCoverage`) exige `announcedCount` du référentiel
+ * Les échantillons valides suivent EX-DATA-60 (validité par métrique) : un prix SENTINELLE, absolu
+ * (`PRICE_SENTINEL_ABSOLUTE`, ingestion) ou RELATIF à la cellule (`PRICE_IMPLAUSIBLE_IN_CELL`,
+ * analyse), n'appartient pas à `V_price` — donc à aucune statistique de prix (D-44, lecture
+ * littérale d'EX-DATA-60). Le seuil relatif est celui de la cellule `C₃ = Σ`, calculé par le noyau
+ * en PREMIÈRE passe sur l'ensemble déjà purgé des sentinelles absolues, et passé ici : le MÊME seuil
+ * sert la sélection, les groupes marque et modèle et les histogrammes, faute de quoi I3 (Σ n(marque)
+ * = n(Σ)) et I4 (Σ bins = n) tomberaient. Les quantiles sont exacts (EX-DATA-111). La couverture d'échantillon (`sampleCoverage`) exige `announcedCount` du référentiel
  * (absent du batch) : elle est laissée à `null` (NON_APPLICABLE) et renseignée par le rendu.
  *
  * Module PUR : importable par le worker comme par le thread principal.
@@ -31,6 +36,7 @@ import {
   PRICE_STATUS_QUOTED,
   yearFromYearMonth,
 } from './flags';
+import { selectionImplausibleThreshold } from './implausible';
 import { exactMetricStats } from './quantiles';
 import {
   bin,
@@ -85,6 +91,12 @@ export interface AggregateOutput {
   readonly priceHistogram: readonly DistributionBucket[];
   readonly yearHistogram: readonly DistributionBucket[];
   readonly mileageHistogram: readonly DistributionBucket[];
+  /**
+   * Annonces à prix valide au sens ABSOLU mais écartées de `V_price` par la sentinelle RELATIVE de
+   * `C₃ = Σ` (EX-DATA-19(2), EX-DATA-87). Publié pour que l'écart entre `priceQuotedCount` et
+   * `price.n` reste auditable, jamais silencieux.
+   */
+  readonly implausibleInCellExcluded: number;
 }
 
 /** Trie les agrégats par `(listingCount desc, id asc)` — le départage par nom est fait au rendu. */
@@ -99,14 +111,21 @@ function compareByCountThenId(aCount: number, aId: number, bCount: number, bId: 
  * @param rows indices de ligne retenus par le balayage.
  * @param snapshotId identifiant de snapshot (clés d'entité).
  * @param selectionHash hachage de sélection publié (clés d'entité).
+ * @param threshold seuil relatif `0,10 × médianeRéf(C₃ = Σ)` de la SECONDE passe, ou `null` quand
+ *   la règle ne s'applique pas (moins de 12 prix valides, EX-DATA-19(2)). OMIS, il est calculé ici
+ *   par la première passe — même convention que `densityGrid`, pour qu'un appelant hors noyau
+ *   obtienne les mêmes chiffres que le noyau sans avoir à connaître l'ordonnancement des passes.
  */
 export function aggregate(
   batch: ListingColumnBatch,
   rows: Int32Array,
   snapshotId: string,
   selectionHash: string,
+  threshold?: number | null,
 ): AggregateOutput {
   const n = rows.length;
+  const implausibleThreshold =
+    threshold === undefined ? selectionImplausibleThreshold(batch, rows) : threshold;
 
   const makeGroups = new Map<number, GroupBuckets>();
   const modelGroups = new Map<number, GroupBuckets>();
@@ -119,6 +138,7 @@ export function aggregate(
   let priceQuotedCount = 0;
   let priceOnRequestCount = 0;
   let priceMissingCount = 0;
+  let implausibleInCellExcluded = 0;
 
   for (let i = 0; i < n; i++) {
     const row = rows[i] as number;
@@ -154,9 +174,14 @@ export function aggregate(
     const ingest = batch.ingestFlags[row] as number;
     const price = batch.priceEur[row] as number;
     if (isPriceValid(price, status, ingest)) {
-      selPrice.push(price);
-      mk.price.push(price);
-      md.price.push(price);
+      // Seconde passe d'EX-DATA-19(2) : la sentinelle RELATIVE sort le prix de `V_price` au même
+      // titre que la sentinelle absolue — l'annonce reste comptée dans l'effectif (ARB-15).
+      if (implausibleThreshold !== null && price < implausibleThreshold) implausibleInCellExcluded++;
+      else {
+        selPrice.push(price);
+        mk.price.push(price);
+        md.price.push(price);
+      }
     }
     const ym = batch.firstRegistrationYearMonth[row] as number;
     if (isYearValid(ym)) {
@@ -228,6 +253,7 @@ export function aggregate(
     priceHistogram,
     yearHistogram,
     mileageHistogram,
+    implausibleInCellExcluded,
   };
 }
 

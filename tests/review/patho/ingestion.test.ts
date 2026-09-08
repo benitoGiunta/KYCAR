@@ -46,13 +46,23 @@ function providerFor(response: RawSearchResponse): TweedehandsDataProvider {
 
 describe('patho — ingestion réelle (D9) sous données pathologiques', () => {
   it('ING-SAIN — chemin nominal : agrégat marque servi, carte-marque construite, aucun champ vendeur', async () => {
-    const provider = providerFor({
-      totalResultCount: 5220,
-      listings: [
-        makeRawListing({ itemId: 'a-1', brand: 'Opel', model: 'Corsa', priceCents: 1200000, mileage: '60000 km', constructionYear: '2019' }),
-        makeRawListing({ itemId: 'a-2', brand: 'Opel', model: 'Corsa', priceCents: 1400000, mileage: '40000 km', constructionYear: '2020' }),
-      ],
-    });
+    // Sonde AMENDÉE sur sa seule FIXTURE (D-31). Elle servait DEUX annonces et exigeait ensuite une
+    // fourchette centrale à l'écran A. Depuis que `EX-SCR-33`/`ARB-17` est câblé dans la carte-marque
+    // (D-04, fix-screens), un échantillon de 2 prix relève du palier « trop faible » : P5/P95 sont
+    // MASQUÉS et remplacés par le jeton `n = <n>` — c'est l'exigence, pas un défaut. Le chemin
+    // nominal que cette sonde mesure demande donc un échantillon du palier publiable (n ≥ 12) ;
+    // les deux paliers sont vérifiés ci-dessous, pour que l'amendement ne perde pas le cas initial.
+    const listings = Array.from({ length: 12 }, (_v, i) =>
+      makeRawListing({
+        itemId: `a-${i}`,
+        brand: 'Opel',
+        model: 'Corsa',
+        priceCents: 1200000 + i * 100000,
+        mileage: `${60000 - i * 1000} km`,
+        constructionYear: `${2019 + (i % 2)}`,
+      }),
+    );
+    const provider = providerFor({ totalResultCount: 5220, listings });
     const handle = await provider.openSnapshot();
     const baseline = await provider.fetchBaselineAggregates(handle);
 
@@ -60,6 +70,7 @@ describe('patho — ingestion réelle (D9) sous données pathologiques', () => {
     const opel = baseline.rows[0]!;
     expect(opel.makeId).toBe(54);
     expect(opel.listingCount).toBe(5220);
+    expect(opel.price.n).toBe(12);
     expect(opel.price.min).toBe(12000);
 
     const card = buildMakeCardViewModel(opel, {
@@ -73,6 +84,24 @@ describe('patho — ingestion réelle (D9) sous données pathologiques', () => {
     });
     expect(card.price.available).toBe(true);
     expect(card.price.caption).toContain('90 % des offres');
+
+    // Palier « trop faible » (ARB-17) sur le MÊME chemin nominal : la carte se construit, l'effectif
+    // est servi, et la fourchette centrale est masquée derrière son jeton — jamais un P5/P95 forgé.
+    const petit = providerFor({ totalResultCount: 5220, listings: listings.slice(0, 2) });
+    const handlePetit = await petit.openSnapshot();
+    const opelPetit = (await petit.fetchBaselineAggregates(handlePetit)).rows[0]!;
+    expect(opelPetit.price.n).toBe(2);
+    const cartePetite = buildMakeCardViewModel(opelPetit, {
+      make: undefined,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(cartePetite.price.available).toBe(false);
+    expect(cartePetite.price.lowSampleToken).toBe('n = 2');
   });
 
   it('R-PATHO-01 — ADV-04 : une annonce à 1 € entre dans la fourchette de prix servie à l’écran A', async () => {

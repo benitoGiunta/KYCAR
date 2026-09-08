@@ -48,6 +48,36 @@ function allBuckets(r: RecalcResult): readonly DistributionBucket[] {
   return [...r.priceHistogram, ...r.yearHistogram, ...r.mileageHistogram];
 }
 
+describe('D-44 — EX-DATA-19(2) / EX-DATA-60 : la sentinelle RELATIVE sort aussi des statistiques §B.2', () => {
+  it('le seuil publié est celui de la détection, et V_price(Σ) est l’échantillon de la SECONDE passe', async () => {
+    const provider = await openSyntheticProvider(ref, N, 7);
+    const batch = provider.getDataset().batch;
+    const r = new AggregationDataset(batch).recalculate({ selectionHash: 'FULL:EMPTY' });
+
+    // Passe 1 recalculée ici, hors moteur : médiane de `V_price(Σ)` purgé des seules sentinelles
+    // ABSOLUES, puis seuil `0,10 × médianeRéf` (jamais d'itération, ARB-13).
+    const valides: number[] = [];
+    for (let i = 0; i < batch.rowCount; i += 1) {
+      const p = batch.priceEur[i] as number;
+      if (isPriceValid(p, batch.priceStatus[i] as number, batch.ingestFlags[i] as number)) valides.push(p);
+    }
+    const tri = Float64Array.from(valides).sort();
+    const mediane =
+      tri.length % 2 === 1 ? (tri[(tri.length - 1) / 2] as number)
+      : ((tri[tri.length / 2 - 1] as number) + (tri[tri.length / 2] as number)) / 2;
+    const seuil = 0.1 * mediane;
+    expect(r.implausibleThreshold).toBe(seuil);
+    expect(r.implausibleInCellExcluded).toBe(valides.filter((p) => p < seuil).length);
+    expect(r.selectionStats.price.n).toBe(valides.length - r.implausibleInCellExcluded);
+    expect(r.selectionStats.price.min as number).toBeGreaterThanOrEqual(seuil);
+    // L'annonce écartée reste COMPTÉE (ARB-15) : seul l'échantillon de prix change.
+    expect(r.selectionStats.selectionCount).toBe(batch.rowCount);
+    // I3 / I4 tiennent parce que le MÊME seuil sert la sélection, les groupes et les histogrammes.
+    expect(r.makeAggregates.reduce((a, m) => a + m.price.n, 0)).toBe(r.selectionStats.price.n);
+    expect(r.priceHistogram.reduce((a, b) => a + b.count, 0)).toBe(r.selectionStats.price.n);
+  });
+});
+
 describe('D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104)', () => {
   it('I1 — Σ listingCount(marque) = N', () => {
     const r = checkI1(result.makeAggregates, result.selectionStats.selectionCount);

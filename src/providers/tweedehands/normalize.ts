@@ -36,7 +36,7 @@
  */
 
 import { scanForbiddenFields } from '../../types/validation';
-import { LISTING_NUMERIC_BOUNDS } from '../../types/validation';
+import { LISTING_NUMERIC_BOUNDS, isWithinListingBound } from '../../types/validation';
 import type { ReferenceData } from '../../types/reference';
 import { MODEL_ID_UNRESOLVED } from '../../types/sentinels';
 import { cleanModelVersion, isPriceSentinelAbsolute } from '../../types/shared-rules';
@@ -211,9 +211,7 @@ function boundedInteger(
   flags: IngestFlagCode[],
 ): number | null {
   if (value === null) return null;
-  const bounds = LISTING_NUMERIC_BOUNDS[field];
-  if (bounds === undefined) return value;
-  if (value < bounds.min || value > bounds.max) {
+  if (!isWithinListingBound(field, value)) {
     flags.push(flag);
     return null;
   }

@@ -89,6 +89,13 @@ export interface RecalcResult {
   /** Lignes réellement examinées (témoin d'élagage : `N / scannedCount`). */
   readonly scannedCount: number;
   readonly pruned: boolean;
+  /**
+   * Seuil relatif de la cellule `C₃ = Σ` (`0,10 × médianeRéf`), ou `null` sous 12 prix valides.
+   * Publié pour que l'écran nomme la règle qui a écarté des annonces (EX-DATA-87).
+   */
+  readonly implausibleThreshold: number | null;
+  /** Annonces écartées de `V_price(Σ)` par ce seuil (D-44, EX-DATA-19(2)). */
+  readonly implausibleInCellExcluded: number;
 }
 
 /** Résultat du calcul de facettes (différé). */
@@ -151,7 +158,14 @@ export class AggregationDataset {
     const predicates = compilePredicates(batch, selection.refine ?? []);
     const scan = scanSelection(this.indexes, predicates, selection.scope);
 
-    const agg = aggregate(batch, scan.rows, snapshotId, selectionHash);
+    // D-44 — EX-DATA-19(2) / EX-DATA-60 en DEUX passes sur la cellule `C₃ = Σ` :
+    //   passe 1 : médiane de référence de `V_price(Σ)` déjà purgé des sentinelles ABSOLUES,
+    //             d'où le seuil relatif (`null` sous 12 prix valides) ;
+    //   passe 2 : statistiques, agrégats, histogrammes et densité sur ce qui reste.
+    // Aucune itération, aucun point fixe (ARB-13, R-A06) : le seuil est calculé UNE fois et sert
+    // tous les étages de la même sélection, ce qu'I3 et I4 exigent.
+    const implausibleThreshold = selectionImplausibleThreshold(batch, scan.rows);
+    const agg = aggregate(batch, scan.rows, snapshotId, selectionHash, implausibleThreshold);
 
     // Garde de budget (EX-NFR-5, O17) : M1/M2 ne tournent que sur une sélection élaguée par la
     // taxonomie, ou assez petite pour tenir les 200 ms. Sinon la détection est OMISE avec son motif.
@@ -160,10 +174,8 @@ export class AggregationDataset {
     const outliers =
       outliersSkipped === null ? detectOutliers(batch, scan.rows, snapshotId, selectionHash) : null;
     // Éligibilité du nuage et de la densité (D-05) : même règle de prix valide que M1/M2, donc le
-    // seuil relatif de `C₃ = Σ` est celui que la détection a calculé — recalculé seulement si elle
-    // a été omise.
-    const implausibleThreshold =
-      outliers === null ? selectionImplausibleThreshold(batch, scan.rows) : outliers.selectionImplausibleThreshold;
+    // MÊME seuil relatif de `C₃ = Σ` que la passe 1 ci-dessus — la détection le recalcule pour son
+    // propre compte et les deux valeurs coïncident (contrôlé par `invariants.integration.test.ts`).
     const density = densityGrid(batch, scan.rows, snapshotId, selectionHash, implausibleThreshold);
     this.lastYearMarginal = density.yearBucketCountByIndex;
 
@@ -199,6 +211,8 @@ export class AggregationDataset {
       m3: outliers === null ? M3_EMPTY : outliers.m3,
       scannedCount: scan.scannedCount,
       pruned: scan.pruned,
+      implausibleThreshold,
+      implausibleInCellExcluded: agg.implausibleInCellExcluded,
     };
   }
 

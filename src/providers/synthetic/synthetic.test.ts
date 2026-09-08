@@ -10,6 +10,7 @@ import {
 import { servesMode2 } from '../DataProvider';
 import type { ListingColumnBatch } from '../DataProvider';
 import { NUMERIC_UNKNOWN } from '../../types/sentinels';
+import { isWithinListingBound } from '../../types/validation';
 import { SyntheticDataProvider } from './SyntheticDataProvider';
 import { batchByteLength } from './columnar';
 import type { InjectedOutlier } from './generate';
@@ -189,6 +190,29 @@ describe('SyntheticDataProvider — mode 2 (échantillon fin)', () => {
     const keys = Object.keys(batch);
     for (const forbidden of ['sellerId', 'zip', 'zipCode', 'city', 'phone', 'email', 'street', 'lat', 'lon']) {
       expect(keys).not.toContain(forbidden);
+    }
+  });
+
+  it('D-47 : toute colonne bornée par l’annexe A tient dans son domaine, ou vaut INCONNU', async () => {
+    // EX-DATA-111 / annexe A : `mileageKm ∈ [0, 1 500 000]`, `powerKw ∈ [1, 9999]`,
+    // `priceEur ∈ [1, 5 000 000]`, `modelYear ∈ [1900, année + 1]`. Le générateur ne PEUT pas
+    // publier une valeur hors domaine : elle est ramenée à INCONNU et drapeautée à l'ingestion.
+    const provider = new SyntheticDataProvider({ referenceData: ref, listingCount: 20000, seed: 11 });
+    const handle = await provider.openSnapshot();
+    const batch = await provider.fetchListingColumns(handle, 'FULL');
+    const columns: readonly ['priceEur' | 'mileageKm' | 'powerKw' | 'modelYear', ArrayLike<number>][] = [
+      ['priceEur', batch.priceEur],
+      ['mileageKm', batch.mileageKm],
+      ['powerKw', batch.powerKw],
+      ['modelYear', batch.modelYear],
+    ];
+    for (const [field, column] of columns) {
+      let offending = 0;
+      for (let i = 0; i < batch.rowCount; i += 1) {
+        const v = column[i] as number;
+        if (v !== NUMERIC_UNKNOWN && !isWithinListingBound(field, v)) offending += 1;
+      }
+      expect(`${field}: ${offending}`).toBe(`${field}: 0`);
     }
   });
 

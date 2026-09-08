@@ -139,13 +139,29 @@ describe('EX-DATA-19(2)/EX-DATA-60/87 — sentinelle RELATIVE à la cellule (PRI
 
 describe('Dépendance au drapeau d’ingestion (information, pas un constat moteur)', () => {
   it('un prix QUOTED de 1 € SANS drapeau PRICE_SENTINEL_ABSOLUTE entre dans V_price : le moteur ne re-dérive pas la règle absolue (EX-DATA-19 étage ingestion)', () => {
+    // Sonde AMENDÉE (D-31, justification D-44). La règle ABSOLUE reste un étage d'INGESTION que le
+    // moteur ne re-dérive pas : c'est ce que mesure la cellule ci-dessous, dont les 11 prix valides
+    // placent la règle RELATIVE d'EX-DATA-19(2) hors de son domaine (elle ne s'applique qu'à partir
+    // de 12). Le 1 € y entre donc bien dans `V_price`, faute de drapeau.
+    const petite = makeBatch([...CLEAN.slice(0, 10), { price: 1, status: 'QUOTED', year: 2019, mileage: 60_000 }]);
+    const rPetite = new AggregationDataset(petite).recalculate({ selectionHash: 'FULL:EMPTY' });
+    expect(rPetite.selectionStats.price.n).toBe(11);
+    expect(rPetite.selectionStats.price.min).toBe(1);
+    expect(rPetite.implausibleThreshold).toBeNull();
+
+    // Au-delà de 12 prix valides, en revanche, la SECONDE règle d'EX-DATA-19 s'applique : `1 €` est
+    // sous `0,10 × médianeRéf(C₃ = Σ)`, donc sentinelle RELATIVE, donc hors de `V_price` au même
+    // titre qu'une sentinelle absolue (EX-DATA-60, D-44). L'annonce reste comptée (ARB-15).
     const batchB = makeBatch([...CLEAN, { price: 1, status: 'QUOTED', year: 2019, mileage: 60_000 }]);
     const r = new AggregationDataset(batchB).recalculate({ selectionHash: 'FULL:EMPTY' });
     console.log(
       `[sentinelle sans drapeau] price.n = ${r.selectionStats.price.n} ; min = ${r.selectionStats.price.min} ; ` +
+        `seuil relatif = ${r.implausibleThreshold} ; écartées = ${r.implausibleInCellExcluded} ; ` +
         `verdicts sur la ligne 1 € = ${r.outlierVerdicts.filter((v) => v.listingId === decodeListingId(batchB.listingId, 40)).map((v) => v.method + ':' + v.flags.join('+')).join(',') || 'aucun'}`,
     );
-    expect(r.selectionStats.price.n).toBe(41);
-    expect(r.selectionStats.price.min).toBe(1);
+    expect(r.selectionStats.selectionCount).toBe(41);
+    expect(r.selectionStats.price.n).toBe(40);
+    expect(r.selectionStats.price.min).toBe(refStats(cleanPrices).min);
+    expect(r.implausibleInCellExcluded).toBe(1);
   });
 });
