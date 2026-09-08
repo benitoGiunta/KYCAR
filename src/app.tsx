@@ -732,6 +732,14 @@ export function App(props: AppProps): JSX.Element {
               });
             }}
             onUrlBudgetExceeded={(msg) => setBanner(msg)}
+            // `EX-SCR-94` (DR-139) : bouton « Enregistrer la recherche » de la zone (4) du bandeau,
+            // routé sur le même CRUD que la barre d'outils (`saveCurrentSearch`), actif quand un
+            // résultat est chargé (mode 1) ou en mode 2 (Σ connu).
+            onSaveSearch={
+              marketPhase.phase === 'loaded' || view.kind !== 'market'
+                ? () => saveCurrentSearch(defaultSearchName())
+                : undefined
+            }
           />
           {/* `EX-NFR-31` (DR-154) : le bandeau de filtres disparaît à l'impression, ce résumé le remplace. */}
           <p class="kycar-print-filter-summary print-filter-summary">{printFilterSummary}</p>
