@@ -356,19 +356,23 @@ export function seedSavedSearches(n: number): Record<string, string> {
   return out;
 }
 
-/** Fabrique `n` modèles suivis valides + leur index (les `n` premiers modèles d'Opel). */
+/**
+ * Fabrique `n` modèles suivis valides + leur index. Les identifiants partent volontairement de 2000,
+ * HORS de la plage des modèles Opel réels (1915-1990) : la cellule Corsa (1918) doit rester NON
+ * suivie pour qu'un test de plafond puisse tenter un 31ᵉ suivi depuis son écran B.
+ */
 export function seedFollowedModels(n: number): Record<string, string> {
   const ids: string[] = [];
   const out: Record<string, string> = {};
   const now = new Date().toISOString();
   for (let i = 0; i < n; i += 1) {
-    const id = `${OPEL_MAKE_ID}:${1915 + i}`;
+    const id = `${OPEL_MAKE_ID}:${2000 + i}`;
     ids.push(id);
     out[`${LS.followed}/${id}`] = JSON.stringify({
       schemaVersion: 1,
       makeId: OPEL_MAKE_ID,
-      modelId: 1915 + i,
-      suiviLe: now,
+      modelId: 2000 + i,
+      ajouteLe: now,
     });
   }
   out[LS.followedIndex] = JSON.stringify(ids);
