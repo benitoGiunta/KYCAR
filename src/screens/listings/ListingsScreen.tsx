@@ -60,6 +60,36 @@ export interface ListingsScreenProps {
    * `url-state.ts::readListingsSel`) : ne filtre que les LIGNES MONTRÉES, Σ (`selectionCount`) reste
    * celui de la sélection entière. `null`/absent : aucune restriction. */
   readonly sel?: { readonly from: number; readonly to: number } | null;
+  /** `EX-SCR-209` (D8-15) — régime responsive courant, détecté par l'hôte (seul propriétaire du
+   * viewport). Absent : repli par `matchMedia` (voir `defaultRegimeFromViewport`, plus bas). */
+  readonly regime?: 'compact' | 'intermediate' | 'large';
+}
+
+const SORT_LABEL: Record<SortColumn, string> = {
+  price: 'Prix',
+  deviation: 'Écart attendu',
+  mileage: 'Km',
+  firstReg: '1ʳᵉ immat.',
+  modelYear: 'Année-mod.',
+  power: 'Puissance',
+  fuel: 'Carburant',
+  consumption: 'Conso.',
+  co2: 'CO₂',
+  owners: 'Propr.',
+  evaluation: 'Éval. AS24',
+  seller: 'Vendeur',
+  country: 'Pays',
+  vat: 'TVA',
+  opportunity: 'Écart d’opportunité',
+};
+
+/** `EX-SCR-209` — défaut de `regime` quand l'hôte ne le fournit pas encore (composant montable
+ * isolément). Alignée sur les points de rupture normatifs (768/1280 px, comme les écrans A/B). */
+function defaultRegimeFromViewport(): 'compact' | 'intermediate' | 'large' {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'large';
+  if (window.matchMedia('(max-width: 767.98px)').matches) return 'compact';
+  if (window.matchMedia('(max-width: 1279.98px)').matches) return 'intermediate';
+  return 'large';
 }
 
 export function ListingsScreen(props: ListingsScreenProps) {
@@ -70,6 +100,19 @@ export function ListingsScreen(props: ListingsScreenProps) {
   );
   const [sort, setSort] = useState<SortState | undefined>(undefined);
   const [internalPageIndex, setInternalPageIndex] = useState(0);
+  const regime = props.regime ?? defaultRegimeFromViewport();
+  // `EX-SCR-209` — lignes dépliées en régime `intermédiaire` (chevron), colonnes cachées révélées.
+  const [expandedRows, setExpandedRows] = useState<ReadonlySet<string>>(new Set());
+  const toggleExpanded = (listingId: string): void => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(listingId)) next.delete(listingId);
+      else next.add(listingId);
+      return next;
+    });
+  };
+  // `EX-SCR-209` — feuille de tri compacte (« Trier par … »), même convention que `SummaryBar`.
+  const [sortSheetOpen, setSortSheetOpen] = useState(false);
   // `page` est 1-based côté URL (D-12), `pageIndex` reste 0-based en interne (`listings-model.ts`).
   const pageIndex = props.page !== undefined ? Math.max(0, props.page - 1) : internalPageIndex;
   const setPageIndex = (updater: (prev: number) => number): void => {
@@ -147,6 +190,9 @@ export function ListingsScreen(props: ListingsScreenProps) {
   const label = (resolver: ((c: number) => string) | undefined, code: number | null): string =>
     code == null ? '' : (resolver?.(code) ?? String(code));
 
+  const intermediate = regime === 'intermediate';
+  const compact = regime === 'compact';
+
   return (
     <div class="kycar-screen-d">
       <header class="kycar-listings-head">
@@ -154,89 +200,193 @@ export function ListingsScreen(props: ListingsScreenProps) {
         <p class="kycar-listings-scope">
           {page.totalRows} lignes affichées sur {totalN} de la sélection — écarts calculés sur les {totalN}
         </p>
-        <p class="kycar-listings-sort">Tri : {sort ? `${sort.column} ${sort.direction}` : defaultSortLabel}</p>
+        {/* `EX-SCR-209` (D8-15) : en régime compact, l'en-tête de tri devient un bouton « Trier
+            par … » ouvrant une feuille d'options, comme `SummaryBar` en écran A. */}
+        {compact ? (
+          <div class="kycar-listings-sort-sheet">
+            <button type="button" aria-expanded={sortSheetOpen} onClick={() => setSortSheetOpen((v) => !v)}>
+              Trier par {sort ? SORT_LABEL[sort.column] : defaultSortLabel}
+            </button>
+            {sortSheetOpen ? (
+              <div role="listbox" aria-label="Choisir un tri">
+                {(Object.keys(SORT_LABEL) as SortColumn[])
+                  .filter((c) => c !== 'opportunity')
+                  .map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      role="option"
+                      aria-selected={sort?.column === c}
+                      onClick={() => {
+                        onSort(c);
+                        setSortSheetOpen(false);
+                      }}
+                    >
+                      {SORT_LABEL[c]}
+                    </button>
+                  ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <p class="kycar-listings-sort">Tri : {sort ? `${sort.column} ${sort.direction}` : defaultSortLabel}</p>
+        )}
         <div class="kycar-listings-export">
           <button type="button" onClick={onExportListings}>CSV des annonces du périmètre</button>
           <button type="button" onClick={onExportBuckets}>CSV des agrégats affichés</button>
         </div>
       </header>
 
-      <div class="kycar-table-scroll">
-        <table class="kycar-listings-table">
-          <thead>
-            <tr>
-              <th scope="col">Version</th>
-              <SortableTh label="Prix" col="price" sort={sort} onSort={onSort} />
-              <SortableTh label="Écart attendu" col="deviation" sort={sort} onSort={onSort} />
-              <SortableTh label="Km" col="mileage" sort={sort} onSort={onSort} />
-              <SortableTh label="1ʳᵉ immat." col="firstReg" sort={sort} onSort={onSort} />
-              <SortableTh label="Année-mod." col="modelYear" sort={sort} onSort={onSort} />
-              <SortableTh label="Puissance" col="power" sort={sort} onSort={onSort} />
-              <SortableTh label="Carburant" col="fuel" sort={sort} onSort={onSort} />
-              <SortableTh label="Conso." col="consumption" sort={sort} onSort={onSort} />
-              <SortableTh label="CO₂" col="co2" sort={sort} onSort={onSort} />
-              <SortableTh label="Propr." col="owners" sort={sort} onSort={onSort} />
-              <SortableTh label="Éval. AS24" col="evaluation" sort={sort} onSort={onSort} />
-              <SortableTh label="Vendeur" col="seller" sort={sort} onSort={onSort} />
-              <SortableTh label="Pays" col="country" sort={sort} onSort={onSort} />
-              {/* `TVA` (EX-SCR-203, `prices.public.taxDeductible`) : NON FAIT — aucune colonne
-                  `ListingColumnBatch` ne porte cette donnée (interface gelée 2.3, `src/providers/
-                  DataProvider.ts`, hors périmètre fix-screens) ; voir le rapport de lot. */}
-              <th scope="col">Lien</th>
-            </tr>
-          </thead>
-          <tbody>
-            {page.rows.map((r) => {
-              const highlighted = p10 != null && r.deviationPct != null && r.deviationPct < p10;
-              const baseLabel =
-                r.outlierMethod != null
-                  ? `${comparisonBaseLabel({ cellLabel: r.cellLabel, cellCount: r.cellCount }, { makeModel: props.makeModelName, year: r.regYear ?? undefined })} · ${methodLabel(r.outlierMethod)}`
-                  : undefined;
-              return (
-                <tr key={r.listingId} class={highlighted ? 'kycar-row-highlight' : undefined} title={highlighted ? baseLabel : undefined}>
-                  <td>
-                    {/* EX-DATA-15/EX-SCR-203 (DR-150) : jeton du drapeau d'ingestion
-                        DUPLICATE_VALUE_CONFLICT (`r.duplicateValueConflict`, dérivé par
-                        `listing-fields.ts::buildListingRow` via `hasIngestFlag`), infobulle exacte
-                        de l'annexe B. */}
-                    {r.duplicateValueConflict ? (
-                      <span
-                        class="kycar-duplicate-conflict"
-                        title="deux versions de cette annonce ont été reçues dans ce snapshot avec des valeurs différentes"
-                      >
-                        !
-                      </span>
-                    ) : null}
-                    {r.modelVersion.slice(0, 40)}
-                  </td>
-                  <td>{r.priceEur != null ? formatPrice(r.priceEur) : ''}</td>
-                  <td title={baseLabel}>{r.deviationPct != null ? formatSignedPct(r.deviationPct) : ''}</td>
-                  <td>{r.mileageKm != null ? formatKm(r.mileageKm) : ''}</td>
-                  <td>{r.regYearMonth != null ? formatMonthYear(r.regYearMonth) : ''}</td>
-                  <td>{r.modelYear != null ? `mod. ${formatYear(r.modelYear)}` : ''}</td>
-                  <td>{r.powerKw != null ? formatPower(r.powerKw) : ''}</td>
-                  <td>{label(props.labels?.fuel, r.fuelCategory)}</td>
-                  <td>{r.consumptionX10 != null ? formatConsumption(r.consumptionX10) : ''}</td>
-                  <td>{r.co2X10 != null ? formatCo2(r.co2X10) : ''}</td>
-                  <td>{r.previousOwnerCount ?? ''}</td>
-                  <td>{label(props.labels?.evaluation, r.priceEvaluationCategory)}</td>
-                  <td>{label(props.labels?.sellerType, r.sellerType)}</td>
-                  <td>{label(props.labels?.country, r.countryCode)}</td>
-                  <td>
-                    {r.url ? (
-                      <button type="button" class="kycar-open" onClick={() => props.onOpenListing?.(r.row)} aria-label="Ouvrir l'annonce d'origine">
-                        Ouvrir ↗
-                      </button>
-                    ) : (
-                      ''
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {compact ? (
+        // `EX-SCR-209` — régime compact : liste de cartes de 132 px (pas de tableau).
+        <ul class="kycar-listings-cards">
+          {page.rows.map((r) => {
+            const highlighted = p10 != null && r.deviationPct != null && r.deviationPct < p10;
+            return (
+              <li key={r.listingId} class={`kycar-listings-card${highlighted ? ' kycar-row-highlight' : ''}`}>
+                <div class="kycar-listings-card-version">
+                  {r.duplicateValueConflict ? (
+                    <span class="kycar-duplicate-conflict" title="deux versions de cette annonce ont été reçues dans ce snapshot avec des valeurs différentes">!</span>
+                  ) : null}
+                  {r.modelVersion.slice(0, 40)}
+                </div>
+                <div class="kycar-listings-card-row">
+                  <span>{r.priceEur != null ? formatPrice(r.priceEur) : ''}</span>
+                  <span>{r.deviationPct != null ? formatSignedPct(r.deviationPct) : ''}</span>
+                  <span>{r.mileageKm != null ? formatKm(r.mileageKm) : ''}</span>
+                </div>
+                <div class="kycar-listings-card-row">
+                  <span>{r.regYearMonth != null ? formatMonthYear(r.regYearMonth) : ''}</span>
+                  <span>{label(props.labels?.fuel, r.fuelCategory)}</span>
+                  <span>{label(props.labels?.sellerType, r.sellerType)}</span>
+                </div>
+                {r.url ? (
+                  <button type="button" class="kycar-open" onClick={() => props.onOpenListing?.(r.row)} aria-label="Ouvrir l'annonce d'origine">
+                    Ouvrir ↗
+                  </button>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div class="kycar-table-scroll">
+          <table class="kycar-listings-table">
+            <thead>
+              <tr>
+                {/* `EX-SCR-209` — en régime intermédiaire, un chevron déplie les 4 colonnes cachées. */}
+                {intermediate ? <th scope="col" aria-label="Détails" /> : null}
+                <th scope="col">Version</th>
+                <SortableTh label="Prix" col="price" sort={sort} onSort={onSort} />
+                <SortableTh label="Écart attendu" col="deviation" sort={sort} onSort={onSort} />
+                <SortableTh label="Km" col="mileage" sort={sort} onSort={onSort} />
+                <SortableTh label="1ʳᵉ immat." col="firstReg" sort={sort} onSort={onSort} />
+                {!intermediate ? <SortableTh label="Année-mod." col="modelYear" sort={sort} onSort={onSort} /> : null}
+                <SortableTh label="Puissance" col="power" sort={sort} onSort={onSort} />
+                <SortableTh label="Carburant" col="fuel" sort={sort} onSort={onSort} />
+                {!intermediate ? <SortableTh label="Conso." col="consumption" sort={sort} onSort={onSort} /> : null}
+                {!intermediate ? <SortableTh label="CO₂" col="co2" sort={sort} onSort={onSort} /> : null}
+                <SortableTh label="Propr." col="owners" sort={sort} onSort={onSort} />
+                <SortableTh label="Éval. AS24" col="evaluation" sort={sort} onSort={onSort} />
+                <SortableTh label="Vendeur" col="seller" sort={sort} onSort={onSort} />
+                <SortableTh label="Pays" col="country" sort={sort} onSort={onSort} />
+                {/* `TVA` (EX-SCR-203, `prices.public.taxDeductible`, D8-08) : colonne tri-état triable,
+                    `ListingColumnBatch.vatDeductible` amendée à l'étape 0 de la phase 2.8. */}
+                {!intermediate ? <SortableTh label="TVA" col="vat" sort={sort} onSort={onSort} /> : null}
+                <th scope="col">Lien</th>
+              </tr>
+            </thead>
+            <tbody>
+              {page.rows.flatMap((r) => {
+                const highlighted = p10 != null && r.deviationPct != null && r.deviationPct < p10;
+                const baseLabel =
+                  r.outlierMethod != null
+                    ? `${comparisonBaseLabel({ cellLabel: r.cellLabel, cellCount: r.cellCount }, { makeModel: props.makeModelName, year: r.regYear ?? undefined })} · ${methodLabel(r.outlierMethod)}`
+                    : undefined;
+                const expanded = expandedRows.has(r.listingId);
+                const visibleColumnCount =
+                  (intermediate ? 1 : 0) + 1 + 3 + 1 + (intermediate ? 0 : 1) + 1 + 1 + (intermediate ? 0 : 2) + 1 + 1 + 1 + 1 + (intermediate ? 0 : 1) + 1;
+                const mainRow = (
+                    <tr key={r.listingId} class={highlighted ? 'kycar-row-highlight' : undefined} title={highlighted ? baseLabel : undefined}>
+                      {intermediate ? (
+                        <td>
+                          <button
+                            type="button"
+                            class="kycar-listings-expand-toggle"
+                            aria-expanded={expanded}
+                            aria-label={`${expanded ? 'Masquer' : 'Afficher'} les colonnes repliées de ${r.modelVersion.slice(0, 40) || 'cette annonce'}`}
+                            onClick={() => toggleExpanded(r.listingId)}
+                          >
+                            {expanded ? '▾' : '▸'}
+                          </button>
+                        </td>
+                      ) : null}
+                      <td>
+                        {/* EX-DATA-15/EX-SCR-203 (DR-150) : jeton du drapeau d'ingestion
+                            DUPLICATE_VALUE_CONFLICT (`r.duplicateValueConflict`, dérivé par
+                            `listing-fields.ts::buildListingRow` via `hasIngestFlag`), infobulle exacte
+                            de l'annexe B. */}
+                        {r.duplicateValueConflict ? (
+                          <span
+                            class="kycar-duplicate-conflict"
+                            title="deux versions de cette annonce ont été reçues dans ce snapshot avec des valeurs différentes"
+                          >
+                            !
+                          </span>
+                        ) : null}
+                        {r.modelVersion.slice(0, 40)}
+                      </td>
+                      <td>{r.priceEur != null ? formatPrice(r.priceEur) : ''}</td>
+                      <td title={baseLabel}>{r.deviationPct != null ? formatSignedPct(r.deviationPct) : ''}</td>
+                      <td>{r.mileageKm != null ? formatKm(r.mileageKm) : ''}</td>
+                      <td>{r.regYearMonth != null ? formatMonthYear(r.regYearMonth) : ''}</td>
+                      {!intermediate ? <td>{r.modelYear != null ? `mod. ${formatYear(r.modelYear)}` : ''}</td> : null}
+                      <td>{r.powerKw != null ? formatPower(r.powerKw) : ''}</td>
+                      <td>{label(props.labels?.fuel, r.fuelCategory)}</td>
+                      {!intermediate ? <td>{r.consumptionX10 != null ? formatConsumption(r.consumptionX10) : ''}</td> : null}
+                      {!intermediate ? <td>{r.co2X10 != null ? formatCo2(r.co2X10) : ''}</td> : null}
+                      <td>{r.previousOwnerCount ?? ''}</td>
+                      <td>{label(props.labels?.evaluation, r.priceEvaluationCategory)}</td>
+                      <td>{label(props.labels?.sellerType, r.sellerType)}</td>
+                      <td>{label(props.labels?.country, r.countryCode)}</td>
+                      {!intermediate ? <td>{r.vatDeductible === true ? 'TVA déd.' : ''}</td> : null}
+                      <td>
+                        {r.url ? (
+                          <button type="button" class="kycar-open" onClick={() => props.onOpenListing?.(r.row)} aria-label="Ouvrir l'annonce d'origine">
+                            Ouvrir ↗
+                          </button>
+                        ) : (
+                          ''
+                        )}
+                      </td>
+                    </tr>
+                );
+                // `EX-SCR-209` — ligne dépliée : les 4 colonnes masquées (Année-mod., Conso., CO₂,
+                // TVA), révélées sous la ligne plutôt que retirées de l'information.
+                if (!intermediate || !expanded) return [mainRow];
+                const expandedRow = (
+                  <tr key={`${r.listingId}-exp`} class="kycar-listings-expanded-row">
+                    <td />
+                    <td colSpan={visibleColumnCount - 1}>
+                      <dl class="kycar-listings-expanded-fields">
+                        <dt>Année-mod.</dt>
+                        <dd>{r.modelYear != null ? `mod. ${formatYear(r.modelYear)}` : '—'}</dd>
+                        <dt>Conso.</dt>
+                        <dd>{r.consumptionX10 != null ? formatConsumption(r.consumptionX10) : '—'}</dd>
+                        <dt>CO₂</dt>
+                        <dd>{r.co2X10 != null ? formatCo2(r.co2X10) : '—'}</dd>
+                        <dt>TVA</dt>
+                        <dd>{r.vatDeductible === true ? 'TVA déd.' : '—'}</dd>
+                      </dl>
+                    </td>
+                  </tr>
+                );
+                return [mainRow, expandedRow];
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <footer class="kycar-listings-foot">
         <span>{page.totalRows} annonces</span>

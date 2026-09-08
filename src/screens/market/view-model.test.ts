@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { MakeAggregate, MetricRange, ModelAggregate } from '../../providers/DataProvider';
 import type { Make, Model } from '../../types/entities';
-import { buildMakeCardViewModel, buildModelZoneViewModel, badgeColorForMake, badgeInitials } from './view-model';
+import { buildMakeCardViewModel, buildModelZoneViewModel, badgeColorForMake, badgeTextColorForMake, badgeInitials } from './view-model';
 
 function range(partial: Partial<MetricRange> = {}): MetricRange {
   return { min: null, max: null, p05: null, p50: null, p95: null, n: 0, ...partial };
@@ -150,10 +150,77 @@ describe('badgeInitials / badgeColorForMake — EX-SCR-108', () => {
   });
 });
 
-describe('buildMakeCardViewModel — résumé et modelCount (EX-DATA-71)', () => {
-  it("exclut la clé réservée modelId = 0 du compte « n modèles »", () => {
+// D8-14/FV-16/E2E-11 : `color-contrast` d'axe échouait (3,19–4,35:1 mesurés, seuil 4,5:1, WCAG 1.4.3)
+// sur les pastilles `.kycar-market-badge`. Recalcul indépendant de la luminance relative WCAG (pas un
+// import de la logique interne de `badgeTextColorForMake`) pour vérifier, sonde par sonde, que le
+// texte choisi atteint bien 4,5:1 contre les 12 teintes de la palette (0..30, dont les doublons par
+// modulo, EX-SCR-108).
+describe('badgeTextColorForMake — EX-SCR-118/a11y (D8-14, FV-16, E2E-11)', () => {
+  function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+    s /= 100; l /= 100;
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [255 * f(0), 255 * f(8), 255 * f(4)];
+  }
+  function hexToRgb(hex: string): [number, number, number] {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function relLum([r, g, b]: readonly number[]): number {
+    const lin = (c: number) => { const cs = c / 255; return cs <= 0.03928 ? cs / 12.92 : Math.pow((cs + 0.055) / 1.055, 2.4); };
+    return 0.2126 * lin(r as number) + 0.7152 * lin(g as number) + 0.0722 * lin(b as number);
+  }
+  function contrast(l1: number, l2: number): number {
+    const [hi, lo] = l1 > l2 ? [l1, l2] : [l2, l1];
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  it('les 12 teintes de `BADGE_PALETTE` atteignent ≥ 4,5:1 avec la couleur de texte choisie (WCAG 1.4.3)', () => {
+    for (let makeId = 0; makeId < 12; makeId++) {
+      const bgHsl = badgeColorForMake(makeId);
+      const m = /hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/.exec(bgHsl)!;
+      const bgLum = relLum(hslToRgb(Number(m[1]), Number(m[2]), Number(m[3])));
+      const textHex = badgeTextColorForMake(makeId);
+      const textLum = relLum(hexToRgb(textHex));
+      expect(contrast(bgLum, textLum), `makeId=${makeId} bg=${bgHsl} text=${textHex}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('déterministe et stable pour un même makeId (même carte, même rendu)', () => {
+    expect(badgeTextColorForMake(7)).toBe(badgeTextColorForMake(7));
+  });
+});
+
+describe('buildMakeCardViewModel — modelsVisibleBeforeCollapse (EX-SCR-122/135, E2E-18)', () => {
+  // E2E-18 (CORRIGÉ) : `MakeCard.tsx` codait en dur `Math.min(modelZones.length, 6)` pour le libellé
+  // « − Réduire à <n> modèles », mentant en régime compact (seuil réel 4). Le seuil REÇU par la carte
+  // est maintenant publié sur le modèle de vue lui-même, pour que le composant ne devine jamais.
+  it('publie le seuil de repli reçu (jamais un « 6 » supposé)', () => {
+    const models = new Map([[11, GOLF]]);
+    const agg = makeAgg({ makeId: 1, listingCount: 40 });
+    const vm = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [modelAgg({ modelId: 11, listingCount: 40 })],
+      models,
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: true,
+      modelsVisibleBeforeCollapse: 4, // régime compact
+    });
+    expect(vm.modelsVisibleBeforeCollapse).toBe(4);
+  });
+});
+
+describe('buildMakeCardViewModel — résumé et modelCount (EX-DATA-71, D8-02/D8-10)', () => {
+  // D8-02/D8-19 (FV-02) : `modelCount` vient désormais de `agg.modelCount` (publié par le provider,
+  // D8-10), jamais d'un comptage sur `modelAggregates` — ce comptage valait `0` tant que le détail
+  // par modèle de CETTE carte n'était pas chargé (c'est exactement le « 0 modèles » de FV-02). La
+  // sonde exerce donc désormais `agg.modelCount` explicitement au lieu de le faire dériver du
+  // tableau `modelAggregates` passé à côté (qui garde son propre rôle : construire les zones).
+  it("porte le cardinal publié par le provider, indépendant du tableau modelAggregates de la carte", () => {
     const models = new Map([[11, GOLF], [12, POLO]]);
-    const agg = makeAgg({ makeId: 1, listingCount: 200, price: range({ p50: 18900, n: 200 }) });
+    const agg = makeAgg({ makeId: 1, listingCount: 200, price: range({ p50: 18900, n: 200 }), modelCount: 2 });
     const vm = buildMakeCardViewModel(agg, {
       make: VW,
       modelAggregates: [
@@ -169,6 +236,25 @@ describe('buildMakeCardViewModel — résumé et modelCount (EX-DATA-71)', () =>
     });
     expect(vm.modelCount).toBe(2);
     expect(vm.medianPriceLine).toContain('2 modèles');
+  });
+
+  it("D8-02/FV-02 : `modelCount` reste « — » (jamais 0) quand le provider ne l'a pas calculé, même si des zones-modèles sont déjà rendues", () => {
+    const models = new Map([[11, GOLF], [12, POLO]]);
+    const agg = makeAgg({ makeId: 1, listingCount: 200, price: range({ p50: 18900, n: 200 }), modelCount: null });
+    const vm = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [modelAgg({ modelId: 11, listingCount: 100 }), modelAgg({ modelId: 12, listingCount: 90 })],
+      models,
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(vm.modelCount).toBeNull();
+    expect(vm.medianPriceLine).toContain('— modèles');
+    expect(vm.medianPriceLine).not.toContain('0 modèles');
+    // Les zones sont bien construites (le repli/l'affichage des zones ne dépend pas de `modelCount`).
+    expect(vm.modelZones).toHaveLength(2);
   });
 
   it('place modelId = 0 en dernier, quel que soit son effectif', () => {
@@ -293,5 +379,51 @@ describe('buildMakeCardViewModel — résumé et modelCount (EX-DATA-71)', () =>
     });
     expect(vm.modelsUnavailable).toBe(true);
     expect(vm.modelZones).toHaveLength(0);
+  });
+});
+
+describe('D8-10 — coverageWarning / samplingBias (EX-DATA-68), provider réel seulement', () => {
+  it('buildModelZoneViewModel : `coverageWarning.<métrique>` posé sur la CentralRange correspondante, jamais ailleurs', () => {
+    const agg = modelAgg({
+      modelId: 11,
+      listingCount: 200,
+      price: range({ p05: 8900, p95: 32500, n: 200 }),
+      year: range({ p05: 2010, p95: 2025, n: 200 }),
+      mileage: range({ p05: 12000, p95: 240000, n: 200 }),
+      coverageWarning: { price: true, year: false, mileage: false },
+    });
+    const zone = buildModelZoneViewModel(agg, GOLF, 200, false);
+    expect(zone.price.coverageWarning).toBe(true);
+    expect(zone.year.coverageWarning).toBeUndefined();
+    expect(zone.mileage.coverageWarning).toBeUndefined();
+  });
+
+  it('buildModelZoneViewModel : `samplingBias` absent par défaut (provider synthétique), publié tel quel quand présent', () => {
+    const withoutBias = buildModelZoneViewModel(modelAgg({ modelId: 11, listingCount: 5 }), GOLF, 5, false);
+    expect(withoutBias.samplingBias).toBeUndefined();
+    const withBias = buildModelZoneViewModel(modelAgg({ modelId: 11, listingCount: 5, samplingBias: true }), GOLF, 5, false);
+    expect(withBias.samplingBias).toBe(true);
+  });
+
+  it('buildMakeCardViewModel : `coverageWarning`/`samplingBias` de la MARQUE se retrouvent sur la carte', () => {
+    const agg = makeAgg({
+      listingCount: 100,
+      price: range({ p05: 8900, p95: 32500, n: 100 }),
+      year: range({ p05: 2010, p95: 2025, n: 100 }),
+      coverageWarning: { price: false, year: true, mileage: false },
+      samplingBias: true,
+    });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.price.coverageWarning).toBeUndefined();
+    expect(card.year.coverageWarning).toBe(true);
+    expect(card.samplingBias).toBe(true);
   });
 });

@@ -42,6 +42,7 @@ import { sortMakeRows, type MakeSortField, type SortDirection, type SortableMake
 import { SummaryBar } from './SummaryBar';
 import type { RestrictiveFilterHint, ScreenAState } from './state';
 import { buildMakeCardViewModel, type MakeCardViewModel } from './view-model';
+import './market.css';
 
 /** `EX-SCR-20`/`135`/`136`/`137` — les trois régimes responsives de l'écran A. */
 export type MarketRegime = 'compact' | 'intermediate' | 'large';
@@ -202,6 +203,7 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
     case 'loading':
       return (
         <div class="kycar-market-screen" aria-busy="true">
+          <h1 id="kycar-market-title">Survol du marché</h1>
           <div class="kycar-market-summary-bar summary-bar">— marques · — modèles · — offres</div>
           <div class="kycar-market-grid">
             {Array.from({ length: 6 }, (_, i) => (
@@ -220,6 +222,7 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
     case 'provider-error':
       return (
         <div class="kycar-market-error" role="alert">
+          <h1 id="kycar-market-title">Survol du marché</h1>
           <p>Les données n’ont pas pu être chargées ({state.errorCode}, {state.attemptedAt})</p>
           <button type="button" onClick={props.onRetryProvider}>
             Réessayer
@@ -232,6 +235,7 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
       if (state.reason === 'no-filter') {
         return (
           <div class="kycar-market-empty">
+            <h1 id="kycar-market-title">Survol du marché</h1>
             <h2>Aucune donnée disponible</h2>
             <p>Jeu de données du {state.snapshotDate}</p>
             <button type="button" onClick={props.onRetryProvider}>
@@ -242,6 +246,7 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
       }
       return (
         <div class="kycar-market-empty">
+          <h1 id="kycar-market-title">Survol du marché</h1>
           <h2>Aucune offre ne correspond</h2>
           {/* EX-SCR-131 — barre de synthèse à zéro : "0 marque · 0 modèle · aucune offre", tri
               désactivé ("Aucun résultat à trier") ; rendue par <SummaryBar> avec makeCount=0 et
@@ -302,6 +307,9 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
 
       return (
         <div class="kycar-market-screen">
+          {/* `EX-NFR-12` (E2E-15) : l'écran A n'avait aucun `h1` — le focus après navigation
+              retombait sur un conteneur muet pour un lecteur d'écran. */}
+          <h1 id="kycar-market-title">Survol du marché</h1>
           <div class="kycar-market-banners">
             {/* `EX-NFR-31` (DR-154) : la région `summary-bar-c3` du contrat `print.css` est le
                 bandeau de couverture C3 — TOUJOURS imprimé (règle 2 de la feuille d'impression). */}

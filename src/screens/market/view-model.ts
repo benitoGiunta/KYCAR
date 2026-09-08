@@ -43,10 +43,13 @@ export const MODEL_NON_IDENTIFIE_SLUG = 'modele-non-identifie';
 
 /** `EX-SCR-108` — fourchette de couleurs de pastille, choisie déterministiquement par `makeId`
  * (`makeId % palette.length`), stable entre deux chargements et testable. Valeurs de teinte HSL
- * arbitraires mais fixes : le choix esthétique n'est pas normatif, sa STABILITÉ l'est. */
+ * arbitraires mais fixes : le choix esthétique n'est pas normatif, sa STABILITÉ l'est.
+ * `D8-14` (FV-16/E2E-11) : trois lightness (150°/180°/205°) sont décalées de 1 à 4 points pour que
+ * `badgeTextColorForMake` (ci-dessous) puisse TOUJOURS atteindre 4,5:1 avec l'une des deux couleurs de
+ * texte disponibles — à leur valeur d'origine, ni le blanc ni `--color-text` n'y suffisaient (~4,3:1). */
 const BADGE_PALETTE = [
   'hsl(4 72% 45%)', 'hsl(28 80% 45%)', 'hsl(48 85% 40%)', 'hsl(84 55% 38%)',
-  'hsl(150 55% 35%)', 'hsl(180 55% 35%)', 'hsl(205 65% 45%)', 'hsl(225 60% 52%)',
+  'hsl(150 55% 32%)', 'hsl(180 55% 38%)', 'hsl(205 65% 41%)', 'hsl(225 60% 52%)',
   'hsl(260 55% 52%)', 'hsl(295 50% 45%)', 'hsl(325 60% 45%)', 'hsl(350 65% 48%)',
 ] as const;
 
@@ -54,6 +57,48 @@ export function badgeColorForMake(makeId: number): string {
   const idx = ((makeId % BADGE_PALETTE.length) + BADGE_PALETTE.length) % BADGE_PALETTE.length;
   // Non-null : idx est toujours dans [0, length) par construction ci-dessus.
   return BADGE_PALETTE[idx] as string;
+}
+
+/* ---- D8-14 (FV-16) — contraste du texte de la pastille ≥ 4,5:1 ------------------------------- */
+
+function hslStringToRgb(hsl: string): readonly [number, number, number] {
+  const m = /hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/.exec(hsl);
+  const h = m ? Number(m[1]) : 0;
+  const s = (m ? Number(m[2]) : 0) / 100;
+  const l = (m ? Number(m[3]) : 0) / 100;
+  const k = (n: number): number => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number): number => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))];
+}
+
+function srgbChannelToLinear(c: number): number {
+  const cs = c / 255;
+  return cs <= 0.03928 ? cs / 12.92 : Math.pow((cs + 0.055) / 1.055, 2.4);
+}
+
+/** Luminance relative WCAG (`https://www.w3.org/TR/WCAG21/#dfn-relative-luminance`). */
+function relativeLuminance([r, g, b]: readonly [number, number, number]): number {
+  return 0.2126 * srgbChannelToLinear(r) + 0.7152 * srgbChannelToLinear(g) + 0.0722 * srgbChannelToLinear(b);
+}
+
+const WHITE_TEXT = '#ffffff';
+const DARK_TEXT = '#14171c'; // `--color-text` (tokens.css), 17,96:1 sur blanc pur
+const DARK_TEXT_LUMINANCE = relativeLuminance([0x14, 0x17, 0x1c]);
+
+/**
+ * `EX-SCR-118`/a11y (D8-14, FV-16, E2E-11) — `color-contrast` échouait (3,19–4,35:1, seuil 4,5:1
+ * requis par WCAG 1.4.3) : `market.css` n'étant importé nulle part (`E2E-20`), le texte de la
+ * pastille n'avait JAMAIS reçu `--color-primary-contrast` et retombait sur `--color-text` sombre,
+ * illisible sur les teintes saturées de `BADGE_PALETTE`. Une fois l'import corrigé, le blanc fixe
+ * seul reste insuffisant sur trois teintes claires — cette fonction choisit donc, PAR TEINTE, le
+ * texte (blanc ou `--color-text`) qui maximise le contraste réel contre CETTE couleur de fond.
+ */
+export function badgeTextColorForMake(makeId: number): string {
+  const bg = relativeLuminance(hslStringToRgb(badgeColorForMake(makeId)));
+  const contrastWithWhite = (1 + 0.05) / (bg + 0.05);
+  const contrastWithDark = (bg + 0.05) / (DARK_TEXT_LUMINANCE + 0.05);
+  return contrastWithWhite >= contrastWithDark ? WHITE_TEXT : DARK_TEXT;
 }
 
 export function badgeInitials(label: string): string {
@@ -74,25 +119,43 @@ export interface CentralRange {
    * (pas `listingCount`) est `'trop-faible'` ou `'reduite'` (`n` compris entre 1 et 11) — paliers
    * uniques pour toute l'application, y compris l'écran A. `undefined` sinon (rien à signaler). */
   readonly lowSampleToken?: string;
+  /** `EX-DATA-68` (D8-10) — `coverageWarning.<métrique>` du provider RÉEL : la couverture métrique
+   * de ce bloc est sous le seuil, affiché seulement quand présent (jamais inventé). */
+  readonly coverageWarning?: boolean;
 }
 
 const CENTRAL_RANGE_CAPTION = 'fourchette centrale (90 % des offres)';
 const RAW_RANGE_CAPTION = 'du moins cher au plus cher';
+/** `D8-06` (FV-09, D-04/D-36) : sous `n = 12`, la fourchette affichée n'est plus `[p05, p95]` (non
+ * significatif à si faible effectif) mais `[min, max]` — ce libellé le dit, jamais la légende du
+ * P5/P95 normal. */
+const LOW_SAMPLE_CAPTION = 'fourchette observée (min – max, effectif réduit)';
 const UNAVAILABLE_RANGE: CentralRange = { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false };
 
-/** `EX-SCR-33` (D-04) : paliers `'trop-faible'`/`'reduite'` (1 ≤ n ≤ 11) masquent le P5/P95 et posent
- * le jeton `n = <n>`, quelle que soit la métrique — même table de seuils que partout ailleurs
- * (`thresholds.ts::effectifTier`), jamais un seuil local à cette fonction. */
-function lowSampleGuard(n: number): CentralRange | undefined {
+/**
+ * `EX-SCR-33`/`114`/`134` (D-04, D-36, D8-06/FV-09) : sous `n = 12` (paliers `'trop-faible'` ET
+ * `'reduite'`, `thresholds.ts::effectifTier` — seuils uniques pour toute l'application), la
+ * fourchette centrale `[p05, p95]` est remplacée par `[min, max]`, disponible DÈS `n = 1`, avec le
+ * jeton ambre `n = <n>` (`lowSampleToken`) — jamais `« — »` : c'est exactement le défaut que FV-09 a
+ * relevé (fourchette masquée alors que `min`/`max` sont connus). `min`/`max` eux-mêmes `null`
+ * (métrique jamais renseignée) reste le seul cas où `« — »` est affiché. */
+function lowSampleRange(n: number, min: number | null, max: number | null, format: (lo: number, hi: number) => string): CentralRange | undefined {
   const tier = effectifTier(n);
-  if (tier === 'trop-faible' || tier === 'reduite') {
+  if (tier !== 'trop-faible' && tier !== 'reduite') return undefined;
+  if (min === null || max === null) {
     return { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false, lowSampleToken: `n = ${n}` };
   }
-  return undefined;
+  return { label: format(min, max), caption: LOW_SAMPLE_CAPTION, available: true, lowSampleToken: `n = ${n}` };
+}
+
+/** `EX-DATA-68` (D8-10) — pose `coverageWarning: true` sur une `CentralRange` déjà construite, sans
+ * toucher aux autres décisions (label/caption/jeton). `undefined`/`false` : aucun changement. */
+function withCoverageWarning(range: CentralRange, warning: boolean | undefined): CentralRange {
+  return warning === true ? { ...range, coverageWarning: true } : range;
 }
 
 function priceCentralRange(price: MetricRange): CentralRange {
-  const guard = lowSampleGuard(price.n);
+  const guard = lowSampleRange(price.n, price.min, price.max, formatPriceRange);
   if (guard) return guard;
   if (price.p05 === null || price.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatPriceRange(price.p05, price.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
@@ -104,14 +167,14 @@ function priceRawRangeTooltip(price: MetricRange): string | undefined {
 }
 
 function yearCentralRange(year: MetricRange): CentralRange {
-  const guard = lowSampleGuard(year.n);
+  const guard = lowSampleRange(year.n, year.min, year.max, formatYearRange);
   if (guard) return guard;
   if (year.p05 === null || year.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatYearRange(year.p05, year.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
 }
 
 function mileageCentralRange(mileage: MetricRange): CentralRange {
-  const guard = lowSampleGuard(mileage.n);
+  const guard = lowSampleRange(mileage.n, mileage.min, mileage.max, formatMileageRange);
   if (guard) return guard;
   if (mileage.p05 === null || mileage.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatMileageRange(mileage.p05, mileage.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
@@ -145,6 +208,9 @@ export interface ModelZoneViewModel {
   readonly coverageLevel: CoverageDiscLevel;
   readonly coverageTooltip: string;
   readonly italicizeRanges: boolean;
+  /** `EX-DATA-68` (D8-10) — l'échantillon de ce modèle est signalé BIAISÉ par le provider RÉEL.
+   * `undefined` = non renseigné (provider synthétique, ou source qui ne le calcule pas). */
+  readonly samplingBias?: boolean;
   /** `EX-SCR-113` #9 : jamais 0 pour un effectif > 0 (`EX-SCR-134`). */
   readonly relativeShareRatio: number;
   /** `EX-SCR-128` : effectif strictement inférieur à 3. */
@@ -194,15 +260,16 @@ export function buildModelZoneViewModel(
     offerCountBare: formatInteger(agg.listingCount),
     ariaLabel: `${label}, ${formatOfferCount(agg.listingCount)}`,
     rangesAvailable,
-    price: rangesAvailable ? priceCentralRange(agg.price) : UNAVAILABLE_RANGE,
+    price: rangesAvailable ? withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price) : UNAVAILABLE_RANGE,
     priceRawTooltip: rangesAvailable ? priceRawRangeTooltip(agg.price) : undefined,
-    year: rangesAvailable ? yearCentralRange(agg.year) : UNAVAILABLE_RANGE,
-    mileage: rangesAvailable ? mileageCentralRange(agg.mileage) : UNAVAILABLE_RANGE,
+    year: rangesAvailable ? withCoverageWarning(yearCentralRange(agg.year), agg.coverageWarning?.year) : UNAVAILABLE_RANGE,
+    mileage: rangesAvailable ? withCoverageWarning(mileageCentralRange(agg.mileage), agg.coverageWarning?.mileage) : UNAVAILABLE_RANGE,
     medianLabel,
     coverage,
     coverageLevel: coverageDiscLevel(coverage),
     coverageTooltip: coverageDiscTooltip(coverage, agg.listingCount, model?.announcedCount ?? null),
     italicizeRanges: shouldItalicizeRanges(coverage),
+    samplingBias: agg.samplingBias,
     relativeShareRatio,
     isSparse: isSparseModel(agg.listingCount),
     rawMetrics: { price: agg.price, year: agg.year, mileage: agg.mileage },
@@ -221,16 +288,22 @@ export interface MakeCardViewModel {
   readonly listingCount: number;
   readonly badgeInitials: string;
   readonly badgeColor: string;
-  /** `EX-DATA-71` : modèles distincts RÉELS présents dans la sélection — exclut la clé réservée
-   * `modelId = 0` (choix documenté : compter « Modèle non identifié » parmi les « n modèles » du
-   * résumé induirait en erreur, cf. rapport de lot). */
-  readonly modelCount: number;
+  /** `D8-14` (FV-16/E2E-11) — couleur de texte choisie pour ≥ 4,5:1 contre `badgeColor`. */
+  readonly badgeTextColor: string;
+  /** `D8-02`/`D8-10` (FV-02) : cardinal publié par le PROVIDER (`MakeAggregate.modelCount`), jamais
+   * recompté depuis `modelAggregates` — ce comptage local valait `0` tant que le détail par modèle
+   * n'était pas encore chargé pour cette carte, d'où le « 0 modèles » de FV-02. `null` = non calculé
+   * par le provider : l'écran affiche alors « — », jamais `0` par défaut (`EX-DATA-71`). */
+  readonly modelCount: number | null;
   readonly medianPriceLine: string;
   readonly price: CentralRange;
   readonly priceRawTooltip: string | undefined;
   readonly year: CentralRange;
   readonly coverage: SampleCoverage;
   readonly coverageLevel: CoverageDiscLevel;
+  /** `EX-DATA-68` (D8-10) — l'échantillon de cette marque est signalé BIAISÉ par le provider RÉEL.
+   * `undefined` = non renseigné (provider synthétique, ou source qui ne le calcule pas). */
+  readonly samplingBias?: boolean;
   /** Toutes les zones-modèles, triées (`EX-SCR-121`), sparse filtrées si demandé (`EX-SCR-128`). */
   readonly modelZones: readonly ModelZoneViewModel[];
   readonly hiddenSparseCount: number;
@@ -239,6 +312,10 @@ export interface MakeCardViewModel {
   readonly isExpanded: boolean;
   readonly hasMoreModels: boolean;
   readonly remainingModelCount: number;
+  /** `EX-SCR-122`/`135` (E2E-18) : seuil de repli RÉEL de cette carte (4 en régime `compact`, 6
+   * sinon) — le libellé « − Réduire à <n> modèles » doit s'appuyer dessus, jamais sur un `6` en dur
+   * qui ment au régime compact. */
+  readonly modelsVisibleBeforeCollapse: number;
   /** `EX-SCR-124` règle 2 (> 12 modèles) et règle 3 (> 30 zones dans la liste dépliée). */
   readonly needsModelSearchField: boolean;
   readonly needsVirtualizedModelList: boolean;
@@ -278,7 +355,13 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
   const hiddenSparseCount = opts.hideSparseModels ? allZones.filter((z) => z.isSparse).length : 0;
   if (opts.hideSparseModels) allZones = allZones.filter((z) => !z.isSparse);
 
-  const modelCount = new Set(rawModelAggregates.filter((a) => a.modelId !== MODEL_ID_UNRESOLVED).map((a) => a.modelId)).size;
+  // `D8-02`/`D8-10` (FV-02) : le cardinal affiché vient de `agg.modelCount` (publié par le provider
+  // pour TOUTE la sélection Σ de la marque), jamais d'un comptage sur `rawModelAggregates` — ce
+  // tableau ne porte que les modèles dont le détail a été chargé pour CETTE carte, ce qui vaut `0`
+  // avant ce chargement et produisait le « 0 modèles » de FV-02. `null` (non calculé) → « — »,
+  // jamais `0` par défaut.
+  const modelCount = agg.modelCount;
+  const modelCountLabel = modelCount === null ? '—' : formatInteger(modelCount);
 
   const visibleCount = opts.isExpanded ? allZones.length : Math.min(allZones.length, opts.modelsVisibleBeforeCollapse);
   // EX-SCR-122 : si la marque compte exactement un modèle de plus que le seuil, les deux sont
@@ -295,6 +378,7 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
     listingCount: agg.listingCount,
     badgeInitials: badgeInitials(label),
     badgeColor: badgeColorForMake(agg.makeId),
+    badgeTextColor: badgeTextColorForMake(agg.makeId),
     modelCount,
     // `EX-SCR-132` (DR-011) : quand le détail par modèle a échoué (`modelsUnavailable`), `modelCount`
     // vaut structurellement 0 alors que l'agrégat de MARQUE (donc `agg.price.p50`) peut, lui, avoir
@@ -306,18 +390,22 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
       ? (agg.price.p50 !== null
           ? `détail des modèles indisponible · médiane ${formatPrice(agg.price.p50)}`
           : `détail des modèles indisponible`)
-      : (agg.price.p50 !== null ? `${modelCount} modèles · médiane ${formatPrice(agg.price.p50)}` : `${modelCount} modèles · médiane non calculable`),
-    price: priceCentralRange(agg.price),
+      : (agg.price.p50 !== null
+          ? `${modelCountLabel} modèles · médiane ${formatPrice(agg.price.p50)}`
+          : `${modelCountLabel} modèles · médiane non calculable`),
+    price: withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price),
     priceRawTooltip: priceRawRangeTooltip(agg.price),
-    year: yearCentralRange(agg.year),
+    year: withCoverageWarning(yearCentralRange(agg.year), agg.coverageWarning?.year),
     coverage: sampleCoverageOf(agg.listingCount, opts.make?.announcedCount ?? null, opts.hasUserFilters),
     coverageLevel: coverageDiscLevel(sampleCoverageOf(agg.listingCount, opts.make?.announcedCount ?? null, opts.hasUserFilters)),
+    samplingBias: agg.samplingBias,
     modelZones: allZones,
     hiddenSparseCount,
     visibleModelZones,
     isExpanded: opts.isExpanded,
     hasMoreModels: remainingModelCount > 0,
     remainingModelCount,
+    modelsVisibleBeforeCollapse: opts.modelsVisibleBeforeCollapse,
     needsModelSearchField: allZones.length > 12,
     needsVirtualizedModelList: allZones.length > 30,
     modelsUnavailable,

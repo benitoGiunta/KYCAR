@@ -80,17 +80,17 @@ test.describe('EX-NFR-16 — axe-core WCAG 2.1 A/AA sur les huit surfaces', () =
     expect(violations).toEqual([]);
   });
 
-  test('CONSTAT E2E-11 — surface A : contraste insuffisant des pastilles de marque (EX-NFR-13, EX-NFR-16)', async ({
+  // D8-14/D8-17 (E2E-11, CORRIGÉ) : la cause première était double — `src/screens/market/market.css`
+  // n'était importé nulle part (E2E-20), donc `.kycar-market-badge` ne recevait jamais
+  // `--color-primary-contrast` et retombait sur le texte sombre par défaut ; une fois l'import
+  // rétabli, le blanc fixe seul restait insuffisant sur trois teintes claires de `BADGE_PALETTE`.
+  // `view-model.ts::badgeTextColorForMake` choisit désormais, par teinte, le texte (blanc ou
+  // `--color-text`) qui atteint 4,5:1, et trois lightness de la palette ont été légèrement resserrées
+  // (150°/180°/205°, ~1 à 4 points) là où NI le blanc NI le sombre n'y suffisaient. `test.fail()`
+  // retiré (D8-17) : la preuve est ce test lui-même, rejoué vert.
+  test('CONSTAT E2E-11 — surface A : contraste des pastilles de marque (EX-NFR-13, EX-NFR-16)', async ({
     page,
   }, testInfo) => {
-    test.fail();
-    constat(
-      testInfo,
-      'E2E-11',
-      'EX-NFR-13/EX-NFR-16',
-      'la règle color-contrast d’axe échoue sur les pastilles .kycar-market-badge de l’écran A (texte #14171c sur fonds de teinte générés : 3,19:1 à 4,15:1 mesurés, seuil 4,5:1) — la couleur de fond est calculée par carte, aucune sonde hors navigateur ne pouvait le voir',
-    );
-
     await open(page, SURFACES.A);
     const violations = await scan(page);
     mesure(testInfo, 'axe — A /marche', summarize(violations));

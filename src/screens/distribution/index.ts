@@ -49,5 +49,9 @@ export {
   buildCategoryBars,
   buildMileageBoxes,
   buildPowerTiers,
+  selectionCellStat,
+  g8ModelCaption,
+  g8RSquaredWarning,
+  UNAVAILABLE,
 } from './graphs-model';
-export { groupStat, ntile } from './group-stat';
+export type { Unavailable, MileageBoxTile } from './graphs-model';

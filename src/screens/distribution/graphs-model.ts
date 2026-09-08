@@ -1,87 +1,100 @@
 /**
- * KYCAR — Modèles des graphes additionnels G5–G15 (lot D7, EX-SCR-161..170)
+ * KYCAR — Modèles des graphes additionnels G5–G15 (lot D7, EX-SCR-161..170 ; D8-07)
  * =================================================================================================
  * Transforme le `ListingColumnBatch` élagué (mode 2, décision O17) en modèles de rendu pour les
  * graphes additionnels normalisés par l'annexe B. Le rendu SVG lui-même est dans les composants ;
  * ces modèles sont PURS et testables.
  *
- * Couverts ici : G5 (médiane prix/année), G6 (dépréciation base 100), G7 (densité prix×km),
- * G8 (écart au prix attendu, 20 premiers outliers), G9/G12/G13/G15 (barres catégorielles),
- * G10 (prix par tranche de km), G14 (médiane prix par palier de puissance).
+ * `D8-07` (dette D-17 levée) : G5, G6, G9, G10, G12, G13, G14, G15 ne recalculent plus rien depuis
+ * `ListingColumnBatch` — ils consomment `RecalcResult.groupStats`/`ntiles`/`powerTiers`/
+ * `depreciationIndex`, calculés dans le WORKER (source unique, `src/engine/stats-protocol.ts`,
+ * fix-engine). Un champ ABSENT (`undefined`) rend l'état « indisponible » (`'unavailable'`), JAMAIS
+ * un recalcul de repli sur le thread principal — c'est exactement ce que ce lot supprime.
  *
- * DETTE SIGNALÉE : le rendu fin de chaque graphe (interactions de clic-pose-filtre, infobulles
- * complètes, régimes responsive détaillés) est livré au niveau « lisible et accessible » ; les
- * raffinements d'interaction par graphe (EX-SCR-149/158 clic→filtre sur chaque graphe additionnel)
- * sont un point d'intégration D8 documenté dans le composant.
+ * G7 (densité prix×km) et G8 (les 20 premiers outliers, hors le libellé `R²` — voir `cellStats`) ne
+ * font PAS partie du protocole worker de D8-07 (aucun champ dédié) : ils restent calculés ici, sur le
+ * `ListingColumnBatch` déjà élagué du mode 2 (décision O17, calcul trivial pour `m ≈ 10³`).
  */
 
 import type { ListingColumnBatch } from '../../types/index';
+import type {
+  CellStat,
+  DepreciationIndexResult,
+  GroupStatKey,
+  GroupStatSet,
+  NtileResult,
+  PowerTierResult,
+} from '../../engine/index';
 import { bin, binIndexOf, PRICE_BIN_PARAMS, MILEAGE_BIN_PARAMS } from '../../engine/bin';
-import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED, yearFromYearMonth } from '../../engine/flags';
-import { groupStat, ntile, type GroupPriceStat, type NtileBin } from './group-stat';
+import { isMileageValid, isPriceValid, PRICE_STATUS_QUOTED } from '../../engine/flags';
 import type { OutlierIndex } from '../outlier-index';
 import { decodeListingId } from '../../engine/uuid';
 
-/** Prédicat de prix valide pour une ligne du batch. */
+/** Marqueur d'indisponibilité (`D8-07`) : le champ correspondant de `RecalcResult` n'est pas encore
+ * rempli par le worker (fix-engine non fusionné, ou moteur ne l'a pas calculé pour cette sélection).
+ * Jamais un tableau vide silencieux : le composant de rendu doit distinguer « aucune donnée » de
+ * « pas encore de moteur qui la publie ». */
+export const UNAVAILABLE = 'unavailable' as const;
+export type Unavailable = typeof UNAVAILABLE;
+
+/** Prédicat de prix valide pour une ligne du batch (G7/G8, seuls graphes encore calculés ici). */
 function priceValid(batch: ListingColumnBatch, row: number): boolean {
   return isPriceValid(batch.priceEur[row] as number, batch.priceStatus[row] as number, batch.ingestFlags[row] as number);
 }
-function priceOf(batch: ListingColumnBatch, row: number): number {
-  return batch.priceEur[row] as number;
-}
 
-/* ---- G5 — Prix médian par année (EX-SCR-161) -------------------------------------------------- */
+/* ---- G5 — Prix médian par année (EX-SCR-161, D8-07) -------------------------------------------- */
+
+/** Bloc statistique minimal consommé par le rendu de G5 (`YearMedianChart` n'utilise que `n`/`median`). */
+export interface YearMedianStat {
+  readonly n: number;
+  readonly median: number | null;
+}
 
 export interface YearMedianPoint {
   readonly year: number;
-  readonly stat: GroupPriceStat;
+  readonly stat: YearMedianStat;
 }
 
-/** G5 : médiane / P25 / P75 du prix par année de 1ʳᵉ immatriculation, années ordonnées croissantes. */
-export function buildYearMedian(batch: ListingColumnBatch, rows: Int32Array | readonly number[]): YearMedianPoint[] {
-  const valid = (row: number): boolean =>
-    priceValid(batch, row) && isYearValid(batch.firstRegistrationYearMonth[row] as number);
-  const stats = groupStat(
-    rows,
-    (row) => yearFromYearMonth(batch.firstRegistrationYearMonth[row] as number),
-    (row) => priceOf(batch, row),
-    valid,
-  );
-  return stats.map((s) => ({ year: s.key, stat: s }));
+/**
+ * G5 : médiane du prix par année de 1ʳᵉ immatriculation, années ordonnées croissantes — lu depuis
+ * `RecalcResult.groupStats` (clé `yearBucket`, métrique `price`, EX-DATA-83bis), calculé par le
+ * worker. `groupStats` absent (moteur pas encore fusionné/calculé) → `'unavailable'`.
+ */
+export function buildYearMedian(groupStats: readonly GroupStatSet[] | undefined): readonly YearMedianPoint[] | Unavailable {
+  if (groupStats === undefined) return UNAVAILABLE;
+  const set = groupStats.find((s) => s.key === 'yearBucket' && s.metric === 'price');
+  if (set === undefined) return UNAVAILABLE;
+  return [...set.groups].sort((a, b) => a.key - b.key).map((g) => ({ year: g.key, stat: { n: g.n, median: g.median } }));
 }
 
-/* ---- G6 — Dépréciation base 100 (EX-SCR-162) -------------------------------------------------- */
+/* ---- G6 — Dépréciation base 100 (EX-SCR-162, D8-07/EX-DATA-83quinquies) ------------------------ */
 
 export interface DepreciationPoint {
   readonly ageYears: number;
-  readonly index: number; // base 100 = année la plus récente
+  readonly index: number; // base 100 = année de référence (`baseYear`)
   readonly annualLossPct: number | null;
 }
 
 export interface DepreciationModel {
   readonly baseYear: number;
   readonly points: readonly DepreciationPoint[];
-  /** `null` si non calculable (moins de 3 années à ≥ 5 offres, EX-SCR-162). */
+  /** `null` si non calculable (moins de 3 années à `n_price ≥ 12`, EX-DATA-83quinquies). */
   readonly available: boolean;
 }
 
-/** G6 : indice du prix médian par âge, base 100 = médiane de l'année la plus récente. */
-export function buildDepreciation(yearMedians: readonly YearMedianPoint[]): DepreciationModel {
-  const usable = yearMedians.filter((y) => y.stat.n >= 5 && y.stat.median != null);
-  if (usable.length < 3) return { baseYear: 0, points: [], available: false };
-  const baseYear = Math.max(...usable.map((y) => y.year));
-  const baseMedian = usable.find((y) => y.year === baseYear)!.stat.median as number;
-  const byYearDesc = [...usable].sort((a, b) => b.year - a.year);
-  const points: DepreciationPoint[] = [];
-  let prevMedian: number | null = null;
-  for (const y of byYearDesc) {
-    const median = y.stat.median as number;
-    const index = (median / baseMedian) * 100;
-    const annualLossPct = prevMedian != null && prevMedian > 0 ? (1 - median / prevMedian) * 100 : null;
-    points.push({ ageYears: baseYear - y.year, index, annualLossPct });
-    prevMedian = median;
-  }
-  return { baseYear, points, available: true };
+/**
+ * G6 : indice du prix médian par âge — lu tel quel depuis `RecalcResult.depreciationIndex`, calculé
+ * dans le worker (source unique, EX-DATA-83quinquies). `depreciationIndex` absent → `'unavailable'`.
+ */
+export function buildDepreciation(depreciationIndex: DepreciationIndexResult | undefined): DepreciationModel | Unavailable {
+  if (depreciationIndex === undefined) return UNAVAILABLE;
+  if (depreciationIndex.baseYear === null) return { baseYear: 0, points: [], available: false };
+  const baseYear = depreciationIndex.baseYear;
+  const points = depreciationIndex.entries
+    .filter((e): e is typeof e & { index: number } => e.index !== null)
+    .map((e) => ({ ageYears: baseYear - e.year, index: e.index, annualLossPct: e.annualLossPct }))
+    .sort((a, b) => a.ageYears - b.ageYears);
+  return { baseYear, points, available: points.length > 0 };
 }
 
 /* ---- G7 — Densité prix × kilométrage (EX-SCR-163, EX-DATA-102bis) ----------------------------- */
@@ -191,7 +204,7 @@ export function buildOutlierLollipops(
   return items.slice(0, limit);
 }
 
-/* ---- G9/G12/G13/G15 — barres catégorielles (EX-SCR-165/167/168/170) --------------------------- */
+/* ---- G9/G12/G13/G15 — barres catégorielles (EX-SCR-165/167/168/170, D8-07) --------------------- */
 
 export interface CategoryBar {
   readonly key: number;
@@ -200,22 +213,21 @@ export interface CategoryBar {
   readonly medianPrice: number | null;
 }
 
-/** Barres catégorielles triées par effectif décroissant (EX-SCR-165), part sur l'effectif éligible. */
-export function buildCategoryBars(
-  batch: ListingColumnBatch,
-  rows: Int32Array | readonly number[],
-  column: 'fuelCategory' | 'sellerType' | 'priceEvaluationCategory' | 'countryCode',
-): CategoryBar[] {
-  const col = batch[column];
-  const stats = groupStat(
-    rows,
-    (row) => col[row] as number,
-    (row) => priceOf(batch, row),
-    (row) => priceValid(batch, row),
-  );
+/** Les quatre clés de `GROUPSTAT` consommées par les graphes catégoriels (G9/G12/G13/G15). */
+export type CategoryBarKey = Extract<GroupStatKey, 'fuelCategory' | 'sellerType' | 'priceEvaluationCategory' | 'countryCode'>;
+
+/**
+ * Barres catégorielles triées par effectif décroissant (EX-SCR-165), part sur l'effectif à prix
+ * valide du groupe — lues depuis `RecalcResult.groupStats` (clé `column`, métrique `price`).
+ * `groupStats` absent, ou aucun groupe pour `column` (résultat structurellement vide) → `'unavailable'`.
+ */
+export function buildCategoryBars(groupStats: readonly GroupStatSet[] | undefined, column: CategoryBarKey): readonly CategoryBar[] | Unavailable {
+  if (groupStats === undefined) return UNAVAILABLE;
+  const set = groupStats.find((s) => s.key === column && s.metric === 'price');
+  if (set === undefined) return UNAVAILABLE;
   // L'effectif d'une barre est le nombre d'annonces du groupe à prix valide (base des parts).
-  const total = stats.reduce((s, g) => s + g.n, 0);
-  const bars: CategoryBar[] = stats.map((g) => ({
+  const total = set.groups.reduce((s, g) => s + g.n, 0);
+  const bars: CategoryBar[] = set.groups.map((g) => ({
     key: g.key,
     count: g.n,
     sharePct: total > 0 ? (g.n / total) * 100 : 0,
@@ -225,46 +237,109 @@ export function buildCategoryBars(
   return bars;
 }
 
-/* ---- G10 — Prix par tranche de kilométrage (EX-SCR-166) --------------------------------------- */
+/* ---- G10 — Prix par tranche de kilométrage (EX-SCR-166, D8-07/EX-DATA-83ter) ------------------- */
 
-/** G10 : boîtes à moustaches par tranche de rang de kilométrage (5, 3 ou nuage selon effectif). */
-export function buildMileageBoxes(
-  batch: ListingColumnBatch,
-  rows: Int32Array | readonly number[],
-): { readonly tiles: NtileBin[]; readonly tileCount: number } {
-  const valid = (row: number): boolean =>
-    priceValid(batch, row) && isMileageValid(batch.mileageKm[row] as number, batch.ingestFlags[row] as number);
-  let nMileage = 0;
-  for (let i = 0; i < rows.length; i++) if (valid(rows[i] as number)) nMileage++;
-  const q = nMileage < 25 ? 3 : 5; // EX-SCR-166 : 3 tranches sous 25 offres
-  const tiles = ntile(rows, (row) => batch.mileageKm[row] as number, (row) => priceOf(batch, row), valid, q);
-  return { tiles, tileCount: q };
+/** Une boîte de prix par tranche de rang de kilométrage. `p05`/`p95` remplacent `p25`/`p75` : le
+ * protocole worker (`GroupStatEntry`) ne publie que P5/P50/P95 (EX-SCR-12), cohérent avec la règle
+ * `A-05` (fourchette centrale = `[p05, p95]`) partout ailleurs dans l'application. */
+export interface MileageBoxTile {
+  readonly rank: number;
+  readonly loObserved: number | null;
+  readonly hiObserved: number | null;
+  readonly n: number;
+  readonly p05: number | null;
+  readonly median: number | null;
+  readonly p95: number | null;
 }
 
-/* ---- G14 — Prix médian par palier de puissance (EX-SCR-169, EX-DATA-83quater) ----------------- */
+/**
+ * G10 : boîtes de prix par tranche de RANG de kilométrage — bornes observées lues depuis
+ * `RecalcResult.ntiles` (métrique `mileage`), statistiques de prix depuis `RecalcResult.groupStats`
+ * (clé `mileageNtile`, métrique `price`), toutes deux calculées par le worker (EX-DATA-83ter). L'un
+ * ou l'autre absent → `'unavailable'`.
+ */
+export function buildMileageBoxes(
+  ntiles: NtileResult | undefined,
+  groupStats: readonly GroupStatSet[] | undefined,
+): { readonly tiles: readonly MileageBoxTile[]; readonly tileCount: number } | Unavailable {
+  if (ntiles === undefined || groupStats === undefined) return UNAVAILABLE;
+  if (ntiles.metric !== 'mileage') return UNAVAILABLE;
+  const priceSet = groupStats.find((s) => s.key === 'mileageNtile' && s.metric === 'price');
+  const priceByRank = new Map((priceSet?.groups ?? []).map((g) => [g.key, g] as const));
+  const tiles: MileageBoxTile[] = [...ntiles.slices]
+    .sort((a, b) => a.rank - b.rank)
+    .map((s) => {
+      const g = priceByRank.get(s.rank);
+      return {
+        rank: s.rank,
+        loObserved: s.loObserved,
+        hiObserved: s.hiObserved,
+        n: g?.n ?? 0,
+        p05: g?.p05 ?? null,
+        median: g?.median ?? null,
+        p95: g?.p95 ?? null,
+      };
+    });
+  return { tiles, tileCount: tiles.length };
+}
+
+/* ---- G14 — Prix médian par palier de puissance (EX-SCR-169, EX-DATA-83quater, D8-07) ----------- */
 
 export const POWER_TIER_WIDTH_KW = 20;
+
+/** Bloc statistique minimal consommé par le rendu de G14 (`PowerTiers` n'utilise que `n`/`median`). */
+export interface PowerTierStat {
+  readonly n: number;
+  readonly median: number | null;
+}
 
 export interface PowerTierBar {
   readonly tierIndex: number;
   readonly loKw: number;
   readonly hiKw: number; // borne haute exclusive − 1 affichée
-  readonly stat: GroupPriceStat;
+  readonly stat: PowerTierStat;
 }
 
-/** G14 : médiane du prix par palier de 20 kW (borne haute exclusive). Paliers ordonnés croissants. */
-export function buildPowerTiers(batch: ListingColumnBatch, rows: Int32Array | readonly number[]): PowerTierBar[] {
-  const valid = (row: number): boolean => priceValid(batch, row) && (batch.powerKw[row] as number) > 0;
-  const stats = groupStat(
-    rows,
-    (row) => Math.floor((batch.powerKw[row] as number) / POWER_TIER_WIDTH_KW),
-    (row) => priceOf(batch, row),
-    valid,
-  );
-  return stats.map((s) => ({
-    tierIndex: s.key,
-    loKw: s.key * POWER_TIER_WIDTH_KW,
-    hiKw: (s.key + 1) * POWER_TIER_WIDTH_KW - 1,
-    stat: s,
-  }));
+/**
+ * G14 : médiane du prix par palier de 20 kW — lu depuis `RecalcResult.powerTiers`, calculé par le
+ * worker (EX-DATA-83quater). `powerTiers` absent → `'unavailable'`. Paliers ordonnés croissants.
+ */
+export function buildPowerTiers(powerTiers: PowerTierResult | undefined): readonly PowerTierBar[] | Unavailable {
+  if (powerTiers === undefined) return UNAVAILABLE;
+  return [...powerTiers.tiers]
+    .sort((a, b) => a.tier - b.tier)
+    .map((t) => ({
+      tierIndex: t.tier,
+      loKw: t.lowerKw,
+      hiKw: t.upperKw - 1,
+      stat: { n: t.n, median: t.median },
+    }));
+}
+
+/* ---- G8 — Libellé normatif du modèle M2 et avertissement R² (EX-DATA-93bis, EX-SCR-164, D8-07) - */
+
+/**
+ * Cellule d'homogénéité de la SÉLECTION entière (`cellLevel === 'SELECTION'`), porteuse du `R²` de la
+ * passe 2 de M2 affiché sous le titre de G8. `cellStats` absent, ou aucune cellule `SELECTION`
+ * publiée (n_price < 30, EX-SCR-164) → `undefined` : G8 s'affiche alors SANS libellé de modèle,
+ * jamais avec une formule inventée (`A-09`).
+ */
+export function selectionCellStat(cellStats: readonly CellStat[] | undefined): CellStat | undefined {
+  return cellStats?.find((c) => c.cellLevel === 'SELECTION');
+}
+
+/**
+ * Libellé normatif EXACT d'EX-SCR-164 : `Modèle : ln(prix) ~ (année − moyenne) + km/10 000 —
+ * échelle robuste MAD — n = <|F|>, R² = <R²>` (`R²` formaté `EX-SCR-2` : deux décimales, virgule
+ * décimale). `cell` `undefined` → `undefined` (aucun libellé rendu, pas de formule inventée, A-09).
+ */
+export function g8ModelCaption(cell: CellStat | undefined): string | undefined {
+  if (cell === undefined) return undefined;
+  const r2 = cell.rSquared != null ? cell.rSquared.toFixed(2).replace('.', ',') : '—';
+  return `Modèle : ln(prix) ~ (année − moyenne) + km/10 000 — échelle robuste MAD — n = ${cell.fitCount}, R² = ${r2}`;
+}
+
+/** `EX-DATA-93bis`/`EX-SCR-164` : avertissement ambre quand `R² < 0,30`. */
+export function g8RSquaredWarning(cell: CellStat | undefined): boolean {
+  return cell?.rSquaredWarning === true;
 }

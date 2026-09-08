@@ -44,6 +44,7 @@ export const LISTINGS_HEADER: readonly string[] = [
   'pays',
   'region',
   'etat_usage',
+  'tva',
 ];
 
 /** En-tête des buckets d'agrégats (EX-DATA-123bis, section « Buckets mode 2 »). */
@@ -142,6 +143,7 @@ export function exportListingsCsv(
       r.countryCode == null ? '' : (labels.country?.(r.countryCode) ?? String(r.countryCode)),
       r.regionCode == null ? '' : (labels.region?.(r.regionCode) ?? String(r.regionCode)),
       r.usageState == null ? '' : (labels.usageState?.(r.usageState) ?? String(r.usageState)),
+      r.vatDeductible == null ? '' : r.vatDeductible ? 'oui' : 'non',
     ];
     lines.push(fields.map((f) => cell(String(f))).join(SEP));
   }

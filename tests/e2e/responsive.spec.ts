@@ -42,22 +42,14 @@ test.describe('EX-NFR-18 / EX-NFR-19 — régimes responsive', () => {
     expect(declared).toBe(regimeOf(testInfo));
   });
 
+  // D8-14/D8-17 (E2E-19, CORRIGÉ) : `distribution.css` pose `minmax(0, 1fr)` sur `.kycar-hist-row` et
+  // `.kycar-graph-grid` à tous les régimes (au lieu du `1fr` nu, dont le minimum implicite est
+  // `min-content` — 378 px, imposé par le `minWidthPx` de 320/360 px des graphes additionnels) : le
+  // défilement horizontal reste confiné à `.kycar-graph-body` (`overflow-x: auto`, GraphFrame.tsx),
+  // il ne remonte plus au document. `test.fail()` retiré (D8-17).
   test('CONSTAT E2E-19 — aucun défilement horizontal du document sur les surfaces principales (EX-NFR-19, EX-SCR-183, ≥ 320 px)', async ({
     page,
   }, testInfo) => {
-    // Le défaut n'existe qu'au régime compact : ailleurs la sonde est une vraie garde de non-régression.
-    test.fail(
-      regimeOf(testInfo) === 'compact',
-      'CONSTAT E2E-19 — EX-NFR-19/EX-SCR-183 — à 360 px l’écran B déborde le document de 50 px : .kycar-graph-grid déclare grid-template-columns: 1fr, dont le minimum implicite est min-content (378 px, imposé par le minWidthPx de 320/360 px des graphes additionnels) au lieu de minmax(0, 1fr) ; le défilement horizontal remonte au document au lieu de rester dans .kycar-graph-body',
-    );
-    if (regimeOf(testInfo) === 'compact') {
-      constat(
-        testInfo,
-        'E2E-19',
-        'EX-NFR-19/EX-SCR-183',
-        'à 360 px, les cadres des graphes additionnels (G5 à G15) mesurent 378 px dans une colonne de grille de 296 px : le document défile horizontalement (scrollWidth 410 pour clientWidth 360) au lieu que le graphe défile dans son propre cadre',
-      );
-    }
     const offenders: string[] = [];
     for (const [name, path] of [
       ['A', `${SURFACES.A}${P1_QUERY}`],
@@ -154,17 +146,15 @@ test.describe('EX-NFR-18 / EX-NFR-19 — régimes responsive', () => {
     await expect(g4.getByRole('button', { name: 'Zoom arrière' })).toBeVisible();
   });
 
-  test('CONSTAT E2E-17 — en régime dégradé la couleur encode le kilométrage, déjà porté par l’axe X, et la légende disparaît (EX-NFR-19, EX-SCR-154)', async ({
+  // D8-14/D8-17 (E2E-17, CORRIGÉ) : `scatter-render.ts::drawScatter` colore par ANNÉE
+  // (`RAMP_A_YEAR`) dès que `options.degraded` est vrai, quel que soit `variant` ; `ScatterCloud.tsx`
+  // rend désormais la légende de couleur même en dégradé (`ColorLegend` bascule sur « Année » via son
+  // nouveau paramètre `degraded`), seule la légende de TAILLE (sans encodage en dégradé) disparaît.
+  // `test.fail()` retiré (D8-17).
+  test('CONSTAT E2E-17 — en régime dégradé la couleur encode l’année, déjà distincte de l’axe X (km) (EX-NFR-19, EX-SCR-154)', async ({
     page,
   }, testInfo) => {
     test.skip(regimeOf(testInfo) !== 'compact', 'la dégradation d’EX-NFR-19 ne s’applique que sous 768 px');
-    test.fail();
-    constat(
-      testInfo,
-      'E2E-17',
-      'EX-NFR-19/EX-SCR-154',
-      'EX-NFR-19 exige « prix × kilométrage, année encodée par couleur » : les axes sont bons, mais scatter-render applique RAMP_B_MILEAGE (le kilométrage, déjà l’axe X) au lieu de RAMP_A_YEAR, et ScatterCloud retire toute la légende quand degraded est vrai — l’encodage couleur devient à la fois redondant et illisible',
-    );
 
     await open(page, SURFACES.B);
     const legend = page.locator('[data-graph="G4"] .kycar-legend-title').first();
@@ -172,17 +162,14 @@ test.describe('EX-NFR-18 / EX-NFR-19 — régimes responsive', () => {
     await expect(legend).toHaveText('Année');
   });
 
-  test('CONSTAT E2E-18 — le bouton de repli annonce « 6 modèles » alors que le régime compact en garde 4 (EX-SCR-122/135)', async ({
+  // D8-14/D8-17 (E2E-18, CORRIGÉ) : `view-model.ts::buildMakeCardViewModel` publie désormais
+  // `modelsVisibleBeforeCollapse` (le seuil RÉEL reçu par la carte) et `MakeCard.tsx` s'appuie dessus
+  // au lieu du littéral `6` en dur — le libellé de repli suit enfin le régime. `test.fail()` retiré
+  // (D8-17).
+  test('CONSTAT E2E-18 — le bouton de repli annonce le bon seuil du régime compact (EX-SCR-122/135)', async ({
     page,
   }, testInfo) => {
-    test.skip(regimeOf(testInfo) !== 'compact', 'le libellé n’est faux que dans le régime qui replie à 4');
-    test.fail();
-    constat(
-      testInfo,
-      'E2E-18',
-      'EX-SCR-122/EX-SCR-135',
-      'MakeCard code en dur « − Réduire à 6 modèles » (Math.min(modelZones.length, 6)) alors que MODELS_VISIBLE_BEFORE_COLLAPSE vaut 4 en compact : le repli lui-même est correct (4 zones), seul le libellé ment à l’utilisateur',
-    );
+    test.skip(regimeOf(testInfo) !== 'compact', 'le libellé n’est vérifiable que dans le régime qui replie à 4');
 
     await open(page, `${SURFACES.A}${P1_QUERY}`);
     const card = page.locator('.kycar-market-card').first();

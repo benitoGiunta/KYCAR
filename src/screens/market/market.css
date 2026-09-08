@@ -1,11 +1,12 @@
 /**
- * KYCAR - Ecran A layout (lot D6). Reads var(--color-*/--space-*/--radius-*) from
- * src/styles/tokens.css (read-only import - D1's file is not edited by this lot).
+ * KYCAR - Ecran A layout (lot D6). Reads design tokens (color, space, radius) from
+ * src/styles/tokens.css (read-only import, D1's file is not edited by this lot).
  * Imported as a side effect by MarketScreen.tsx (Vite bundles it wherever the screen is mounted -
  * no src/app.tsx wiring needed, consistent with "expose mountable components, D8 wires the shell").
+ * D8-14/E2E-20 (dette levee) : cet import manquait ; le fichier n'atteignait jamais le bundle.
  *
  * Breakpoints: EX-SCR-20 (compact < 768px, intermediaire 768-1279px, large >= 1280px).
- * Zone-modele band height: EX-SCR-112 (72px in `large`), EX-SCR-135 (96px, 4 lines, in `compact`).
+ * Zone-modele band height: EX-SCR-112 (72px in large), EX-SCR-135 (96px, 4 lines, in compact).
  * Card visible-before-collapse geometry: EX-SCR-122 (588px at 6 zones + header/summary/footer).
  */
 
@@ -162,15 +163,31 @@
   overflow-y: auto;
 }
 
-/* Zone-modele - EX-SCR-112, 72px en regime large. */
+/* Zone-modele - EX-SCR-112, 72px en regime large. `D8-14` (a11y, nested-interactive) : la case de
+   comparaison (`.kycar-market-zone-compare`) est un sibling de `.kycar-market-zone-interactive`
+   (role="button"), jamais un descendant - la ligne est donc une rangee flex a deux colonnes. */
 .kycar-market-zone {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-height: 72px;
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.kycar-market-zone-compare {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.kycar-market-zone-interactive {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-  min-height: 72px;
-  padding: var(--space-1) var(--space-3);
-  border-top: 1px solid var(--color-border);
+  flex: 1;
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -222,6 +239,26 @@
 .kycar-market-coverage-dot--mi-plein { background: #ffd54a; }
 .kycar-market-coverage-dot--creux { background: var(--color-danger); }
 .kycar-market-coverage-dot--indisponible { background: none; color: var(--color-text-muted); }
+
+/* `EX-SCR-33` (D8-06/FV-09) : jeton ambre `n = <n>` d'effectif réduit (1 ≤ n ≤ 11). */
+.kycar-market-low-sample-token {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #b3261e 0%, #ffd54a 30%);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil / échantillon biaisé (provider réel). */
+.kycar-market-coverage-warning {
+  color: #b3261e;
+}
+.kycar-market-sampling-bias {
+  display: block;
+  font-size: 0.75rem;
+  color: #b3261e;
+}
 
 .kycar-market-card-footer {
   min-height: 40px;
@@ -290,10 +327,33 @@
 }
 
 /* Regime compact (< 768px) - EX-SCR-135 : la zone-modele passe a 96px, 4 lignes. */
+/* `EX-SCR-135`/DR-143 (D8-12) : la zone-modèle compacte passe sur QUATRE lignes distinctes
+   (« 1: nom+effectif ; 2: prix ; 3: années+km ; 4: médiane+barre »), plus une colonne étroite pour la
+   case de comparaison (D8-14, sibling du `role="button"` depuis l'a11y de ModelZone.tsx) — grille
+   nommée sur la racine, `.kycar-market-zone-interactive` ET `.kycar-market-zone-ranges` deviennent
+   transparents (`display: contents`) pour que leurs enfants rejoignent directement cette grille. */
 @container (max-width: 767.98px) {
   .kycar-market-zone {
     min-height: 96px;
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    grid-template-areas:
+      'cmp row1 row1'
+      '.   price price'
+      '.   year mileage'
+      '.   median bar';
+    align-items: center;
+    row-gap: 2px;
   }
+  .kycar-market-zone-compare { grid-area: cmp; }
+  .kycar-market-zone-interactive { display: contents; }
+  .kycar-market-zone-row1 { grid-area: row1; }
+  .kycar-market-zone-ranges { display: contents; }
+  .kycar-market-zone-price { grid-area: price; }
+  .kycar-market-zone-year { grid-area: year; }
+  .kycar-market-zone-mileage { grid-area: mileage; }
+  .kycar-market-zone-median { grid-area: median; }
+  .kycar-market-zone-share-bar { grid-area: bar; }
 }
 
 /* Feuille de tri compacte - EX-SCR-135 (DR-072) : declencheur 44px, liste d'options native (<details>,

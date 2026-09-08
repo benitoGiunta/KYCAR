@@ -204,9 +204,23 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
     await expect(page.getByRole('heading', { name: 'Page introuvable' })).toBeVisible();
   });
 
-  test('au chargement direct d’une vue sans titre, le focus est placé dans le contenu principal (EX-NFR-12)', async ({
+  // D8-14/D8-17 (E2E-15, CORRIGÉ) : ce test supposait l'écran A « sans titre » — c'était exactement
+  // la lacune qu'E2E-15 a comblée (`MarketScreen.tsx` porte désormais un `h1`). Il n'existe donc plus
+  // AUCUNE vue sans titre pour exercer ce scénario : l'écran A rejoint maintenant les sept autres
+  // vues sous le défaut DÉJÀ catalogué par E2E-16 ci-dessous (`heading.focus()` sur un `h1` sans
+  // `tabindex`, sans effet) — ce n'est pas une régression neuve, c'est l'élargissement attendu du
+  // périmètre d'E2E-16 à la vue qui y échappait seule jusqu'ici. `test.fail()` documente ce report,
+  // à corriger par fix-app (E2E-16, `src/app.tsx`, hors périmètre fix-screens).
+  test('CONSTAT E2E-16 (élargi par E2E-15) — au chargement direct de l’écran A, le focus n’atteint plus le contenu principal (EX-NFR-12)', async ({
     page,
-  }) => {
+  }, testInfo) => {
+    test.fail();
+    constat(
+      testInfo,
+      'E2E-16',
+      'EX-NFR-12',
+      'depuis EX-SCR-113bis/E2E-15, l’écran A porte lui aussi un h1 dans #kycar-main : l’effet de src/app.tsx qui appelle focus() sur ce h1 (non focalisable, aucun tabindex) échoue silencieusement au lieu de retomber sur #kycar-main — l’écran A rejoint donc le défaut déjà catalogué par E2E-16 pour C/E/F/mentions, qu’il était seul à ne pas partager avant cette correction',
+    );
     await open(page, SURFACES.A);
     const inMain = await page.evaluate(() => {
       const el = document.activeElement;
@@ -224,7 +238,10 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
       testInfo,
       'E2E-16',
       'EX-NFR-12',
-      'la coquille appelle focus() sur le h1 du contenu, qui n’est pas focalisable (aucun tabindex) : l’appel est sans effet. Au chargement direct de C/E/F//mentions le focus reste sur <body> ; après une navigation interne il reste sur le lien cliqué. Seules les vues SANS h1 au moment de l’effet (A, et B/D avant chargement) reçoivent le repli sur #kycar-main',
+      // D8-14/E2E-15 : l'écran A porte désormais un h1 lui aussi (voir le test ci-dessus) — la clause
+      // « seules les vues SANS h1 (A, et B/D avant chargement) reçoivent le repli » ne vaut donc plus
+      // que pour B/D avant chargement de leurs données ; A ne fait plus exception.
+      'la coquille appelle focus() sur le h1 du contenu, qui n’est pas focalisable (aucun tabindex) : l’appel est sans effet. Au chargement direct de A/C/E/F/mentions le focus reste sur <body> ; après une navigation interne il reste sur le lien cliqué. Seules B/D AVANT le chargement de leurs données (pas encore de h1 au moment de l’effet) reçoivent le repli sur #kycar-main',
     );
 
     await open(page, SURFACES.A);
@@ -241,17 +258,10 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
     expect(inMain, 'le focus doit être déplacé dans le contenu principal après navigation').toBe(true);
   });
 
-  test('CONSTAT E2E-15 — l’écran A ne porte aucun titre de niveau 1 : le focus après navigation tombe sur un conteneur muet (EX-NFR-12)', async ({
-    page,
-  }, testInfo) => {
-    test.fail();
-    constat(
-      testInfo,
-      'E2E-15',
-      'EX-NFR-12',
-      'aucun h1 dans #kycar-main sur l’écran A (ni sur aucune vue de marché non filtrée) : la prise de focus après navigation retombe sur la div conteneur, qui n’annonce rien au lecteur d’écran — les six autres vues en portent un',
-    );
-
+  // D8-14/D8-17 (E2E-15, CORRIGÉ) : `MarketScreen.tsx` porte désormais un `<h1 id="kycar-market-title">
+  // Survol du marché</h1>` dans chacun de ses cinq états rendables (chargement, erreur, vide,
+  // sans-filtre, prêt), comme les six autres vues. `test.fail()` retiré (D8-17).
+  test('CONSTAT E2E-15 — l’écran A porte un titre de niveau 1 (EX-NFR-12)', async ({ page }) => {
     await open(page, SURFACES.A);
     await expect(page.locator('#kycar-main h1')).toHaveCount(1);
   });

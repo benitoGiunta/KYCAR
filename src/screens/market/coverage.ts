@@ -79,6 +79,20 @@ function toneForPercent(p: number): C3Tone {
   return 'rouge';
 }
 
+/** `EX-SCR-175` (D8-06/FV-07) — la ligne de représentativité, obligatoire sous C3 sur l'écran B, est
+ * due dès que la couverture du SNAPSHOT n'est pas PROUVÉE à 100 % : sous filtre (elle n'est alors pas
+ * mesurable), source sans effectif annoncé (`announcedListingCount = null`), ou observé < annoncé.
+ * Mêmes trois entrées que `buildC3Banner`, pour rester cohérente avec le bandeau qu'elle complète. */
+export function representativityUnproven(input: {
+  readonly listingCount: number;
+  readonly announcedListingCount: number | null;
+  readonly hasUserFilters: boolean;
+}): boolean {
+  if (input.hasUserFilters) return true;
+  if (input.announcedListingCount === null) return true;
+  return input.listingCount < input.announcedListingCount;
+}
+
 /** `EX-SCR-31` — construit le bandeau `C3`, avec les nombres au format `EX-SCR-1`/`11`. */
 export function buildC3Banner(input: {
   readonly listingCount: number;

@@ -29,14 +29,26 @@
   font-size: var(--font-size-large);
 }
 
+/* Bandeau d'état de l'écran B (`EX-SCR-113bis`, D8-06) — mêmes tons que `kycar-market-banner`. */
+.kycar-banner {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+.kycar-banner--ambre { background: color-mix(in srgb, #b3261e 0%, #ffd54a 22%); }
+
+/* `EX-NFR-19`/`EX-SCR-183` (E2E-19, CORRIGÉ) : `minmax(0, 1fr)` partout où ce fichier pose une
+   colonne `1fr` — sans le `0`, la piste hérite du `min-content` de son contenu (le `minWidthPx` de
+   `GraphFrame`, 320/360 px), et la grille entière déborde du document au lieu de rester confinée au
+   défilement horizontal interne de `.kycar-graph-body` (`overflow-x: auto`, GraphFrame.tsx). */
 .kycar-hist-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
 }
 .kycar-graph-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
@@ -178,10 +190,10 @@
 /* Régime intermédiaire (768–1279 px) : 2 colonnes (EX-SCR-180). */
 @media (max-width: 1279px) {
   .kycar-hist-row {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .kycar-graph-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -189,7 +201,7 @@
 @media (max-width: 767px) {
   .kycar-hist-row,
   .kycar-graph-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .kycar-scatter-legend {
     position: static;

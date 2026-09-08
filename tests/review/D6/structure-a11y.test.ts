@@ -81,12 +81,22 @@ function baseZone(partial: Partial<ModelZoneViewModel> = {}): ModelZoneViewModel
 }
 
 describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-label), a11y clavier', () => {
-  it('racine : role="button", tabIndex=0, aria-label complet "<nom>, <n> offres" (EX-SCR-113 #2), pas une <div> muette', () => {
+  // D8-14 (a11y, nested-interactive, FV-16) : le `role="button"` est désormais porté par
+  // `.kycar-market-zone-interactive`, un DESCENDANT de la racine (`.kycar-market-zone`) — la case de
+  // comparaison est sortie de ce sous-arbre pour devenir un SIBLING (voir le test dédié plus bas).
+  // Ces trois sondes ciblent donc le NŒUD INTERACTIF, pas la racine (qui ne porte plus ni rôle, ni
+  // `tabIndex`, ni gestionnaire de clavier — elle n'est plus qu'un conteneur de mise en page).
+  function interactiveNodeOf(root: VNode): VNode {
+    return findAll(root, (n) => n.props.role === 'button')[0]!;
+  }
+
+  it('nœud interactif : role="button", tabIndex=0, aria-label complet "<nom>, <n> offres" (EX-SCR-113 #2), pas une <div> muette', () => {
     const vnode = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
-    expect(vnode.type).toBe('div'); // pas un <button>/<a> natif — cf. constat ci-dessous
-    expect(vnode.props.role).toBe('button');
-    expect(vnode.props.tabIndex).toBe(0);
-    expect(vnode.props['aria-label']).toBe('Golf, 3 120 offres');
+    const interactive = interactiveNodeOf(vnode);
+    expect(interactive.type).toBe('div'); // pas un <button>/<a> natif — cf. constat ci-dessous
+    expect(interactive.props.role).toBe('button');
+    expect(interactive.props.tabIndex).toBe(0);
+    expect(interactive.props['aria-label']).toBe('Golf, 3 120 offres');
   });
 
   it('gestion clavier : Entrée ET Espace déclenchent la sélection, avec preventDefault (évite le défilement de page sur Espace)', () => {
@@ -99,7 +109,7 @@ describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-
       isInCompareSelection: false,
       compareAtCapacity: false,
     }) as unknown as VNode;
-    const onKeyDown = vnode.props.onKeyDown as (e: { key: string; preventDefault: () => void }) => void;
+    const onKeyDown = interactiveNodeOf(vnode).props.onKeyDown as (e: { key: string; preventDefault: () => void }) => void;
     let prevented = false;
     onKeyDown({ key: 'Enter', preventDefault: () => (prevented = true) });
     onKeyDown({ key: ' ', preventDefault: () => (prevented = true) });
@@ -110,8 +120,56 @@ describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-
 
   it("R-D6-06 — MINEUR : la bande interactive est une <div role=\"button\"> (ARIA), pas un élément focusable natif (<button>) — a11y correcte mais non native, cohérente sur toutes les zones", () => {
     const vnode = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
-    expect(vnode.type).toBe('div');
-    expect(vnode.props.role).toBe('button');
+    const interactive = interactiveNodeOf(vnode);
+    expect(interactive.type).toBe('div');
+    expect(interactive.props.role).toBe('button');
+  });
+
+  // D8-14 (FV-16, `nested-interactive`, CORRIGÉ) : axe-core relevait un contrôle interactif natif
+  // (la case à cocher) imbriqué dans un élément à rôle interactif, sur les 120 zones-modèles de
+  // l'écran A. La case doit être un SIBLING du nœud `role="button"`, jamais un de ses descendants.
+  it("D8-14/FV-16 — la case « Comparer » n'est PAS un descendant du nœud role=\"button\" (plus de nested-interactive)", () => {
+    const vnode = ModelZone({
+      zone: baseZone(),
+      onSelect: () => undefined,
+      onToggleCompare: () => undefined,
+      isInCompareSelection: false,
+      compareAtCapacity: false,
+    }) as unknown as VNode;
+    const interactive = interactiveNodeOf(vnode);
+    const checkboxInsideButton = findAll(interactive, (n) => n.type === 'input');
+    expect(checkboxInsideButton).toHaveLength(0);
+    // Elle existe bien quelque part dans l'arbre (comme sibling), sinon la sonde ne prouverait rien.
+    const checkboxAnywhere = findAll(vnode, (n) => n.type === 'input');
+    expect(checkboxAnywhere).toHaveLength(1);
+  });
+
+  // D8-10 (EX-DATA-68) : `coverageWarning`/`samplingBias`, publiés par le PROVIDER RÉEL seulement,
+  // doivent être rendus quand présents — absents par défaut (fixture synthétique), sans rien afficher.
+  it('D8-10 — coverageWarning affiche un avertissement sur la fourchette concernée quand présent, rien sinon', () => {
+    const withWarning = ModelZone({
+      zone: baseZone({ price: { label: '9 000 – 15 000 €', caption: 'fourchette centrale (90 % des offres)', available: true, coverageWarning: true } }),
+      onSelect: () => undefined,
+      isInCompareSelection: false,
+      compareAtCapacity: false,
+    }) as unknown as VNode;
+    expect(collectText(withWarning)).toContain('⚠');
+
+    const withoutWarning = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
+    expect(collectText(withoutWarning)).not.toContain('⚠');
+  });
+
+  it('D8-10 — samplingBias affiche la mention « échantillon possiblement biaisé » quand présent, rien sinon', () => {
+    const withBias = ModelZone({
+      zone: baseZone({ samplingBias: true }),
+      onSelect: () => undefined,
+      isInCompareSelection: false,
+      compareAtCapacity: false,
+    }) as unknown as VNode;
+    expect(collectText(withBias)).toContain('échantillon possiblement biaisé');
+
+    const withoutBias = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
+    expect(collectText(withoutBias)).not.toContain('biaisé');
   });
 
   it('la barre de part relative (EX-SCR-113 #9) porte aria-hidden="true" (redondance visuelle uniquement, EX-SCR-113)', () => {
@@ -128,6 +186,21 @@ describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-
     expect(text).toContain('8 900');
     expect(text).toContain('2010');
     expect(text).toContain('12 000');
+  });
+
+  // D8-06 (FV-09) : `view-model.ts::lowSampleToken` était calculé mais JAMAIS rendu par `ModelZone`
+  // — le jeton ambre `n = <n>` d'`EX-SCR-33`/`134` n'apparaissait donc jamais dans le DOM.
+  it("D8-06/FV-09 : le jeton ambre `n = <n>` (effectif réduit) est bien rendu quand `view-model.ts` le pose", () => {
+    const zone = baseZone({
+      price: { label: '9 000 – 15 000 €', caption: 'fourchette observée (min – max, effectif réduit)', available: true, lowSampleToken: 'n = 8' },
+    });
+    const vnode = ModelZone({ zone, onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
+    expect(collectText(vnode)).toContain('n = 8');
+  });
+
+  it('absence de `lowSampleToken` sur les trois fourchettes -> aucun jeton rendu (non-régression)', () => {
+    const vnode = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
+    expect(collectText(vnode)).not.toMatch(/n = \d/);
   });
 });
 

@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { CompareScreen, type CompareModelRow } from './CompareScreen';
+import { CompareScreen, type CompareModelRow, type CompareRedirectTarget, COMPARE_MAX_MODELS } from './CompareScreen';
 import { FollowedScreen } from '../followed/FollowedScreen';
 import { MentionsPage } from '../mentions/MentionsPage';
 import type { MetricRange } from '../../providers/DataProvider';
@@ -43,6 +43,13 @@ function findAll(root: unknown, pred: (n: VNodeLike) => boolean): VNodeLike[] {
   return out;
 }
 const byType = (t: string) => (n: VNodeLike): boolean => n.type === t;
+function collectText(node: unknown): string {
+  if (node === null || node === undefined || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(collectText).join(' ');
+  if (isVNode(node)) return collectText(node.props.children);
+  return '';
+}
 
 const RANGE: MetricRange = { min: 1, max: 9, p05: 2, p50: 5, p95: 8, n: 100 };
 
@@ -71,6 +78,99 @@ describe('écran C — structure/accessibilité', () => {
     const empty = CompareScreen({ rows: [], atCapacity: false, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {} });
     expect(findAll(empty, byType('h1'))).toHaveLength(1);
     expect(findAll(empty, byType('table'))).toHaveLength(0);
+  });
+
+  // D8-06/FV-14 : l'année de la ligne « Synthèse » utilisait le formateur numérique générique
+  // (`Intl.NumberFormat('fr-BE')`, séparateur de milliers), d'où « 2 008 – 2 026 ».
+  it('D8-06/FV-14 — l’année de la ligne Synthèse est formatée SANS séparateur de milliers', () => {
+    const text = collectText(tree);
+    expect(text).toContain('2'); // sanity : du texte est bien rendu
+    expect(text).not.toMatch(/2\s0\d{2}/); // "2 008"/"2 026" : espace insécable entre "2" et "0xx"
+  });
+
+  // D8-06/FV-15 : `OverlaidPriceChart` produisait des coordonnées `NaN` quand deux buckets ouverts de
+  // sens opposés (première/dernière tranche, bornes infinies) participaient au même calcul de centre.
+  it('D8-06/FV-15 — G5 (prix superposés) ne produit aucune coordonnée NaN avec des buckets ouverts aux deux extrémités', () => {
+    const openRows: CompareModelRow[] = [
+      {
+        makeId: 54,
+        modelId: 1918,
+        name: 'Opel Corsa',
+        listingCount: 50,
+        price: RANGE,
+        year: RANGE,
+        mileage: RANGE,
+        priceBuckets: [
+          { lowerBound: -Infinity, upperBound: 5000, count: 10 },
+          { lowerBound: 5000, upperBound: 10000, count: 20 },
+          { lowerBound: 10000, upperBound: Infinity, count: 5 },
+        ],
+      },
+    ];
+    const withG5 = CompareScreen({ rows: openRows, atCapacity: false, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {} });
+    const polylines = findAll(withG5, byType('polyline'));
+    expect(polylines.length).toBeGreaterThan(0);
+    for (const p of polylines) {
+      const points = String(p.props['points'] ?? '');
+      expect(points).not.toContain('NaN');
+      expect(points.length).toBeGreaterThan(0);
+    }
+  });
+
+  // D8-06/FV-15 (EX-SCR-197) : jusqu'à 4 colonnes, chaque emplacement non pourvu porte un bloc
+  // « + Ajouter un modèle », désactivé au plafond.
+  describe('D8-06/FV-15 — colonnes vides « + Ajouter un modèle » (EX-SCR-197)', () => {
+    it(`complète jusqu'à ${COMPARE_MAX_MODELS} colonnes avec des blocs « + Ajouter un modèle »`, () => {
+      const addButtons = findAll(tree, (n) => n.type === 'button' && collectText(n) === '+ Ajouter un modèle');
+      expect(addButtons).toHaveLength(COMPARE_MAX_MODELS - rows.length);
+      for (const b of addButtons) expect(b.props['disabled']).toBeFalsy();
+    });
+
+    it('désactive les blocs vides au plafond (atCapacity)', () => {
+      const twoMore: CompareModelRow[] = [
+        { makeId: 1, modelId: 1, name: 'A', listingCount: 10, price: RANGE, year: RANGE, mileage: RANGE },
+        { makeId: 2, modelId: 2, name: 'B', listingCount: 10, price: RANGE, year: RANGE, mileage: RANGE },
+      ];
+      const fullTree = CompareScreen({ rows: [...rows, ...twoMore], atCapacity: true, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {} });
+      const addButtons = findAll(fullTree, (n) => n.type === 'button' && collectText(n) === '+ Ajouter un modèle');
+      expect(addButtons).toHaveLength(0); // 4/4 : aucun emplacement vide à afficher
+    });
+
+    it('un onAddModel fourni est bien câblé sur le clic', () => {
+      let opened = 0;
+      const withCb = CompareScreen({ rows, atCapacity: false, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {}, onAddModel: () => (opened += 1) });
+      const addButton = findAll(withCb, (n) => n.type === 'button' && collectText(n) === '+ Ajouter un modèle')[0]!;
+      (addButton.props['onClick'] as () => void)();
+      expect(opened).toBe(1);
+    });
+  });
+
+  // D8-06/FV-15 (EX-SCR-198) : sous 2 modèles, l'hôte doit rediriger — 0 restant -> marché, 1 restant
+  // -> écran B de ce modèle. `CompareScreen` reste SANS hook : l'appel se fait pendant le rendu.
+  describe('D8-06/FV-15 — onRedirect (EX-SCR-198)', () => {
+    it('0 modèle (hors chargement) -> redirection vers le marché', () => {
+      let redirected: CompareRedirectTarget | undefined;
+      CompareScreen({ rows: [], atCapacity: false, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {}, onRedirect: (t) => (redirected = t) });
+      expect(redirected).toEqual({ kind: 'market' });
+    });
+
+    it('0 modèle EN CHARGEMENT -> pas de redirection (ce n’est pas encore "aucun modèle")', () => {
+      let redirected: CompareRedirectTarget | undefined;
+      CompareScreen({ rows: [], atCapacity: false, loading: true, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {}, onRedirect: (t) => (redirected = t) });
+      expect(redirected).toBeUndefined();
+    });
+
+    it('1 modèle restant -> redirection vers l’écran B de ce modèle', () => {
+      let redirected: CompareRedirectTarget | undefined;
+      CompareScreen({ rows: [rows[0]!], atCapacity: false, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {}, onRedirect: (t) => (redirected = t) });
+      expect(redirected).toEqual({ kind: 'model', makeId: 54, modelId: 1918 });
+    });
+
+    it('2 modèles ou plus -> aucune redirection (non-régression)', () => {
+      let redirected: CompareRedirectTarget | undefined;
+      CompareScreen({ rows, atCapacity: false, onRemove: () => {}, onOpen: () => {}, onClearAll: () => {}, onRedirect: (t) => (redirected = t) });
+      expect(redirected).toBeUndefined();
+    });
   });
 });
 

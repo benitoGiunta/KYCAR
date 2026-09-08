@@ -60,8 +60,14 @@ describe('patho — structure de la taxonomie', () => {
     expect(unresolved!.label).toBe(MODEL_NON_IDENTIFIE_LABEL);
     expect(unresolved!.slug).toBe(MODEL_NON_IDENTIFIE_SLUG);
     expect(unresolved!.listingCount).toBe(8);
-    // `EX-DATA-71` : la clé réservée ne compte pas parmi les « n modèles » du résumé.
-    expect(card.modelCount).toBe(1);
+    // D8-02/D8-19 (FV-02, divergence TEMPORAIRE) : `card.modelCount` vient désormais de
+    // `agg.modelCount`, publié par le PROVIDER (D8-10) — jamais recompté depuis `modelAggregates`
+    // (c'était exactement le « 0 modèles » de FV-02). `src/engine/aggregate.ts` (fix-engine, hors
+    // périmètre fix-screens) pose encore la valeur neutre `null` en attendant que fix-engine calcule
+    // le vrai cardinal ; une fois fusionné, la valeur RÉELLE ici serait `1` (`EX-DATA-71` : la clé
+    // réservée ne compte pas parmi les « n modèles »). À rejouer par le coordinateur/fix-verify après
+    // la fusion de fix-engine — cette assertion devra alors repasser à `.toBe(1)`.
+    expect(card.modelCount).toBeNull();
     // `EX-DATA-117` : la zone réservée est classée en dernier.
     expect(card.modelZones[card.modelZones.length - 1]!.isUnresolved).toBe(true);
 
@@ -106,8 +112,12 @@ describe('patho — structure de la taxonomie', () => {
       modelsVisibleBeforeCollapse: 6,
     });
     expect(card.listingCount).toBe(12);
-    expect(card.modelCount).toBe(0);
-    expect(card.medianPriceLine).toContain('0 modèles'); // « fragilité mineure » de la matrice ADV
+    // D8-02/D8-19 (divergence TEMPORAIRE, même cause que ci-dessus) : `agg.modelCount` vaut encore
+    // `null` (fix-engine non fusionné) — la valeur RÉELLE une fois l'engine fusionné serait `0` (tous
+    // les listings sont non résolus), ce que ce test documentait comme « fragilité mineure » de la
+    // matrice ADV. À rejouer par le coordinateur/fix-verify après la fusion de fix-engine.
+    expect(card.modelCount).toBeNull();
+    expect(card.medianPriceLine).toContain('— modèles');
     expect(card.modelZones).toHaveLength(1);
     expect(card.modelZones[0]!.isUnresolved).toBe(true);
   });

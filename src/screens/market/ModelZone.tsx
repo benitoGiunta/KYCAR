@@ -30,63 +30,94 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
   const canCompare = !zone.isUnresolved;
 
   return (
-    <div
-      class={`kycar-market-zone${zone.italicizeRanges ? ' kycar-market-zone--italic' : ''}`}
-      role="button"
-      tabIndex={0}
-      aria-label={zone.ariaLabel}
-      onClick={() => props.onSelect(zone.makeId, zone.modelId)}
-      onKeyDown={(e: JSX.TargetedKeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          props.onSelect(zone.makeId, zone.modelId);
-        }
-      }}
-    >
-      <div class="kycar-market-zone-row1">
-        {canCompare && props.onToggleCompare !== undefined ? (
-          <input
-            type="checkbox"
-            aria-label={`Comparer ${zone.label}`}
-            checked={props.isInCompareSelection}
-            disabled={!props.isInCompareSelection && props.compareAtCapacity}
-            title={!props.isInCompareSelection && props.compareAtCapacity ? '4 modèles au maximum — retirez-en un pour en ajouter un autre' : undefined}
-            onClick={(e: JSX.TargetedMouseEvent<HTMLInputElement>) => {
-              e.stopPropagation();
-              props.onToggleCompare?.(zone.makeId, zone.modelId, !props.isInCompareSelection);
-            }}
-          />
-        ) : null}
-        <span title={zone.labelTruncated.full}>{zone.labelTruncated.display}</span>
-        <span style={{ marginLeft: 'auto' }}>{zone.offerCountBare}</span>
-        <span class="kycar-market-zone-chevron" aria-hidden="true">
-          ›
-        </span>
-        {zone.coverageLevel !== 'indisponible' ? (
-          <span class={`kycar-market-coverage-dot kycar-market-coverage-dot--${zone.coverageLevel}`} title={coverageDotLabel(zone)} />
-        ) : (
-          <span class="kycar-market-coverage-dot kycar-market-coverage-dot--indisponible" title={coverageDotLabel(zone)}>
-            —
-          </span>
-        )}
-      </div>
+    <div class={`kycar-market-zone${zone.italicizeRanges ? ' kycar-market-zone--italic' : ''}`}>
+      {/* `EX-SCR-118`/a11y (D8-14, `nested-interactive`) : la case de comparaison est un SIBLING du
+          conteneur `role="button"`, jamais un DESCENDANT — un contrôle interactif natif imbriqué dans
+          un élément à rôle interactif est une violation axe-core (`nested-interactive`), relevée sur
+          les 120 zones-modèles de l'écran A. `EX-SCR-117` (bande entière cliquable) reste intact : le
+          `role="button"` ci-dessous couvre toujours nom, effectif, chevron, fourchettes et barre. */}
+      {canCompare && props.onToggleCompare !== undefined ? (
+        <input
+          type="checkbox"
+          class="kycar-market-zone-compare"
+          aria-label={`Comparer ${zone.label}`}
+          checked={props.isInCompareSelection}
+          disabled={!props.isInCompareSelection && props.compareAtCapacity}
+          title={!props.isInCompareSelection && props.compareAtCapacity ? '4 modèles au maximum — retirez-en un pour en ajouter un autre' : undefined}
+          onClick={(e: JSX.TargetedMouseEvent<HTMLInputElement>) => {
+            e.stopPropagation();
+            props.onToggleCompare?.(zone.makeId, zone.modelId, !props.isInCompareSelection);
+          }}
+        />
+      ) : null}
 
-      {zone.rangesAvailable ? (
-        <div class="kycar-market-zone-ranges">
-          <span title={zone.price.caption}>
-            {zone.price.label}
-            {zone.price.available ? ` (${zone.price.caption})` : ''}
+      <div
+        class="kycar-market-zone-interactive"
+        role="button"
+        tabIndex={0}
+        aria-label={zone.ariaLabel}
+        onClick={() => props.onSelect(zone.makeId, zone.modelId)}
+        onKeyDown={(e: JSX.TargetedKeyboardEvent<HTMLDivElement>) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            props.onSelect(zone.makeId, zone.modelId);
+          }
+        }}
+      >
+        <div class="kycar-market-zone-row1">
+          <span title={zone.labelTruncated.full}>{zone.labelTruncated.display}</span>
+          <span style={{ marginLeft: 'auto' }}>{zone.offerCountBare}</span>
+          <span class="kycar-market-zone-chevron" aria-hidden="true">
+            ›
           </span>
-          <span title={zone.year.caption}>{zone.year.label}</span>
-          <span title={zone.mileage.caption}>{zone.mileage.label}</span>
-          <span>{zone.medianLabel}</span>
+          {zone.coverageLevel !== 'indisponible' ? (
+            <span class={`kycar-market-coverage-dot kycar-market-coverage-dot--${zone.coverageLevel}`} title={coverageDotLabel(zone)} />
+          ) : (
+            <span class="kycar-market-coverage-dot kycar-market-coverage-dot--indisponible" title={coverageDotLabel(zone)}>
+              —
+            </span>
+          )}
         </div>
-      ) : (
-        <div class="kycar-market-zone-ranges">Fourchettes indisponibles — aucune annonce échantillonnée</div>
-      )}
 
-      <div class="kycar-market-zone-share-bar" aria-hidden="true">
-        <div class="kycar-market-zone-share-bar-fill" style={{ width: `${Math.round(zone.relativeShareRatio * 100)}%` }} />
+        {zone.rangesAvailable ? (
+          <div class="kycar-market-zone-ranges">
+            {/* `EX-SCR-135`/DR-143 (D8-12) : classes dédiées pour que le régime compact (CSS,
+                `display: contents` sur ce conteneur) puisse replacer chaque fourchette dans sa propre
+                ligne de la grille à 4 lignes, sans dupliquer la moindre règle ici. */}
+            <span class="kycar-market-zone-price" title={zone.price.caption}>
+              {zone.price.label}
+              {zone.price.available ? ` (${zone.price.caption})` : ''}
+              {/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil, provider réel seulement. */}
+              {zone.price.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
+            </span>
+            <span class="kycar-market-zone-year" title={zone.year.caption}>
+              {zone.year.label}
+              {zone.year.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
+            </span>
+            <span class="kycar-market-zone-mileage" title={zone.mileage.caption}>
+              {zone.mileage.label}
+              {zone.mileage.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
+            </span>
+            <span class="kycar-market-zone-median">{zone.medianLabel}</span>
+            {/* `EX-SCR-33`/`134` (D8-06/FV-09) : jeton ambre `n = <n>` — un seul jeton pour les trois
+                fourchettes, elles partagent le même effectif de métrique sous ce palier. */}
+            {zone.price.lowSampleToken ?? zone.year.lowSampleToken ?? zone.mileage.lowSampleToken ? (
+              <span class="kycar-market-low-sample-token" title="effectif réduit — percentiles désactivés">
+                {zone.price.lowSampleToken ?? zone.year.lowSampleToken ?? zone.mileage.lowSampleToken}
+              </span>
+            ) : null}
+            {/* `EX-DATA-68` (D8-10) : échantillon signalé biaisé par le provider réel. */}
+            {zone.samplingBias === true ? (
+              <span class="kycar-market-sampling-bias" role="note">échantillon possiblement biaisé</span>
+            ) : null}
+          </div>
+        ) : (
+          <div class="kycar-market-zone-ranges">Fourchettes indisponibles — aucune annonce échantillonnée</div>
+        )}
+
+        <div class="kycar-market-zone-share-bar" aria-hidden="true">
+          <div class="kycar-market-zone-share-bar-fill" style={{ width: `${Math.round(zone.relativeShareRatio * 100)}%` }} />
+        </div>
       </div>
     </div>
   );

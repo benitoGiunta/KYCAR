@@ -66,17 +66,13 @@ test.describe('EX-NFR-31 — feuille @media print minimale', () => {
     expect(visibleControls).toBe(0);
   });
 
-  test('CONSTAT E2E-20 — la barre de synthèse n’est pas collante à l’écran : src/screens/market/market.css n’est importé nulle part (EX-NFR-31 règle 1, EX-SCR-105/106)', async ({
+  // D8-14/D8-17 (E2E-20, CORRIGÉ) : `MarketScreen.tsx` importe désormais `./market.css` (comme
+  // `distribution.css`/`listings.css` le font déjà pour leurs écrans) — la feuille de l'écran A entre
+  // enfin dans le bundle. `test.fail()` retiré (D8-17) ; ce constat cachait aussi DR-143 (grille
+  // compacte 4 lignes, corrigée séparément, D8-12) derrière un fichier mort.
+  test('CONSTAT E2E-20 — la barre de synthèse est collante à l’écran : src/screens/market/market.css est bien chargé (EX-NFR-31 règle 1, EX-SCR-105/106)', async ({
     page,
   }, testInfo) => {
-    test.fail();
-    constat(
-      testInfo,
-      'E2E-20',
-      'EX-NFR-31/EX-SCR-105',
-      'aucune règle du fichier src/screens/market/market.css n’est présente dans le bundle : le fichier n’a AUCUN import (contrairement à distribution.css, listings.css, app.css et tokens/print.css importés par main.tsx). L’écran A est donc rendu sans sa feuille de style — barre de synthèse non collante et sans hauteur de 44 px, grille de cartes, régime compact des zones-modèles : tout le §5 de draft-screens est inopérant, et la dette DR-143 (mise en page compacte de la zone-modèle) porte sur un fichier mort',
-    );
-
     await open(page, `${SURFACES.A}${P1_QUERY}`);
     const rulePresent = await hasCssRuleFor(page, 'kycar-market-summary-bar');
     mesure(testInfo, 'EX-SCR-106 — règle CSS .kycar-market-summary-bar chargée', String(rulePresent));

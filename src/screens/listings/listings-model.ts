@@ -34,7 +34,8 @@ export type SortColumn =
   | 'evaluation'
   | 'seller'
   | 'country'
-  | 'opportunity';
+  | 'opportunity'
+  | 'vat';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -77,6 +78,10 @@ function sortValue(rowData: ListingRow, column: SortColumn): number | null {
       return rowData.countryCode;
     case 'opportunity':
       return rowData.opportunityScore;
+    case 'vat':
+      // Tri-état (D8-08) : `null` (INCONNU) toujours en fin (règle générale ci-dessus), `true`/`false`
+      // projetés sur 1/0 pour le tri (`oui` avant `non` en ordre croissant par défaut de la colonne).
+      return rowData.vatDeductible == null ? null : rowData.vatDeductible ? 1 : 0;
     default:
       return null;
   }

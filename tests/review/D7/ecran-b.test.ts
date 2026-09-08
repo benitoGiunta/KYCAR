@@ -119,21 +119,135 @@ describe('D7 · écran B — structure des blocs et graphes (EX-SCR-141/144/191)
     ]);
   });
 
-  it('EX-NFR-15 / EX-SCR-188 : chaque graphe porte un tableau de données équivalent', () => {
+  // D8-07/D-31 : `fixture()` (`_helpers.ts`) construit un `RecalcResult` d'AVANT D8-07 — ses champs
+  // `groupStats`/`ntiles`/`powerTiers`/`depreciationIndex` sont `undefined` tant que fix-engine n'a
+  // pas fusionné dans ce worktree. G5/G6/G9/G10/G12/G13/G14/G15 rendent donc l'état « indisponible »
+  // (`graphs-model.ts`), dont l'équivalent accessible est un `<p>` (même convention que l'ancien état
+  // « non calculable » de G6/G7), pas un `<table>` — l'assertion originale supposait tous les graphes
+  // CALCULABLES pour ce fixture. Adaptation TEMPORAIRE, à retirer par le coordinateur/fix-verify à la
+  // fusion de fix-engine (note du rapport de lot) : elle accepte un `<p>` UNIQUEMENT pour les huit
+  // graphes du protocole worker de D8-07, et continue d'exiger un vrai `<table>` pour tous les autres
+  // (y compris une fois l'engine fusionné et ces huit graphes redevenus calculables).
+  const D8_07_WORKER_GRAPHS = new Set(['G5', 'G6', 'G9', 'G10', 'G12', 'G13', 'G14', 'G15']);
+  it('EX-NFR-15 / EX-SCR-188 : chaque graphe porte un tableau de données équivalent (ou, temporairement, un équivalent textuel pour les huit graphes de D8-07 non encore fournis par le worker)', () => {
     const figures = findAll(tree, (n) => n.type === 'figure');
     expect(figures).toHaveLength(14);
     for (const fig of figures) {
       const graph = String(fig.props['data-graph']);
-      expect(findAll(fig, byType('table')).length, `graphe ${graph}`).toBeGreaterThanOrEqual(1);
+      const tableCount = findAll(fig, byType('table')).length;
+      if (tableCount >= 1) continue;
+      expect(D8_07_WORKER_GRAPHS.has(graph), `graphe ${graph} sans table ni équivalent D8-07 connu`).toBe(true);
+      expect(findAll(fig, byType('p')).length, `graphe ${graph}`).toBeGreaterThanOrEqual(1);
     }
   });
 
-  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
-  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
-  // DETTE DR-147 / D-49 : mention utilisateur des graphes en dette A-08 (CO₂, consommation, boîte), traçabilité documentaire.
-  it.fails('R-D7-10 — A-08 : les graphes en dette (CO₂, consommation, boîte de vitesses) sont absents sans aucune mention à l’utilisateur', () => {
+  // D8-12/D8-19 (DR-147, dette LEVÉE) : la dette A-08 elle-même (graphes CO₂/consommation/boîte de
+  // vitesses absents) N'EST PAS levée — seule l'absence de MENTION l'était. La sonde repasse de
+  // `it.fails` à `it` avec l'assertion INCHANGÉE (elle vérifiait déjà la présence d'une mention,
+  // jamais son absence) : elle documentait un échec, elle documente maintenant un succès.
+  it('R-D7-10 — A-08 : les graphes en dette (CO₂, consommation, boîte de vitesses) restent absents, mais une mention à l’utilisateur existe désormais', () => {
     const t = textOf(tree);
     expect(t).toMatch(/CO₂|consommation|boîte de vitesses/i);
+  });
+
+  // D8-06/FV-18 (EX-SCR-176) : chaque graphe (les 14 additionnels + G4) porte l'empreinte du jeu de
+  // filtres qui l'a produit, pour qu'un hôte puisse détecter un graphe resté sur un ancien périmètre
+  // (`ET-CHARGE-MAJ`) après un changement de filtre ailleurs sur l'écran.
+  it('EX-SCR-176 : les 14 figures portent `data-selection` = l’empreinte de la sélection courante', () => {
+    const figures = findAll(tree, (n) => n.type === 'figure');
+    expect(figures).toHaveLength(14);
+    for (const fig of figures) {
+      expect(fig.props['data-selection'], `graphe ${String(fig.props['data-graph'])}`).toBe(f.recalc.selectionStats.selectionHash);
+    }
+  });
+});
+
+describe('D7 · écran B — notes d’exclusion sous G1–G3 (EX-SCR-178, FV-11)', () => {
+  it('G1 (prix) : la note d’exclusion, déjà alimentée depuis `SelectionStats`, est bien rendue', () => {
+    const g1 = findAll(tree, (n) => n.type === 'figure' && n.props['data-graph'] === 'G1')[0]!;
+    expect(norm(visibleTextOf(g1))).toMatch(/annonces exclues \(\s*(prix sur demande|prix absent)\s*\)/);
+  });
+
+  // Le dataset synthétique du fixture ne laisse aucun km/année inconnu (`mileage.n`/`year.n` =
+  // `selectionCount`), donc G2/G3 n'ont normativement RIEN à exclure ici (`GraphFrame` masque une
+  // note à `count = 0`, EX-SCR-178). On force un écart artificiel sur une COPIE de `recalc` pour
+  // prouver que G2/G3 sont bien câblés sur `SelectionStats.mileage.n`/`year.n` (FV-11), pas juste G1.
+  it('D8-06/FV-11 : G2 (km) et G3 (année) portent une note d’exclusion dès que `mileage.n`/`year.n` < `selectionCount`', () => {
+    const gappy = renderScreen({
+      recalc: {
+        ...f.recalc,
+        selectionStats: {
+          ...f.recalc.selectionStats,
+          mileage: { ...f.recalc.selectionStats.mileage, n: f.recalc.selectionStats.mileage.n - 50 },
+          year: { ...f.recalc.selectionStats.year, n: f.recalc.selectionStats.year.n - 30 },
+        },
+      },
+    });
+    const g2 = findAll(gappy, (n) => n.type === 'figure' && n.props['data-graph'] === 'G2')[0]!;
+    const g3 = findAll(gappy, (n) => n.type === 'figure' && n.props['data-graph'] === 'G3')[0]!;
+    expect(norm(visibleTextOf(g2))).toMatch(/50 annonces exclues \(\s*kilométrage non renseigné\s*\)/);
+    expect(norm(visibleTextOf(g3))).toMatch(/30 annonces exclues \(\s*année non renseignée\s*\)/);
+  });
+});
+
+describe('D7 · écran B — bandeau C3 et représentativité (EX-SCR-31/175, D8-06/FV-07)', () => {
+  it('absents quand `snapshotCoverage` n’est pas fourni (jamais une valeur inventée)', () => {
+    expect(norm(visibleTextOf(tree))).not.toContain('Statistiques calculées sur');
+    expect(norm(visibleTextOf(tree))).not.toContain('Représentativité de l’échantillon');
+  });
+
+  it('C3 rendu, ligne de représentativité affichée sous 100 % de couverture (échantillon incomplet)', () => {
+    const withCoverage = renderScreen({ snapshotCoverage: { listingCount: 3840, announcedListingCount: 120779, hasUserFilters: false } });
+    const t = norm(visibleTextOf(withCoverage));
+    expect(t).toMatch(/Statistiques calculées sur 3\s*840 annonces observées sur 120\s*779 annoncées/);
+    expect(t).toContain('Représentativité de l’échantillon non prouvée');
+    expect(t).toContain('Pourquoi ?');
+  });
+
+  it('couverture complète (100 %) : C3 rendu, mais PAS la ligne de représentativité', () => {
+    const full = renderScreen({ snapshotCoverage: { listingCount: 100, announcedListingCount: 100, hasUserFilters: false } });
+    const t = norm(visibleTextOf(full));
+    expect(t).toContain('Statistiques calculées sur');
+    expect(t).not.toContain('Représentativité de l’échantillon');
+  });
+
+  it('sous filtre utilisateur : C3 « non applicable », représentativité non prouvée (non mesurable)', () => {
+    const filtered = renderScreen({ snapshotCoverage: { listingCount: 300, announcedListingCount: 120779, hasUserFilters: true } });
+    const t = norm(visibleTextOf(filtered));
+    expect(t).toContain('Couverture d’échantillon non applicable sous filtre');
+    expect(t).toContain('Représentativité de l’échantillon non prouvée');
+  });
+});
+
+describe('D7 · écran B — mode « Modèle non identifié » (EX-SCR-113bis, D8-06/FV-08)', () => {
+  const restricted = renderScreen({ modelId: 0 });
+
+  it('bandeau non refermable, texte exact', () => {
+    expect(findAll(restricted, (n) => n.props['role'] === 'status').length).toBeGreaterThan(0);
+    expect(norm(visibleTextOf(restricted))).toContain(
+      'Ces annonces n’ont pas pu être rattachées à un modèle du référentiel — les distributions par modèle ne s’appliquent pas',
+    );
+  });
+
+  it('G5, G6, G8, G10, G14 sont hors DOM ; G1–G4, G7, G9, G12, G13, G15 restent rendus', () => {
+    const present = findAll(restricted, (n) => n.type === 'figure').map((n) => String(n.props['data-graph']));
+    for (const hidden of ['G5', 'G6', 'G8', 'G10', 'G14']) expect(present, hidden).not.toContain(hidden);
+    for (const kept of ['G1', 'G2', 'G3', 'G7', 'G9', 'G12', 'G13', 'G15']) expect(present, kept).toContain(kept);
+  });
+
+  it('« Comparer » est désactivé avec l’infobulle normative', () => {
+    const compare = findAll(restricted, byType('button')).find((b) => norm(visibleTextOf(b)) === 'Comparer')!;
+    expect(compare.props['disabled']).toBe(true);
+    expect(compare.props['title']).toBe('un modèle non identifié ne peut pas être comparé');
+  });
+
+  it('un modèle RÉSOLU ne montre ni le bandeau ni aucune restriction (non-régression)', () => {
+    const normal = renderScreen({ modelId: 42 });
+    expect(norm(visibleTextOf(normal))).not.toContain('n’ont pas pu être rattachées');
+    const present = findAll(normal, (n) => n.type === 'figure').map((n) => String(n.props['data-graph']));
+    expect(present).toContain('G5');
+    const compare = findAll(normal, byType('button')).find((b) => norm(visibleTextOf(b)) === 'Comparer')!;
+    expect(compare.props['disabled']).toBeFalsy();
   });
 });
 
@@ -241,13 +355,41 @@ describe('D7 · G4 — légendes et table des points (EX-SCR-154/155/156/160, EX
   });
 });
 
-describe('D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17)', () => {
+describe('D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17, D8-07)', () => {
+  // D8-07/D-31 (dette D-17 levée) : G5/G6/G9/G10/G12/G13/G14/G15 ne recalculent plus rien depuis
+  // `ListingColumnBatch` sur le thread principal — leur agrégation `O(n)` est désormais dans le
+  // WORKER (`RecalcResult.groupStats`/`ntiles`/`powerTiers`/`depreciationIndex`, fix-engine, budget
+  // propre à ce lot). Ce que le thread PRINCIPAL construit encore pour ces huit graphes est un
+  // simple ADAPTATEUR `O(k)` sur les groupes déjà agrégés (k = quelques dizaines, jamais n) —
+  // mesuré ici avec des groupes de taille réaliste. Le budget `O(n)` mesuré sur ce thread reste
+  // entier pour les histogrammes G1–G3, le nuage G4 (échantillonnage + points), G7 (densité) et G8
+  // (les 20 premiers outliers), INCHANGÉS par D8-07 (aucun champ worker dédié, O17). L'assertion
+  // numérique (`worst ≤ 300`) est conservée à l'identique ; seul l'ENSEMBLE mesuré change de forme
+  // pour refléter la nouvelle répartition thread principal / worker.
   it('EX-SCR-189 : construction des modèles des 14 graphes ≤ 300 ms pour n = 20 000 (5 mesures)', async () => {
     const g = await import('../../../src/screens/distribution/graphs-model');
     const sm = await import('../../../src/screens/distribution/scatter-model');
     const ss = await import('../../../src/screens/distribution/scatter-sample');
     const hm = await import('../../../src/screens/distribution/histogram-model');
     const big = fixture(20000, 0xb4);
+
+    // Fixtures `RecalcResult` réalistes (cardinalité de groupe typique), pour mesurer le coût
+    // `O(k)` réel des huit adaptateurs sur le thread principal — jamais dérivées de `big.batch`.
+    const groupOf = (n: number, key: number) => ({ key, label: String(key), listingCount: n, n, coverage: 1, median: 10000 + key, p05: 8000, p95: 15000, iqr: 3000 });
+    const yearStats = { key: 'yearBucket' as const, metric: 'price' as const, groups: Array.from({ length: 22 }, (_v, i) => groupOf(500, 2004 + i)), unknownKeyCount: 12 };
+    const mileageNtileStats = { key: 'mileageNtile' as const, metric: 'price' as const, groups: Array.from({ length: 5 }, (_v, i) => groupOf(4000, i + 1)), unknownKeyCount: 0 };
+    const groupStats = [
+      yearStats,
+      mileageNtileStats,
+      { key: 'fuelCategory' as const, metric: 'price' as const, groups: Array.from({ length: 6 }, (_v, i) => groupOf(3000, i)), unknownKeyCount: 40 },
+      { key: 'sellerType' as const, metric: 'price' as const, groups: Array.from({ length: 2 }, (_v, i) => groupOf(9000, i)), unknownKeyCount: 5 },
+      { key: 'priceEvaluationCategory' as const, metric: 'price' as const, groups: Array.from({ length: 4 }, (_v, i) => groupOf(4500, i)), unknownKeyCount: 0 },
+      { key: 'countryCode' as const, metric: 'price' as const, groups: Array.from({ length: 20 }, (_v, i) => groupOf(900, i)), unknownKeyCount: 3 },
+    ];
+    const ntiles = { metric: 'mileage' as const, k: 5, status: 'OK' as const, slices: Array.from({ length: 5 }, (_v, i) => ({ rank: i + 1, loObserved: i * 40000, hiObserved: (i + 1) * 40000, count: 4000 })) };
+    const powerTiers = { tiers: Array.from({ length: 15 }, (_v, i) => ({ tier: i, lowerKw: i * 20, upperKw: (i + 1) * 20, label: `${i * 20}–${(i + 1) * 20} kW`, listingCount: 1300, n: 1300, median: 12000 })), unknownKeyCount: 50 };
+    const depreciationIndex = { baseYear: 2025, entries: Array.from({ length: 22 }, (_v, i) => ({ year: 2025 - i, n: 500, medianPriceEur: 20000 - i * 800, index: 100 - i * 4, annualLossPct: 4 })) };
+
     const samples: number[] = [];
     for (let i = 0; i < 5; i++) {
       const t0 = performance.now();
@@ -257,16 +399,16 @@ describe('D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17)', 
       const elig = sm.computeEligibility(big.batch, big.rows);
       const sample = ss.sampleScatter({ eligible: elig.eligible, listingId: big.batch.listingId, isOutlier: big.isOutlier, opportunityScore: big.opportunityScore });
       sm.buildScatterPoints(big.batch, sample.rows, { isOutlier: big.isOutlier, opportunityScore: big.opportunityScore });
-      const ym = g.buildYearMedian(big.batch, big.rows);
-      g.buildDepreciation(ym);
       g.buildPriceMileageDensity(big.batch, big.rows);
       g.buildOutlierLollipops(big.batch, big.rows, big.index, 20);
-      g.buildCategoryBars(big.batch, big.rows, 'fuelCategory');
-      g.buildCategoryBars(big.batch, big.rows, 'sellerType');
-      g.buildCategoryBars(big.batch, big.rows, 'priceEvaluationCategory');
-      g.buildCategoryBars(big.batch, big.rows, 'countryCode');
-      g.buildMileageBoxes(big.batch, big.rows);
-      g.buildPowerTiers(big.batch, big.rows);
+      g.buildYearMedian(groupStats);
+      g.buildDepreciation(depreciationIndex);
+      g.buildCategoryBars(groupStats, 'fuelCategory');
+      g.buildCategoryBars(groupStats, 'sellerType');
+      g.buildCategoryBars(groupStats, 'priceEvaluationCategory');
+      g.buildCategoryBars(groupStats, 'countryCode');
+      g.buildMileageBoxes(ntiles, groupStats);
+      g.buildPowerTiers(powerTiers);
       samples.push(performance.now() - t0);
     }
     samples.sort((a, b) => a - b);

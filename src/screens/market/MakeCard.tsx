@@ -57,7 +57,9 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
           }
         }}
       >
-        <span class="kycar-market-badge" style={{ background: card.badgeColor }} aria-hidden="true">
+        {/* `D8-14` (FV-16/E2E-11) — `color` posé en style INLINE (surclasse `market.css`) : le
+            contraste ≥ 4,5:1 dépend de la teinte, calculée par carte, jamais d'une couleur fixe. */}
+        <span class="kycar-market-badge" style={{ background: card.badgeColor, color: card.badgeTextColor }} aria-hidden="true">
           {card.badgeInitials}
         </span>
         <span class="kycar-market-card-title" title={card.labelTruncated.full}>
@@ -73,11 +75,29 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
             <>
               {card.price.label} ({card.price.caption})
               {card.priceRawTooltip !== undefined ? <span title={card.priceRawTooltip}> · {card.priceRawTooltip}</span> : null}
+              {/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil, provider réel seulement. */}
+              {card.price.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
             </>
           ) : (
             '—'
           )}
-          {card.year.available ? <span> · {card.year.label}</span> : null}
+          {card.year.available ? (
+            <span>
+              {' '}
+              · {card.year.label}
+              {card.year.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
+            </span>
+          ) : null}
+          {/* `EX-SCR-33` (D8-06/FV-09) : même jeton ambre qu'en zone-modèle, au niveau de la carte. */}
+          {card.price.lowSampleToken ?? card.year.lowSampleToken ? (
+            <span class="kycar-market-low-sample-token" title="effectif réduit — percentiles désactivés">
+              {card.price.lowSampleToken ?? card.year.lowSampleToken}
+            </span>
+          ) : null}
+          {/* `EX-DATA-68` (D8-10) : échantillon signalé biaisé par le provider réel. */}
+          {card.samplingBias === true ? (
+            <span class="kycar-market-sampling-bias" role="note">échantillon possiblement biaisé</span>
+          ) : null}
         </div>
       </div>
 
@@ -121,7 +141,11 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
           {card.hasMoreModels || props.isExpanded ? (
             <div class="kycar-market-card-footer">
               <button type="button" onClick={() => props.onToggleExpand(card.makeId, !props.isExpanded)}>
-                {props.isExpanded ? `− Réduire à ${Math.min(card.modelZones.length, 6)} modèles` : `+ Afficher les ${card.remainingModelCount} autres modèles`}
+                {/* `EX-SCR-122`/`135` (E2E-18) : seuil RÉEL de cette carte, jamais un `6` en dur qui
+                    mentirait en régime compact (4). */}
+                {props.isExpanded
+                  ? `− Réduire à ${Math.min(card.modelZones.length, card.modelsVisibleBeforeCollapse)} modèles`
+                  : `+ Afficher les ${card.remainingModelCount} autres modèles`}
               </button>
             </div>
           ) : null}

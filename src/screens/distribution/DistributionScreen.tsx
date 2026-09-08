@@ -16,7 +16,9 @@
  */
 
 import { useMemo, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 import type { ListingColumnBatch, SelectionInput } from '../../types/index';
+import { MODEL_ID_UNRESOLVED } from '../../types/index';
 import type { RecalcResult } from '../../engine/index';
 import { decodeListingId } from '../../engine/uuid';
 import { OutlierIndex, comparisonBaseLabel, methodLabel } from '../outlier-index';
@@ -34,6 +36,7 @@ import {
   intervalFiltersToSelectionInput,
   selectedCountsByBucket,
 } from './brush-model';
+import { buildC3Banner, representativityUnproven } from '../market/coverage';
 import {
   YearMedianChart,
   DepreciationChart,
@@ -52,6 +55,9 @@ import {
   buildCategoryBars,
   buildMileageBoxes,
   buildPowerTiers,
+  selectionCellStat,
+  g8ModelCaption,
+  g8RSquaredWarning,
 } from './graphs-model';
 import {
   effectiveG4Variant,
@@ -84,6 +90,21 @@ export interface DistributionScreenProps {
   readonly labels?: DistributionLabels;
   /** Nom « Marque Modèle » pour l'en-tête et l'étiquetage EX-SCR-158bis. */
   readonly makeModelName?: string;
+  /** `EX-SCR-113bis` (D8-06/FV-08) — clé réservée `MODEL_ID_UNRESOLVED` (0) : mode « Modèle non
+   * identifié ». Bandeau non refermable, `G5`/`G6`/`G8`/`G10`/`G14` hors DOM, `Comparer` désactivé. */
+  readonly modelId?: number;
+  /** `EX-SCR-31`/`175` (D8-06/FV-07) — couverture de SNAPSHOT (`SnapshotDescriptor.listingCount`/
+   * `announcedListingCount`), pour le bandeau `C3` et la ligne de représentativité, tous deux
+   * obligatoires sur l'écran B. Absent : ni l'un ni l'autre n'est rendu (jamais une valeur inventée) —
+   * voir le rapport de lot, § « Câblage attendu de fix-app ». */
+  readonly snapshotCoverage?: {
+    readonly listingCount: number;
+    readonly announcedListingCount: number | null;
+    readonly hasUserFilters: boolean;
+  };
+  /** `EX-SCR-175` — ouvre `/mentions` (lien « Pourquoi ? ») en SPA plutôt qu'en rechargement complet.
+   * Absent : ancre `<a href="/mentions">` classique. */
+  readonly onOpenMentions?: () => void;
   /** Ouvre l'annonce d'origine (deeplink), fourni par D8. */
   readonly onOpenListing?: (row: number) => void;
 
@@ -154,17 +175,31 @@ export function DistributionScreen(props: DistributionScreenProps) {
     return { elig, sample, points };
   }, [batch, rows, outlierLookup]);
 
-  // Graphes additionnels.
-  const yearMedian = useMemo(() => buildYearMedian(batch, rows), [batch, rows]);
-  const depreciation = useMemo(() => buildDepreciation(yearMedian), [yearMedian]);
+  // Graphes additionnels — `D8-07` (dette D-17 levée) : G5/G6/G9/G10/G12/G13/G14/G15 sont lus DEPUIS
+  // `RecalcResult` (source unique, calculée dans le worker), plus jamais recalculés ici depuis
+  // `batch`/`rows`. Un champ absent (`recalc.groupStats` etc. non encore rempli par fix-engine) rend
+  // l'état « indisponible » (`'unavailable'`) — voir `graphs-model.ts`. G7 (densité) et G8 (liste des
+  // outliers, hors libellé R²) restent hors du protocole worker (aucun champ dédié, O17).
+  const yearMedian = useMemo(() => buildYearMedian(recalc.groupStats), [recalc.groupStats]);
+  const depreciation = useMemo(() => buildDepreciation(recalc.depreciationIndex), [recalc.depreciationIndex]);
   const density = useMemo(() => buildPriceMileageDensity(batch, rows), [batch, rows]);
   const lollipops = useMemo(() => buildOutlierLollipops(batch, rows, outlierIndex, 20), [batch, rows, outlierIndex]);
-  const fuelBars = useMemo(() => buildCategoryBars(batch, rows, 'fuelCategory'), [batch, rows]);
-  const sellerBars = useMemo(() => buildCategoryBars(batch, rows, 'sellerType'), [batch, rows]);
-  const evalBars = useMemo(() => buildCategoryBars(batch, rows, 'priceEvaluationCategory'), [batch, rows]);
-  const countryBars = useMemo(() => buildCategoryBars(batch, rows, 'countryCode'), [batch, rows]);
-  const mileageBoxes = useMemo(() => buildMileageBoxes(batch, rows), [batch, rows]);
-  const powerTiers = useMemo(() => buildPowerTiers(batch, rows), [batch, rows]);
+  const fuelBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'fuelCategory'), [recalc.groupStats]);
+  const sellerBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'sellerType'), [recalc.groupStats]);
+  const evalBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'priceEvaluationCategory'), [recalc.groupStats]);
+  const countryBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'countryCode'), [recalc.groupStats]);
+  const mileageBoxes = useMemo(() => buildMileageBoxes(recalc.ntiles, recalc.groupStats), [recalc.ntiles, recalc.groupStats]);
+  const powerTiers = useMemo(() => buildPowerTiers(recalc.powerTiers), [recalc.powerTiers]);
+  const selectionCell = useMemo(() => selectionCellStat(recalc.cellStats), [recalc.cellStats]);
+  const g8Caption = useMemo(() => g8ModelCaption(selectionCell), [selectionCell]);
+  const g8Warning = useMemo(() => g8RSquaredWarning(selectionCell), [selectionCell]);
+
+  // `EX-SCR-113bis` (D8-06/FV-08) — mode « Modèle non identifié ».
+  const isUnresolvedModel = props.modelId === MODEL_ID_UNRESOLVED;
+
+  // `EX-SCR-31`/`175` (D8-06/FV-07) — bandeau C3 + ligne de représentativité, obligatoires sur B.
+  const c3 = props.snapshotCoverage ? buildC3Banner(props.snapshotCoverage) : undefined;
+  const showRepresentativity = props.snapshotCoverage ? representativityUnproven(props.snapshotCoverage) : false;
 
   const variant: G4Variant = effectiveG4Variant(ui, selectionCount);
   const labels = props.labels ?? {};
@@ -313,7 +348,12 @@ export function DistributionScreen(props: DistributionScreenProps) {
           <button type="button" onClick={props.onViewListings}>
             Voir les {selectionCount} annonces
           </button>
-          <button type="button" onClick={props.onCompare}>
+          <button
+            type="button"
+            onClick={props.onCompare}
+            disabled={isUnresolvedModel}
+            title={isUnresolvedModel ? 'un modèle non identifié ne peut pas être comparé' : undefined}
+          >
             Comparer
           </button>
           <button type="button" onClick={() => props.onFollow?.(!props.isFollowed)} aria-pressed={props.isFollowed ?? false}>
@@ -337,11 +377,41 @@ export function DistributionScreen(props: DistributionScreenProps) {
         </div>
       </header>
 
+      {/* `EX-SCR-31`/`175` (D8-06/FV-07) — bandeau C3 (même région d'impression `summary-bar-c3`
+          que l'écran A, `EX-NFR-31`/DR-154) + ligne de représentativité NON refermable tant que la
+          couverture n'est pas prouvée à 100 %. */}
+      {c3 ? (
+        <div class="kycar-market-banners">
+          <div class="kycar-market-banner-c3 summary-bar-c3">
+            <div class={`kycar-market-banner kycar-market-banner--${c3.tone}`}>{c3.text}</div>
+          </div>
+          {showRepresentativity ? (
+            <div class="kycar-market-banner kycar-market-banner--ambre" role="status">
+              Représentativité de l’échantillon non prouvée — lire{' '}
+              <a
+                href="/mentions"
+                onClick={props.onOpenMentions ? (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => { e.preventDefault(); props.onOpenMentions?.(); } : undefined}
+              >
+                Pourquoi ?
+              </a>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* `EX-SCR-113bis` (D8-06/FV-08) — bandeau NON refermable du mode « Modèle non identifié ». */}
+      {isUnresolvedModel ? (
+        <div class="kycar-banner kycar-banner--ambre" role="status">
+          Ces annonces n’ont pas pu être rattachées à un modèle du référentiel — les distributions
+          par modèle ne s’appliquent pas
+        </div>
+      ) : null}
+
       {/* Bloc 2 — histogrammes G1–G3 */}
       <section class="kycar-hist-row" aria-label="Distributions">
-        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} selectedCounts={priceSelectedCounts} />
-        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} onSelectBucket={onSelectBucket('mileage')} selectedCounts={mileageSelectedCounts} />
-        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} onSelectBucket={onSelectBucket('year')} selectedCounts={yearSelectedCounts} />
+        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
+        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
+        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
       </section>
 
       {/* Bloc 3 — nuage G4 */}
@@ -357,6 +427,7 @@ export function DistributionScreen(props: DistributionScreenProps) {
           degraded={degraded}
           resolveTooltip={resolveTooltip}
           onOpenListing={props.onOpenListing}
+          dataSelection={stats.selectionHash}
         />
         {selectedRows && selectedRows.size > 0 ? (
           <div class="kycar-scatter-selection-actions">
@@ -370,22 +441,42 @@ export function DistributionScreen(props: DistributionScreenProps) {
         ) : null}
       </section>
 
-      {/* Bloc 4 — graphes additionnels (ordre EX-SCR-144) */}
+      {/* Bloc 4 — graphes additionnels (ordre EX-SCR-144). `EX-SCR-113bis` (D8-06/FV-08) : en mode
+          « Modèle non identifié », G5/G6/G8/G10/G14 sont hors DOM (jamais seulement masqués en CSS —
+          C₁/C₂ de la détection d'outlier exigent un `modelId` résolu, EX-SCR-113bis). */}
       <section class="kycar-graph-grid" aria-label="Graphes additionnels">
-        <YearMedianChart points={yearMedian} />
-        <DepreciationChart model={depreciation} />
-        <DensityHeatmap density={density} />
-        <OutlierLollipopChart items={lollipops} perimeter={{ makeModel: props.makeModelName }} onOpen={props.onOpenListing} />
-        <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} />
-        <MileageBoxes tiles={mileageBoxes.tiles} />
-        <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." />
-        <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} />
-        <PowerTiers tiers={powerTiers} />
-        <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} />
-        {/* A-08 (DR-147, DETTE consignée) : CO₂, consommation et boîte de vitesses sont écartés de
-            cette grille — voir `reports/remediation/fix-screens.md` §6.5. Mention volontairement
-            absente ici : le fix-lead a retenu la dette « muette » pour ce MINEUR, pas un correctif. */}
+        {!isUnresolvedModel ? <YearMedianChart points={yearMedian} dataSelection={stats.selectionHash} /> : null}
+        {!isUnresolvedModel ? <DepreciationChart model={depreciation} dataSelection={stats.selectionHash} /> : null}
+        <DensityHeatmap density={density} dataSelection={stats.selectionHash} />
+        {!isUnresolvedModel ? (
+          <OutlierLollipopChart
+            items={lollipops}
+            perimeter={{ makeModel: props.makeModelName }}
+            onOpen={props.onOpenListing}
+            modelCaption={g8Caption}
+            rSquaredWarning={g8Warning}
+            dataSelection={stats.selectionHash}
+          />
+        ) : null}
+        <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} dataSelection={stats.selectionHash} />
+        {!isUnresolvedModel ? <MileageBoxes boxes={mileageBoxes} dataSelection={stats.selectionHash} /> : null}
+        <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." dataSelection={stats.selectionHash} />
+        <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} dataSelection={stats.selectionHash} />
+        {!isUnresolvedModel ? <PowerTiers tiers={powerTiers} dataSelection={stats.selectionHash} /> : null}
+        {/* `EX-SCR-170` (D8-06/FV-18) — G15 n'est tracé QUE si le périmètre contient plus d'un
+            `countryCode` distinct (ou si le filtre `cy` porte plusieurs valeurs — hors périmètre de
+            ce composant, qui ne reçoit pas l'état du filtre actif ; condition sur les données seule,
+            ci-dessous). Sinon le bloc est absent du DOM (pas un `ET-CHAMP-ABSENT-SOURCE`). */}
+        {countryBars === 'unavailable' || countryBars.length > 1 ? (
+          <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} dataSelection={stats.selectionHash} />
+        ) : null}
       </section>
+      {/* A-08 (DR-147, D8-12 — dette LEVÉE) : les graphes CO₂/consommation/boîte de vitesses restent
+          écartés de la grille (dette A-08 elle-même inchangée), mais `EX-SCR-39` (« aucun état n'est
+          silencieux ») exige désormais une mention à l'utilisateur, là où il n'y en avait aucune. */}
+      <p class="kycar-graph-note">
+        Graphes CO₂, consommation et boîte de vitesses : non disponibles dans cette version (dette A-08).
+      </p>
     </div>
   );
 }
