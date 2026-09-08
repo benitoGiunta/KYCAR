@@ -12,7 +12,7 @@
  */
 
 import type { ListingColumnBatch } from '../types/index';
-import { NUMERIC_UNKNOWN } from '../types/index';
+import { hpToKw, NUMERIC_UNKNOWN } from '../types/index';
 import { yearFromYearMonth } from './flags';
 
 /** Colonnes énumérées sur un octet éligibles à un filtre `R` / à une facette. */
@@ -40,6 +40,14 @@ export type EnumColumnName =
 /** Colonnes numériques éligibles à une plage `R`. La métrique `year` est dérivée du yearMonth. */
 export type NumericColumnName = 'priceEur' | 'mileageKm' | 'powerKw' | 'modelYear' | 'year';
 
+/**
+ * Unité dans laquelle les bornes d'une plage sont SAISIES (EX-SRCH-11bis, ARB-33). Le prédicat
+ * s'évalue toujours sur le champ canonique dans son unité canonique (`EX-DATA-4`) ; une borne
+ * exprimée dans une unité d'affichage est convertie AVANT comparaison, sans arrondi intermédiaire.
+ * `'hp'` (chevaux DIN, `powertype = hp`) n'est admis que sur `powerKw`.
+ */
+export type RangeBoundUnit = 'canonical' | 'hp';
+
 /** Prédicat de raffinement (classe R). */
 export type RefinePredicate =
   | {
@@ -56,6 +64,8 @@ export type RefinePredicate =
       readonly column: NumericColumnName;
       readonly min: number | null;
       readonly max: number | null;
+      /** Unité des bornes (EX-SRCH-11bis). Absente = unité canonique de la colonne. */
+      readonly unit?: RangeBoundUnit;
     };
 
 /** Contrainte de taxonomie (classe T) pilotant l'élagage. */
@@ -112,7 +122,8 @@ export function compilePredicate(batch: ListingColumnBatch, predicate: RefinePre
       test: (row: number) => lut[col[row] as number] === 1,
     };
   }
-  const { min, max, column } = predicate;
+  const { column } = predicate;
+  const [min, max] = canonicalBounds(predicate);
   return {
     filterId: predicate.filterId,
     kind: 'range',
@@ -125,6 +136,33 @@ export function compilePredicate(batch: ListingColumnBatch, predicate: RefinePre
       return true;
     },
   };
+}
+
+/**
+ * Convertit les bornes d'une plage vers l'unité CANONIQUE de la colonne (EX-SRCH-11bis, ARB-33).
+ *
+ * `powertype = hp` : `powerKw ≥ borne_ch × 0,7355` et `powerKw ≤ borne_ch × 0,7355`, la constante
+ * étant celle d'EX-DATA-36 (DIN 66036) et aucune autre, appliquée en double précision et **sans
+ * arrondi intermédiaire** — la conversion produit le seuil exact, jamais un entier arrondi. Le champ
+ * dérivé `powerHp` est un champ d'affichage et n'est jamais le membre gauche d'un prédicat.
+ *
+ * `hpToKw` est le symbole unique de la conversion (`src/types/shared-rules.ts`) : le moteur et
+ * `compileSelection` côté provider s'en servent tous les deux, il n'existe pas de seconde constante.
+ */
+function canonicalBounds(predicate: {
+  readonly column: NumericColumnName;
+  readonly min: number | null;
+  readonly max: number | null;
+  readonly unit?: RangeBoundUnit;
+}): [number | null, number | null] {
+  if (predicate.unit === undefined || predicate.unit === 'canonical') return [predicate.min, predicate.max];
+  if (predicate.column !== 'powerKw') {
+    throw new Error(`predicates: unité ${predicate.unit} inapplicable à la colonne ${predicate.column}`);
+  }
+  return [
+    predicate.min === null ? null : hpToKw(predicate.min),
+    predicate.max === null ? null : hpToKw(predicate.max),
+  ];
 }
 
 /** Compile une liste de prédicats. */
