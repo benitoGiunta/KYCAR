@@ -4,7 +4,9 @@
       "/opt/node22/bin/node",
       "/home/user/KYCAR/node_modules/.bin/playwright",
       "test",
-      "--project=desktop"
+      "tests/e2e/partage-url.spec.ts",
+      "--project=desktop",
+      "--project=tablet"
     ],
     "configFile": "/home/user/KYCAR/playwright.config.ts",
     "rootDir": "/home/user/KYCAR/tests/e2e",
@@ -103,2200 +105,6 @@
   },
   "suites": [
     {
-      "title": "a11y.spec.ts",
-      "file": "a11y.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "EX-NFR-16 — axe-core WCAG 2.1 A/AA sur les huit surfaces",
-          "file": "a11y.spec.ts",
-          "line": 50,
-          "column": 6,
-          "specs": [
-            {
-              "title": "surface B — distribution d’un modèle : zéro violation A/AA",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "axe — B — distribution d’un modèle : 0 violation"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4020,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] axe — B — distribution d’un modèle : 0 violation\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:00.497Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "axe — B — distribution d’un modèle : 0 violation"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "aa3ad05f8c0e05077efb-8ceecd37320cf8d05b14",
-              "file": "a11y.spec.ts",
-              "line": 58,
-              "column": 5
-            },
-            {
-              "title": "surface C — comparer des modèles : zéro violation A/AA",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "axe — C — comparer des modèles : 0 violation"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2620,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] axe — C — comparer des modèles : 0 violation\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:04.684Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "axe — C — comparer des modèles : 0 violation"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "aa3ad05f8c0e05077efb-b0238a49ca1312b781eb",
-              "file": "a11y.spec.ts",
-              "line": 58,
-              "column": 5
-            },
-            {
-              "title": "surface E — recherches enregistrées : zéro violation A/AA",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "axe — E — recherches enregistrées : 0 violation"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1150,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] axe — E — recherches enregistrées : 0 violation\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:07.316Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "axe — E — recherches enregistrées : 0 violation"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "aa3ad05f8c0e05077efb-30918e19335bde42ff04",
-              "file": "a11y.spec.ts",
-              "line": 58,
-              "column": 5
-            },
-            {
-              "title": "surface F — modèles suivis : zéro violation A/AA",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "axe — F — modèles suivis : 0 violation"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1174,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] axe — F — modèles suivis : 0 violation\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:08.478Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "axe — F — modèles suivis : 0 violation"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "aa3ad05f8c0e05077efb-cd453e5d64829e3b768a",
-              "file": "a11y.spec.ts",
-              "line": 58,
-              "column": 5
-            },
-            {
-              "title": "surface /mentions — mentions légales : zéro violation A/AA",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "axe — /mentions — mentions légales : 0 violation"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1170,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] axe — /mentions — mentions légales : 0 violation\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:09.668Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "axe — /mentions — mentions légales : 0 violation"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "aa3ad05f8c0e05077efb-14a8eee8f7d850266358",
-              "file": "a11y.spec.ts",
-              "line": 58,
-              "column": 5
-            },
-            {
-              "title": "CONSTAT E2E-13 — surface D : l’écran ne rend pas, EX-NFR-16 ne peut y être prononcée (EX-NFR-16)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-13 — EX-NFR-16 — la surface D ne peut pas être balayée : la route /annonces ne monte que la barre d’outils (cf. E2E-01), un balayage axe y renverrait « 0 violation » sur une page vide — verdict d’accessibilité NON PRONONÇABLE tant qu’E2E-01 n’est pas corrigé"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "axe — D — annonces du modèle : 0 violation"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4813,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] axe — D — annonces du modèle : 0 violation\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:10.847Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-13 — EX-NFR-16 — la surface D ne peut pas être balayée : la route /annonces ne monte que la barre d’outils (cf. E2E-01), un balayage axe y renverrait « 0 violation » sur une page vide — verdict d’accessibilité NON PRONONÇABLE tant qu’E2E-01 n’est pas corrigé"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "axe — D — annonces du modèle : 0 violation"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "aa3ad05f8c0e05077efb-193b5fd1ede82d9f531a",
-              "file": "a11y.spec.ts",
-              "line": 66,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-11 — surface A : contraste des pastilles de marque (EX-NFR-13, EX-NFR-16)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "axe — A /marche : 0 violation"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 5246,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] axe — A /marche : 0 violation\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:15.674Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "axe — A /marche : 0 violation"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "aa3ad05f8c0e05077efb-5765a2730f938f7f79a4",
-              "file": "a11y.spec.ts",
-              "line": 93,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-12 — surface G : attributs ARIA non autorisés et contrôles imbriqués dans la modale (EX-NFR-16, EX-SCR-215/216)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-12 — EX-NFR-16/EX-SCR-215 — la modale de sélection marque/modèle produit deux violations sérieuses/critiques : aria-allowed-attr (aria-setsize porté par le ul[role=listbox] et aria-selected porté par les boutons de ligne) et nested-interactive (un bouton focalisable à l’intérieur d’un li[role=option]) — l’équivalent accessible du fenêtrage viole la sémantique listbox/option"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "axe — G (modale marque/modèle) : 0 violation"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2561,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] axe — G (modale marque/modèle) : 0 violation\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:20.928Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-12 — EX-NFR-16/EX-SCR-215 — la modale de sélection marque/modèle produit deux violations sérieuses/critiques : aria-allowed-attr (aria-setsize porté par le ul[role=listbox] et aria-selected porté par les boutons de ligne) et nested-interactive (un bouton focalisable à l’intérieur d’un li[role=option]) — l’équivalent accessible du fenêtrage viole la sémantique listbox/option"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "axe — G (modale marque/modèle) : 0 violation"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "aa3ad05f8c0e05077efb-1f34c220487470b1c9ae",
-              "file": "a11y.spec.ts",
-              "line": 102,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "clavier.spec.ts",
-      "file": "clavier.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "EX-NFR-12 / EX-NFR-14 — clavier, focus et titres",
-          "file": "clavier.spec.ts",
-          "line": 56,
-          "column": 6,
-          "specs": [
-            {
-              "title": "le lien d’évitement est le premier arrêt de tabulation et mène au contenu principal (EX-NFR-12)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1261,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:23.524Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-e22fafab4431944f8b73",
-              "file": "clavier.spec.ts",
-              "line": 57,
-              "column": 3
-            },
-            {
-              "title": "l’indicateur de focus reste visible sur un contrôle atteint au clavier (EX-NFR-14)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1025,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:24.798Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-a83ae06af68d0f7fce85",
-              "file": "clavier.spec.ts",
-              "line": 81,
-              "column": 3
-            },
-            {
-              "title": "tous les contrôles de la ligne primaire du bandeau sont atteints au clavier, dans l’ordre du DOM (EX-NFR-14)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "clavier — contrôles de la ligne primaire : 70 atteints sur 70"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4572,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] clavier — contrôles de la ligne primaire : 70 atteints sur 70\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:25.832Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "clavier — contrôles de la ligne primaire : 70 atteints sur 70"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-0f6d038d6b45b180fcd5",
-              "file": "clavier.spec.ts",
-              "line": 97,
-              "column": 3
-            },
-            {
-              "title": "écran G : ouverture au clavier, focus initial, piège de focus et fermeture par Échap (EX-SCR-216, EX-NFR-14)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "clavier — arrêts visités dans l’écran G : list-make, list-model, cancel, search-make"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1957,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] clavier — arrêts visités dans l’écran G : list-make, list-model, cancel, search-make\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:30.413Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "clavier — arrêts visités dans l’écran G : list-make, list-model, cancel, search-make"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-5fa5153c89301623e801",
-              "file": "clavier.spec.ts",
-              "line": 115,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-14 — à la fermeture de l’écran G le focus n’est pas rendu au contrôle appelant (EX-SCR-216, WCAG 2.4.3)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-14 — EX-SCR-216/EX-NFR-14 — après Échap (ou « Annuler ») le focus retombe sur <body> au lieu de revenir au bouton qui a ouvert la modale : la restitution est explicitement laissée « à l’appelant » par src/components/filters/ScreenG.tsx et aucun appelant (MarketScreen, FilterBand) ne l’implémente — l’utilisateur au clavier repart du début du document"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "clavier — focus après fermeture de l’écran G : button|Choisir une marque et un modèle"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1477,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] clavier — focus après fermeture de l’écran G : button|Choisir une marque et un modèle\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:32.380Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-14 — EX-SCR-216/EX-NFR-14 — après Échap (ou « Annuler ») le focus retombe sur <body> au lieu de revenir au bouton qui a ouvert la modale : la restitution est explicitement laissée « à l’appelant » par src/components/filters/ScreenG.tsx et aucun appelant (MarketScreen, FilterBand) ne l’implémente — l’utilisateur au clavier repart du début du document"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "clavier — focus après fermeture de l’écran G : button|Choisir une marque et un modèle"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-9fc36cfc1461c5a17ecf",
-              "file": "clavier.spec.ts",
-              "line": 161,
-              "column": 3
-            },
-            {
-              "title": "document.title nomme la vue courante, route par route (EX-NFR-14, DR-101)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 7175,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:33.867Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-93459a096e4fe8fb94c8",
-              "file": "clavier.spec.ts",
-              "line": 187,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-16 (élargi par E2E-15) — au chargement direct de l’écran A, le focus n’atteint plus le contenu principal (EX-NFR-12)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-16 — EX-NFR-12 — depuis EX-SCR-113bis/E2E-15, l’écran A porte lui aussi un h1 dans #kycar-main : l’effet de src/app.tsx qui appelle focus() sur ce h1 (non focalisable, aucun tabindex) échoue silencieusement au lieu de retomber sur #kycar-main — l’écran A rejoint donc le défaut déjà catalogué par E2E-16 pour C/E/F/mentions, qu’il était seul à ne pas partager avant cette correction"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1001,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:41.053Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-16 — EX-NFR-12 — depuis EX-SCR-113bis/E2E-15, l’écran A porte lui aussi un h1 dans #kycar-main : l’effet de src/app.tsx qui appelle focus() sur ce h1 (non focalisable, aucun tabindex) échoue silencieusement au lieu de retomber sur #kycar-main — l’écran A rejoint donc le défaut déjà catalogué par E2E-16 pour C/E/F/mentions, qu’il était seul à ne pas partager avant cette correction"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-5aa841b0580b24599596",
-              "file": "clavier.spec.ts",
-              "line": 215,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-16 — la prise de focus après navigation échoue dès que la vue porte un h1 (EX-NFR-12, DR-101)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-16 — EX-NFR-12 — la coquille appelle focus() sur le h1 du contenu, qui n’est pas focalisable (aucun tabindex) : l’appel est sans effet. Au chargement direct de A/C/E/F/mentions le focus reste sur <body> ; après une navigation interne il reste sur le lien cliqué. Seules B/D AVANT le chargement de leurs données (pas encore de h1 au moment de l’effet) reçoivent le repli sur #kycar-main"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "clavier — focus après navigation vers /mentions : h1#kycar-mentions-title|Mentions et méthodologie"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1132,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] clavier — focus après navigation vers /mentions : h1#kycar-mentions-title|Mentions et méthodologie\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:42.062Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-16 — EX-NFR-12 — la coquille appelle focus() sur le h1 du contenu, qui n’est pas focalisable (aucun tabindex) : l’appel est sans effet. Au chargement direct de A/C/E/F/mentions le focus reste sur <body> ; après une navigation interne il reste sur le lien cliqué. Seules B/D AVANT le chargement de leurs données (pas encore de h1 au moment de l’effet) reçoivent le repli sur #kycar-main"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "clavier — focus après navigation vers /mentions : h1#kycar-mentions-title|Mentions et méthodologie"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-132d843c78596a842cae",
-              "file": "clavier.spec.ts",
-              "line": 237,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-15 — l’écran A porte un titre de niveau 1 (EX-NFR-12)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1025,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:43.202Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3fcc6304fd31d66bf9c8-7403a84e92701d72f975",
-              "file": "clavier.spec.ts",
-              "line": 271,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "impression.spec.ts",
-      "file": "impression.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "EX-NFR-31 — feuille @media print minimale",
-          "file": "impression.spec.ts",
-          "line": 31,
-          "column": 6,
-          "specs": [
-            {
-              "title": "règle 1 : l’en-tête collant perd son positionnement fixe à l’impression",
-              "ok": true,
-              "tags": [
-                "media"
-              ],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-31 — position de .app-header à l’impression : static"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1005,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-NFR-31 — position de .app-header à l’impression : static\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:44.242Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-31 — position de .app-header à l’impression : static"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5c2d8e7bfc8ec3f799f9-92c0b87a346c9ea350b2",
-              "file": "impression.spec.ts",
-              "line": 32,
-              "column": 3
-            },
-            {
-              "title": "règle 2 : les bandeaux d’état et le bandeau C3 sont imprimés",
-              "ok": true,
-              "tags": [
-                "media"
-              ],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1021,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:45.256Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5c2d8e7bfc8ec3f799f9-4baed31a33290585b190",
-              "file": "impression.spec.ts",
-              "line": 42,
-              "column": 3
-            },
-            {
-              "title": "règle 4 : aucun contrôle interactif n’atteint le papier",
-              "ok": true,
-              "tags": [
-                "media"
-              ],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-31 — contrôles encore visibles à l’impression : 0"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1046,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-NFR-31 — contrôles encore visibles à l’impression : 0\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:46.289Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-31 — contrôles encore visibles à l’impression : 0"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5c2d8e7bfc8ec3f799f9-df069065e417c31c5150",
-              "file": "impression.spec.ts",
-              "line": 50,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-20 — la barre de synthèse est collante à l’écran : src/screens/market/market.css est bien chargé (EX-NFR-31 règle 1, EX-SCR-105/106)",
-              "ok": true,
-              "tags": [
-                "media"
-              ],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-SCR-106 — règle CSS .kycar-market-summary-bar chargée : true"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 998,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-SCR-106 — règle CSS .kycar-market-summary-bar chargée : true\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:47.345Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-SCR-106 — règle CSS .kycar-market-summary-bar chargée : true"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5c2d8e7bfc8ec3f799f9-84f2b5a1971d54c6cc5e",
-              "file": "impression.spec.ts",
-              "line": 73,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-22 — le résumé des filtres actifs n’atteint jamais le papier (EX-NFR-31 règle 3)",
-              "ok": true,
-              "tags": [
-                "media"
-              ],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-22 — EX-NFR-31 — le paragraphe .print-filter-summary est un ENFANT de .filter-bar, que la même feuille met en display:none à l’impression : un ancêtre masqué masque sa descendance, la règle .print-filter-summary { display: block } ne peut pas la rattraper. À l’impression, le bandeau de filtres disparaît sans être remplacé par quoi que ce soit"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-31 — display du résumé imprimé : block"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1011,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-NFR-31 — display du résumé imprimé : block\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:48.353Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-22 — EX-NFR-31 — le paragraphe .print-filter-summary est un ENFANT de .filter-bar, que la même feuille met en display:none à l’impression : un ancêtre masqué masque sa descendance, la règle .print-filter-summary { display: block } ne peut pas la rattraper. À l’impression, le bandeau de filtres disparaît sans être remplacé par quoi que ce soit"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-31 — display du résumé imprimé : block"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5c2d8e7bfc8ec3f799f9-cb9be12c1c5ddc524f79",
-              "file": "impression.spec.ts",
-              "line": 83,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-23 — le résumé des filtres tient sur une ligne et cite des noms de paramètres bruts (EX-NFR-31 règle 3)",
-              "ok": true,
-              "tags": [
-                "media"
-              ],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-23 — EX-NFR-31 — la règle demande « un résumé textuel des filtres actifs, UN PAR LIGNE » : la coquille produit « Filtres actifs : body=3 · kmto=100000 · priceto=20000 », une seule ligne de noms de PARAMÈTRES d’URL, alors que les jetons du bandeau savent déjà dire « Carrosserie : Coupé » (EX-SCR-75)"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-31 — texte du résumé imprimé : Filtres actifs\nPrix : ≤ 20 000 €\nKilométrage : ≤ 100 000 km\nCarrosserie : Coupé"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 974,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-NFR-31 — texte du résumé imprimé : Filtres actifs\nPrix : ≤ 20 000 €\nKilométrage : ≤ 100 000 km\nCarrosserie : Coupé\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:49.372Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-23 — EX-NFR-31 — la règle demande « un résumé textuel des filtres actifs, UN PAR LIGNE » : la coquille produit « Filtres actifs : body=3 · kmto=100000 · priceto=20000 », une seule ligne de noms de PARAMÈTRES d’URL, alors que les jetons du bandeau savent déjà dire « Carrosserie : Coupé » (EX-SCR-75)"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-31 — texte du résumé imprimé : Filtres actifs\nPrix : ≤ 20 000 €\nKilométrage : ≤ 100 000 km\nCarrosserie : Coupé"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5c2d8e7bfc8ec3f799f9-8ada59f78a10844007c7",
-              "file": "impression.spec.ts",
-              "line": 106,
-              "column": 3
-            },
-            {
-              "title": "l’écran B s’imprime aussi sans contrôle ni graphe interactif (EX-NFR-31)",
-              "ok": true,
-              "tags": [
-                "media"
-              ],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1867,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:50.355Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5c2d8e7bfc8ec3f799f9-ec74c31164539504b2e5",
-              "file": "impression.spec.ts",
-              "line": 130,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "parcours-p1.spec.ts",
-      "file": "parcours-p1.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Parcours 1 — mode 1, survol du marché filtré",
-          "file": "parcours-p1.spec.ts",
-          "line": 35,
-          "column": 6,
-          "specs": [
-            {
-              "title": "premier affichage : agrégats de base, bandeau C3 de couverture et amorce de filtres (EX-SCR-106/EX-SCR-113)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "P1 — barre de synthèse au premier affichage : 294 marques · 3 021 modèles · 100 000 offres — 20 marques affichées"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1116,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] P1 — barre de synthèse au premier affichage : 294 marques · 3 021 modèles · 100 000 offres — 20 marques affichées\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:52.241Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "P1 — barre de synthèse au premier affichage : 294 marques · 3 021 modèles · 100 000 offres — 20 marques affichées"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-699aa4c3000d2d6dcfa0",
-              "file": "parcours-p1.spec.ts",
-              "line": 36,
-              "column": 3
-            },
-            {
-              "title": "pose des quatre filtres du parcours par le bandeau réel : URL canonique et effectif affiché (EX-NAV-9, EX-SCR-106)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 3509,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:53.366Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-dbb76c6e7772b07aee69",
-              "file": "parcours-p1.spec.ts",
-              "line": 56,
-              "column": 3
-            },
-            {
-              "title": "cartes-marques et zones-modèles : fourchette étiquetée « fourchette centrale » (EX-SCR-107/EX-SCR-118)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1417,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:56.885Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-70e598d80354d7d956e2",
-              "file": "parcours-p1.spec.ts",
-              "line": 101,
-              "column": 3
-            },
-            {
-              "title": "tri des cartes-marques : alphabétique puis inversion du sens (EX-SCR-106)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1482,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:58.312Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-4dce1741e262d582cdde",
-              "file": "parcours-p1.spec.ts",
-              "line": 124,
-              "column": 3
-            },
-            {
-              "title": "export CSV des agrégats affichés : téléchargement réel, en-tête normatif, aucun champ R3 (EX-CRUD-14/15, EX-DATA-123bis)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "P1 — export CSV : kycar_agregats-mode1_be-synthetic-100000-4b594341_20260908.csv, 70 lignes de données"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1283,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] P1 — export CSV : kycar_agregats-mode1_be-synthetic-100000-4b594341_20260908.csv, 70 lignes de données\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:43:59.806Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "P1 — export CSV : kycar_agregats-mode1_be-synthetic-100000-4b594341_20260908.csv, 70 lignes de données"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-73160b6854ba6daa507e",
-              "file": "parcours-p1.spec.ts",
-              "line": 157,
-              "column": 3
-            },
-            {
-              "title": "changement de filtre R : recalcul sans rechargement de page (EX-NFR-2, EX-NAV-12)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1473,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:01.098Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-8cae135f36e0ee4b489b",
-              "file": "parcours-p1.spec.ts",
-              "line": 192,
-              "column": 3
-            },
-            {
-              "title": "retour arrière : une entrée d’historique par changement appliqué, état restauré (EX-NAV-12/13)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1797,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:02.582Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-4183790fcfd8cf071c11",
-              "file": "parcours-p1.spec.ts",
-              "line": 209,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-04 — le cardinal « modèles » de la barre de synthèse vaut 0 alors que la population filtrée en compte (EX-SCR-106)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-04 — EX-SCR-106 — la barre de synthèse affiche « 0 modèles » tant qu’aucune carte n’est dépliée, alors que les trois cardinaux doivent être ceux de la population filtrée"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 955,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:04.387Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-04 — EX-SCR-106 — la barre de synthèse affiche « 0 modèles » tant qu’aucune carte n’est dépliée, alors que les trois cardinaux doivent être ceux de la population filtrée"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-0cd06408601ababe779c",
-              "file": "parcours-p1.spec.ts",
-              "line": 226,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-05 — le résumé de carte-marque annonce « 0 modèles » avant dépliage (EX-SCR-107 ligne 1)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-05 — EX-SCR-107 — la ligne 1 du résumé de carte affiche « 0 modèles · médiane <prix> » avant dépliage, au lieu du cardinal réel ou du repli « — » d’EX-SCR-132"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 932,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:05.351Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-05 — EX-SCR-107 — la ligne 1 du résumé de carte affiche « 0 modèles · médiane <prix> » avant dépliage, au lieu du cardinal réel ou du repli « — » d’EX-SCR-132"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "374a7da72275b9bbd1de-d817f007ad5b55b8c148",
-              "file": "parcours-p1.spec.ts",
-              "line": 248,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "parcours-p2.spec.ts",
-      "file": "parcours-p2.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Parcours 2 — mode 2, distribution d’un modèle",
-          "file": "parcours-p2.spec.ts",
-          "line": 40,
-          "column": 6,
-          "specs": [
-            {
-              "title": "en-tête statistique : effectif, médiane, quartiles et fourchette min – max (EX-SCR-142)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "P2 — en-tête écran B (2017) : Opel Corsa | 54 offres | médiane 15 200 € | P25 12 238 € | P75 17 200 € | min 10 150 € – max 20 150 € (du moins cher au plus cher) | km médian 131 250 km | 1ʳᵉ immat. médiane 2017 | 33 % particuliers | Voir les 54 annonces | Comparer | Suivre | Exporter"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1867,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] P2 — en-tête écran B (2017) : Opel Corsa | 54 offres | médiane 15 200 € | P25 12 238 € | P75 17 200 € | min 10 150 € – max 20 150 € (du moins cher au plus cher) | km médian 131 250 km | 1ʳᵉ immat. médiane 2017 | 33 % particuliers | Voir les 54 annonces | Comparer | Suivre | Exporter\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:06.301Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "P2 — en-tête écran B (2017) : Opel Corsa | 54 offres | médiane 15 200 € | P25 12 238 € | P75 17 200 € | min 10 150 € – max 20 150 € (du moins cher au plus cher) | km médian 131 250 km | 1ʳᵉ immat. médiane 2017 | 33 % particuliers | Voir les 54 annonces | Comparer | Suivre | Exporter"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-26fd17dbc7803a04487d",
-              "file": "parcours-p2.spec.ts",
-              "line": 41,
-              "column": 3
-            },
-            {
-              "title": "cellule entière sans filtre d’année : 1 352 annonces (vérité terrain D8)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1925,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:08.177Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-9d6e95730b7c963ac041",
-              "file": "parcours-p2.spec.ts",
-              "line": 64,
-              "column": 3
-            },
-            {
-              "title": "G1–G3 présents, chacun doublé de sa table de données équivalente (EX-SCR-141, EX-NFR-15)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2449,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:10.114Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-1c3e62b3ec122a5adeb6",
-              "file": "parcours-p2.spec.ts",
-              "line": 69,
-              "column": 3
-            },
-            {
-              "title": "clic sur une barre d’histogramme : le filtre d’intervalle correspondant est posé (ARB-09, EX-SCR-149)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2001,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:12.571Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-3e286248975428912537",
-              "file": "parcours-p2.spec.ts",
-              "line": 107,
-              "column": 3
-            },
-            {
-              "title": "« Voir les <n> annonces » mène à l’écran D du même couple, filtres conservés (EX-SCR-142 ligne 3)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1978,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:14.583Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-7ae21dcc51b73e7ba2a5",
-              "file": "parcours-p2.spec.ts",
-              "line": 136,
-              "column": 3
-            },
-            {
-              "title": "brossage du nuage : les bornes sont écrites dans l’URL (EX-NAV-10bis, selx/sely)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2223,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:16.569Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-bc23d7ec8a3c7dfb00fc",
-              "file": "parcours-p2.spec.ts",
-              "line": 145,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-02 — le nuage G4 ne trace aucun point sur une cellule de 1 352 annonces (EX-SCR-151..160, EX-DATA-99)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-02 — EX-SCR-151/EX-DATA-99 — le canvas G4 est vierge (0 pixel encré, aria-label « Nuage de 0 points ») : les vues typées du lot colonnaire sont DÉTACHÉES côté thread principal après leur transfert au worker (src/worker/client.ts), donc computeEligibility rejette toutes les lignes"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "P2 — nuage G4 : Nuage de 1232 points, 54 outliers"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "P2 — encre du canvas G4 : 56756 pixels sur 900×480"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2184,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] P2 — nuage G4 : Nuage de 1232 points, 54 outliers\n"
-                        },
-                        {
-                          "text": "[MESURE] P2 — encre du canvas G4 : 56756 pixels sur 900×480\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:18.801Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-02 — EX-SCR-151/EX-DATA-99 — le canvas G4 est vierge (0 pixel encré, aria-label « Nuage de 0 points ») : les vues typées du lot colonnaire sont DÉTACHÉES côté thread principal après leur transfert au worker (src/worker/client.ts), donc computeEligibility rejette toutes les lignes"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "P2 — nuage G4 : Nuage de 1232 points, 54 outliers"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "P2 — encre du canvas G4 : 56756 pixels sur 900×480"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-373f3ebbf2a21ed3fe38",
-              "file": "parcours-p2.spec.ts",
-              "line": 159,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-03 — la seconde projection du nuage est désactivée faute de points (EX-SCR-152)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-03 — EX-SCR-152 — l’onglet « Prix × année » est rendu disabled avec le titre « Nécessite l’année de première immatriculation » : conséquence directe d’E2E-02, la bascule entre les deux projections est inatteignable"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1995,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:20.994Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-03 — EX-SCR-152 — l’onglet « Prix × année » est rendu disabled avec le titre « Nécessite l’année de première immatriculation » : conséquence directe d’E2E-02, la bascule entre les deux projections est inatteignable"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-174fbe4186d9529826fb",
-              "file": "parcours-p2.spec.ts",
-              "line": 184,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-06 — un brossage ne sélectionne aucune annonce : « Convertir la sélection en filtre » et « Voir ces annonces » n’apparaissent jamais (EX-SCR-158/184)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-06 — EX-SCR-158/EX-SCR-184 — les bornes du brossage sont bien écrites dans l’URL (selx/sely) mais la sélection est vide (0 point tracé, cf. E2E-02) : les deux actions de la sélection ne sont pas montées, le maillon « brosser → filtrer → lister » du parcours 2 est rompu"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2796,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:22.998Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-06 — EX-SCR-158/EX-SCR-184 — les bornes du brossage sont bien écrites dans l’URL (selx/sely) mais la sélection est vide (0 point tracé, cf. E2E-02) : les deux actions de la sélection ne sont pas montées, le maillon « brosser → filtrer → lister » du parcours 2 est rompu"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-4b34cef4cad0e36d6891",
-              "file": "parcours-p2.spec.ts",
-              "line": 210,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-01 — l’écran D lève « detached ArrayBuffer » et ne rend aucune annonce (EX-SCR-201..210)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-01 — EX-SCR-201..210 — la route /annonces monte la barre d’outils puis lève TypeError: Cannot perform Construct on a detached ArrayBuffer ; aucun tableau, aucune pagination, aucun bouton « Ouvrir ↗ » : le parcours cible 2 ne se termine pas"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "P2 — erreurs de page sur l’écran D : (aucune)"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 3834,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] P2 — erreurs de page sur l’écran D : (aucune)\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:25.805Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-01 — EX-SCR-201..210 — la route /annonces monte la barre d’outils puis lève TypeError: Cannot perform Construct on a detached ArrayBuffer ; aucun tableau, aucune pagination, aucun bouton « Ouvrir ↗ » : le parcours cible 2 ne se termine pas"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "P2 — erreurs de page sur l’écran D : (aucune)"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-846572551680c798d3c4",
-              "file": "parcours-p2.spec.ts",
-              "line": 237,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-07 — pagination 50, tri, jeton de doublon et « Ouvrir ↗ » de l’écran D (EX-SCR-203/206/208, EX-DATA-15)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-07 — EX-SCR-203/206/208 — aucun des contrôles de l’écran D n’est atteignable (pagination de 50, tri mono-colonne, jeton « ! » de DUPLICATE_VALUE_CONFLICT, lien sortant « Ouvrir ↗ » vers l’annonce d’origine) : conséquence d’E2E-01"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 16007,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:29.647Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-07 — EX-SCR-203/206/208 — aucun des contrôles de l’écran D n’est atteignable (pagination de 50, tri mono-colonne, jeton « ! » de DUPLICATE_VALUE_CONFLICT, lien sortant « Ouvrir ↗ » vers l’annonce d’origine) : conséquence d’E2E-01"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-f90e7e2ee2263418a752",
-              "file": "parcours-p2.spec.ts",
-              "line": 262,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-08 — les graphes additionnels G5 et G8–G15 rendent des tables de données VIDES (EX-SCR-144, EX-NFR-15)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-08 — EX-SCR-144/EX-NFR-15 — les tables équivalentes de G5, G8, G9, G10, G12, G13, G14 et G15 ne portent que leur en-tête (zéro ligne) : ces graphes sont calculés sur le thread principal à partir du lot colonnaire détaché (cf. E2E-02)"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "P2 — graphes additionnels sans ligne de données : (aucun)"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 3328,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] P2 — graphes additionnels sans ligne de données : (aucun)\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:45.666Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-08 — EX-SCR-144/EX-NFR-15 — les tables équivalentes de G5, G8, G9, G10, G12, G13, G14 et G15 ne portent que leur en-tête (zéro ligne) : ces graphes sont calculés sur le thread principal à partir du lot colonnaire détaché (cf. E2E-02)"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "P2 — graphes additionnels sans ligne de données : (aucun)"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-8de1092f65eb40e815ab",
-              "file": "parcours-p2.spec.ts",
-              "line": 294,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-09 — la part de particuliers de l’en-tête vaut 0 % (EX-SCR-142 ligne 2, EX-NFR-29)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-09 — EX-SCR-142 — l’en-tête annonce « 0 % particuliers » sur 1 352 annonces : la colonne sellerType est lue sur le lot détaché, tous les codes ressortent inconnus (cf. E2E-02)"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "P2 — ligne 2 de l’en-tête écran B : km médian 70 850 km | 1ʳᵉ immat. médiane 2021 | 37 % particuliers"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2001,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] P2 — ligne 2 de l’en-tête écran B : km médian 70 850 km | 1ʳᵉ immat. médiane 2021 | 37 % particuliers\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:49.002Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-09 — EX-SCR-142 — l’en-tête annonce « 0 % particuliers » sur 1 352 annonces : la colonne sellerType est lue sur le lot détaché, tous les codes ressortent inconnus (cf. E2E-02)"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "P2 — ligne 2 de l’en-tête écran B : km médian 70 850 km | 1ʳᵉ immat. médiane 2021 | 37 % particuliers"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-d923daee49b482001214",
-              "file": "parcours-p2.spec.ts",
-              "line": 320,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-10 — l’export « Annonces du périmètre (CSV) » de l’écran B ne produit aucun fichier (EX-CRUD-16)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-10 — EX-CRUD-16 — le bouton « Annonces du périmètre (CSV) » lève « detached ArrayBuffer » dans buildListingRow : aucun téléchargement n’est déclenché et l’erreur n’est pas dite à l’utilisateur (cf. E2E-02)"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1938,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:44:51.010Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-10 — EX-CRUD-16 — le bouton « Annonces du périmètre (CSV) » lève « detached ArrayBuffer » dans buildListingRow : aucun téléchargement n’est déclenché et l’erreur n’est pas dite à l’utilisateur (cf. E2E-02)"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "001fa3e3a6d2587e9e45-1550152a3d76c2e70390",
-              "file": "parcours-p2.spec.ts",
-              "line": 341,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
       "title": "partage-url.spec.ts",
       "file": "partage-url.spec.ts",
       "column": 0,
@@ -2306,7 +114,7 @@
         {
           "title": "EX-NAV-18 — une URL suffit à reconstituer l’état",
           "file": "partage-url.spec.ts",
-          "line": 46,
+          "line": 49,
           "column": 6,
           "specs": [
             {
@@ -2330,7 +138,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3586,
+                      "duration": 2868,
                       "errors": [],
                       "stdout": [
                         {
@@ -2339,7 +147,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:44:52.965Z",
+                      "startTime": "2026-09-08T19:24:40.417Z",
                       "annotations": [
                         {
                           "type": "MESURE",
@@ -2354,7 +162,7 @@
               ],
               "id": "fcebe7b7e401fe7952f6-dae1eb4c02f50a245499",
               "file": "partage-url.spec.ts",
-              "line": 47,
+              "line": 50,
               "column": 3
             },
             {
@@ -2378,7 +186,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3713,
+                      "duration": 3945,
                       "errors": [],
                       "stdout": [
                         {
@@ -2387,7 +195,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:44:56.558Z",
+                      "startTime": "2026-09-08T19:24:43.459Z",
                       "annotations": [
                         {
                           "type": "MESURE",
@@ -2402,7 +210,7 @@
               ],
               "id": "fcebe7b7e401fe7952f6-669f9a75d108eef36d86",
               "file": "partage-url.spec.ts",
-              "line": 69,
+              "line": 82,
               "column": 3
             },
             {
@@ -2426,7 +234,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 870,
+                      "duration": 961,
                       "errors": [],
                       "stdout": [
                         {
@@ -2435,7 +243,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:00.281Z",
+                      "startTime": "2026-09-08T19:24:47.418Z",
                       "annotations": [
                         {
                           "type": "MESURE",
@@ -2450,7 +258,7 @@
               ],
               "id": "fcebe7b7e401fe7952f6-b3dd93aea7706475f119",
               "file": "partage-url.spec.ts",
-              "line": 95,
+              "line": 108,
               "column": 3
             },
             {
@@ -2482,7 +290,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1309,
+                      "duration": 1320,
                       "errors": [],
                       "stdout": [
                         {
@@ -2497,7 +305,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:01.158Z",
+                      "startTime": "2026-09-08T19:24:48.389Z",
                       "annotations": [
                         {
                           "type": "MESURE",
@@ -2520,7 +328,7 @@
               ],
               "id": "fcebe7b7e401fe7952f6-c274aa884343b6720a06",
               "file": "partage-url.spec.ts",
-              "line": 118,
+              "line": 146,
               "column": 3
             },
             {
@@ -2539,12 +347,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1617,
+                      "duration": 1667,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:02.478Z",
+                      "startTime": "2026-09-08T19:24:49.718Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -2554,7 +362,7 @@
               ],
               "id": "fcebe7b7e401fe7952f6-f3b44c19f7032be60f98",
               "file": "partage-url.spec.ts",
-              "line": 136,
+              "line": 164,
               "column": 3
             },
             {
@@ -2573,12 +381,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1514,
+                      "duration": 1344,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:04.104Z",
+                      "startTime": "2026-09-08T19:24:51.395Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -2588,7 +396,7 @@
               ],
               "id": "fcebe7b7e401fe7952f6-eb9cc9b6327bd2169efd",
               "file": "partage-url.spec.ts",
-              "line": 142,
+              "line": 170,
               "column": 3
             },
             {
@@ -2616,7 +424,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3929,
+                      "duration": 2794,
                       "errors": [],
                       "stdout": [
                         {
@@ -2625,7 +433,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:05.628Z",
+                      "startTime": "2026-09-08T19:24:52.750Z",
                       "annotations": [
                         {
                           "type": "CONSTAT",
@@ -2644,28 +452,11 @@
               ],
               "id": "fcebe7b7e401fe7952f6-95b4f6fe178bfc99b2be",
               "file": "partage-url.spec.ts",
-              "line": 162,
+              "line": 190,
               "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "perf.spec.ts",
-      "file": "perf.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Budgets de performance mesurés au navigateur",
-          "file": "perf.spec.ts",
-          "line": 95,
-          "column": 6,
-          "specs": [
+            },
             {
-              "title": "EX-NFR-9 — premier affichage utile du mode 1 ≤ 2 000 ms en 4G simulée, cache vidé",
+              "title": "un état de mode 1 produit par le bandeau, rouvert dans un contexte NEUF, rend le même écran",
               "ok": true,
               "tags": [],
               "tests": [
@@ -2674,31 +465,31 @@
                   "annotations": [
                     {
                       "type": "MESURE",
-                      "description": "EX-NFR-9 — premier affichage utile en 4G (4 Mb/s, 150 ms) : 1517 ms / 1667 ms / 2095 ms / 1764 ms / 1732 ms — médiane 1732 ms, max 2095 ms, 208 Kio transférés"
+                      "description": "EX-NAV-18 — signature mode 1 (origine / contexte neuf) : 138|4645|2|Prix : ≤ 20 000 € × Carrosserie : Coupé × // 138|4645|2|Prix : ≤ 20 000 € × Carrosserie : Coupé ×"
                     }
                   ],
                   "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
+                  "projectId": "tablet",
+                  "projectName": "tablet",
                   "results": [
                     {
-                      "workerIndex": 0,
+                      "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 8987,
+                      "duration": 2872,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "[MESURE] EX-NFR-9 — premier affichage utile en 4G (4 Mb/s, 150 ms) : 1517 ms / 1667 ms / 2095 ms / 1764 ms / 1732 ms — médiane 1732 ms, max 2095 ms, 208 Kio transférés\n"
+                          "text": "[MESURE] EX-NAV-18 — signature mode 1 (origine / contexte neuf) : 138|4645|2|Prix : ≤ 20 000 € × Carrosserie : Coupé × // 138|4645|2|Prix : ≤ 20 000 € × Carrosserie : Coupé ×\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:09.576Z",
+                      "startTime": "2026-09-08T19:24:56.417Z",
                       "annotations": [
                         {
                           "type": "MESURE",
-                          "description": "EX-NFR-9 — premier affichage utile en 4G (4 Mb/s, 150 ms) : 1517 ms / 1667 ms / 2095 ms / 1764 ms / 1732 ms — médiane 1732 ms, max 2095 ms, 208 Kio transférés"
+                          "description": "EX-NAV-18 — signature mode 1 (origine / contexte neuf) : 138|4645|2|Prix : ≤ 20 000 € × Carrosserie : Coupé × // 138|4645|2|Prix : ≤ 20 000 € × Carrosserie : Coupé ×"
                         }
                       ],
                       "attachments": []
@@ -2707,13 +498,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "73ed389be8d3d6a89cdb-ac20c96bb27ab3dc63ec",
-              "file": "perf.spec.ts",
-              "line": 96,
+              "id": "fcebe7b7e401fe7952f6-3c17edb492e22ad05830",
+              "file": "partage-url.spec.ts",
+              "line": 50,
               "column": 3
             },
             {
-              "title": "EX-NFR-9bis — premier affichage utile d’une URL DÉJÀ filtrée, en 4G simulée",
+              "title": "un état de mode 2 avec projection et brossage, rouvert dans un contexte NEUF, rend le même écran",
               "ok": true,
               "tags": [],
               "tests": [
@@ -2722,31 +513,31 @@
                   "annotations": [
                     {
                       "type": "MESURE",
-                      "description": "EX-NFR-9 — premier affichage utile sur URL filtrée (partage de lien) : 1515 ms / 1798 ms / 1837 ms / 1749 ms / 1774 ms — médiane 1774 ms, max 1837 ms"
+                      "description": "EX-NAV-18 — signature mode 2 (origine / contexte neuf) : 54 // 54"
                     }
                   ],
                   "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
+                  "projectId": "tablet",
+                  "projectName": "tablet",
                   "results": [
                     {
-                      "workerIndex": 0,
+                      "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 8822,
+                      "duration": 4000,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "[MESURE] EX-NFR-9 — premier affichage utile sur URL filtrée (partage de lien) : 1515 ms / 1798 ms / 1837 ms / 1749 ms / 1774 ms — médiane 1774 ms, max 1837 ms\n"
+                          "text": "[MESURE] EX-NAV-18 — signature mode 2 (origine / contexte neuf) : 54 // 54\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:18.573Z",
+                      "startTime": "2026-09-08T19:24:59.487Z",
                       "annotations": [
                         {
                           "type": "MESURE",
-                          "description": "EX-NFR-9 — premier affichage utile sur URL filtrée (partage de lien) : 1515 ms / 1798 ms / 1837 ms / 1749 ms / 1774 ms — médiane 1774 ms, max 1837 ms"
+                          "description": "EX-NAV-18 — signature mode 2 (origine / contexte neuf) : 54 // 54"
                         }
                       ],
                       "attachments": []
@@ -2755,13 +546,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "73ed389be8d3d6a89cdb-7c525b5420af6ac9789b",
-              "file": "perf.spec.ts",
-              "line": 130,
+              "id": "fcebe7b7e401fe7952f6-a7998cd2c2152da777af",
+              "file": "partage-url.spec.ts",
+              "line": 82,
               "column": 3
             },
             {
-              "title": "EX-NFR-7 — rendu du nuage de la plus grosse cellule ≤ 500 ms",
+              "title": "EX-NAV-11 — au-delà de 2 000 caractères, la modification de filtre est REFUSÉE avec son message",
               "ok": true,
               "tags": [],
               "tests": [
@@ -2770,31 +561,31 @@
                   "annotations": [
                     {
                       "type": "MESURE",
-                      "description": "EX-NFR-7 — repeint complet du nuage G4 (Opel Corsa, 1 352 annonces) : 30 / 15 / 16 / 21 / 23 ms — médiane 21 ms, max 30 ms ; entrée en mode 2 complète (snapshot + élagage + moteur + rendu) : 1879 ms ; Nuage de 1232 points, 54 outliers — mesure NON REPRÉSENTATIVE tant qu’E2E-02 laisse le nuage à 0 point"
+                      "description": "EX-NAV-11 — message de plafond d’URL : limite d'URL atteinte, retirez un filtre pour en ajouter un autre ×"
                     }
                   ],
                   "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
+                  "projectId": "tablet",
+                  "projectName": "tablet",
                   "results": [
                     {
-                      "workerIndex": 0,
+                      "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2433,
+                      "duration": 955,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "[MESURE] EX-NFR-7 — repeint complet du nuage G4 (Opel Corsa, 1 352 annonces) : 30 / 15 / 16 / 21 / 23 ms — médiane 21 ms, max 30 ms ; entrée en mode 2 complète (snapshot + élagage + moteur + rendu) : 1879 ms ; Nuage de 1232 points, 54 outliers — mesure NON REPRÉSENTATIVE tant qu’E2E-02 laisse le nuage à 0 point\n"
+                          "text": "[MESURE] EX-NAV-11 — message de plafond d’URL : limite d'URL atteinte, retirez un filtre pour en ajouter un autre ×\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:27.406Z",
+                      "startTime": "2026-09-08T19:25:03.498Z",
                       "annotations": [
                         {
                           "type": "MESURE",
-                          "description": "EX-NFR-7 — repeint complet du nuage G4 (Opel Corsa, 1 352 annonces) : 30 / 15 / 16 / 21 / 23 ms — médiane 21 ms, max 30 ms ; entrée en mode 2 complète (snapshot + élagage + moteur + rendu) : 1879 ms ; Nuage de 1232 points, 54 outliers — mesure NON REPRÉSENTATIVE tant qu’E2E-02 laisse le nuage à 0 point"
+                          "description": "EX-NAV-11 — message de plafond d’URL : limite d'URL atteinte, retirez un filtre pour en ajouter un autre ×"
                         }
                       ],
                       "attachments": []
@@ -2803,301 +594,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "73ed389be8d3d6a89cdb-045bf29e0681afef60f5",
-              "file": "perf.spec.ts",
-              "line": 154,
-              "column": 3
-            },
-            {
-              "title": "EX-NFR-8 — 10 s d’interaction continue sur le nuage : ≥ 95 % des fenêtres d’1 s à ≥ 30 img/s",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-8 — interaction continue de 10 s sur G4 (ARB-38) : 621 trames, 94 fenêtres d’1 s, 0 en défaut (< 30 img/s), débit minimal 56.0 img/s, 29 gestes — mesure NON REPRÉSENTATIVE tant qu’E2E-02 laisse le nuage à 0 point"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 12536,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-NFR-8 — interaction continue de 10 s sur G4 (ARB-38) : 621 trames, 94 fenêtres d’1 s, 0 en défaut (< 30 img/s), débit minimal 56.0 img/s, 29 gestes — mesure NON REPRÉSENTATIVE tant qu’E2E-02 laisse le nuage à 0 point\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:45:29.849Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-8 — interaction continue de 10 s sur G4 (ARB-38) : 621 trames, 94 fenêtres d’1 s, 0 en défaut (< 30 img/s), débit minimal 56.0 img/s, 29 gestes — mesure NON REPRÉSENTATIVE tant qu’E2E-02 laisse le nuage à 0 point"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "73ed389be8d3d6a89cdb-0396b8ad7e950d3ff126",
-              "file": "perf.spec.ts",
-              "line": 188,
-              "column": 3
-            },
-            {
-              "title": "EX-NFR-6 — recalcul et repeint d’un histogramme après changement de filtre ≤ 300 ms",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-6 — repeint de l’histogramme G1 (bascule log, 1 352 annonces) : 164 / 142 / 137 / 148 / 129 ms — médiane 142 ms, max 164 ms"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-6 — prémisse : aucun histogramme du produit ne reçoit 100 000 annonces : O17 élague au couple marque/modèle avant le moteur, la plus grosse cellule du snapshot de référence porte 1 352 annonces — le budget est mesuré sur ce maximum réel"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2968,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-NFR-6 — repeint de l’histogramme G1 (bascule log, 1 352 annonces) : 164 / 142 / 137 / 148 / 129 ms — médiane 142 ms, max 164 ms\n"
-                        },
-                        {
-                          "text": "[MESURE] EX-NFR-6 — prémisse : aucun histogramme du produit ne reçoit 100 000 annonces : O17 élague au couple marque/modèle avant le moteur, la plus grosse cellule du snapshot de référence porte 1 352 annonces — le budget est mesuré sur ce maximum réel\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:45:42.395Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-6 — repeint de l’histogramme G1 (bascule log, 1 352 annonces) : 164 / 142 / 137 / 148 / 129 ms — médiane 142 ms, max 164 ms"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-6 — prémisse : aucun histogramme du produit ne reçoit 100 000 annonces : O17 élague au couple marque/modèle avant le moteur, la plus grosse cellule du snapshot de référence porte 1 352 annonces — le budget est mesuré sur ce maximum réel"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "73ed389be8d3d6a89cdb-03f1cbd42e7df2680694",
-              "file": "perf.spec.ts",
-              "line": 226,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "persistance.spec.ts",
-      "file": "persistance.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "EX-CRUD — persistance locale, plafonds et concurrence entre onglets",
-          "file": "persistance.spec.ts",
-          "line": 40,
-          "column": 6,
-          "specs": [
-            {
-              "title": "EX-CRUD-1 — une recherche enregistrée s’écrit par ENTRÉE et par INDEX, et s’affiche sur l’écran E",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-CRUD-19 — clés localStorage écrites : kycar:recent-history/1650a56, kycar:saved-searches/86f04047-76ce-4400-a264-90e377740ef7, kycar:saved-searches#index, kycar:recent-history#index"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1878,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-CRUD-19 — clés localStorage écrites : kycar:recent-history/1650a56, kycar:saved-searches/86f04047-76ce-4400-a264-90e377740ef7, kycar:saved-searches#index, kycar:recent-history#index\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:45:45.382Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-CRUD-19 — clés localStorage écrites : kycar:recent-history/1650a56, kycar:saved-searches/86f04047-76ce-4400-a264-90e377740ef7, kycar:saved-searches#index, kycar:recent-history#index"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3e0b0f074b9f8987358-094161791c4740eef8b3",
-              "file": "persistance.spec.ts",
-              "line": 41,
-              "column": 3
-            },
-            {
-              "title": "EX-CRUD-6 — rouvrir une recherche met à jour dernier_accès_le sans toucher aux valeurs figées (ARB-45)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2387,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:45:47.268Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3e0b0f074b9f8987358-fa3c4465d72d0f3e5fe2",
-              "file": "persistance.spec.ts",
-              "line": 70,
-              "column": 3
-            },
-            {
-              "title": "EX-CRUD-9/10 — suivre un modèle depuis l’écran B, l’écran F le liste et l’onglet le compte",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2835,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:45:49.663Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3e0b0f074b9f8987358-cb2df1ad30974b144dc0",
-              "file": "persistance.spec.ts",
-              "line": 95,
-              "column": 3
-            },
-            {
-              "title": "EX-CRUD-5 — au plafond de 50 recherches, l’enregistrement est REFUSÉ avec son message",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-CRUD-5 — message de plafond : Limite de 50 recherches atteinte — supprimez une recherche existante pour en enregistrer une nouvelle. ×"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1490,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-CRUD-5 — message de plafond : Limite de 50 recherches atteinte — supprimez une recherche existante pour en enregistrer une nouvelle. ×\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:45:52.510Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-CRUD-5 — message de plafond : Limite de 50 recherches atteinte — supprimez une recherche existante pour en enregistrer une nouvelle. ×"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3e0b0f074b9f8987358-925a5185d942c3ed0e95",
-              "file": "persistance.spec.ts",
+              "id": "fcebe7b7e401fe7952f6-2b2eeafac029c907156b",
+              "file": "partage-url.spec.ts",
               "line": 108,
               "column": 3
             },
             {
-              "title": "EX-CRUD-10 — au plafond de 30 modèles suivis, le suivi est REFUSÉ avec son message",
+              "title": "EX-SCR-140 / DR-099 — routes héritées et slug erroné canonisés par replaceState",
               "ok": true,
               "tags": [],
               "tests": [
@@ -3106,79 +609,53 @@
                   "annotations": [
                     {
                       "type": "MESURE",
-                      "description": "EX-CRUD-10 — message de plafond : Limite de 30 modèles suivis atteinte — retirez un modèle pour en suivre un nouveau. ×"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2347,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-CRUD-10 — message de plafond : Limite de 30 modèles suivis atteinte — retirez un modèle pour en suivre un nouveau. ×\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:45:54.011Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-CRUD-10 — message de plafond : Limite de 30 modèles suivis atteinte — retirez un modèle pour en suivre un nouveau. ×"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3e0b0f074b9f8987358-740faab1e0c95eccdbb6",
-              "file": "persistance.spec.ts",
-              "line": 126,
-              "column": 3
-            },
-            {
-              "title": "EX-CRUD-19 — écritures SÉQUENTIELLES de deux onglets : une clé par entrée, index réconcilié, aucun rechargement",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
+                      "description": "EX-SCR-140 — / : /marche ; retour arrière → blank"
+                    },
                     {
                       "type": "MESURE",
-                      "description": "EX-CRUD-19 — état après écritures séquentielles : 2 entrées [Onglet A, Onglet B]"
+                      "description": "EX-SCR-140 — /modele/54/1918 : /marche/54-opel/1918-corsa ; retour arrière → blank"
+                    },
+                    {
+                      "type": "MESURE",
+                      "description": "EX-SCR-140 — /marche/54-nawak/1918-bidon : /marche/54-opel/1918-corsa ; retour arrière → blank"
                     }
                   ],
                   "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
+                  "projectId": "tablet",
+                  "projectName": "tablet",
                   "results": [
                     {
-                      "workerIndex": 0,
+                      "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3031,
+                      "duration": 1377,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "[MESURE] EX-CRUD-19 — état après écritures séquentielles : 2 entrées [Onglet A, Onglet B]\n"
+                          "text": "[MESURE] EX-SCR-140 — / : /marche ; retour arrière → blank\n"
+                        },
+                        {
+                          "text": "[MESURE] EX-SCR-140 — /modele/54/1918 : /marche/54-opel/1918-corsa ; retour arrière → blank\n"
+                        },
+                        {
+                          "text": "[MESURE] EX-SCR-140 — /marche/54-nawak/1918-bidon : /marche/54-opel/1918-corsa ; retour arrière → blank\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:56.366Z",
+                      "startTime": "2026-09-08T19:25:04.462Z",
                       "annotations": [
                         {
                           "type": "MESURE",
-                          "description": "EX-CRUD-19 — état après écritures séquentielles : 2 entrées [Onglet A, Onglet B]"
+                          "description": "EX-SCR-140 — / : /marche ; retour arrière → blank"
+                        },
+                        {
+                          "type": "MESURE",
+                          "description": "EX-SCR-140 — /modele/54/1918 : /marche/54-opel/1918-corsa ; retour arrière → blank"
+                        },
+                        {
+                          "type": "MESURE",
+                          "description": "EX-SCR-140 — /marche/54-nawak/1918-bidon : /marche/54-opel/1918-corsa ; retour arrière → blank"
                         }
                       ],
                       "attachments": []
@@ -3187,13 +664,81 @@
                   "status": "expected"
                 }
               ],
-              "id": "e3e0b0f074b9f8987358-eba2a6557b835e81f851",
-              "file": "persistance.spec.ts",
+              "id": "fcebe7b7e401fe7952f6-d98890ecc2894872fc3d",
+              "file": "partage-url.spec.ts",
               "line": 146,
               "column": 3
             },
             {
-              "title": "CONSTAT E2E-25 — deux onglets qui enregistrent AU MÊME INSTANT perdent une entrée de l’index (EX-CRUD-19, ADV-13)",
+              "title": "la requête est conservée mot pour mot par la canonisation de route (EX-SCR-140)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "tablet",
+                  "projectName": "tablet",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1621,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T19:25:05.848Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fcebe7b7e401fe7952f6-061d14ffda5b201ef189",
+              "file": "partage-url.spec.ts",
+              "line": 164,
+              "column": 3
+            },
+            {
+              "title": "EX-NAV-19 / EX-NAV-20 — marque inconnue et modèle hors marque : écrans d’erreur nommés, filtres conservés",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "tablet",
+                  "projectName": "tablet",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1353,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T19:25:07.478Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fcebe7b7e401fe7952f6-4dfcc46695e6d10d198a",
+              "file": "partage-url.spec.ts",
+              "line": 170,
+              "column": 3
+            },
+            {
+              "title": "CONSTAT E2E-26 — aucune correction d’URL n’est signalée ni réécrite (EX-NAV-21, EX-NAV-22, ET-URL-CORRIGEE)",
               "ok": true,
               "tags": [],
               "tests": [
@@ -3202,39 +747,39 @@
                   "annotations": [
                     {
                       "type": "CONSTAT",
-                      "description": "E2E-25 — EX-CRUD-19/ADV-13 — les deux blobs d’entrée sont bien écrits, mais l’INDEX ordonné n’en cite qu’un : CappedCollection.mutate relit l’index (étape 3) puis le réécrit, et cette lecture-écriture n’est pas atomique entre deux processus de rendu. Si les deux onglets lisent l’index avant que l’autre ne l’écrive, le dernier écrivain efface l’identifiant du premier. L’entrée orpheline n’est plus jamais réindexée : la recherche enregistrée disparaît définitivement de l’écran E, sans message. EX-CRUD-19 promet exactement l’inverse (« la seule façon dont deux onglets peuvent écrire sans se faire perdre mutuellement une entrée »)"
+                      "description": "E2E-26 — EX-NAV-21/EX-NAV-22 — src/app.tsx appelle loadQuery(location.search) mais n’en lit QUE .selection : la liste .corrections est jetée. Aucune des quatre classes de défaut d’EX-NAV-21 ne produit le bandeau ET-URL-CORRIGEE (EX-SCR-38bis), et l’URL n’est jamais réécrite par replaceState — un lien reçu avec « pricefrom=20000&priceto=5000 » affiche 48 786 offres calculées sur l’intervalle PERMUTÉ tout en gardant l’URL inversée dans la barre d’adresse, et « body=ZZZ » est ignoré en silence"
                     },
                     {
                       "type": "MESURE",
-                      "description": "EX-CRUD-19 — rondes d’écriture simultanée avec perte : 0 sur 8"
+                      "description": "EX-NAV-21 — corrections appliquées en silence : (aucune)"
                     }
                   ],
                   "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
+                  "projectId": "tablet",
+                  "projectName": "tablet",
                   "results": [
                     {
-                      "workerIndex": 0,
+                      "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 11022,
+                      "duration": 2602,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "[MESURE] EX-CRUD-19 — rondes d’écriture simultanée avec perte : 0 sur 8\n"
+                          "text": "[MESURE] EX-NAV-21 — corrections appliquées en silence : (aucune)\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-09-08T18:45:59.408Z",
+                      "startTime": "2026-09-08T19:25:08.840Z",
                       "annotations": [
                         {
                           "type": "CONSTAT",
-                          "description": "E2E-25 — EX-CRUD-19/ADV-13 — les deux blobs d’entrée sont bien écrits, mais l’INDEX ordonné n’en cite qu’un : CappedCollection.mutate relit l’index (étape 3) puis le réécrit, et cette lecture-écriture n’est pas atomique entre deux processus de rendu. Si les deux onglets lisent l’index avant que l’autre ne l’écrive, le dernier écrivain efface l’identifiant du premier. L’entrée orpheline n’est plus jamais réindexée : la recherche enregistrée disparaît définitivement de l’écran E, sans message. EX-CRUD-19 promet exactement l’inverse (« la seule façon dont deux onglets peuvent écrire sans se faire perdre mutuellement une entrée »)"
+                          "description": "E2E-26 — EX-NAV-21/EX-NAV-22 — src/app.tsx appelle loadQuery(location.search) mais n’en lit QUE .selection : la liste .corrections est jetée. Aucune des quatre classes de défaut d’EX-NAV-21 ne produit le bandeau ET-URL-CORRIGEE (EX-SCR-38bis), et l’URL n’est jamais réécrite par replaceState — un lien reçu avec « pricefrom=20000&priceto=5000 » affiche 48 786 offres calculées sur l’intervalle PERMUTÉ tout en gardant l’URL inversée dans la barre d’adresse, et « body=ZZZ » est ignoré en silence"
                         },
                         {
                           "type": "MESURE",
-                          "description": "EX-CRUD-19 — rondes d’écriture simultanée avec perte : 0 sur 8"
+                          "description": "EX-NAV-21 — corrections appliquées en silence : (aucune)"
                         }
                       ],
                       "attachments": []
@@ -3243,668 +788,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "e3e0b0f074b9f8987358-fb06ebb441a51947af27",
-              "file": "persistance.spec.ts",
-              "line": 179,
-              "column": 3
-            },
-            {
-              "title": "les collections survivent à un rechargement complet de la page",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2555,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:10.439Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3e0b0f074b9f8987358-748fc51ba2bb88e1024f",
-              "file": "persistance.spec.ts",
-              "line": 231,
-              "column": 3
-            },
-            {
-              "title": "EX-CRUD-18 — un blob illisible est préservé sous une clé .corrupt avant toute réécriture",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-CRUD-18 — clé de sauvegarde du blob illisible : kycar:saved-searches.corrupt"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2268,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-CRUD-18 — clé de sauvegarde du blob illisible : kycar:saved-searches.corrupt\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:13.007Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-CRUD-18 — clé de sauvegarde du blob illisible : kycar:saved-searches.corrupt"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3e0b0f074b9f8987358-33418db4d8857ad5d503",
-              "file": "persistance.spec.ts",
-              "line": 242,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-24 — tout enregistrement annonce « un nom identique existait déjà » (EX-CRUD-1/3)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-24 — EX-CRUD-1/EX-CRUD-3 — src/app.tsx appelle stores.saved.hasDuplicateName(nom) APRÈS stores.saved.create(...) : l’entrée qui vient d’être créée compte comme son propre doublon, donc le message « Recherche enregistrée (un nom identique existait déjà). » s’affiche à CHAQUE enregistrement, même sur une collection vide — l’avertissement d’homonymie devient du bruit et perd tout pouvoir informatif"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "EX-CRUD-1 — message après le tout premier enregistrement : Recherche enregistrée. ×"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1509,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-CRUD-1 — message après le tout premier enregistrement : Recherche enregistrée. ×\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:15.292Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-24 — EX-CRUD-1/EX-CRUD-3 — src/app.tsx appelle stores.saved.hasDuplicateName(nom) APRÈS stores.saved.create(...) : l’entrée qui vient d’être créée compte comme son propre doublon, donc le message « Recherche enregistrée (un nom identique existait déjà). » s’affiche à CHAQUE enregistrement, même sur une collection vide — l’avertissement d’homonymie devient du bruit et perd tout pouvoir informatif"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "EX-CRUD-1 — message après le tout premier enregistrement : Recherche enregistrée. ×"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3e0b0f074b9f8987358-51238319ce9ce758d282",
-              "file": "persistance.spec.ts",
-              "line": 270,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "responsive.spec.ts",
-      "file": "responsive.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "EX-NFR-18 / EX-NFR-19 — régimes responsive",
-          "file": "responsive.spec.ts",
-          "line": 36,
-          "column": 6,
-          "specs": [
-            {
-              "title": "le régime détecté par l’application correspond au point de rupture du viewport (EX-NFR-18)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-18 — régime déclaré à desktop : large"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1124,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-NFR-18 — régime déclaré à desktop : large\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:16.824Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-18 — régime déclaré à desktop : large"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e0223b006feb3d306446-6340b149e3a6f7e59751",
-              "file": "responsive.spec.ts",
-              "line": 37,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-19 — aucun défilement horizontal du document sur les surfaces principales (EX-NFR-19, EX-SCR-183, ≥ 320 px)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-NFR-19 — surfaces à débordement horizontal : (aucune)"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 5988,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-NFR-19 — surfaces à débordement horizontal : (aucune)\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:17.957Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-NFR-19 — surfaces à débordement horizontal : (aucune)"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e0223b006feb3d306446-701783bea16b15c46f51",
-              "file": "responsive.spec.ts",
-              "line": 51,
-              "column": 3
-            },
-            {
-              "title": "régime compact : la barre de synthèse perd le cardinal « modèles » et le tri devient une feuille (EX-SCR-135)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1051,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:23.955Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e0223b006feb3d306446-2253c555f73501fdb6b9",
-              "file": "responsive.spec.ts",
-              "line": 73,
-              "column": 3
-            },
-            {
-              "title": "les cartes-marques restent pleinement fonctionnelles, et le repli des zones suit le régime (EX-NFR-19, EX-SCR-122/123)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "MESURE",
-                      "description": "EX-SCR-122 — zones visibles après repli : 6 (déplié : 70)"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1806,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-SCR-122 — zones visibles après repli : 6 (déplié : 70)\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:25.019Z",
-                      "annotations": [
-                        {
-                          "type": "MESURE",
-                          "description": "EX-SCR-122 — zones visibles après repli : 6 (déplié : 70)"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e0223b006feb3d306446-e2e28b7b1ee8807f3d9f",
-              "file": "responsive.spec.ts",
-              "line": 93,
-              "column": 3
-            },
-            {
-              "title": "les histogrammes G1–G3 restent pleinement fonctionnels à toutes les largeurs (EX-NFR-19)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2228,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:26.839Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e0223b006feb3d306446-e61290a275e93ad60563",
-              "file": "responsive.spec.ts",
-              "line": 119,
-              "column": 3
-            },
-            {
-              "title": "sous 768 px, le nuage est servi en projection 2D dégradée plutôt que désactivé (EX-NFR-19)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1954,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:29.076Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e0223b006feb3d306446-f2be073621c5209053af",
-              "file": "responsive.spec.ts",
-              "line": 137,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-17 — en régime dégradé la couleur encode l’année, déjà distincte de l’axe X (km) (EX-NFR-19, EX-SCR-154)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "la dégradation d’EX-NFR-19 ne s’applique que sous 768 px",
-                      "location": {
-                        "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                        "line": 164,
-                        "column": 10
-                      }
-                    }
-                  ],
-                  "expectedStatus": "skipped",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "skipped",
-                      "duration": 113,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:31.038Z",
-                      "annotations": [
-                        {
-                          "type": "skip",
-                          "description": "la dégradation d’EX-NFR-19 ne s’applique que sous 768 px",
-                          "location": {
-                            "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                            "line": 164,
-                            "column": 10
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "e0223b006feb3d306446-c0c63274e8b78c10ed22",
-              "file": "responsive.spec.ts",
-              "line": 161,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-18 — le bouton de repli annonce le bon seuil du régime compact (EX-SCR-122/135)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "le libellé n’est vérifiable que dans le régime qui replie à 4",
-                      "location": {
-                        "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                        "line": 179,
-                        "column": 10
-                      }
-                    }
-                  ],
-                  "expectedStatus": "skipped",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "skipped",
-                      "duration": 103,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:31.158Z",
-                      "annotations": [
-                        {
-                          "type": "skip",
-                          "description": "le libellé n’est vérifiable que dans le régime qui replie à 4",
-                          "location": {
-                            "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                            "line": 179,
-                            "column": 10
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "e0223b006feb3d306446-ae729c0b7e13f86e409f",
-              "file": "responsive.spec.ts",
-              "line": 176,
-              "column": 3
-            },
-            {
-              "title": "DETTE D8-15 — les réglages « Assainissement KYCAR » ne sont offerts nulle part (EX-SCR-95)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "fail",
-                      "location": {
-                        "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                        "line": 200,
-                        "column": 10
-                      }
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "EX-SCR-95 — points d’entrée « Assainissement KYCAR » trouvés : 0"
-                    }
-                  ],
-                  "expectedStatus": "failed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 1183,
-                      "error": {
-                        "message": "Error: EX-SCR-95 : un panneau de réglages d’assainissement doit être atteignable\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
-                        "stack": "Error: EX-SCR-95 : un panneau de réglages d’assainissement doit être atteignable\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m\n    at /home/user/KYCAR/tests/e2e/responsive.spec.ts:207:96",
-                        "location": {
-                          "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                          "column": 96,
-                          "line": 207
-                        },
-                        "snippet": "  205 |       .count();\n  206 |     mesure(testInfo, 'EX-SCR-95 — points d’entrée « Assainissement KYCAR » trouvés', String(found));\n> 207 |     expect(found, 'EX-SCR-95 : un panneau de réglages d’assainissement doit être atteignable').toBeGreaterThan(0);\n      |                                                                                                ^\n  208 |   });\n  209 |\n  210 |   test('CONSTAT E2E-21 — le bandeau de filtres et l’écran G sont rendus sans aucune feuille de style (EX-SCR-89..98, EX-SCR-215)', async ({"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                            "column": 96,
-                            "line": 207
-                          },
-                          "message": "Error: EX-SCR-95 : un panneau de réglages d’assainissement doit être atteignable\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m\n\n  205 |       .count();\n  206 |     mesure(testInfo, 'EX-SCR-95 — points d’entrée « Assainissement KYCAR » trouvés', String(found));\n> 207 |     expect(found, 'EX-SCR-95 : un panneau de réglages d’assainissement doit être atteignable').toBeGreaterThan(0);\n      |                                                                                                ^\n  208 |   });\n  209 |\n  210 |   test('CONSTAT E2E-21 — le bandeau de filtres et l’écran G sont rendus sans aucune feuille de style (EX-SCR-89..98, EX-SCR-215)', async ({\n    at /home/user/KYCAR/tests/e2e/responsive.spec.ts:207:96"
-                        }
-                      ],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-SCR-95 — points d’entrée « Assainissement KYCAR » trouvés : 0\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:31.269Z",
-                      "annotations": [
-                        {
-                          "type": "fail",
-                          "location": {
-                            "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                            "line": 200,
-                            "column": 10
-                          }
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "EX-SCR-95 — points d’entrée « Assainissement KYCAR » trouvés : 0"
-                        }
-                      ],
-                      "attachments": [
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/home/user/KYCAR/test-results/responsive-EX-NFR-18-EX-NF-27d9c-ferts-nulle-part-EX-SCR-95--desktop/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/home/user/KYCAR/tests/e2e/responsive.spec.ts",
-                        "column": 96,
-                        "line": 207
-                      }
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e0223b006feb3d306446-b77fd7e8eda982992f49",
-              "file": "responsive.spec.ts",
-              "line": 197,
-              "column": 3
-            },
-            {
-              "title": "CONSTAT E2E-21 — le bandeau de filtres et l’écran G sont rendus sans aucune feuille de style (EX-SCR-89..98, EX-SCR-215)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "CONSTAT",
-                      "description": "E2E-21 — EX-SCR-96/EX-SCR-98/EX-SCR-215 — src/components/filters/ ne contient AUCUN fichier .css et aucune règle ne cible .kycar-filter-band, .kycar-control ni .kycar-screen-g dans le bundle : le bandeau (hauteur repliée de 132 px, lignes de contrôles 5 puis 4 en compact) et la modale marque/modèle sont peints par les seuls styles par défaut du navigateur — le §6 de draft-screens n’est donc vérifiable sur aucune largeur"
-                    },
-                    {
-                      "type": "MESURE",
-                      "description": "EX-SCR-96 — règles CSS chargées (bandeau / contrôle / écran G) : true / true / true"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "desktop",
-                  "projectName": "desktop",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1045,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[MESURE] EX-SCR-96 — règles CSS chargées (bandeau / contrôle / écran G) : true / true / true\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-09-08T18:46:32.465Z",
-                      "annotations": [
-                        {
-                          "type": "CONSTAT",
-                          "description": "E2E-21 — EX-SCR-96/EX-SCR-98/EX-SCR-215 — src/components/filters/ ne contient AUCUN fichier .css et aucune règle ne cible .kycar-filter-band, .kycar-control ni .kycar-screen-g dans le bundle : le bandeau (hauteur repliée de 132 px, lignes de contrôles 5 puis 4 en compact) et la modale marque/modèle sont peints par les seuls styles par défaut du navigateur — le §6 de draft-screens n’est donc vérifiable sur aucune largeur"
-                        },
-                        {
-                          "type": "MESURE",
-                          "description": "EX-SCR-96 — règles CSS chargées (bandeau / contrôle / écran G) : true / true / true"
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e0223b006feb3d306446-e82a46aeae53fc5dfab0",
-              "file": "responsive.spec.ts",
-              "line": 210,
+              "id": "fcebe7b7e401fe7952f6-b31ad6c33dc50610673d",
+              "file": "partage-url.spec.ts",
+              "line": 190,
               "column": 3
             }
           ]
@@ -3914,10 +800,10 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-08T18:42:50.413Z",
-    "duration": 223263.931,
-    "expected": 77,
-    "skipped": 2,
+    "startTime": "2026-09-08T19:24:39.641Z",
+    "duration": 31885.522,
+    "expected": 14,
+    "skipped": 0,
     "unexpected": 0,
     "flaky": 0
   }

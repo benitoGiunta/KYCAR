@@ -111,6 +111,14 @@ const VIEW_TITLES: Readonly<Record<AppView['kind'], string>> = {
   notFound: 'Page introuvable',
 };
 
+/**
+ * `D8-02` / `EX-NFR-9` — délai minimal avant le chargement des agrégats MODÈLE de portée marché.
+ * Il ne s'agit pas d'un confort : ce chargement est un SECOND balayage du jeu servi, et le lancer
+ * dans la foulée du rendu le fait concourir avec la peinture des cartes — c'est-à-dire avec le
+ * « premier affichage utile » que l'exigence borne à 2 000 ms.
+ */
+const MODEL_AGGREGATES_DELAY_MS = 400;
+
 /** `EX-DATA-110bis` (`D8-05`) — les facettes sont DIFFÉRÉES : au plus 100 ms après le recalcul. */
 const FACET_DEFER_MS = 100;
 
@@ -391,18 +399,20 @@ export function App(props: AppProps): JSX.Element {
     const idle = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
       .requestIdleCallback;
     const cancelIdle = (window as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
-    let handle: number;
-    let idleHandle = false;
-    if (typeof idle === 'function') {
-      idleHandle = true;
-      handle = idle(run, { timeout: 1500 });
-    } else {
-      handle = window.setTimeout(run, 0);
-    }
+    let idleHandle: number | null = null;
+    // Plancher de `MODEL_AGGREGATES_DELAY_MS` AVANT même de demander un créneau d'inactivité : sans
+    // lui, le créneau est accordé si tôt que le balayage entre en concurrence avec la peinture des
+    // cartes une fois sur deux (série mesurée : 1 519 / 1 973 / 1 821 / 1 523 / 2 023 ms, contre
+    // 1 495 / 1 489 / 1 493 / 1 494 / 1 493 ms sans ce chargement). Les zones-modèles arrivent
+    // ~0,5 s après les cartes : c'est exactement ce qu'un enrichissement progressif doit faire.
+    const floor = window.setTimeout(() => {
+      if (typeof idle === 'function') idleHandle = idle(run, { timeout: 2000 });
+      else run();
+    }, MODEL_AGGREGATES_DELAY_MS);
     return () => {
       live = false;
-      if (idleHandle) cancelIdle?.(handle);
-      else window.clearTimeout(handle);
+      window.clearTimeout(floor);
+      if (idleHandle !== null) cancelIdle?.(idleHandle);
     };
   }, [start, view.kind, marketPhase.phase, currentQuery, controller, selection]);
 

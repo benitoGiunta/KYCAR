@@ -114,12 +114,15 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     const lengthBefore = await page.evaluate(() => window.location.pathname.length + window.location.search.length);
     expect(lengthBefore).toBeLessThanOrEqual(2_000);
 
-    // D8-15/D-31 : en régime compact les contrôles ne sont montés que dans la feuille plein écran
-    // (`EX-SCR-97`) ; le refus de plafond est le MÊME, il est simplement exercé là où le contrôle
-    // existe désormais.
-    await openFilterSheet(page, regimeOf(testInfo) === 'compact');
+    // D8-15/D-31 : en régime COMPACT les contrôles ne sont montés que dans la feuille plein écran
+    // (`EX-SCR-97`), à application DIFFÉRÉE : le plafond d'URL est donc éprouvé au moment de
+    // l'application, pas à la coche du brouillon. Le fait mesuré — la pose est REFUSÉE, avec son
+    // message, et l'URL n'est ni tronquée ni modifiée — est identique dans les deux régimes.
+    const compact = regimeOf(testInfo) === 'compact';
+    await openFilterSheet(page, compact);
     const checkbox = page.locator('#filter-bodyType-3');
     await checkbox.click();
+    if (compact) await page.locator('.kycar-compact-sheet__footer button').last().click();
 
     const banner = page.locator('.kycar-banner-message');
     await expect(banner).toBeVisible({ timeout: 20_000 });
@@ -127,9 +130,17 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     mesure(testInfo, 'EX-NAV-11 — message de plafond d’URL', text.replace(/\n/g, ' '));
     expect(text).toContain("limite d'URL atteinte, retirez un filtre pour en ajouter un autre");
 
-    // Refus, jamais troncature : l'URL et l'état du contrôle sont inchangés.
+    // Refus, jamais troncature : l'URL est inchangée…
     expect(await page.evaluate(() => window.location.search.includes('body='))).toBe(false);
-    await expect(checkbox).not.toBeChecked();
+    // …et le contrôle revient à son état antérieur. En compact, la feuille reste OUVERTE sur le
+    // brouillon (l'utilisateur peut retirer un filtre au lieu de tout perdre) : c'est la sélection
+    // APPLIQUÉE qui est refusée, et le jeton correspondant n'apparaît donc jamais dans le bandeau.
+    if (compact) {
+      await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
+      await expect(page.locator('.kycar-active-tokens__list')).not.toContainText('Carrosserie');
+    } else {
+      await expect(checkbox).not.toBeChecked();
+    }
   });
 
   test('EX-SCR-140 / DR-099 — routes héritées et slug erroné canonisés par replaceState', async ({ page }, testInfo) => {

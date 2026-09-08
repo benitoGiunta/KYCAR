@@ -180,9 +180,20 @@ test.describe('EX-NFR-18 / EX-NFR-19 — régimes responsive', () => {
 
     await open(page, `${SURFACES.A}${P1_QUERY}`);
     const card = page.locator('.kycar-market-card').first();
-    await card.locator('.kycar-market-card-header').click();
-    await expect(card.locator('.kycar-market-card-footer button')).toBeVisible({ timeout: 30_000 });
-    const label = await card.locator('.kycar-market-card-footer button').innerText();
+    // D8-04a/FV-04/D-31 : un clic sur l'EN-TÊTE pose désormais `mmmv` sur la marque (`EX-SCR-110`) ;
+    // le DÉPLIAGE a son propre contrôle, le bouton de pied de carte. C'est ce bouton, une fois la
+    // carte dépliée, qui porte le libellé de REPLI mesuré ici — le fait vérifié (le libellé annonce
+    // le seuil RÉEL du régime, 4 en compact, jamais un `6` en dur) est inchangé.
+    const collapseButton = card.locator('.kycar-market-card-footer button');
+    await expect(collapseButton).toBeVisible({ timeout: 30_000 });
+    await collapseButton.click();
+    await expect(collapseButton).toContainText('Réduire', { timeout: 30_000 });
+    // D8-02/EX-NFR-9 : les zones-modèles sont un enrichissement PROGRESSIF (chargées après la
+    // peinture des cartes) — le libellé est donc attendu, pas lu une fois.
+    await expect
+      .poll(async () => (await collapseButton.innerText()).trim(), { timeout: 30_000 })
+      .toContain('4 modèles');
+    const label = await collapseButton.innerText();
     mesure(testInfo, 'EX-SCR-122 — libellé du bouton de repli en compact', label);
     expect(label).toContain('4 modèles');
   });

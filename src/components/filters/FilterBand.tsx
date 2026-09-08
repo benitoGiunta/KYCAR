@@ -334,7 +334,18 @@ export function FilterBand(props: FilterBandProps) {
     props.onDraftSelectionChange?.({});
   };
   const handleApplyCompactSheet = (): void => {
-    forcePushSelection({ ...draftSelection });
+    // `EX-NAV-11` — complété par fix-app (D8-15), HORS de son périmètre nominal : le câblage de
+    // `regime` par la coquille a rendu ce chemin atteignable pour la première fois, et l'application
+    // DIFFÉRÉE de la feuille compacte passait par `forcePushSelection`, réservé aux RETRAITS (qui
+    // ne peuvent que raccourcir l'URL) — le plafond de 2 000 caractères n'y était donc pas éprouvé.
+    // Même règle que `handleChange` : REFUS avec son message, jamais de troncature, et la feuille
+    // reste ouverte pour que l'utilisateur retire un filtre plutôt que de perdre son brouillon.
+    const candidate: MutableSelectionState = { ...draftSelection };
+    if (wouldExceedBudget(props.originAndPath, candidate, props.uiState ?? {}, { filterDefaults: FILTER_DEFAULTS })) {
+      props.onUrlBudgetExceeded?.(URL_BUDGET_EXCEEDED_MESSAGE);
+      return;
+    }
+    forcePushSelection(candidate);
     setCompactSheetOpen(false);
   };
   const handleCancelCompactSheet = (): void => {

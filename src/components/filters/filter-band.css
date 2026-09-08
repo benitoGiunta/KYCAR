@@ -45,17 +45,40 @@
 }
 
 /*
- * `E2E-19` / `EX-NFR-19` — corrigé par fix-app (D8-15), HORS de son périmètre nominal, parce que
- * c'est le câblage de `regime` par la coquille qui a rendu ce régime atteignable pour la première
- * fois : jusqu'ici `FilterBand` recevait toujours `large` et la grille à cinq colonnes n'était
- * jamais exercée. `minmax(0, 1fr)` borne la PISTE, mais `.kycar-control { min-width: 9rem }` borne
- * l'ÉLÉMENT : à 768 px, 5 × 144 px + 4 gaps + les marges du bandeau font 864 px et le document
- * débordait de ~96 px sur les surfaces A, B et C (mesuré au projet `tablet`). Les contrôles de la
- * ligne primaire sont donc autorisés à se réduire à la largeur de leur piste dans ce seul régime ;
- * leur min-width de 9 rem reste la règle partout ailleurs.
+ * `E2E-19` / `EX-NFR-19` — complété par fix-app (D8-15), HORS de son périmètre nominal, parce que
+ * c'est le câblage de `regime` par la coquille qui a rendu ce régime atteignable pour la PREMIÈRE
+ * fois : jusqu'ici `FilterBand` recevait toujours `large` et la grille à cinq colonnes d'`EX-SCR-96`
+ * n'était jamais exercée. À 768 px, une piste vaut ~134 px ; les contrôles gardaient leur largeur
+ * INTRINSÈQUE (`min-width: 9rem`, deux champs de 6 rem côte à côte, grille d'options à deux
+ * colonnes) et poussaient le DOCUMENT à 836 px pour 768 — débordement horizontal mesuré sur les
+ * surfaces A, B et C (projet `tablet`).
+ *
+ * Les quatre règles ci-dessous ne changent RIEN aux régimes `large` et `compact` : dans le seul
+ * régime intermédiaire, les contrôles se réduisent à leur piste, les deux bornes d'un intervalle
+ * passent l'une sous l'autre plutôt que de déborder, et les options d'une liste repassent sur une
+ * colonne. Aucune information n'est masquée — elle revient à la ligne.
  */
 [data-regime='intermediaire'] .kycar-primary-line .kycar-control {
   min-width: 0;
+}
+
+[data-regime='intermediaire'] .kycar-primary-line .kycar-range-fields {
+  flex-wrap: wrap;
+}
+
+[data-regime='intermediaire'] .kycar-primary-line .kycar-range-fields input[type='number'] {
+  width: 100%;
+  min-width: 0;
+}
+
+[data-regime='intermediaire'] .kycar-primary-line .kycar-checkbox-grid--2col {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-regime='intermediaire'] .kycar-primary-line .kycar-checkbox-option {
+  min-width: 0;
+  align-items: flex-start;
+  overflow-wrap: anywhere;
 }
 
 /* Zone (2) — recherche de filtre, EX-SCR-79, largeur 320 px en `large`. */

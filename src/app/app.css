@@ -465,3 +465,21 @@ button:disabled {
 .kycar-footer-refresh {
   margin: var(--space-2) 0 0;
 }
+
+/*
+ * `E2E-19` / `EX-NFR-19` — le panneau Diagnostic étendu par `D8-14`/`FV-21` porte désormais des
+ * valeurs LONGUES (journal des rejets d'ingestion, drapeaux posés, champs inconnus par champ,
+ * requête canonique). Sa grille `max-content 1fr` prenait leur largeur INTRINSÈQUE : à 768 px les
+ * lignes mesuraient jusqu'à 1 909 px et poussaient le DOCUMENT au débordement horizontal sur les
+ * surfaces A, B et C. Les deux pistes sont bornées et le texte est autorisé à revenir à la ligne :
+ * l'information reste entière, elle ne déborde plus.
+ */
+.kycar-footer-diagnostic dl {
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+}
+
+.kycar-footer-diagnostic dt,
+.kycar-footer-diagnostic dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
