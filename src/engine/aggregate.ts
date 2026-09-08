@@ -40,7 +40,15 @@ import {
   toDistributionBuckets,
   YEAR_BIN_PARAMS,
 } from './bin';
-import { modelIndexKey } from './index-build';
+
+/**
+ * Clé composite ENTIÈRE (marque, modèle) pour les regroupements chauds — évite d'allouer une chaîne
+ * `makeId:modelId` par ligne (point chaud mesuré à N = 100 000). Même encodage que `IDX_MODEL`
+ * (index-build) : `makeId ∈ Int16`, `modelId < 2²¹`. Interne à l'agrégation ; la clé lisible reste
+ * `modelIndexKey` pour l'API d'index/élagage.
+ */
+const MODEL_KEY_STRIDE = 2097152;
+const modelKeyInt = (makeId: number, modelId: number): number => makeId * MODEL_KEY_STRIDE + modelId;
 
 /** `MetricRange` (entité gelée D2) à partir d'un bloc `MetricStats`. */
 function toMetricRange(stats: MetricStats): MetricRange {
@@ -102,8 +110,8 @@ export function aggregate(
   const n = rows.length;
 
   const makeGroups = new Map<number, GroupBuckets>();
-  const modelGroups = new Map<string, GroupBuckets>();
-  const modelIds = new Map<string, { makeId: number; modelId: number }>();
+  const modelGroups = new Map<number, GroupBuckets>();
+  const modelIds = new Map<number, { makeId: number; modelId: number }>();
 
   const selPrice: number[] = [];
   const selYear: number[] = [];
@@ -117,7 +125,7 @@ export function aggregate(
     const row = rows[i] as number;
     const makeId = batch.makeId[row] as number;
     const modelId = batch.modelId[row] as number;
-    const mKey = modelIndexKey(makeId, modelId);
+    const mKey = modelKeyInt(makeId, modelId);
 
     let mk = makeGroups.get(makeId);
     if (mk === undefined) {

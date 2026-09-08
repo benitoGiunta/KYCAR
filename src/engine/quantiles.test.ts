@@ -59,6 +59,77 @@ describe('quantiles exacts type 7 (EX-DATA-62)', () => {
   });
 });
 
+/**
+ * Verrou de non-régression du correctif de performance (lot D4-finition) : `exactMetricStats`
+ * choisit entre tri par comptage (domaine dense) et tri comparatif (domaine creux, `domaine > 4n`).
+ * Les DEUX chemins doivent rendre EXACTEMENT les mêmes statistiques (EX-DATA-111 : jamais approché).
+ */
+describe('exactMetricStats — équivalence comptage / tri sur domaine creux', () => {
+  /** Référence type 7 indépendante, calculée sur une copie triée. */
+  function reference(values: readonly number[]): {
+    min: number; max: number; mean: number; p05: number; p25: number; p50: number; p75: number; p95: number; std: number | null;
+  } {
+    const s = [...values].sort((a, b) => a - b);
+    const n = s.length;
+    const q = (p: number): number => {
+      if (n === 1) return s[0] as number;
+      const h = (n - 1) * p + 1;
+      const i = Math.floor(h);
+      const f = h - i;
+      if (f === 0 || i >= n) return s[Math.min(i, n) - 1] as number;
+      return (s[i - 1] as number) + f * ((s[i] as number) - (s[i - 1] as number));
+    };
+    const mean = values.reduce((a, b) => a + b, 0) / n;
+    const variance = n < 2 ? null : values.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+    return {
+      min: s[0] as number,
+      max: s[n - 1] as number,
+      mean,
+      p05: q(0.05),
+      p25: q(0.25),
+      p50: q(0.5),
+      p75: q(0.75),
+      p95: q(0.95),
+      std: variance === null ? null : Math.sqrt(variance),
+    };
+  }
+
+  function expectMatches(values: readonly number[]): void {
+    const s = exactMetricStats(values);
+    const r = reference(values);
+    expect(s.min).toBe(r.min);
+    expect(s.max).toBe(r.max);
+    expect(s.mean as number).toBeCloseTo(r.mean, 8);
+    expect(s.p05 as number).toBeCloseTo(r.p05, 8);
+    expect(s.p25 as number).toBeCloseTo(r.p25, 8);
+    expect(s.p50 as number).toBeCloseTo(r.p50, 8);
+    expect(s.p75 as number).toBeCloseTo(r.p75, 8);
+    expect(s.p95 as number).toBeCloseTo(r.p95, 8);
+    if (r.std === null) expect(s.stdDev).toBeNull();
+    else expect(s.stdDev as number).toBeCloseTo(r.std, 6);
+  }
+
+  it('domaine DENSE (chemin comptage) : identique à la référence', () => {
+    const dense: number[] = [];
+    for (let i = 0; i < 500; i += 1) dense.push(10000 + ((i * 7) % 200));
+    expectMatches(dense);
+  });
+
+  it('domaine CREUX avec outlier extrême (chemin tri) : identique à la référence', () => {
+    // 40 prix serrés + un outlier à 3 000 000 → domaine ≈ 3·10⁶ ≫ 4n : force le tri comparatif.
+    const sparse = [800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200,
+      2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900,
+      4000, 4100, 4200, 4300, 4400, 4500, 4600, 3_000_000];
+    expectMatches(sparse);
+  });
+
+  it('les deux chemins coïncident sur les mêmes valeurs (avec/sans outlier lointain)', () => {
+    const base = Array.from({ length: 60 }, (_v, i) => 15000 + i * 3);
+    expectMatches(base); // dense → comptage
+    expectMatches([...base, 2_500_000]); // + outlier → creux → tri
+  });
+});
+
 describe('BIN (EX-DATA-75) et invariant I8', () => {
   const prices = [
     500, 1200, 3000, 4500, 6000, 7000, 8000, 9000, 10000, 12000, 14000, 16000, 18000, 20000, 25000,

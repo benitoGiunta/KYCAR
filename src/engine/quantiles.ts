@@ -170,17 +170,31 @@ export class WelfordAccumulator {
   }
 }
 
+const EMPTY_STATS: MetricStats = {
+  n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null,
+};
+
 /**
- * Bloc statistique exact d'une liste de valeurs entières valides, via tri par comptage sur le
- * domaine observé (EX-DATA-111). Alloue un tableau de comptage de taille `max − min + 1`
- * (EX-DATA-112 : « sur la plage observée du snapshot »).
+ * Bloc statistique EXACT d'une liste de valeurs entières valides (EX-DATA-111 : jamais d'histogramme,
+ * de t-digest ni d'échantillonnage — l'ordre statistique complet est réalisé).
+ *
+ * Deux réalisations EXACTES du même tri, choisies par coût :
+ *   - tri par COMPTAGE sur `[min, max]` (EX-DATA-112) quand le domaine est dense — `O(n + domaine)` ;
+ *   - tri COMPARATIF `O(n log n)` quand le domaine est CREUX (`domaine > 4·n`).
+ *
+ * CORRECTION DE PERFORMANCE (lot D4-finition, signalée au rapport) : la version d'origine allouait
+ * toujours un `Int32Array(max − min + 1)`. Un groupe marque/modèle contenant un seul outlier de prix
+ * (domaine jusqu'à ~3·10⁶) déclenchait une allocation multi-Mo ET deux balayages du domaine PAR
+ * groupe → l'agrégation d'un snapshot 100 k coûtait ~25 s. Le tri comparatif sur les groupes creux
+ * rend des quantiles type 7 / moyenne / écart-type IDENTIQUES (mêmes statistiques d'ordre), sans
+ * changer l'interface publique. Le seuil `4·n` conserve le comptage pour les métriques denses
+ * (année, kilométrage groupés) où il reste le plus rapide.
+ *
  * @param values valeurs entières valides (ordre indifférent).
  */
 export function exactMetricStats(values: Int32Array | readonly number[]): MetricStats {
   const n = values.length;
-  if (n === 0) {
-    return { n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null };
-  }
+  if (n === 0) return EMPTY_STATS;
   let lo = values[0] as number;
   let hi = lo;
   for (let k = 1; k < n; k++) {
@@ -188,7 +202,10 @@ export function exactMetricStats(values: Int32Array | readonly number[]): Metric
     if (v < lo) lo = v;
     else if (v > hi) hi = v;
   }
-  const counts = new Int32Array(hi - lo + 1);
+  const domain = hi - lo + 1;
+  if (domain > 4 * n) return exactStatsBySort(values, n);
+
+  const counts = new Int32Array(domain);
   for (let k = 0; k < n; k++) {
     const idx = (values[k] as number) - lo;
     counts[idx] = (counts[idx] as number) + 1;
@@ -199,4 +216,34 @@ export function exactMetricStats(values: Int32Array | readonly number[]): Metric
     if (c > 0) welford.addRepeated(lo + j, c);
   }
   return metricStatsFromCounts(counts, lo, n, welford.meanOrNull(), welford.sampleStdDev());
+}
+
+/**
+ * Réalisation EXACTE par tri comparatif (chemin des domaines creux). Trie une copie `Int32Array`
+ * (tri numérique natif), puis lit min/max, les cinq quantiles type 7 sur le tableau trié, et la
+ * moyenne / l'écart-type d'échantillon par un passage de Welford. Résultats identiques au comptage.
+ */
+function exactStatsBySort(values: Int32Array | readonly number[], n: number): MetricStats {
+  const sorted = values instanceof Int32Array ? values.slice() : Int32Array.from(values);
+  sorted.sort();
+  let mean = 0;
+  let m2 = 0;
+  for (let k = 0; k < n; k++) {
+    const x = sorted[k] as number;
+    const delta = x - mean;
+    mean += delta / (k + 1);
+    m2 += delta * (x - mean);
+  }
+  return {
+    n,
+    min: sorted[0] as number,
+    max: sorted[n - 1] as number,
+    mean,
+    p05: quantileFromSorted(sorted, P05),
+    p25: quantileFromSorted(sorted, P25),
+    p50: quantileFromSorted(sorted, P50),
+    p75: quantileFromSorted(sorted, P75),
+    p95: quantileFromSorted(sorted, P95),
+    stdDev: n < 2 ? null : Math.sqrt(m2 / (n - 1)),
+  };
 }
