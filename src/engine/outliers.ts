@@ -466,6 +466,20 @@ export function detectOutliers(
   const m1FlaggedIds = new Set<string>();
   const m2FlaggedIds = new Set<string>();
   let evaluatedCount = 0;
+  // DR-121 : `outlierNotEvaluatedCount` était DÉRIVÉ par soustraction, ce qui rendait le contrôle I6
+  // tautologique — il ne pouvait jamais échouer sur une sortie réelle du moteur. Les deux termes
+  // sont désormais comptés indépendamment, et I6 compare deux comptages.
+  let notEvaluatedCount = 0;
+  // Annonces à prix affiché mais hors de `V_price` (sentinelle absolue, hors domaine) : comptées
+  // non évaluées, jamais porteuses d'un verdict (EX-DATA-16(d)).
+  for (let i = 0; i < n; i++) {
+    const row = rows[i] as number;
+    const status = batch.priceStatus[row] as number;
+    if (status !== PRICE_STATUS_QUOTED) continue;
+    if (!isPriceValid(batch.priceEur[row] as number, status, batch.ingestFlags[row] as number)) {
+      notEvaluatedCount++;
+    }
+  }
 
   // Pour M3 : besoin, par ligne, du fait d'avoir été signalée BAS.
   const flaggedLowRow = new Set<number>();
@@ -527,7 +541,12 @@ export function detectOutliers(
       else if (price > m1Fence.highFence) m1High = true;
     }
 
-    // --- M2 : cellule C2 (n_price ≥ 30 hors implausibles) puis C3 ---
+    // --- M2 : la cellule est choisie par la PREMIÈRE RÈGLE SATISFAITE d'EX-DATA-86 ---
+    // La condition d'usage du rang 2 porte sur `n_price(C₂) ≥ 30`, PAS sur `|F(C₂)|`. Dès que C₂
+    // satisfait cette condition, C₂ EST la cellule : si son ensemble d'ajustement est trop petit
+    // (`|F| < 30`, EX-DATA-90), l'annonce n'est pas évaluée par M2 — le moteur ne redescend PAS à
+    // `C₃`, qui produirait un verdict au niveau SELECTION sur une cellule que le texte n'a pas
+    // retenue (DR-115).
     let m2Fit: M2Fit = FIT_EMPTY;
     let m2Cell: CellSample = EMPTY_CELL;
     let m2Level: 'MODEL' | 'SELECTION' | null = null;
@@ -543,8 +562,7 @@ export function detectOutliers(
           m2Level = 'MODEL';
         }
       }
-    }
-    if (!m2Implausible && m2Level === null) {
+    } else if (!m2Implausible) {
       const s = sampleC3();
       if (s.keptCount >= MIN_M2 && !isImplausibleInCell(s, price)) {
         const fit = fitC3();
@@ -572,9 +590,16 @@ export function detectOutliers(
       else if (m2Z >= M2_Z_THRESHOLD) m2High = true;
     }
 
-    if (m1Implausible || m2Implausible) implausibleInCellIds.add(decodeListingId(batch.listingId, row));
+    if (m1Implausible || m2Implausible) {
+      implausibleInCellIds.add(decodeListingId(batch.listingId, row));
+      // Une annonce écartée de `V_price(C)` n'est ni évaluée ni JUGÉE : aucun verdict, pas même de
+      // non-évaluation (EX-DATA-19(2)). Elle compte dans `outlierNotEvaluatedCount`.
+      notEvaluatedCount++;
+      continue;
+    }
 
     if (m1Evaluated || m2Evaluated) evaluatedCount++;
+    else notEvaluatedCount++;
 
     const agreeLow = m1Low && m2Low;
     const agreeHigh = m1High && m2High;
@@ -635,7 +660,7 @@ export function detectOutliers(
     }
   }
 
-  const outlierNotEvaluatedCount = priceQuotedCount - evaluatedCount;
+  const outlierNotEvaluatedCount = notEvaluatedCount;
 
   // --- M3 : contrôle externe (EX-DATA-96) ---
   const m3 = computeM3(batch, rows, flaggedLowRow, priceQuotedCount);

@@ -27,6 +27,7 @@ import { detectOutliers, M3_EMPTY, type M3Control } from './outliers';
 import { selectionImplausibleThreshold } from './implausible';
 import { buildIndexes, type DatasetIndexes } from './index-build';
 import { compilePredicates, type RefinePredicate, type TaxonomyScope } from './predicates';
+import { PRICE_STATUS_MISSING, PRICE_STATUS_ON_REQUEST, PRICE_STATUS_QUOTED } from './flags';
 import { computeFacets, type FacetCount, type FacetFilterSpec } from './facets';
 import { scanSelection } from './scan';
 
@@ -98,6 +99,23 @@ export interface FacetResult {
 }
 
 /**
+ * Contrôle d'entrée au chargement du jeu de données (`LOAD_DATASET`) : `priceStatus` doit appartenir
+ * au vocabulaire gelé `KYCAR_PRICE_STATUS` (EX-DATA-8). Un octet hors vocabulaire est une donnée
+ * corrompue en amont : le moteur le REFUSE au chargement (`WORKER_ERROR` nommé) au lieu de le
+ * laisser fausser la partition I5 en silence (DR-116).
+ */
+function assertPriceStatusVocabulary(batch: ListingColumnBatch): void {
+  for (let row = 0; row < batch.rowCount; row++) {
+    const status = batch.priceStatus[row] as number;
+    if (status !== PRICE_STATUS_QUOTED && status !== PRICE_STATUS_ON_REQUEST && status !== PRICE_STATUS_MISSING) {
+      throw new Error(
+        `kernel: priceStatus hors vocabulaire KYCAR_PRICE_STATUS à la ligne ${row} (octet ${status})`,
+      );
+    }
+  }
+}
+
+/**
  * Jeu de données actif dans le worker : batch colonnaire + index. Un seul snapshot actif
  * (EX-NAV-23). L'invariant I7 a besoin du marginal d'année : il est exposé via `lastDensity`.
  */
@@ -110,6 +128,7 @@ export class AggregationDataset {
     readonly batch: ListingColumnBatch,
     models?: readonly Model[],
   ) {
+    assertPriceStatusVocabulary(batch);
     this.indexes = buildIndexes(batch, models);
   }
 

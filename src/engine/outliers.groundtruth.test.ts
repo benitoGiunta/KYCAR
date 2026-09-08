@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { ListingColumnBatch, ReferenceData } from '../types/index';
+import { AggregationDataset } from './kernel';
 import { detectOutliers, type OutlierResult } from './outliers';
 import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED } from './flags';
 import { modelIndexKey } from './index-build';
@@ -24,6 +25,7 @@ let ref: ReferenceData;
 let result: OutlierResult;
 let truth: readonly InjectedOutlier[];
 let batch: ListingColumnBatch;
+let dataset: AggregationDataset;
 
 const inter = (a: ReadonlySet<string>, b: ReadonlySet<string>): number => {
   let c = 0;
@@ -38,6 +40,7 @@ beforeAll(async () => {
   truth = provider.getGroundTruthOutliers();
   const rows = Int32Array.from({ length: batch.rowCount }, (_v, i) => i);
   result = detectOutliers(batch, rows, batch.snapshotId, 'FULL:EMPTY');
+  dataset = new AggregationDataset(batch);
   // Trace globale.
   const truthM1 = truth.filter((o) => o.method === 'M1').length;
   const truthM2 = truth.filter((o) => o.method === 'M2').length;
@@ -148,6 +151,33 @@ describe('D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96)
     expect(m3.evaluatedPopulation).toBeGreaterThan(0);
     // M3 est un contrôle : il expose une contingence, pas un flux de verdicts.
     expect(result.verdicts.every((v) => v.method === 'M1' || v.method === 'M2')).toBe(true);
+  });
+
+  it('EX-DATA-97 — les quatre indicateurs M3 sont publiés pour ≥ 3 cellules d’effectif > 200 (DR-120)', () => {
+    // Promotion dans la suite du lot de la sonde de revue `full-100k.test.ts › EX-DATA-97`
+    // (DR-120) : le rapport de lot ne publiait M3 que sur la sélection entière, alors que
+    // l'exigence demande les quatre indicateurs pour au moins trois cellules d'effectif > 200.
+    // Aucune cellule MODÈLE (C₂) ne dépasse 200 annonces à N = 100 000 : on prend les trois plus
+    // grandes sélections MARQUE, qui sont des cellules d'homogénéité au sens d'EX-DATA-86.
+    const cells = [...dataset.indexes.makeOffsets.entries()]
+      .map(([makeId, r]) => ({ makeId, count: r.end - r.start }))
+      .filter((c) => c.count > 200)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+    expect(cells).toHaveLength(3);
+    for (const c of cells) {
+      const r = dataset.recalculate({ selectionHash: `FULL:m3-${c.makeId}`, scope: { makeIds: [c.makeId] } });
+      const m3 = r.m3;
+      console.log(
+        `[M3 cellule marque ${c.makeId}, n=${c.count}] |E|=${m3.evaluatedPopulation} ` +
+          `precisionLow=${fmt(m3.precisionLow)} recallLow=${fmt(m3.recallLow)} kappa=${fmt(m3.kappa)} ` +
+          `evalCoverage=${fmt(m3.evalCoverage)}`,
+      );
+      expect(m3.evaluatedPopulation).toBeGreaterThan(200);
+      expect(m3.evalCoverage).not.toBeNull();
+      expect(m3.precisionLow !== null || m3.recallLow !== null).toBe(true);
+      expect(m3.kappa).not.toBeNull();
+    }
   });
 
   it('les verdicts portent un listingId canonique (traçabilité de forage)', () => {

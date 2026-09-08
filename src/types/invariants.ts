@@ -86,6 +86,19 @@ export function checkI2(
 ): InvariantResult {
   const byMake = new Map<number, number>();
   for (const m of modelAggregates) byMake.set(m.makeId, (byMake.get(m.makeId) ?? 0) + m.listingCount);
+  // DR-107 : le contrôle doit porter sur l'UNION des marques des deux côtés. En n'itérant que sur
+  // `makeAggregates`, un agrégat modèle rattaché à une marque ABSENTE côté marque n'était jamais
+  // confronté et son effectif orphelin passait le contrôle.
+  const knownMakes = new Set(makeAggregates.map((a) => a.makeId));
+  for (const [makeId, modelSum] of byMake) {
+    if (!knownMakes.has(makeId)) {
+      return {
+        id: 'I2',
+        ok: false,
+        detail: `marque ${makeId} orpheline : Σ modèles = ${modelSum} sans agrégat marque correspondant`,
+      };
+    }
+  }
   for (const a of makeAggregates) {
     const modelSum = byMake.get(a.makeId) ?? 0;
     if (modelSum !== a.listingCount) {
@@ -164,7 +177,11 @@ export function checkI7(
   }
   const byYear = new Map<number, number>();
   for (const c of cells) byYear.set(c.yearBinIndex, (byYear.get(c.yearBinIndex) ?? 0) + c.count);
-  for (const [yearIndex, colCount] of byYear) {
+  // DR-108 : « pour toute colonne d'année ». En n'itérant que sur les indices PRÉSENTS dans les
+  // cellules, un bin d'année ayant perdu toutes ses cellules n'était jamais confronté au marginal.
+  const yearIndexes = new Set<number>([...byYear.keys(), ...yearBucketCountByIndex.keys()]);
+  for (const yearIndex of yearIndexes) {
+    const colCount = byYear.get(yearIndex) ?? 0;
     const expected = yearBucketCountByIndex.get(yearIndex) ?? 0;
     if (colCount !== expected) {
       return {
