@@ -148,6 +148,10 @@ export function App(props: AppProps): JSX.Element {
     () => serializeQuery(selection, {}, { filterDefaults: FILTER_DEFAULTS }),
     [selection],
   );
+  /** Mode d'écran courant (`EX-SCR-82`/`221`) : il gouverne la scission T/R et le transport de
+   * filtres d'un mode à l'autre (`carryFiltersAcrossMode`). */
+  const currentMode: 'mode1' | 'mode2' =
+    view.kind === 'modelDistribution' || view.kind === 'modelListings' ? 'mode2' : 'mode1';
 
   // ---- Validation taxonomique et canonisation de la route (DR-099, EX-NAV-19/20, EX-SCR-140) ----
   const taxonomyRoute = useMemo<TaxonomyRouteResult | null>(() => {
@@ -407,21 +411,26 @@ export function App(props: AppProps): JSX.Element {
     [controller, selection, modelsByMake],
   );
 
+  /**
+   * `EX-NAV-15`/`16` (`D-09`, `DR-063`) — entrée en mode 2 : le bloc `mmmv` du couple CHOISI est
+   * ABSORBÉ par la route (`carryFiltersAcrossMode`), tous les autres filtres partagés sont conservés
+   * dans la requête. Sans cela, ouvrir un modèle perdait silencieusement les filtres posés.
+   */
   const goToModel = useCallback(
     (makeId: number, modelId: number): void => {
       const make = referenceData.makeById.get(makeId);
       const model = referenceData.modelByKey.get(`${makeId}:${modelId}`);
-      navigate(
-        buildPath({
-          name: 'modelDistribution',
-          makeId,
-          makeSlug: make?.slug ?? String(makeId),
-          modelId,
-          modelSlug: model?.slug ?? String(modelId),
-        }),
-      );
+      const path = buildPath({
+        name: 'modelDistribution',
+        makeId,
+        makeSlug: make?.slug ?? String(makeId),
+        modelId,
+        modelSlug: model?.slug ?? String(modelId),
+      });
+      const carried = carryFiltersAcrossMode(selection, currentMode, 'mode2', { makeId, modelId });
+      navigate(assembleUrl(path, serializeQuery(carried, {}, { filterDefaults: FILTER_DEFAULTS })).url);
     },
-    [navigate, referenceData],
+    [navigate, referenceData, selection, currentMode],
   );
 
   const toggleCompare = useCallback((makeId: number, modelId: number, next: boolean): void => {
@@ -437,8 +446,16 @@ export function App(props: AppProps): JSX.Element {
 
   const saveCurrentSearch = useCallback(
     (nom: string): void => {
+      // `EX-CRUD-1`/`ARB-45` (DR-102) : `effectifInitial` est l'effectif d'ANNONCES de la sélection au
+      // moment de l'enregistrement — Σ du mode 2 quand on enregistre depuis l'écran B/D, la somme des
+      // cartes du mode 1 sinon. Figé à la création, jamais réécrit.
       const data = marketPhase.phase === 'loaded' ? marketPhase.data : null;
-      const effectifInitial = data ? data.makeAggregates.reduce((s, a) => s + a.listingCount, 0) : 0;
+      const effectifInitial =
+        mode2?.status === 'ready' && mode2.payload !== undefined && currentMode === 'mode2'
+          ? mode2.payload.rows.length
+          : data
+            ? data.makeAggregates.reduce((s, a) => s + a.listingCount, 0)
+            : 0;
       try {
         stores.saved.create({
           nom,
@@ -452,7 +469,7 @@ export function App(props: AppProps): JSX.Element {
         setBanner(e instanceof CapExceededError ? e.message : e instanceof Error ? e.message : 'Échec de l’enregistrement.');
       }
     },
-    [marketPhase, location, controller, stores, bumpCrud],
+    [marketPhase, mode2, currentMode, location, controller, stores, bumpCrud],
   );
 
   const toggleFollow = useCallback(
@@ -642,7 +659,7 @@ export function App(props: AppProps): JSX.Element {
 
   // ---- Composition ------------------------------------------------------------------------------
   const degraded = start?.status === 'degraded-cache' || controller.isDegraded;
-  const filterBandMode = view.kind === 'modelDistribution' || view.kind === 'modelListings' ? 'mode2' : 'mode1';
+  const filterBandMode = currentMode;
   const descriptor = controller.snapshotDescriptor;
   // `D-24`/`D-43` (DR-094/DR-152) : la provenance vient de `describe()` et du descripteur de
   // snapshot, jamais d'un littéral d'écran.
@@ -970,17 +987,7 @@ export function App(props: AppProps): JSX.Element {
           {which === 'distribution' ? (
             <button
               type="button"
-              onClick={() =>
-                navigate(
-                  buildPath({
-                    name: 'modelListings',
-                    makeId,
-                    makeSlug: referenceData.makeById.get(makeId)?.slug ?? String(makeId),
-                    modelId,
-                    modelSlug: referenceData.modelByKey.get(`${makeId}:${modelId}`)?.slug ?? String(modelId),
-                  }),
-                )
-              }
+              onClick={() => navigate(assembleUrl(listingsPath(makeId, modelId), currentQuery).url)}
             >
               Voir les annonces
             </button>
