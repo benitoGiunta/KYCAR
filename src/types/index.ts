@@ -100,6 +100,19 @@ export {
 } from './selection';
 export { sha256Hex } from './sha256';
 
+// Règles métier partagées (seuils, facteurs, clés, nettoyage) — étape 0 de la remédiation 2.6.
+export type { DuplicateConflictField } from './shared-rules';
+export {
+  PRICE_SENTINEL_ABSOLUTE_EUR,
+  isPriceSentinelAbsolute,
+  HP_TO_KW,
+  hpToKw,
+  listingKey,
+  DUPLICATE_CONFLICT_FIELDS,
+  MODEL_VERSION_CLEAN_MAX,
+  cleanModelVersion,
+} from './shared-rules';
+
 // Validation + garde R3.
 export type { ValidationIssue, ValidationResult } from './validation';
 export {

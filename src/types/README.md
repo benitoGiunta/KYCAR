@@ -11,12 +11,13 @@ Point d'entrée : `index.ts` (barrel). Il réexporte aussi l'interface `DataProv
 | Fichier | Contenu |
 |---|---|
 | `sentinels.ts` | sentinelles `-1` / `255`, `MODEL_ID_UNRESOLVED`, lecteurs/encodeurs typés |
-| `vocabularies.ts` | les 27 vocabulaires nommés (`VocabularyName`) + domaines des vocabulaires CRÉÉS + table postale BE |
+| `vocabularies.ts` | les 27 vocabulaires nommés (`VocabularyName`) + domaines des vocabulaires CRÉÉS + table postale BE + table bit ↔ code des drapeaux d'ingestion (`INGEST_FLAG_BIT`, `hasIngestFlag`, `setIngestFlag`, `ingestFlagCodes`) |
 | `columns.ts` | descripteur `LISTING_COLUMNS` aligné sur `ListingColumnBatch`, vue logique `Listing` |
 | `entities.ts` | `Snapshot`, `Make`, `Model`, `Enumeration`, `EnumValue`, `Region`, `PostalRegionRange`, `DistributionBucket`, `SelectionStats`, `OutlierVerdict`, `DensityCell` (+ réexports d'agrégats) |
 | `sha256.ts` | SHA-256 synchrone maison (aucune lib tierce) |
 | `selection.ts` | codec canonique + scission T/R (`computeSelectionHash`, `localDatasetKey`, `serializeSelection`) |
-| `validation.ts` | garde R3 (`scanForbiddenFields`) + `validateListingRecord` |
+| `validation.ts` | garde R3 (`scanForbiddenFields`, formes aplaties comprises) + `validateListingRecord` |
+| `shared-rules.ts` | règles partagées (2.6 étape 0) : `PRICE_SENTINEL_ABSOLUTE_EUR`/`isPriceSentinelAbsolute`, `HP_TO_KW`/`hpToKw`, `listingKey`, `DUPLICATE_CONFLICT_FIELDS`, `MODEL_VERSION_CLEAN_MAX`/`cleanModelVersion` |
 | `invariants.ts` | `checkI1`..`checkI8` (fonctions testables) |
 | `reference.ts` | `buildReferenceData(raw)` — charge taxonomie/références/filtres déjà parsés, expose typé |
 
