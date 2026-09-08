@@ -1,0 +1,297 @@
+/**
+ * KYCAR - Ecran A layout (lot D6). Reads var(--color-*/--space-*/--radius-*) from
+ * src/styles/tokens.css (read-only import - D1's file is not edited by this lot).
+ * Imported as a side effect by MarketScreen.tsx (Vite bundles it wherever the screen is mounted -
+ * no src/app.tsx wiring needed, consistent with "expose mountable components, D8 wires the shell").
+ *
+ * Breakpoints: EX-SCR-20 (compact < 768px, intermediaire 768-1279px, large >= 1280px).
+ * Zone-modele band height: EX-SCR-112 (72px in `large`), EX-SCR-135 (96px, 4 lines, in `compact`).
+ * Card visible-before-collapse geometry: EX-SCR-122 (588px at 6 zones + header/summary/footer).
+ */
+
+.kycar-market-screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  container-type: inline-size;
+}
+
+/* Barre de synthese - EX-SCR-106, hauteur fixe 44px, collante sous le bandeau de filtres. */
+.kycar-market-summary-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 44px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.kycar-market-summary-counts {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.kycar-market-summary-counts .kycar-muted {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.kycar-market-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Bandeaux (C3, ET-TROP-RESULTATS, etc.) - EX-SCR-38, plafond 96px sauf exception C3. */
+.kycar-market-banners {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 144px;
+  overflow-y: auto;
+}
+
+.kycar-market-banner {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.kycar-market-banner--vert { background: color-mix(in srgb, var(--color-success) 12%, transparent); }
+.kycar-market-banner--ambre { background: color-mix(in srgb, #b3261e 0%, #ffd54a 22%); }
+.kycar-market-banner--rouge { background: color-mix(in srgb, var(--color-danger) 14%, transparent); }
+.kycar-market-banner--neutre { background: var(--color-surface); }
+
+/* Grille de cartes-marques - EX-SCR-105/136/137. */
+.kycar-market-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr;
+}
+
+@container (min-width: 768px) {
+  .kycar-market-grid { grid-template-columns: repeat(2, minmax(320px, 520px)); }
+}
+
+@container (min-width: 1280px) {
+  .kycar-market-grid { grid-template-columns: repeat(3, minmax(320px, 520px)); }
+}
+
+@container (min-width: 1680px) {
+  .kycar-market-grid { grid-template-columns: repeat(4, minmax(320px, 520px)); }
+}
+
+/* Carte-marque - EX-SCR-107. */
+.kycar-market-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.kycar-market-card--error {
+  border-color: var(--color-danger);
+}
+
+.kycar-market-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 72px;
+  padding: 0 var(--space-3);
+  cursor: pointer;
+}
+
+.kycar-market-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-contrast);
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.kycar-market-card-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.kycar-market-card-count {
+  font-weight: 700;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.kycar-market-card-summary {
+  padding: 0 var(--space-3) var(--space-2);
+  min-height: 44px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.kycar-market-card-summary-secondary {
+  font-size: 0.7rem;
+}
+
+.kycar-market-card-summary-secondary em {
+  font-style: italic;
+}
+
+/* Liste de zones-modeles. */
+.kycar-market-zone-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.kycar-market-zone-list--expanded {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+/* Zone-modele - EX-SCR-112, 72px en regime large. */
+.kycar-market-zone {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 72px;
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.kycar-market-zone--italic .kycar-market-zone-ranges {
+  font-style: italic;
+}
+
+.kycar-market-zone-row1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.kycar-market-zone-chevron {
+  color: var(--color-text-muted);
+}
+
+.kycar-market-zone-ranges {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.kycar-market-zone-share-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-surface);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.kycar-market-zone-share-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+}
+
+.kycar-market-coverage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.kycar-market-coverage-dot--plein { background: var(--color-success); }
+.kycar-market-coverage-dot--mi-plein { background: #ffd54a; }
+.kycar-market-coverage-dot--creux { background: var(--color-danger); }
+.kycar-market-coverage-dot--indisponible { background: none; color: var(--color-text-muted); }
+
+.kycar-market-card-footer {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+}
+
+.kycar-market-card-footer button {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Pied de grille - EX-SCR-129. */
+.kycar-market-grid-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+/* Squelette de chargement - EX-SCR-130, jamais de spinner. */
+.kycar-market-skeleton-block {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  border-radius: var(--radius-sm);
+  animation: kycar-market-skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes kycar-market-skeleton-sweep {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Bloc d'amorce - EX-SCR-125, etat SANS-FILTRE. */
+.kycar-market-primer {
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+}
+
+.kycar-market-primer-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.kycar-market-empty,
+.kycar-market-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 480px;
+  margin: var(--space-5) auto;
+  text-align: center;
+}
+
+/* Regime compact (< 768px) - EX-SCR-135 : la zone-modele passe a 96px, 4 lignes. */
+@container (max-width: 767.98px) {
+  .kycar-market-zone {
+    min-height: 96px;
+  }
+}

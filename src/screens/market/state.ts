@@ -43,6 +43,11 @@ export interface ScreenALoadedData {
   readonly topRestrictiveFilters: readonly RestrictiveFilterHint[];
   /** `snapshot.date`/`capturedAt`, pour `EX-SCR-27`. */
   readonly snapshotDate: string;
+  /** `SnapshotDescriptor.listingCount`/`announcedListingCount` — couverture d'échantillon de
+   * SNAPSHOT pour le bandeau `C3` (`EX-SCR-31`), distincte de la couverture par marque/modèle
+   * (`coverage.ts`). `null` d'annoncé = `INCONNU`. */
+  readonly snapshotListingCount: number;
+  readonly snapshotAnnouncedListingCount: number | null;
   /** `EX-SCR-133` : marques dont l'agrégat lui-même a échoué à charger (distinct de `EX-SCR-132`,
    * où la marque a réussi mais pas ses modèles). */
   readonly failedMakeIds: ReadonlySet<number>;

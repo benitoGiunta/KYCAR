@@ -19,6 +19,8 @@ function baseData(partial: Partial<ScreenALoadedData> = {}): ScreenALoadedData {
     activeFilterCount: 0,
     topRestrictiveFilters: [],
     snapshotDate: '2026-09-08',
+    snapshotListingCount: 0,
+    snapshotAnnouncedListingCount: null,
     failedMakeIds: new Set(),
     totalMakesAttempted: 0,
     ...partial,
