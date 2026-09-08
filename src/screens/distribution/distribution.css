@@ -1,0 +1,198 @@
+/**
+ * KYCAR — Styles de l'écran B (lot D7). Couleurs lues depuis les tokens de D1 (jamais de hex en dur,
+ * hormis les rampes de graphe définies dans le modèle). Régimes responsive EX-SCR-179/180/181.
+ */
+
+.kycar-screen-b {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  color: var(--color-text);
+}
+
+.kycar-stat-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-2) 0;
+}
+.kycar-stat-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+.kycar-stat-line strong {
+  font-size: var(--font-size-large);
+}
+
+.kycar-hist-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+.kycar-graph-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.kycar-graph {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  background: var(--color-bg);
+}
+.kycar-graph-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.kycar-graph-title {
+  font-size: var(--font-size-base);
+  margin: 0 0 var(--space-1) 0;
+}
+.kycar-graph-count {
+  color: var(--color-text-muted);
+  font-weight: normal;
+}
+.kycar-graph-datatoggle,
+.kycar-scatter-controls button {
+  font-size: 0.85rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  cursor: pointer;
+  color: var(--color-text);
+}
+.kycar-graph-exclusions,
+.kycar-graph-note {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-1) 0 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.kycar-hist,
+.kycar-line,
+.kycar-bars,
+.kycar-heatmap {
+  width: 100%;
+  height: auto;
+}
+
+.kycar-log-toggle {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 0.8rem;
+  margin-bottom: var(--space-1);
+}
+
+.kycar-scatter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.kycar-scatter-legend {
+  position: absolute;
+  right: var(--space-2);
+  top: var(--space-2);
+  font-size: 0.75rem;
+  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.kycar-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kycar-scatter-samplenote,
+.kycar-scatter-selcount {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 0 0;
+}
+
+.kycar-catbars,
+.kycar-lollipops,
+.kycar-boxes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.kycar-catbar,
+.kycar-lollipop {
+  display: grid;
+  grid-template-columns: 8rem 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: 0.8rem;
+}
+.kycar-catbar-track {
+  background: var(--color-surface);
+  height: 12px;
+  display: block;
+}
+.kycar-lollipop-open {
+  display: contents;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  text-align: left;
+}
+.kycar-lollipop-bar {
+  position: relative;
+  display: block;
+  height: 6px;
+  background: var(--color-surface);
+}
+
+.kycar-graph-datatable table,
+.kycar-scatter-data table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  width: 100%;
+}
+.kycar-graph-datatable th,
+.kycar-graph-datatable td,
+.kycar-scatter-data th,
+.kycar-scatter-data td {
+  border: 1px solid var(--color-border);
+  padding: 2px 6px;
+  text-align: left;
+}
+
+/* Régime intermédiaire (768–1279 px) : 2 colonnes (EX-SCR-180). */
+@media (max-width: 1279px) {
+  .kycar-hist-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .kycar-graph-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Régime compact (< 768 px) : 1 colonne, tout empilé (EX-SCR-181). */
+@media (max-width: 767px) {
+  .kycar-hist-row,
+  .kycar-graph-grid {
+    grid-template-columns: 1fr;
+  }
+  .kycar-scatter-legend {
+    position: static;
+    margin-top: var(--space-1);
+  }
+}
