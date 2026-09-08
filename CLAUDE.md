@@ -1,16 +1,20 @@
 # CLAUDE.md — KYCAR
 
-Instructions pour tout agent Claude travaillant dans ce dépôt. Voir `docs/HANDOFF.md` pour l'état du
-projet et la reprise, et `docs/EXECUTION-LOG.md` (source de vérité de l'avancement).
+Instructions pour tout agent Claude travaillant dans ce dépôt. État du projet et reprise :
+`docs/HANDOFF.md`. Source de vérité de l'avancement : `docs/EXECUTION-LOG.md`.
 
-## Règle de push — TOUJOURS le compte perso
+Quatre règles structurent ce fichier : **(1) push git**, **(2) choix du modèle**, **(3) choix de
+l'intensité d'effort**, **(4) structure coordinateur / sous-agents**. Puis les conventions locales.
+
+---
+
+## 1. Push git — TOUJOURS le compte perso, TOUJOURS poussé
+
+### 1.1 Identité
 
 Ce dépôt (`github.com/benitoGiunta/KYCAR`) est sur le **compte GitHub perso** de l'utilisateur. La
-config git **globale** de la machine utilise par défaut l'email et le compte **pro** — il faut donc
-corriger à chaque fois. Deux comptes `gh` sont en keyring : `benitoGiunta` (perso) et
-`benitoGiunta86` (pro).
-
-**Identité des commits** (déjà réglée en local sur ce dépôt, à re-vérifier avant de commiter) :
+config git **globale** de sa machine utilise par défaut l'email et le compte **pro** — corriger à
+chaque fois. Deux comptes `gh` sont en keyring : `benitoGiunta` (perso) et `benitoGiunta86` (pro).
 
 ```bash
 git config user.email   # doit afficher benitognt@gmail.com (perso), PAS benito.giunta@bstorm.be
@@ -19,60 +23,110 @@ git config user.email "benitognt@gmail.com"
 git config user.name  "Benito Giunta"
 ```
 
-**Procédure de push** — basculer `gh` en perso, pousser, puis **remettre `gh` sur pro** :
+### 1.2 Procédure selon l'environnement
+
+**Machine locale de l'utilisateur** — basculer `gh` en perso, pousser, remettre `gh` sur pro :
 
 ```bash
 gh auth switch --user benitoGiunta       # 1. compte perso actif
-git push origin <branche>                 # 2. push (credentials perso)
+git push -u origin <branche>              # 2. push (credentials perso)
 gh auth switch --user benitoGiunta86     # 3. remettre le compte pro par défaut
 ```
 
-En session distante (Claude Code on the web), les credentials de session sont déjà ceux du dépôt perso :
-`git push -u origin <branche>` suffit, `gh` n'y est pas disponible.
+**Session distante (Claude Code on the web)** — les credentials de session sont déjà ceux du dépôt
+perso, `gh` n'est pas disponible : `git push -u origin <branche>` suffit. Sur échec réseau, réessayer
+jusqu'à 4 fois avec attente croissante (2 s, 4 s, 8 s, 16 s).
 
-Ne jamais pousser ce dépôt avec le compte pro. Ne jamais saisir de credentials à la main : `gh` les
-détient déjà pour les deux comptes.
+Ne jamais pousser ce dépôt avec le compte pro. Ne jamais saisir de credentials à la main.
 
-## Conventions de commit
+### 1.3 Branche et cadence
+
+- On développe sur la branche désignée par la session (en 2.5/2.6 : `claude/kycar-project-ffcplk`,
+  créée depuis `phase-2.4-build`). Jamais de push sur une autre branche sans accord explicite.
+- **Chaque livrable d'agent est commité et poussé dès réception** (un commit par lot revu ou corrigé,
+  message qui résume les constats/corrections). Entre deux livrables, un commit « WIP … snapshot » des
+  fichiers en cours est autorisé et poussé : seul le commité survit à un reset de session.
+- L'arbre doit être propre (`git status` vide) à chaque fin de tour du coordinateur : un hook de
+  fin de tour le vérifie et refuse un arbre sale.
+- Les sous-agents en worktree commitent dans leur worktree ; le coordinateur fusionne (`--no-ff`)
+  et pousse. Les sous-agents qui travaillent dans l'arbre principal ne commitent pas : le
+  coordinateur commite pour eux, lot par lot.
+- Pas de PR sans demande explicite.
+
+### 1.4 Conventions de commit
 
 - Messages en anglais, sans backtick (le shell Windows/Bash les interprète — corruption déjà subie).
 - Terminer chaque message par le trailer d'attribution fourni par la session courante
-  (`Co-Authored-By: …` et, s'il est fourni, `Claude-Session: …`).
-- Commiter de façon incrémentale.
+  (`Co-Authored-By: …` et, s'il est fourni, `Claude-Session: …`). Aucun identifiant de modèle
+  ailleurs que dans ce trailer.
+- Commits incrémentaux, jamais d'`--amend` ni de force-push sur une branche partagée.
 
-## Vérifier avant de livrer
+---
 
-```bash
-npm run build   # tsc app + worker + vite build ; doit être 0 erreur / 0 warning
-npm run lint    # eslint . ; vert
-npm test        # vitest run ; suite par défaut (les bancs *.perf.test.ts sont hors suite)
-npm run size    # bundle initial < 300 Ko gzip
-```
+## 2. Choix du modèle
 
-Détails d'environnement, pièges (worktrees, node_modules, timeouts) et contraintes E1–E5 : voir
-`docs/HANDOFF.md` §7–8.
+Contrainte E2 (« aucun modèle Fable ») **levée par le commanditaire le 2026-09-08** : les trois
+modèles sont disponibles. Le choix se fait **par tâche**, jamais par habitude, selon la nature du
+travail :
 
-## Organisation en agents (décidée le 2026-09-08, s'applique à partir de la phase 2.5)
-
-Principe : **une session coordinatrice** (Fable 5.1, effort high) planifie, lance, fusionne et
-valide ; **des sous-agents** exécutent, chacun avec un modèle et un effort choisis pour la tâche.
-Le modèle et l'effort de chaque rôle sont **déclarés dans `.claude/agents/<rôle>.md`** (frontmatter
-`model:` / `effort:`), qui fait foi ; la table ci-dessous en est le résumé.
-
-Mécanique de lancement (constatée le 2026-09-08) : les fiches de `.claude/agents/` ne sont chargées
-qu'au **démarrage** d'une session. Dans une session déjà ouverte, le coordinateur lance le type
-générique avec le paramètre `model` explicite et impose l'effort dans la mission (« lis ta fiche
-`.claude/agents/<rôle>.md`, effort <niveau> ») ; la fiche reste la référence du rôle. Règles de choix :
-
-| Nature de la tâche | Modèle | Effort |
+| Nature de la tâche | Modèle | Exemples dans KYCAR |
 |---|---|---|
-| Outillage, vérifications mécaniques, édition de prose bornée | Sonnet | medium–high |
-| Densité de spécification, preuves statistiques, arbitrage de doublons | Opus | high |
-| Algorithmique lourde, lots transverses porteurs d'un budget NFR ou d'un parcours cible, coordination | Fable | high (max pour la vérification finale 2.7) |
+| Outillage, vérifications mécaniques, exécution de protocole bien spécifié, édition de prose bornée, corrections localisées dont la sonde dit exactement quoi faire | **Sonnet** | rev-D1, rev-D6 ; fix-providers, fix-state, fix-screens, fix-docs |
+| Densité de spécification à confronter au code, preuves statistiques, aller-retours exhaustifs, arbitrage de doublons et de sévérités, corrections algorithmiques bornées à un module | **Opus** | rev-D2/D3/D5/D7/D9, rev-patho, rev-consolidate ; fix-engine, fix-app, fix-verify |
+| Algorithmique lourde avec budget NFR opposable, lots transverses porteurs d'un parcours cible, coordination et arbitrage global, vérification finale | **Fable** | coordinateur de session ; rev-D4 (moteur), rev-D8 (intégration) ; final-check 2.7 |
 
-Contrainte E2 (« aucun modèle Fable ») **levée par le commanditaire le 2026-09-08**.
+Règles de bascule :
+- Un rôle Sonnet qui rencontre une contradiction inter-annexes ou un choix d'architecture **signale**
+  et s'arrête sur ce point ; le coordinateur relance un Opus ou tranche lui-même.
+- Un rôle Opus ne passe en Fable que si la tâche engage un budget chiffré (perf, mémoire, taille) ou
+  un parcours cible de bout en bout.
+- Le modèle de chaque rôle est **déclaré dans `.claude/agents/<rôle>.md`** (frontmatter `model:`).
+  Cette fiche fait foi ; les tables de ce fichier en sont le résumé.
 
-### Phase 2.5 — revue de développement (PLAN-2 §2.5)
+---
+
+## 3. Choix de l'intensité d'effort
+
+L'effort est le budget de raisonnement accordé à un agent. Il est **déclaré dans la fiche de rôle**
+(frontmatter `effort:`) et **répété dans la mission** (« effort <niveau> »), parce que les fiches de
+`.claude/agents/` ne sont chargées qu'au **démarrage** d'une session : dans une session déjà ouverte,
+le coordinateur lance le type générique avec le paramètre `model` explicite et impose l'effort par
+la mission.
+
+| Niveau | Quand | Exemples |
+|---|---|---|
+| **low** | jamais sur ce projet (aucune tâche n'est assez mécanique pour se passer de vérification) | — |
+| **medium** | protocole entièrement spécifié, résultat vérifiable par une commande, faible risque de faux positif | rev-D1 (outillage) |
+| **high** | il faut lire la spec ET le code, construire des preuves, hiérarchiser des constats, ou corriger sans régresser | tous les autres rev-* et fix-*, le coordinateur |
+| **max** | verdict engageant sur l'ensemble du produit, exigence par exigence, sans droit à l'erreur | final-check (2.7), arbitre 2.2, req-lead 2.1 |
+
+Règle : **l'effort suit le coût d'une erreur, pas la taille de la tâche.** Une petite tâche dont
+l'erreur fausserait une valeur affichée à l'utilisateur est en `high`.
+
+---
+
+## 4. Structure coordinateur / sous-agents
+
+### 4.1 Principe
+
+**Une session coordinatrice** (Fable, effort high) planifie, lance, fusionne, valide, commite et
+pousse. **Des sous-agents** exécutent, chacun avec un rôle, un modèle et un effort déclarés dans
+`.claude/agents/<rôle>.md`, un périmètre d'écriture disjoint, et une mission qui se suffit à
+elle-même (E3 : aucun sous-agent ne pose de question).
+
+Règles de parallélisme :
+- **Parallèle** tout ce qui est indépendant ET écrit dans des emplacements disjoints (une revue par
+  lot ; une correction par groupe de répertoires).
+- **Séquentiel** tout ce qui dépend d'un résultat amont (consolidation après toutes les revues ;
+  fusion des worktrees un par un ; vérification après toutes les fusions).
+- Sur 4 cœurs : un sous-agent n'exécute que les tests de son périmètre (`--no-file-parallelism`) ;
+  la suite complète est lancée par le coordinateur, seul.
+- Un constat qui traverse deux périmètres est attribué à un seul agent (celui du répertoire où la
+  correction est la plus profonde) ; l'autre est prévenu dans sa mission.
+- Un agent qui meurt laisse son WIP sur disque : le coordinateur le récupère, le teste, le finit
+  ou relance un agent « de finition ».
+
+### 4.2 Phase 2.5 — revue de développement (PLAN-2 §2.5)
 
 Protocole : `docs/plans/REVIEW-PROTOCOL.md`. Sondes : `tests/review/D<n>/` (config
 `vitest.review.config.ts`, script `npm run test:review`, type-check `tsconfig.review.json`).
@@ -88,15 +142,10 @@ vague R (PARALLÈLE, 10 agents, même arbre, src/ en lecture seule, sorties disj
   rev-consolidate Opus/high → reports/DEV-REVIEW.md
         │
         v
-  coordinateur : contrôle S1–S4, `npm test` + `npm run test:review`, commit
+  coordinateur : contrôle S1–S4, npm test + npm run test:review, commit, push
 ```
 
-Pourquoi ce découpage : les revues sont indépendantes (R5, un lot chacune) donc parallèles ; elles
-n'écrivent que dans leur dossier de sondes et leur rapport, donc pas de conflit dans un même arbre ;
-la consolidation dépend de toutes, donc séquentielle. Sur 4 cœurs, chaque revue n'exécute que les
-tests de son lot (`--no-file-parallelism`), jamais la suite complète.
-
-### Phase 2.6 — remédiation (PLAN-2 §2.6)
+### 4.3 Phase 2.6 — remédiation (PLAN-2 §2.6)
 
 ```
 fix-lead = coordinateur (Fable/high) : ordonne DEV-REVIEW par sévérité, forme des clusters de
@@ -109,7 +158,7 @@ constats par répertoires DISJOINTS de src/, attribue, arbitre les conflits.
   fix-screens Sonnet/high (src/screens) · fix-docs Sonnet/high (docs/, aucun code)
         │
         v  (SÉQUENTIEL) coordinateur fusionne --no-ff un worktree à la fois ; après CHAQUE fusion :
-           build + lint + `npm test` + `npm run test:review` ; conflit → arbitrage coordinateur
+           build + lint + npm test + npm run test:review ; conflit → arbitrage coordinateur
         │
         v  (SÉQUENTIEL) fix-verify Opus/high : rejoue chaque preuve, écrit reports/REMEDIATION.md
         │
@@ -117,17 +166,26 @@ constats par répertoires DISJOINTS de src/, attribue, arbitre les conflits.
            par défaut, journal, commit, push
 ```
 
-Un cluster n'est lancé en parallèle que si ses répertoires sont disjoints de ceux des autres ; un
-constat qui traverse deux clusters est attribué à un seul agent (celui du répertoire où la
-correction est la plus profonde) et l'autre agent est prévenu dans sa mission.
+Règle de preuve (PLAN-2 §2.6 S2) : une correction est prouvée par **la sonde qui a révélé le
+problème**, que l'on fait passer sans la modifier. Une sonde jugée fausse se corrige avec
+justification écrite dans le rapport du correcteur, jamais en silence.
 
-### Phase 2.7 — vérification finale (PLAN-2 §2.7)
+### 4.4 Phase 2.7 — vérification finale (PLAN-2 §2.7)
 
-Un seul agent `final-check`, **Fable/max**, indépendant des phases précédentes, après feu vert.
+Un seul agent `final-check`, **Fable/max**, indépendant des phases précédentes, lancé sur feu vert.
 
-### Leçons à respecter par tout agent
+---
 
-- Sous-agents : commits incrémentaux dans leur worktree (seul le commité survit à un reset de
-  session) ; jamais `npm ci` dans un worktree (symlinker `node_modules` de la racine).
-- Jamais la suite complète en parallèle sur le même arbre : le coordinateur la lance, seul.
-- Un agent qui meurt laisse son WIP sur disque : le coordinateur le récupère, le teste, le finit.
+## 5. Vérifier avant de livrer
+
+```bash
+npm run build         # tsc app + worker + vite build ; doit être 0 erreur / 0 warning
+npm run lint          # eslint . ; vert
+npm test              # vitest run ; suite par défaut (les bancs *.perf.test.ts sont hors suite)
+npm run test:review   # sondes de revue ; rouges = constats ouverts, doit être vert à la fin de 2.6
+npm run size          # bundle initial < 300 Ko gzip
+```
+
+Pièges d'environnement (worktrees, `node_modules`, timeouts) et contraintes E1, E3–E5 : voir
+`docs/HANDOFF.md` §7–8. Rappels : jamais `npm ci` dans un worktree (symlinker `node_modules` de la
+racine) ; jamais la suite complète en parallèle sur le même arbre.
