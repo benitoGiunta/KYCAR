@@ -210,6 +210,24 @@ export interface MetricRange {
   readonly n: number;
 }
 
+/**
+ * Avertissements de couverture d'un agrégat (EX-DATA-68, `coverageWarning`). Les trois booléens de
+ * métrique ; le quatrième drapeau de la table d'EX-DATA-68, `samplingBias`, est porté à part sur
+ * l'agrégat (D8-10) parce qu'il ne qualifie pas une métrique mais l'échantillon entier.
+ * `true` = la couverture métrique de ce bloc est sous le seuil et l'écran doit le dire.
+ */
+export interface CoverageWarning {
+  readonly price: boolean;
+  readonly year: boolean;
+  readonly mileage: boolean;
+}
+
+/**
+ * Effectif par code de `KYCAR_AD_TIER` (EX-DATA-68, `adTierDistribution` — 5 entiers). Renseigné
+ * par le provider RÉEL seulement : le palier publicitaire est une propriété de la source.
+ */
+export type AdTierDistribution = Readonly<Record<string, number>>;
+
 /** Agrégat par marque (EX-DATA §B.3). Aucune donnée d'annonce individuelle. */
 export interface MakeAggregate {
   readonly makeId: number;
@@ -220,6 +238,19 @@ export interface MakeAggregate {
   /** `listingCount / announcedCount`, ou `null` (EX-DATA / glossaire). Publiée seulement si sélection
    *  vide ; vaut le drapeau `NON_APPLICABLE` sinon — porté par un champ distinct côté moteur. */
   readonly sampleCoverage: number | null;
+  /**
+   * NORMATIF (D8-10, FV-02) — `|{ l.modelId : l ∈ A_k, l.modelId ≠ INCONNU }|` (EX-DATA-68 /
+   * EX-DATA-71) : les modèles DISTINCTS présents dans la sélection, jamais ceux du référentiel.
+   * Champ OBLIGATOIRE : `null` signifie « le provider ne l'a pas calculé », et l'écran affiche
+   * alors « — », JAMAIS `0` — c'est exactement le « 0 modèles » de FV-02 que ce champ supprime.
+   */
+  readonly modelCount: number | null;
+  /** EX-DATA-68 — trois booléens de couverture métrique. Absent = non calculé (D8-10). */
+  readonly coverageWarning?: CoverageWarning;
+  /** EX-DATA-68 — quatrième drapeau de `coverageWarning` : l'échantillon est biaisé. */
+  readonly samplingBias?: boolean;
+  /** EX-DATA-68 — effectif par code de `KYCAR_AD_TIER` (provider réel seulement). */
+  readonly adTierDistribution?: AdTierDistribution;
 }
 
 /** Agrégat par couple marque/modèle (EX-DATA §B.4). `modelId === 0` = « Modèle non identifié » (EX-DATA-72). */
@@ -231,6 +262,12 @@ export interface ModelAggregate {
   readonly mileage: MetricRange;
   readonly year: MetricRange;
   readonly sampleCoverage: number | null;
+  /** EX-DATA-68 — trois booléens de couverture métrique. Absent = non calculé (D8-10). */
+  readonly coverageWarning?: CoverageWarning;
+  /** EX-DATA-68 — quatrième drapeau de `coverageWarning` : l'échantillon est biaisé. */
+  readonly samplingBias?: boolean;
+  /** EX-DATA-68 — effectif par code de `KYCAR_AD_TIER` (provider réel seulement). */
+  readonly adTierDistribution?: AdTierDistribution;
 }
 
 /** Résultat d'une requête d'agrégats mode 1, avec le contexte nécessaire à l'étiquetage à l'écran. */

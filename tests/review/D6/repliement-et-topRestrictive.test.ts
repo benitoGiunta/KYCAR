@@ -23,7 +23,8 @@ function modelAgg(partial: Partial<ModelAggregate> & { modelId: number }): Model
   return { makeId: 1, listingCount: 0, price: range(), mileage: range(), year: range(), sampleCoverage: null, ...partial };
 }
 function makeAgg(partial: Partial<MakeAggregate> = {}): MakeAggregate {
-  return { makeId: 1, listingCount: 0, price: range(), mileage: range(), year: range(), sampleCoverage: null, ...partial };
+  // D8-10 : `modelCount` devient un champ OBLIGATOIRE de `MakeAggregate` (valeur neutre `null`).
+  return { makeId: 1, listingCount: 0, price: range(), mileage: range(), year: range(), sampleCoverage: null, modelCount: null, ...partial };
 }
 
 describe('Repliement — cohérence replié <-> déplié sur la même marque (EX-SCR-122/123)', () => {

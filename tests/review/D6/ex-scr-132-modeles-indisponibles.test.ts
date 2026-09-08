@@ -16,7 +16,8 @@ function range(partial: Partial<MetricRange> = {}): MetricRange {
   return { min: null, max: null, p05: null, p50: null, p95: null, n: 0, ...partial };
 }
 function makeAgg(partial: Partial<MakeAggregate> = {}): MakeAggregate {
-  return { makeId: 1, listingCount: 0, price: range(), mileage: range(), year: range(), sampleCoverage: null, ...partial };
+  // D8-10 : `modelCount` devient un champ OBLIGATOIRE de `MakeAggregate` (valeur neutre `null`).
+  return { makeId: 1, listingCount: 0, price: range(), mileage: range(), year: range(), sampleCoverage: null, modelCount: null, ...partial };
 }
 const VW: Make = { makeId: 1, label: 'Volkswagen', slug: 'volkswagen', announcedCount: null };
 

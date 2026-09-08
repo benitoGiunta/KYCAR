@@ -148,6 +148,8 @@ export function buildMakeAggregate(
     listingCount,
     ...rangesOf(own),
     sampleCoverage: listingCount > 0 ? own.length / listingCount : null,
+    // D8-10 : `modelCount` obligatoire, valeur neutre `null` (fix-providers calculera).
+    modelCount: null,
   };
 }
 

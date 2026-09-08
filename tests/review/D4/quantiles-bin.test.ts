@@ -44,7 +44,10 @@ function expectStatsMatchReference(values: readonly number[]): void {
 describe('EX-DATA-62/111 — quantiles exacts type 7 contre valeurs connues', () => {
   it('n = 0 : bloc entièrement nul, n = 0 (EX-DATA-64)', () => {
     const s = exactMetricStats([]);
-    expect(s).toEqual({ n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null });
+    // D8-10 / DR-122 : `MetricStats` publie désormais les deux valeurs manquantes du bloc
+    // d'EX-DATA-64 (`iqr`, `coverage`). L'assertion normative — à n = 0 le bloc est ENTIÈREMENT
+    // nul — est conservée telle quelle ; seule la liste des champs suit l'amendement d'entité.
+    expect(s).toEqual({ n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null, iqr: null, coverage: null });
   });
 
   it('n = 1 : Q(V, p) = x₁ pour tout p ; sd = null (EX-DATA-65)', () => {

@@ -8,7 +8,7 @@ function range(): MetricRange {
 }
 
 function makeAgg(makeId: number, listingCount: number): MakeAggregate {
-  return { makeId, listingCount, price: range(), mileage: range(), year: range(), sampleCoverage: null };
+  return { makeId, listingCount, price: range(), mileage: range(), year: range(), sampleCoverage: null, modelCount: null };
 }
 
 function baseData(partial: Partial<ScreenALoadedData> = {}): ScreenALoadedData {

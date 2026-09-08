@@ -15,7 +15,7 @@ function modelAgg(partial: Partial<ModelAggregate> & { modelId: number }): Model
 }
 
 function makeAgg(partial: Partial<MakeAggregate> = {}): MakeAggregate {
-  return { makeId: 1, listingCount: 0, price: range(), mileage: range(), year: range(), sampleCoverage: null, ...partial };
+  return { makeId: 1, listingCount: 0, price: range(), mileage: range(), year: range(), sampleCoverage: null, modelCount: null, ...partial };
 }
 
 const VW: Make = { makeId: 1, label: 'Volkswagen', slug: 'volkswagen', announcedCount: null };

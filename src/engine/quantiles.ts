@@ -103,7 +103,7 @@ export function metricStatsFromCounts(
   stdDev: number | null,
 ): MetricStats {
   if (n <= 0) {
-    return { n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null };
+    return { n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null, iqr: null, coverage: null };
   }
   const ranks = [
     1,
@@ -131,6 +131,11 @@ export function metricStatsFromCounts(
     p75: quantileType7(orderStat, n, P75),
     p95: quantileType7(orderStat, n, P95),
     stdDev,
+    // D8-10 / DR-122 : les deux valeurs manquantes du bloc d'EX-DATA-64 sont désormais PUBLIÉES par
+    // le type. Étape 0 : valeur NEUTRE `null` (« non calculé ») — le calcul est du ressort de
+    // fix-engine (`iqr = p75 − p25`) et de fix-providers (`coverage = n_m / N`, qui exige `N`).
+    iqr: null,
+    coverage: null,
   };
 }
 
@@ -172,6 +177,7 @@ export class WelfordAccumulator {
 
 const EMPTY_STATS: MetricStats = {
   n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null,
+  iqr: null, coverage: null,
 };
 
 /**
@@ -245,5 +251,8 @@ function exactStatsBySort(values: Int32Array | readonly number[], n: number): Me
     p75: quantileFromSorted(sorted, P75),
     p95: quantileFromSorted(sorted, P95),
     stdDev: n < 2 ? null : Math.sqrt(m2 / (n - 1)),
+    // D8-10 : valeurs neutres, voir `metricStatsFromCounts`.
+    iqr: null,
+    coverage: null,
   };
 }

@@ -207,6 +207,10 @@ export function aggregate(
       mileage: metricRangeFromValues(g.mileage),
       year: metricRangeFromValues(g.year),
       sampleCoverage: null,
+      // D8-10 : champ OBLIGATOIRE, valeur NEUTRE `null` (« non calculé ») tant que le calcul
+      // n'est pas branché — fix-providers / fix-engine le renseigneront (EX-DATA-68, EX-DATA-71).
+      // `null` fait afficher « — », jamais `0` (FV-02).
+      modelCount: null,
     });
   }
   makeAggregates.sort((a, b) => compareByCountThenId(a.listingCount, a.makeId, b.listingCount, b.makeId));

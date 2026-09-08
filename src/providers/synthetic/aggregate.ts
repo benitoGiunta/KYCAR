@@ -237,7 +237,8 @@ export function aggregateByMake(
       : accumulate(batch, rowIndices, (i) => makeCol[i] as number);
   const rows: MakeAggregate[] = [];
   for (const [makeId, g] of groups) {
-    rows.push({ makeId, listingCount: g.listingCount, ...rangesOf(g), sampleCoverage: coverage });
+    // D8-10 : `modelCount` obligatoire, valeur neutre `null` (fix-providers calculera).
+    rows.push({ makeId, listingCount: g.listingCount, ...rangesOf(g), sampleCoverage: coverage, modelCount: null });
   }
   rows.sort((a, b) => b.listingCount - a.listingCount || a.makeId - b.makeId);
   return rows;

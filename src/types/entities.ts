@@ -23,6 +23,8 @@ export type { Listing } from './columns';
 export type {
   MakeAggregate,
   ModelAggregate,
+  CoverageWarning,
+  AdTierDistribution,
   MetricRange,
   AggregateResult,
   AggregateLevel,
@@ -172,6 +174,18 @@ export interface MetricStats {
   readonly p75: number | null;
   readonly p95: number | null;
   readonly stdDev: number | null;
+  /**
+   * `q3 − q1` (EX-DATA-64, 13ᵉ valeur du bloc), soit `p75 − p25` sur les mêmes quantiles de type 7.
+   * Publié depuis D8-10 / DR-122. `null` = non calculé ou non calculable (`n = 0`).
+   */
+  readonly iqr: number | null;
+  /**
+   * Couverture MÉTRIQUE `metricCoverage_m = n_m / N` (EX-DATA-61 / EX-DATA-64), arrondie à
+   * 4 décimales par la présentation. Ce n'est NI `sampleCoverage` NI `priceQuotedShare`
+   * (EX-DATA-61bis : le mot « couverture » nu est interdit). Publiée depuis D8-10 / DR-122.
+   * `null` = non calculée (le bloc ne connaît pas `N`) ou `N = 0`.
+   */
+  readonly coverage: number | null;
 }
 
 /**

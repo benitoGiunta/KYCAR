@@ -101,7 +101,7 @@ describe('patho — AMB-04 → ARB-28 et AMB-05 → ARB-29 (seuils et état SANS
 
   it('ST-ARB29 — l’état SANS-FILTRE est décidé au même endroit que les cinq autres', () => {
     const data = {
-      makeAggregates: [{ makeId: 1, listingCount: 5, price: { min: 1, max: 2, p05: 1, p50: 1, p95: 2, n: 5 }, mileage: { min: null, max: null, p05: null, p50: null, p95: null, n: 0 }, year: { min: null, max: null, p05: null, p50: null, p95: null, n: 0 }, sampleCoverage: null }],
+      makeAggregates: [{ makeId: 1, listingCount: 5, price: { min: 1, max: 2, p05: 1, p50: 1, p95: 2, n: 5 }, mileage: { min: null, max: null, p05: null, p50: null, p95: null, n: 0 }, year: { min: null, max: null, p05: null, p50: null, p95: null, n: 0 }, sampleCoverage: null, modelCount: null }],
       modelAggregatesByMake: new Map(),
       hasUserFilters: false,
       activeFilterCount: 0,

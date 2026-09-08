@@ -16,6 +16,8 @@ export type {
   MetricRange,
   MakeAggregate,
   ModelAggregate,
+  CoverageWarning,
+  AdTierDistribution,
   AggregateResult,
   AggregateLevel,
   SnapshotDescriptor,

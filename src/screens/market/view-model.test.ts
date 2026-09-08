@@ -28,6 +28,7 @@ function makeAgg(partial: Partial<MakeAggregate> = {}): MakeAggregate {
     mileage: range(),
     year: range(),
     sampleCoverage: null,
+    modelCount: null,
     ...partial,
   };
 }
