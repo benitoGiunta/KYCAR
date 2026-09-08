@@ -296,11 +296,13 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
             sortDisabled={false}
             hideSparseModels={props.hideSparseModels}
             onToggleHideSparseModels={props.onToggleHideSparseModels}
+            onExport={() => triggerCsvDownload(buildAggregateCsv(cards))}
+            exportDisabled={false}
           />
 
-          <button type="button" onClick={() => triggerCsvDownload(buildAggregateCsv(cards))}>
-            Exporter
-          </button>
+          {/* Point d'entrée supplémentaire vers l'écran G, propre à cet écran (la voie principale
+              reste le contrôle mmmv du bandeau C1, montée par FilterBand/D5) — aucun EX-SCR-* ne
+              dicte son emplacement exact sur l'écran A ; documenté comme tel dans le rapport de lot. */}
           <button type="button" onClick={props.onOpenScreenG}>
             Choisir une marque et un modèle
           </button>

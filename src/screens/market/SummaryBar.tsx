@@ -22,6 +22,11 @@ export interface SummaryBarProps {
   readonly sortDisabled: boolean;
   readonly hideSparseModels: boolean;
   readonly onToggleHideSparseModels: (next: boolean) => void;
+  /** `EX-SCR-23`/`29` : le contrôle `Exporter` visé par ces deux exigences est celui-ci — la barre
+   * de synthèse de l'écran A (`ARB-44`), pas un bouton flottant ailleurs sur l'écran. */
+  readonly onExport: () => void;
+  readonly exportDisabled: boolean;
+  readonly exportDisabledReason?: string;
 }
 
 const SORT_FIELDS: readonly MakeSortField[] = ['offres', 'median', 'alpha', 'modeles'];
@@ -74,6 +79,9 @@ export function SummaryBar(props: SummaryBarProps): JSX.Element {
           />{' '}
           Masquer les modèles à moins de 3 offres
         </label>
+        <button type="button" disabled={props.exportDisabled} title={props.exportDisabledReason} onClick={props.onExport}>
+          Exporter
+        </button>
       </div>
     </div>
   );
