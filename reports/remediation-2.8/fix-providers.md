@@ -298,7 +298,24 @@ les trois sondes R3 de D3 sur 1 000 lignes reconverties, les noms de colonnes et
 | `638a38d` | Phase 2.8 (D8-08, D8-10, D8-16, D8-20): the real provider fills the 2.8 dictionary |
 | `5305a3a` | Phase 2.8 (D8-08, D8-10, D8-16, D8-20): the synthetic provider fills the 2.8 dictionary |
 | `4a968c1` | Phase 2.8 (D8-22, D-31): R-D3-02 measures the median of 5 runs, budget unchanged |
+| `93ef206` | Phase 2.8: fix-providers report |
+| (suivant) | Phase 2.8 (housekeeping): untrack the node_modules symlink of the worktree |
 
 `src/providers/synthetic/selection.ts` (D8-20, part synthétique) a été emporté par le commit
 `638a38d` au lieu de `5305a3a` : les deux commits ont utilisé `git add -A` et la modification était
 déjà sur disque. Sans conséquence sur le contenu ni sur la fusion, signalé pour la lecture du journal.
+
+Deux points d'intendance, signalés pour la lecture du journal :
+
+- `src/providers/synthetic/selection.ts` (D8-20, part synthétique) a été emporté par `638a38d` au
+  lieu de `5305a3a` : les deux commits ont utilisé `git add -A` et la modification était déjà sur
+  disque. Sans conséquence sur le contenu ni sur la fusion.
+- **`.gitignore` ne couvre pas le lien `node_modules` d'un worktree.** Le motif est `node_modules/`,
+  avec une barre finale, qui ne matche qu'un RÉPERTOIRE ; dans un worktree, `node_modules` est un
+  **lien symbolique** vers l'installation racine (jamais `npm ci`, D-50), donc un fichier. Un
+  `git add -A` l'a indexé ; il a été retiré de l'index par `git rm --cached` (le lien lui-même est
+  intact sur disque, le `node_modules` de la racine n'a jamais été en danger) et le worktree
+  affiche de nouveau `?? node_modules`, exactement comme à mon arrivée. **Les quatre autres
+  worktrees de la vague F1 sont exposés au même piège** : à vérifier avant chaque fusion. Ajouter
+  `/node_modules` à `.gitignore` réglerait le cas pour tous, mais c'est une décision à l'échelle du
+  dépôt, hors de mon périmètre — à trancher par le fix-lead.
