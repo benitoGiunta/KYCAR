@@ -209,12 +209,15 @@ const UNKNOWN_RATE_MODEL_YEAR = 0.008;
 const UNKNOWN_RATE_POWER = 0.015;
 const UNKNOWN_RATE_BODY_COLOR = 0.01;
 const UNKNOWN_RATE_FIRST_REGISTRATION = 0.006;
-/** Bornes cumulées de la partition d'inconnus (un seul tirage uniforme, cf. boucle de génération). */
+/**
+ * Bornes cumulées de la partition d'inconnus du NOYAU (un seul tirage uniforme, cf. boucle de
+ * génération). `bodyColor` n'y figure pas : c'est une colonne de présentation, tirée par la passe
+ * différée sur son propre flot — l'inclure ici élargirait la part des autres champs.
+ */
 const UNKNOWN_CUT_MILEAGE = UNKNOWN_RATE_MILEAGE;
 const UNKNOWN_CUT_MODEL_YEAR = UNKNOWN_CUT_MILEAGE + UNKNOWN_RATE_MODEL_YEAR;
 const UNKNOWN_CUT_POWER = UNKNOWN_CUT_MODEL_YEAR + UNKNOWN_RATE_POWER;
-const UNKNOWN_CUT_BODY_COLOR = UNKNOWN_CUT_POWER + UNKNOWN_RATE_BODY_COLOR;
-const UNKNOWN_CUT_FIRST_REGISTRATION = UNKNOWN_CUT_BODY_COLOR + UNKNOWN_RATE_FIRST_REGISTRATION;
+const UNKNOWN_CUT_FIRST_REGISTRATION = UNKNOWN_CUT_POWER + UNKNOWN_RATE_FIRST_REGISTRATION;
 /** Fraction d'occasions affichées à 0 km — `SUSPECT_ZERO_MILEAGE` (annexe A champ 59, DR-124). */
 const SUSPECT_ZERO_MILEAGE_RATE = 0.002;
 /** Fraction d'annonces dont le modèle n'est pas identifié (`MODEL_ID_UNRESOLVED`, ADV-14/ARB-59). */
