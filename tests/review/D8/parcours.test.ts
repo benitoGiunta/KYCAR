@@ -20,6 +20,7 @@ import type { ReferenceData } from '../../../src/types/reference';
 import type { ListingColumnBatch } from '../../../src/types/index';
 import type { SelectionState } from '../../../src/state/filter-types';
 import { NUMERIC_UNKNOWN } from '../../../src/types/sentinels';
+import { isPriceSentinelAbsolute } from '../../../src/types/shared-rules';
 import {
   CORSA_MODEL_ID,
   OPEL_MAKE_ID,
@@ -196,12 +197,14 @@ describe('Parcours 2 — mode 2 « Opel Corsa 2017 »', () => {
     const bucketTotal = payload.recalc.priceHistogram.reduce((s, b) => s + b.count, 0);
     const quoted = countRows(payload.batch, (i) => (payload.batch.priceEur[i] as number) > 0);
     expect(bucketTotal).toBeLessThanOrEqual(quoted);
-    // Vérité terrain min/max prix de la cellule (prix affichés uniquement).
+    // Vérité terrain min/max prix de la cellule sur l'ÉCHANTILLON VALIDE d'EX-DATA-60 : prix affiché
+    // ET hors sentinelle absolue de 250 € (EX-DATA-19(1), ARB-15) — l'annonce sentinelle compte dans
+    // l'effectif mais n'entre ni dans la médiane ni dans les bornes, ce que le moteur applique déjà.
     let min = Number.POSITIVE_INFINITY;
     let max = 0;
     for (const i of corsa) {
       const p = batch.priceEur[i] as number;
-      if (p > 0) {
+      if (p > 0 && !isPriceSentinelAbsolute(p)) {
         min = Math.min(min, p);
         max = Math.max(max, p);
       }

@@ -48,15 +48,50 @@ const FORBIDDEN_PATH_PREFIXES: readonly string[] = ['/lrp/api/', '/lp/api/'];
 /** Pagination licite plafonnée mesurée par le coordinateur (audit 1.5) : au-delà, hors périmètre. */
 export const MAX_ALLOWED_PAGE_NUMBER = 167;
 
-/** Construit l'URL de la page de recherche autorisée pour une requête. Lève si hors périmètre. */
+/**
+ * Caractères LICITES dans un segment de chemin (RFC 3986 `pchar` : `unreserved / sub-delims / : / @`).
+ * Tout le reste — `?`, `#`, `/`, `%`, l'espace, les caractères de contrôle — est percent-encodé :
+ * sans cela, un slug portant `?` ou `#` SORTAIT du chemin de recherche et le garde de licéité ne le
+ * voyait plus (DR-128).
+ */
+const PATH_SEGMENT_SAFE = /[A-Za-z0-9\-._~!$&'()*+,;=:@]/;
+
+/** Encode un segment de chemin : conserve les `pchar` de la RFC 3986, encode tout le reste. */
+export function encodePathSegment(segment: string): string {
+  let out = '';
+  for (const char of segment) {
+    if (PATH_SEGMENT_SAFE.test(char)) {
+      out += char;
+      continue;
+    }
+    for (const byte of new TextEncoder().encode(char)) {
+      out += `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
+    }
+  }
+  return out;
+}
+
+/**
+ * Construit l'URL de la page de recherche autorisée pour une requête. Lève si hors périmètre.
+ *
+ * DR-128 : la page est VALIDÉE contre la plage licite mesurée (`1..MAX_ALLOWED_PAGE_NUMBER`, audit
+ * 1.5) — une page `0`, `-1` ou `1.5` construisait auparavant une URL absurde, et la page 5 000 une
+ * URL hors périmètre licite ; et chaque segment est ENCODÉ, pour qu'aucun slug ne puisse sortir du
+ * chemin de recherche.
+ */
 export function buildSearchUrl(request: TweedehandsSearchRequest): string {
   if (request.modelSlug !== undefined && request.brandSlug === undefined) {
     throw new Error('TweedehandsDataProvider: modelSlug exige brandSlug');
   }
+  if (!Number.isInteger(request.page) || request.page < 1 || request.page > MAX_ALLOWED_PAGE_NUMBER) {
+    throw new Error(
+      `TweedehandsDataProvider: page hors de la plage licite 1..${MAX_ALLOWED_PAGE_NUMBER} : ${request.page}`,
+    );
+  }
   const origin = ORIGIN_BY_MARKETPLACE[request.marketplace];
   const segments = [SEARCH_PATH];
-  if (request.brandSlug !== undefined) segments.push(request.brandSlug);
-  if (request.modelSlug !== undefined) segments.push(request.modelSlug);
+  if (request.brandSlug !== undefined) segments.push(encodePathSegment(request.brandSlug));
+  if (request.modelSlug !== undefined) segments.push(encodePathSegment(request.modelSlug));
   let path = `${segments.join('/')}/`;
   if (request.page > 1) path += `p/${request.page}/`;
   const url = origin + path;

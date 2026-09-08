@@ -11,9 +11,11 @@ fait par le coordinateur. Ne modifie ni `src/types/`, ni l'interface gelée `../
 |---|---|
 | `prng.ts` | PRNG déterministe `xoshiro128**` (graine 32 bits), gaussiennes, tirage pondéré. |
 | `catalog.ts` | Pont vocabulaires réels (D2) → distributions pondérées ; convention d'encodage. |
-| `generate.ts` | Génération du dataset colonnaire plausible + injection d'outliers + vérité terrain. |
-| `columnar.ts` | Assemblage/sous-ensemble d'un `ListingColumnBatch`, mesure d'empreinte mémoire. |
-| `aggregate.ts` | Agrégation mode 1 interne (percentiles exacts, effectifs entiers, EX-DATA-111). |
+| `generate.ts` | Génération en DEUX phases (noyau colonnaire, puis présentation et chaînes) + injection d'anomalies de prix + vérité terrain. |
+| `popularity.ts` | Popularité de marché (parts de marque, rang de modèle) : la CONCENTRATION du jeu de données. |
+| `columnar.ts` | Allocation, assemblage de la zone de chaînes, sous-ensemble d'un `ListingColumnBatch`, empreinte mémoire. |
+| `dedupe.ts` | Audit de doublons dans l'ordre total d'ingestion (EX-DATA-15, ARB-54). |
+| `aggregate.ts` | Agrégation mode 1 interne (percentiles exacts, effectifs entiers, EX-DATA-111, EX-DATA-60). |
 | `selection.ts` | Compilation d'une `SelectionQuery` canonique en prédicat de lignes. |
 | `SyntheticDataProvider.ts` | Les 8 méthodes de `DataProvider` + `getGroundTruthOutliers`. |
 | `index.ts` | Barrel public du sous-dossier. |
@@ -49,31 +51,64 @@ Les **M1** (absolus, hors de toute fourchette de marché) sont confirmés par un
 globale sur `ln(prix)` ; les **M2** (relatifs) par une fence de Tukey par cellule
 `(marque, modèle, tranche de 3 ans)` — voir `synthetic.test.ts`. Aucune dépendance à D4.
 
-### Drapeaux d'ingestion (O13)
-`ingestFlags` est un `Uint16Array` (16 bits). Le bit `i` correspond à `INGEST_FLAG_VALUES[i]`
-(vocabulaire `KYCAR_INGEST_FLAG`). **Divergence de source portée depuis D2** : EX-DATA-45 énumère
-**17** codes ; 16 bits n'en adressent que 16. Le 17ᵉ (`MARKETPLACE_UNMAPPED`, indice 16) n'est donc
-pas représentable sur ce champ — non pertinent ici (marché unique connu). D3 ne pose que
-`SUSPECT_ZERO_MILEAGE` (bit 8), sur les rares annonces à 0 km non neuves.
+### Drapeaux d'ingestion (O13, tranché par D-01)
+`ingestFlags` est un `Uint32Array` (32 bits) et la correspondance bit ↔ code est portée par la table
+unique `INGEST_FLAG_BIT` de `src/types` : **aucun `1 << n` littéral** dans ce lot. Les 17 codes
+d'EX-DATA-45 sont adressables, `MARKETPLACE_UNMAPPED` compris.
+
+Le générateur pose : `PRICE_SENTINEL_ABSOLUTE` (prix < 250 €, EX-DATA-19(1) — y compris sur les prix
+injectés), `PRICE_MISSING_UNDECLARED` (statut `MISSING`, EX-DATA-18), `SUSPECT_ZERO_MILEAGE`
+(occasion à 0 km, annexe A champ 59), `MODEL_UNRESOLVED` (annonces à `modelId = 0`, ARB-59) et
+`DUPLICATE_VALUE_CONFLICT` si l'audit de doublons en trouve un.
+
+### Deux phases de génération (ARCHITECTURE §9.3, DR-049)
+`openSnapshot` ne produit que le **noyau colonnaire** — marque, modèle, prix, kilométrage, années,
+puissance, carburant, statut de prix, drapeaux — et calcule les **agrégats de base une fois**, servis
+ensuite à l'identique. Les colonnes de PRÉSENTATION (carrosserie, boîte, couleurs, portes, places,
+émissions, région, pays…) et la ZONE DE CHAÎNES sont matérialisées paresseusement, au premier accès
+à `dataset.columns` ou `dataset.batch` (mode 2, export, forage). La passe de présentation possède son
+PROPRE flot pseudo-aléatoire, dérivé de la même graine : la différer ne décale rien, et le lot reste
+identique octet à octet à graine égale.
+
+### Concentration du marché (`popularity.ts`, DR-038)
+Le tirage marque/modèle était quasi plat : 4 954 cellules `(marque, modèle)` de médiane 17 et de
+maximum 63, et une seule cellule `(marque, modèle, année)` à `n ≥ 12` — aucune cellule de rang 1 de
+M1 formable, aucun `|F| ≥ 30` pour M2. Le tirage suit désormais une table de parts de marque pour la
+trentaine de marques dominantes (queue de Zipf pour les autres, aucune marque à poids nul) et une loi
+de Zipf sur le rang du modèle. Mesure : max ≈ 1 890 annonces par cellule, ≈ 650 cellules à `n ≥ 30`,
+≈ 1 350 cellules `(marque, modèle, année)` à `n ≥ 12`, « Opel Corsa » ≈ 1 350 annonces.
 
 ### R3 (aucun champ vendeur identifiant)
 Garantie **structurelle** : `ListingColumnBatch` n'a aucune colonne pour E1..E14 ; `sellerType`
 (particulier/pro) et `regionCode` (NUTS-2) sont les seuls attributs vendeur, explicitement autorisés.
 
-## Périmètre de filtrage supporté (dette signalée)
+## Périmètre de filtrage (DR-005)
 `fetchAggregates`/`fetchSelectionCount`/`fetchListingColumns` compilent une `SelectionQuery`
-canonique. Sont interprétés les filtres qui s'appliquent **1:1 aux colonnes stockées** :
-`make`/`model` (identifiants entiers), les énumérés `bodyType`, `bodyColor`, `upholstery`,
-`driveTrain`, `transmission`, `sellerType`, `offer`, `region`, `hadAccident`/`usageState`, et les
-bornes `priceFrom/To`, `mileageFrom/To`, `modelYearFrom/To`, `powerFrom/To`. Les filtres D5
-**structurés** (`mmmv`, `mcat`) et `fuelType` (vocabulaire `KYCAR_FUEL_TYPE` ≠ colonne
-`fuelCategory`) ne sont PAS interprétés — un filtre non reconnu est ignoré et remonté dans
-`unsupported`. Le câblage de la grammaire d'état complète relève de l'intégration D4/D5 ; l'agrégation
-interne de D3 vise l'autonomie et la testabilité, pas le moteur optimisé (lot D4).
+canonique — par IDENTIFIANT de filtre D5, jamais par paramètre d'URL. Sont interprétés **tous** les
+identifiants du registre dont la colonne existe :
 
-## Tailles mesurées (100 000 annonces, graine 7)
-- Empreinte mémoire colonnaire : **≈ 15,8 Mo** (cible EX-NFR-1 ≤ 25 Mo).
-- Sérialisé gzip : **≈ 5,7 Mo** (cible EX-NFR-3 ≤ 6 Mo).
+- taxonomie : `make`, `model`, et la valeur STRUCTURÉE `makesModelsVariants` (`mmmv`), décodée en
+  portée `(marques, couples marque/modèle)` ;
+- énumérés : `fuelType`/`fuelCategory`, `gearType`/`transmission`, `bodyType`, `bodyColor`,
+  `upholstery`, `driveTrain`, `sellerType`, `offer`, `region`, `hadAccident`/`usageState`,
+  `emissionClass`, `priceEvaluation`, et `countryType` (traduit du domaine `cy` vers
+  `KYCAR_MARKETPLACE`) ;
+- bornes : `priceFrom/To`, `mileageFrom/To`, `modelYearFrom/To`, `dateOfModelYearFrom/To`,
+  `powerFrom/To` (converties depuis les chevaux quand `powerType = hp`, ARB-33), `doorFrom/To`,
+  `numberOfSeatsFrom/To`, `electricRangeFrom/To`, `numberOfOwners` ;
+- `dateOfRegistrationFrom/To` portent sur `firstRegistrationYearMonth` — le pivot d'EX-DATA-25,
+  **jamais** l'année-modèle.
+
+Un identifiant hors de cette liste est **déclaré** dans `unsupported` (repris par
+`AggregateResult.unsupportedFilterIds`) **et** compile en un prédicat constamment faux : l'effectif
+publié est un plancher, jamais l'effectif non filtré. `fetchSelectionCount` emprunte exactement la
+même compilation que `fetchAggregates` (D-33).
+
+## Mesures (100 000 annonces, graine par défaut)
+- Empreinte mémoire colonnaire + zone texte : **17,2 Mio** (cible EX-NFR-1 ≤ 25 Mo).
+- Sérialisé gzip : **5,45 Mio**, marge 9,2 % (cible EX-NFR-3 ≤ 6 Mo).
+- `openSnapshot` + `fetchBaselineAggregates` : **≈ 160 ms** (1 127 ms avant remédiation ; cible
+  ARCHITECTURE §9.3 ≤ 200 ms de calcul local).
 
 ## Construction
 `new SyntheticDataProvider({ referenceData, seed?, listingCount?, marketplace?, outlierRate? })`.

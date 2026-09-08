@@ -5,8 +5,10 @@
  * (ARCHITECTURE §6.3) : `sourceKind = 'SYNTHETIC'`, `mode1.source = 'LISTINGS'`,
  * `mode2 = SERVED (dataset complet, outliers injectés)`.
  *
- *   - Génère à l'ouverture du snapshot un dataset colonnaire complet de distributions plausibles
- *     (`generate.ts`), déterministe à graine fixée.
+ *   - Génère à l'ouverture du snapshot le NOYAU colonnaire (`generate.ts`, phase 1) et PRÉCALCULE
+ *     les agrégats de base une fois pour toutes ; la zone de chaînes des annonces individuelles est
+ *     matérialisée PARESSEUSEMENT, au premier accès mode 2 (ARCHITECTURE §9.3 garde-fous 1 et 2,
+ *     DR-049) — `openSnapshot` n'a donc plus les 100 000 annonces sur son chemin critique.
  *   - Sert les agrégats mode 1 par une agrégation interne correcte (`aggregate.ts`).
  *   - Sert l'échantillon fin mode 2 (`fetchListingColumns` / `fetchListingsByIds`) sur ce dataset.
  *   - Émet la vérité terrain des outliers injectés (`getGroundTruthOutliers`) pour D4.
@@ -29,9 +31,7 @@ import type {
   TSelectionQuery,
 } from '../DataProvider';
 import type { ReferenceData } from '../../types/reference';
-import { INGEST_FLAG_VALUES } from '../../types/vocabularies';
-import { NUMERIC_UNKNOWN } from '../../types/sentinels';
-import { FULL, HASH_LENGTH } from '../../types/selection';
+import { HASH_LENGTH } from '../../types/selection';
 import { sha256Hex } from '../../types/sha256';
 import { aggregateByMake, aggregateByModel } from './aggregate';
 import { subsetBatch } from './columnar';
@@ -64,10 +64,15 @@ export interface SyntheticProviderOptions {
   readonly outlierRate?: number;
 }
 
-/** État d'un snapshot ouvert : dataset généré + index de forage. */
+/** État d'un snapshot ouvert : dataset généré, agrégats de base précalculés, index de forage. */
 interface OpenState {
   readonly dataset: GeneratedDataset;
   readonly descriptor: SnapshotDescriptor;
+  /**
+   * Agrégats de la sélection VIDE, calculés UNE fois à l'ouverture (§9.3 garde-fou 1) et servis à
+   * l'identique — même objet, jamais recalculés — à chaque `fetchBaselineAggregates`.
+   */
+  readonly baseline: AggregateResult<MakeAggregate>;
   /** Index paresseux `listingId (hex) → indice de ligne`, pour `fetchListingsByIds`. */
   idByHex: Map<string, number> | null;
 }
@@ -111,7 +116,20 @@ export class SyntheticDataProvider implements DataProvider {
         snapshotId: this.snapshotId,
         outlierRate: this.outlierRate,
       });
-      this.state = { dataset, descriptor: this.buildDescriptor(dataset), idByHex: null };
+      // §9.3 garde-fou 1 : les agrégats de base sont PRÉCALCULÉS ici, sur le noyau colonnaire, et
+      // mémorisés dans l'état du snapshot. Aucun recalcul au chargement, aucune annonce
+      // individuelle matérialisée (garde-fou 2 : la zone de chaînes reste différée).
+      const baseline: AggregateResult<MakeAggregate> = {
+        snapshotId: this.snapshotId,
+        // EX-DATA-108 (DR-125) : la sélection vide se SÉRIALISE en chaîne vide ; `FULL:EMPTY` en est
+        // le hachage (EX-SRCH-9quinquies), pas la sélection.
+        selection: '',
+        selectionCount: dataset.rowCount,
+        rows: aggregateByMake(dataset.metricColumns, null, 1),
+        // Sélection vide : aucun filtre à appliquer, donc aucun filtre non appliqué (D-03).
+        unsupportedFilterIds: [],
+      };
+      this.state = { dataset, descriptor: this.buildDescriptor(dataset), baseline, idByHex: null };
     }
     return Promise.resolve({ descriptor: this.state.descriptor });
   }
@@ -122,16 +140,7 @@ export class SyntheticDataProvider implements DataProvider {
   }
 
   fetchBaselineAggregates(_handle: SnapshotHandle): Promise<AggregateResult<MakeAggregate>> {
-    const { dataset } = this.requireState();
-    const rows = aggregateByMake(dataset.batch, allIndices(dataset.batch.rowCount), 1);
-    return Promise.resolve({
-      snapshotId: this.snapshotId,
-      selection: `${FULL}:EMPTY`,
-      selectionCount: dataset.batch.rowCount,
-      rows,
-      // Sélection vide : aucun filtre à appliquer, donc aucun filtre non appliqué (D-03).
-      unsupportedFilterIds: [],
-    });
+    return Promise.resolve(this.requireState().baseline);
   }
 
   fetchAggregates(
@@ -141,14 +150,14 @@ export class SyntheticDataProvider implements DataProvider {
     makeScope?: number,
   ): Promise<AggregateResult<MakeAggregate | ModelAggregate>> {
     const { dataset } = this.requireState();
-    const compiled = compileSelection(dataset.batch, selection, this.ref);
-    const indices = selectRows(dataset.batch.rowCount, compiled);
+    const compiled = compileSelection(dataset.columns, selection, this.ref);
+    const indices = selectRows(dataset.rowCount, compiled);
     // Couverture publiée seulement pour la sélection vide (interface §4) ; sinon NON_APPLICABLE → null.
     const coverage = compiled.isEmpty ? 1 : null;
     const rows =
       level === 'MAKE'
-        ? aggregateByMake(dataset.batch, indices, coverage)
-        : aggregateByModel(dataset.batch, indices, coverage, makeScope);
+        ? aggregateByMake(dataset.columns, indices, coverage)
+        : aggregateByModel(dataset.columns, indices, coverage, makeScope);
     return Promise.resolve({
       snapshotId: this.snapshotId,
       selection,
@@ -159,22 +168,28 @@ export class SyntheticDataProvider implements DataProvider {
     });
   }
 
+  /**
+   * Effectif de la sélection. D-33 : passe par le MÊME `compileSelection` que `fetchAggregates`,
+   * donc par la même liste `unsupported` — un filtre non appliqué ne peut pas rendre ici un
+   * effectif différent de celui que `fetchAggregates` publierait (test du lot : les deux chemins
+   * sont comparés sur le même corpus de sélections).
+   */
   fetchSelectionCount(_handle: SnapshotHandle, selection: SelectionQuery): Promise<number> {
     const { dataset } = this.requireState();
-    const compiled = compileSelection(dataset.batch, selection, this.ref);
-    if (compiled.isEmpty) return Promise.resolve(dataset.batch.rowCount);
+    const compiled = compileSelection(dataset.columns, selection, this.ref);
+    if (compiled.isEmpty) return Promise.resolve(dataset.rowCount);
     let count = 0;
-    for (let i = 0; i < dataset.batch.rowCount; i += 1) if (compiled.predicate(i)) count += 1;
+    for (let i = 0; i < dataset.rowCount; i += 1) if (compiled.predicate(i)) count += 1;
     return Promise.resolve(count);
   }
 
   fetchListingColumns(_handle: SnapshotHandle, tSelection: TSelectionQuery): Promise<ListingColumnBatch> {
     const { dataset } = this.requireState();
-    const compiled = compileSelection(dataset.batch, tSelection, this.ref);
+    const compiled = compileSelection(dataset.columns, tSelection, this.ref);
     if (compiled.isEmpty) {
       return Promise.resolve(dataset.batch); // le lot complet porte déjà localDatasetKey === 'FULL'.
     }
-    const indices = selectRows(dataset.batch.rowCount, compiled);
+    const indices = selectRows(dataset.rowCount, compiled);
     const key = sha256Hex(tSelection).slice(0, HASH_LENGTH);
     return Promise.resolve(subsetBatch(dataset.batch, indices, this.snapshotId, key));
   }
@@ -219,69 +234,25 @@ export class SyntheticDataProvider implements DataProvider {
   }
 
   private buildDescriptor(dataset: GeneratedDataset): SnapshotDescriptor {
-    const { batch } = dataset;
-    const unknownCountByField = countUnknowns(batch);
-    const ingestFlagCounts = countIngestFlags(batch);
+    const { unknownCountByField, ingestFlagCounts } = dataset;
     return {
       snapshotId: this.snapshotId,
       marketplace: this.marketplace,
       capturedAt: SYNTHETIC_CAPTURED_AT,
       sourceKind: 'SYNTHETIC',
       providerVersion: SYNTHETIC_PROVIDER_VERSION,
-      listingCount: batch.rowCount,
+      listingCount: dataset.rowCount,
       // Dataset synthétique COMPLET : l'effectif annoncé égale l'effectif ingéré (couverture 1,0).
-      announcedListingCount: batch.rowCount,
+      announcedListingCount: dataset.rowCount,
       rejectedCount: 0,
       rejectedByReason: {},
-      duplicateListingCount: 0,
-      duplicateValueConflictCount: 0,
+      // EX-DATA-15 / ARB-54 : compteurs MESURÉS par l'audit de doublons, jamais écrits en dur.
+      duplicateListingCount: dataset.duplicates.duplicateListingCount,
+      duplicateValueConflictCount: dataset.duplicates.duplicateValueConflictCount,
       unknownCountByField,
       ingestFlagCounts,
       versionStrippedRate: 0,
       coverageNote: 'Dataset SYNTHETIC (EX-DATA-107) : distributions générées, non issues d’un marché réel.',
     };
   }
-}
-
-/** Tous les indices [0, rowCount). */
-function* allIndices(rowCount: number): Generator<number> {
-  for (let i = 0; i < rowCount; i += 1) yield i;
-}
-
-/** Compte, par champ numérique clé, le nombre d'annonces à valeur inconnue (sentinelle -1). */
-function countUnknowns(batch: ListingColumnBatch): Record<string, number> {
-  const fields: Array<[string, ArrayLike<number>]> = [
-    ['priceEur', batch.priceEur],
-    ['mileageKm', batch.mileageKm],
-    ['powerKw', batch.powerKw],
-    ['co2EmissionsGPerKmX10', batch.co2EmissionsGPerKmX10],
-    ['consumptionCombinedL100KmX10', batch.consumptionCombinedL100KmX10],
-    ['electricRangeKm', batch.electricRangeKm],
-    ['modelYear', batch.modelYear],
-  ];
-  const out: Record<string, number> = {};
-  for (const [name, col] of fields) {
-    let c = 0;
-    for (let i = 0; i < batch.rowCount; i += 1) if (col[i] === NUMERIC_UNKNOWN) c += 1;
-    out[name] = c;
-  }
-  return out;
-}
-
-/** Compte les annonces portant chaque drapeau d'ingestion (O13 : 16 bits ⇒ 16 codes au plus). */
-function countIngestFlags(batch: ListingColumnBatch): Record<string, number> {
-  const counts = new Array<number>(16).fill(0);
-  for (let i = 0; i < batch.rowCount; i += 1) {
-    const flags = batch.ingestFlags[i] as number;
-    if (flags === 0) continue;
-    for (let b = 0; b < 16; b += 1) if ((flags & (1 << b)) !== 0) counts[b] = (counts[b] as number) + 1;
-  }
-  const out: Record<string, number> = {};
-  for (let b = 0; b < 16; b += 1) {
-    const count = counts[b] as number;
-    if (count === 0) continue;
-    const def = INGEST_FLAG_VALUES[b];
-    if (def !== undefined) out[def.code] = count;
-  }
-  return out;
 }

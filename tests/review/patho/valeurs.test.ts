@@ -101,7 +101,13 @@ describe('patho — valeurs de prix', () => {
   it('R-PATHO-02 — ADV-16 / ARB-16 : un prix au-dessus du plafond n’est ni écarté du prix ni drapeauté PRICE_OUT_OF_RANGE', () => {
     // ARB-16 : « `p > 5 000 000` → `priceEur = INCONNU`, `ingestFlags += PRICE_OUT_OF_RANGE`. »
     const listing = mapListingToNormalized(rawCorsa({ priceCents: 1_000_000_000 }), referenceData, 'be', euroIndex);
-    expect(listing.priceEur).toBe(10_000_000); // constaté : la valeur aberrante est conservée telle quelle
+    // La ligne d'origine attendait `10 000 000` — la valeur CONSTATÉE, c'est-à-dire le défaut — tout
+    // en exigeant le drapeau à la ligne suivante : les deux ne peuvent pas être vraies ensemble, et
+    // la première contredit `ARB-16` que le commentaire cite (« `p > 5 000 000` → `priceEur =
+    // INCONNU` »). C'est aussi ce qu'exige `R-D9-03` (`normalization.test.ts`) : « valeur ramenée à
+    // INCONNU ». L'attendu est donc INCONNU, l'annonce restant conservée (aucun rejet).
+    expect(listing.priceEur).toBeNull();
+    expect(listing.priceStatus).toBe('QUOTED');
     expect(listing.ingestFlags).toContain('PRICE_OUT_OF_RANGE');
   });
 

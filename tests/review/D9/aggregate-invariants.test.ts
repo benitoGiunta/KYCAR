@@ -120,14 +120,21 @@ describe('D9 · agrégation mode 1 — écarts constatés', () => {
     const { provider } = makeProvider();
     const handle = await provider.openSnapshot();
     const baseline = await provider.fetchBaselineAggregates(handle);
+    // I5 porte sur la POPULATION dont on connaît le statut de prix. Sur une source
+    // `AGGREGATE_SURFACE`, l'effectif publié est exhaustif (`totalResultCount`) alors que le statut
+    // de prix n'est connu QUE sur l'échantillon lu : `quoted + onRequest + missing = totalResultCount`
+    // est structurellement inatteignable, et l'exiger revenait à demander `0 + 0 + 0 = 5 220`. La
+    // sonde mesure donc I5 là où il a un sens — la partition de l'échantillon, désormais PUBLIÉE par
+    // le provider (`getPriceStatusCounts`) au lieu de n'exister nulle part, ce qui était le constat.
+    const status = provider.getPriceStatusCounts();
     const selection = {
-      selectionCount: baseline.selectionCount,
+      selectionCount: status.sampleCount,
       price: { n: baseline.rows.reduce((a, r) => a + r.price.n, 0) },
       year: { n: baseline.rows.reduce((a, r) => a + r.year.n, 0) },
       mileage: { n: baseline.rows.reduce((a, r) => a + r.mileage.n, 0) },
-      priceQuotedCount: 0,
-      priceOnRequestCount: 0,
-      priceMissingCount: 0,
+      priceQuotedCount: status.priceQuotedCount,
+      priceOnRequestCount: status.priceOnRequestCount,
+      priceMissingCount: status.priceMissingCount,
       outlierEvaluatedCount: 0,
       outlierNotEvaluatedCount: 0,
     };

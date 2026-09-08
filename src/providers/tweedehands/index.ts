@@ -5,7 +5,11 @@
  * (`src/providers/README.md`, contrainte de lot) : ce fichier est propre à D9.
  */
 
-export { TweedehandsDataProvider, type TweedehandsDataProviderOptions } from './TweedehandsDataProvider';
+export {
+  TweedehandsDataProvider,
+  type TweedehandsBaselineCache,
+  type TweedehandsDataProviderOptions,
+} from './TweedehandsDataProvider';
 
 export {
   buildSearchUrl,
@@ -30,7 +34,12 @@ export {
 } from './nextData';
 
 export {
+  isBodyTypeRecognised,
+  isFuelCategoryRecognised,
+  isUsageStateRecognised,
   mapBodyType,
+  mapCountryCode,
+  mapRegionCode,
   mapDrivetrain,
   mapEuEmissionStandard,
   mapFuelCategory,
@@ -46,4 +55,22 @@ export {
 
 export { mapListingToNormalized, assertNoForbiddenFields, type NormalizedListing } from './normalize';
 
-export { computeMetricRange, buildMakeAggregate, buildModelAggregate } from './aggregate';
+export {
+  computeMetricRange,
+  buildMakeAggregate,
+  buildModelAggregate,
+  buildUnresolvedModelAggregate,
+  priceStatusCounts,
+  sampleForMake,
+  type MetricKind,
+  type PriceStatusCounts,
+} from './aggregate';
+
+export {
+  applyResidual,
+  compileSourceSelection,
+  type CompiledSourceSelection,
+  type ResidualPredicate,
+} from './selection';
+
+export { dedupeListings, type DedupeResult } from './dedupe';

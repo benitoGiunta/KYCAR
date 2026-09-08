@@ -19,10 +19,16 @@ export {
   CURRENT_YEAR,
   DEFAULT_SEED,
   DEFAULT_LISTING_COUNT,
+  type CoreColumns,
   type GeneratedDataset,
   type GenerateOptions,
   type InjectedOutlier,
+  type MetricColumns,
   type OutlierFlag,
 } from './generate';
+
+export { compileSelection, decodeTaxonomyScope, selectRows, type CompiledSelection } from './selection';
+
+export { auditDuplicateListings, type DuplicateAudit } from './dedupe';
 
 export { batchByteLength } from './columnar';

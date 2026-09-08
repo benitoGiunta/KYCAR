@@ -95,7 +95,12 @@ describe('normalize — filtrage R3 à l’ingestion (P-1, P-2, EX-NFR-26)', () 
     expect(keys).not.toContain('location');
     expect(keys).not.toContain('lat');
     expect(keys).not.toContain('long');
-    expect(keys).not.toContain('regionCode'); // dette de mapping documentée, jamais inventée
+    // `regionCode` (NUTS-2) est AUTORISÉ par EX-DATA-42 et porté par la sortie depuis DR-046 ; il
+    // vaut INCONNU sur cette surface (aucun code postal servi) et l'annonce porte
+    // `REGION_UNRESOLVED`. Ce qui reste interdit, c'est le code postal EXACT et la ville.
+    expect(listing.regionCode).toBeNull();
+    expect(listing.ingestFlags).toContain('REGION_UNRESOLVED');
+    expect(JSON.stringify(listing)).not.toContain('Anvers');
   });
 
   it('marque non résolue → makeId null, exclue de toute agrégation par marque', () => {
