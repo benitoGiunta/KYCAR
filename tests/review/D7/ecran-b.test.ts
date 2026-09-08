@@ -26,10 +26,18 @@ vi.mock('preact/hooks', () => ({
 
 const { DistributionScreen } = await import('../../../src/screens/distribution/DistributionScreen');
 const { EMPTY_UI_STATE } = await import('../../../src/screens/distribution/url-state');
-const { fixture, deepRender, findAll, byType, visibleTextOf, textOf } = await import('./_helpers');
+const { fixture, withCountryCodes, deepRender, findAll, byType, visibleTextOf, textOf } = await import('./_helpers');
 
 const NOOP = (): void => {};
-const f = fixture(1200, 0xb1);
+// D8-25 (D-31) : `fixture()` seul produit un périmètre à UN SEUL `countryCode` (`generateSyntheticDataset`
+// fixe `countryCode = 0` pour toutes les lignes, D3) — depuis la fusion de fix-engine, `RecalcResult.groupStats`
+// est réellement peuplé et `EX-SCR-170` masque alors G15 (« tracé seulement au-delà d'un seul pays »), faisant
+// tomber à 13 les figures attendues à 14 partout dans ce fichier (titres EX-SCR-144/191, tableaux EX-NFR-15,
+// empreintes EX-SCR-176, mode « Modèle non identifié »). Le fixture DE RÉFÉRENCE de ce fichier porte donc
+// désormais deux pays (`withCountryCodes`) pour que G15 soit dans son état NORMAL (rendu) partout où la sonde
+// ne teste pas spécifiquement le masquage ; le masquage à un seul pays est prouvé à part, plus bas, sur un
+// fixture mono-pays dédié — sans toucher au reste (prix, km, année, outliers) de ce fixture de référence.
+const f = withCountryCodes(fixture(1200, 0xb1), [0, 1]);
 
 /** Normalise les blancs : `visibleTextOf` insère un séparateur entre chaque enfant de VNode. */
 const norm = (s: string): string => s.replace(/\s+/g, ' ').trim();
@@ -158,6 +166,24 @@ describe('D7 · écran B — structure des blocs et graphes (EX-SCR-141/144/191)
     expect(figures).toHaveLength(14);
     for (const fig of figures) {
       expect(fig.props['data-selection'], `graphe ${String(fig.props['data-graph'])}`).toBe(f.recalc.selectionStats.selectionHash);
+    }
+  });
+
+  // D8-06/D8-25/D-31 — cas dédié, SÉPARÉ du fixture de référence `f` (deux pays) : G15 (`EX-SCR-170`)
+  // n'est « tracé que si… le périmètre contient plus d'un `countryCode` distinct » ; sinon « le bloc
+  // est absent du DOM », et ce n'est PAS un `ET-CHAMP-ABSENT-SOURCE` (le champ existe, seul le graphe
+  // est sans objet). On prouve donc ICI, sur un fixture volontairement mono-pays (celui que produit
+  // `fixture()` seul, avant redistribution), que G15 est bien absent et que les 13 AUTRES figures
+  // restent rendues normalement (le masquage de G15 ne dégrade rien d'autre).
+  it('EX-SCR-170 (D8-25) : G15 est absent du DOM quand le périmètre ne porte qu’un seul `countryCode`, les 13 autres figures restant rendues', () => {
+    const monoCountry = fixture(1200, 0xb1);
+    expect(new Set(monoCountry.batch.countryCode).size).toBe(1); // prémisse du cas : un seul pays
+    const monoTree = renderScreen({ batch: monoCountry.batch, recalc: monoCountry.recalc, rows: monoCountry.rows });
+    const figures = findAll(monoTree, (n) => n.type === 'figure').map((n) => String(n.props['data-graph']));
+    expect(figures).toHaveLength(13);
+    expect(figures).not.toContain('G15');
+    for (const kept of ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G12', 'G13', 'G14']) {
+      expect(figures, kept).toContain(kept);
     }
   });
 });
