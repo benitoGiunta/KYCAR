@@ -2,7 +2,8 @@
  * KYCAR — Barrel de l'écran C (lot D8).
  */
 export { CompareScreen } from './CompareScreen';
-export type { CompareScreenProps, CompareModelRow } from './CompareScreen';
+export type { CompareScreenProps, CompareModelRow, CompareRedirectTarget } from './CompareScreen';
+export { COMPARE_MAX_MODELS } from './CompareScreen';
 export {
   parseCompareParam,
   serializeCompareParam,

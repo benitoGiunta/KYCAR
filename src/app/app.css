@@ -365,3 +365,103 @@ button:disabled {
   border-radius: var(--radius-sm);
   background: var(--color-surface);
 }
+
+/* ================================================================================================
+ * D8-14 / D8-15 — bandeaux d'état empilés, régimes de l'en-tête, recalcul de l'écran B
+ * ==============================================================================================
+ * `EX-SCR-38` : au plus deux bandeaux simultanés, hauteur de zone plafonnée à 96 px (144 px avec un
+ * C3 non refermable) ; au-delà la zone devient défilante et les suivants passent derrière `+k`.
+ * `EX-SCR-96`/`97`/`98` : les trois régimes de l'en-tête, pilotés par `data-regime` posé par la
+ * coquille (seule propriétaire du viewport) — jamais par une media query parallèle qui divergerait
+ * des seuils de `src/styles/breakpoints.ts`.
+ */
+
+.kycar-header {
+  --kycar-banner-zone-max: 96px;
+}
+
+.status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-1, 0.25rem) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+/* `EX-SCR-38bis` : une ligne par paramètre corrigé (le texte porte de vrais retours à la ligne). */
+.kycar-banner-text {
+  white-space: pre-line;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.kycar-banner-more {
+  align-self: flex-start;
+  margin: 0;
+  font-size: var(--font-size-small, 0.875rem);
+}
+
+/* ---- Régimes de l'en-tête (EX-SCR-96/97/98, D8-15) -------------------------------------------- */
+.kycar-nav-toggle {
+  display: none;
+}
+
+.kycar-header[data-regime='compact'] .kycar-nav-toggle {
+  display: inline-block;
+}
+
+/* Tiroir de navigation : en compact la liste des onglets est repliée derrière le bouton « Menu ». */
+.kycar-header[data-regime='compact'] .kycar-nav-drawer--closed {
+  display: none;
+}
+
+.kycar-header[data-regime='compact'] .kycar-nav {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1, 0.25rem);
+}
+
+/* Régime intermédiaire : l'en-tête reste sur une ligne mais le fil d'Ariane passe dessous. */
+.kycar-header[data-regime='intermediate'] .kycar-breadcrumb,
+.kycar-header[data-regime='compact'] .kycar-breadcrumb {
+  flex-basis: 100%;
+}
+
+.kycar-header[data-regime='compact'] .kycar-snapshot-token {
+  font-size: var(--font-size-small, 0.875rem);
+}
+
+.kycar-breadcrumb-counts {
+  margin: 0;
+  font-size: var(--font-size-small, 0.875rem);
+  color: var(--color-text-muted, var(--color-text));
+}
+
+/* ---- ET-CHARGE-MAJ (D8-24, EX-SCR-24) --------------------------------------------------------- */
+.kycar-recalc-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1, 0.25rem) var(--space-2);
+}
+
+.kycar-recalc-progress {
+  inline-size: 8rem;
+  block-size: 0.5rem;
+}
+
+/* Atténuation des figures qui portent encore le périmètre précédent (jamais leur disparition :
+   `EX-SCR-24` demande une mise à jour ATTÉNUÉE, pas un écran vidé puis repeuplé). */
+.kycar-screen-b--recalculating .kycar-graph-grid,
+.kycar-screen-b--recalculating .kycar-hist-row,
+.kycar-screen-b--recalculating .kycar-stat-header {
+  opacity: 0.55;
+  transition: opacity 120ms linear;
+}
+
+/* Le rafraîchissement explicite du panneau Diagnostic (EX-NAV-25). */
+.kycar-footer-refresh {
+  margin: var(--space-2) 0 0;
+}

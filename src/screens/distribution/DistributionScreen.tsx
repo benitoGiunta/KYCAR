@@ -128,6 +128,15 @@ export interface DistributionScreenProps {
   /** `EX-NFR-19` (DR-081) — régime dégradé (< 768 px, prix × km, année en couleur, brossage off).
    * Absent : repli par `matchMedia` (voir `defaultDegradedFromViewport`, plus bas). */
   readonly degraded?: boolean;
+  /**
+   * `D8-24` (`ET-CHARGE-MAJ`, `EX-SCR-24`/`173`, `EX-SRCH-22`) — un recalcul est EN COURS sur ce
+   * périmètre alors que les figures affichées portent encore le périmètre PRÉCÉDENT. L'écran les
+   * ATTÉNUE et rend une barre de progression indéterminée, plutôt que de laisser croire que les
+   * chiffres à l'écran sont ceux de la sélection courante. Signal fourni par l'hôte (fix-app), seul
+   * à connaître le cycle de recalcul ; `false`/absent = rendu nominal. Le premier calcul
+   * (`ET-CHARGE-INIT`, squelettes) reste porté par l'hôte, qui ne monte pas encore cet écran.
+   */
+  readonly recalculating?: boolean;
 }
 
 function idLabel(code: number): string {
@@ -323,7 +332,19 @@ export function DistributionScreen(props: DistributionScreenProps) {
   };
 
   return (
-    <div class="kycar-screen-b">
+    <div
+      class={props.recalculating === true ? 'kycar-screen-b kycar-screen-b--recalculating' : 'kycar-screen-b'}
+      aria-busy={props.recalculating === true ? 'true' : undefined}
+      data-recalculating={props.recalculating === true ? 'true' : undefined}
+    >
+      {/* `ET-CHARGE-MAJ` (D8-24, EX-SCR-24) — barre de progression indéterminée + mention explicite :
+          les figures ci-dessous portent encore le périmètre précédent (EX-SCR-39, jamais muet). */}
+      {props.recalculating === true ? (
+        <div class="kycar-recalc-notice" role="status">
+          <progress class="kycar-recalc-progress" aria-label="Recalcul en cours" />
+          <span>Recalcul en cours — les figures affichées portent encore le périmètre précédent.</span>
+        </div>
+      ) : null}
       {/* Bloc 1 — en-tête statistique (EX-SCR-142) */}
       <header class="kycar-stat-header">
         <div class="kycar-stat-line">

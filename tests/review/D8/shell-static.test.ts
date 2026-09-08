@@ -68,7 +68,10 @@ describe('câblage main.tsx (HANDOFF §4) et repli mode 2', () => {
 describe('S0 — en-tête, bandeaux, pied (EX-SCR-42…47)', () => {
   it('landmarks présents : header, nav étiquetée, main', () => {
     expect(app).toMatch(/<header class="app-header/);
-    expect(app).toMatch(/<nav aria-label="Navigation principale">/);
+    // D8-15/D-31 : l'élément porte désormais aussi `id`/`class` (tiroir de navigation du régime
+    // compact, EX-SCR-48). Le FAIT mesuré — un landmark `nav` ÉTIQUETÉ — est inchangé ; seule
+    // l'assertion sur le chevron fermant, qui figeait la liste des attributs, est relâchée.
+    expect(app).toMatch(/<nav aria-label="Navigation principale"/);
     expect(app).toMatch(/<main class="kycar-main">/);
   });
 
@@ -90,9 +93,15 @@ describe('S0 — en-tête, bandeaux, pied (EX-SCR-42…47)', () => {
   });
 
   it('R-D8-07 — EX-NFR-22 / EX-SCR-29 : le bandeau dégradé doit porter la DATE du cache (« Données du JJ/MM/AAAA — … ») et un bouton Réessayer', () => {
-    const banner = app.match(/kycar-banner-degraded[\s\S]*?<\/div>/)?.[0] ?? '';
-    expect(banner).toMatch(/Données du/);
-    expect(banner).toMatch(/Réessayer/);
+    // D8-06/FV-07/D-31 : les bandeaux d'état de la coquille ne sont plus cinq blocs JSX juxtaposés
+    // mais une PILE ordonnée (`shellBanners`, EX-SCR-38 : au plus deux simultanés, `+k` au-delà).
+    // Le fait mesuré est inchangé — le bandeau dégradé porte la date du cache ET l'action
+    // « Réessayer » — mais il se lit maintenant sur l'entrée de la pile (`ET-PARTIEL-CACHE`,
+    // `retry: true`) plus le rendu commun de l'action, au lieu d'un bloc `<div>…</div>` littéral.
+    const entry = app.match(/id: 'ET-PARTIEL-CACHE'[\s\S]*?\}\);/)?.[0] ?? '';
+    expect(entry).toMatch(/Données du/);
+    expect(entry).toMatch(/retry: true/);
+    expect(app).toMatch(/b\.retry === true[\s\S]*?Réessayer/);
   });
 
   it('R-D8-06 — après un échec total (start = failed), « Réessayer » (onRetryProvider) ne relance jamais controller.start() : il rejoue loadMarket qui échoue à l’identique', () => {

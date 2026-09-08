@@ -16,11 +16,14 @@ import type { ReferenceData } from './types/reference';
 import type { ModelAggregate } from './providers/DataProvider';
 import type { SelectionState } from './state/filter-types';
 import { assembleUrl, serializeQuery } from './state/url-codec';
-import { loadQuery } from './state/corrections';
+import { loadQuery, type Correction } from './state/corrections';
 import { serializeSelection } from './types/selection';
 import { FILTER_DEFAULTS } from './state/filter-registry';
 import { buildPath, carryFiltersAcrossMode, resolveTaxonomyRoute, type TaxonomyRouteResult } from './state/router';
 import { FilterBand } from './components/filters/FilterBand';
+import { buildActiveFilterTokens, buildSearchDescription } from './components/filters/labels';
+import type { FacetCounts } from './components/filters/types';
+import type { BandRegime } from './components/filters/band-model';
 import {
   deriveScreenAState,
   type LoadPhase,
@@ -48,6 +51,7 @@ import {
   MAX_COMPARE,
   type CompareModelKey,
   type CompareModelRow,
+  type CompareRedirectTarget,
 } from './screens/compare/index';
 import { SavedSearchesScreen } from './screens/saved/index';
 import { FollowedScreen } from './screens/followed/index';
@@ -57,6 +61,7 @@ import type { VocabularyName } from './types/vocabularies';
 import { MEDIA_QUERY_MOBILE, MEDIA_QUERY_TABLET } from './styles/breakpoints';
 import { resolveView, routeOfView, currentLocation, type AppView } from './app/navigation';
 import { CapExceededError } from './persistence/index';
+import { modelKey } from './types/reference';
 import type {
   SavedSearchStore,
   FollowedModelStore,
@@ -106,9 +111,37 @@ const VIEW_TITLES: Readonly<Record<AppView['kind'], string>> = {
   notFound: 'Page introuvable',
 };
 
+/** `EX-DATA-110bis` (`D8-05`) — les facettes sont DIFFÉRÉES : au plus 100 ms après le recalcul. */
+const FACET_DEFER_MS = 100;
+
+/** `EX-SCR-38` — au plus DEUX bandeaux d'état simultanés ; les suivants derrière un jeton `+k`. */
+const BANNER_STACK_MAX = 2;
+
+/** Identifiants de filtre de classe `T` taxonomique (absorbés par la route en mode 2). */
+const TAXONOMY_FILTER_IDS: readonly string[] = ['make', 'model', 'makesModelsVariants', 'category', 'modelCategory'];
+
+/** `EX-SCR-46` — sélection PRIVÉE de sa composante taxonomique (premier nombre du double compteur). */
+function withoutTaxonomy(selection: SelectionState): SelectionState {
+  const next: Record<string, unknown> = { ...selection };
+  for (const id of TAXONOMY_FILTER_IDS) delete next[id];
+  return next as SelectionState;
+}
+
 /** `EX-SCR-43` — âges du jeton de snapshot (vert < 7 j, ambre < 30 j, rouge au-delà). */
 const SNAPSHOT_FRESH_DAYS = 7;
 const SNAPSHOT_STALE_DAYS = 30;
+
+/**
+ * `EX-SCR-38` — un bandeau d'état de la COQUILLE. `retry` ajoute l'action « Réessayer »
+ * (`EX-NFR-22`) ; `dismissible` suit la table de repliabilité normative bandeau par bandeau.
+ */
+interface ShellBanner {
+  readonly id: string;
+  readonly className: string;
+  readonly text: string;
+  readonly dismissible: boolean;
+  readonly retry?: boolean;
+}
 
 interface Mode2State {
   readonly key: string;
@@ -143,10 +176,38 @@ export function App(props: AppProps): JSX.Element {
   }, []);
 
   // ---- Sélection de filtres dérivée de l'URL (deep-link, EX-NAV-21 corrections) -----------------
-  const selection = useMemo<SelectionState>(() => loadQuery(location.search).selection, [location.search]);
+  /**
+   * `D8-03` / `FV-03` / `E2E-26` — la requête reçue est lue UNE fois et **entièrement** : la
+   * coquille consommait `.selection` et jetait `.corrections`, si bien qu'une URL fautive était
+   * corrigée en mémoire mais ni réécrite ni signalée (« aucune correction silencieuse »,
+   * REQUIREMENTS §8). `parsedQuery` porte les trois composantes ; l'effet plus bas canonise l'URL
+   * (`replaceState`) et publie le bandeau `ET-URL-CORRIGEE` (`EX-SCR-38bis`).
+   */
+  const parsedQuery = useMemo(() => loadQuery(location.search), [location.search]);
+  const selection = parsedQuery.selection as SelectionState;
+  const uiStateFromUrl = parsedQuery.uiState;
   const currentQuery = useMemo(
     () => serializeQuery(selection, {}, { filterDefaults: FILTER_DEFAULTS }),
     [selection],
+  );
+  /**
+   * `FV-17` (`EX-SCR-123`) — état DÉPLIÉ des cartes-marques, encodé dans l'URL par `mk`
+   * (`UI_STATE_PARAMS`, mode d'historique `replace`). Il était purement local : un partage d'URL ou
+   * un retour arrière perdait l'état de dépliage.
+   */
+  const mkParam = useMemo<string>(() => {
+    const raw = uiStateFromUrl['mk'];
+    if (raw === undefined) return '';
+    return (Array.isArray(raw) ? raw : [raw]).map(String).join(',');
+  }, [uiStateFromUrl]);
+  const expandedMakeIds = useMemo<ReadonlySet<number>>(
+    () => new Set(mkParam.split(',').map(Number).filter((n) => Number.isFinite(n) && n > 0)),
+    [mkParam],
+  );
+  /** État d'interface mode 1 à reconduire dans chaque écriture d'URL (`mk`, `EX-NAV-10bis`). */
+  const mode1Ui = useMemo<Readonly<Record<string, string>>>(
+    () => (mkParam === '' ? ({} as Record<string, string>) : { mk: mkParam }),
+    [mkParam],
   );
   /** Mode d'écran courant (`EX-SCR-82`/`221`) : il gouverne la scission T/R et le transport de
    * filtres d'un mode à l'autre (`carryFiltersAcrossMode`). */
@@ -208,6 +269,49 @@ export function App(props: AppProps): JSX.Element {
   const [start, setStart] = useState<StartResult | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
 
+  /**
+   * `D8-03` / `FV-03` / `E2E-26` (`EX-NAV-21`/`22`, `EX-SCR-38bis`) — corrections d'URL PUBLIÉES.
+   * Durée de vie normative : jusqu'au prochain changement de filtre par l'utilisateur (jamais avant),
+   * et non restaurées par un retour arrière vers la même URL corrigée — d'où un état de session
+   * séparé de `location`, remis à zéro par `applyMode1Query`/`applyFilters`/`FilterBand`.
+   */
+  const [urlCorrections, setUrlCorrections] = useState<readonly Correction[]>([]);
+  /** Requête déjà canonisée (évite de rejouer `replaceState` en boucle sur la même URL). */
+  const [correctedFrom, setCorrectedFrom] = useState<string | null>(null);
+
+  /**
+   * `D8-15` / `FV-19` (`ET-HORS-LIGNE`, `EX-SCR-37`) — état de connectivité réel du navigateur.
+   * Aucun appel réseau : `navigator.onLine` plus les événements `online`/`offline` (E5 respectée).
+   */
+  const [offline, setOffline] = useState<boolean>(
+    () => typeof navigator !== 'undefined' && navigator.onLine === false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const up = (): void => setOffline(false);
+    const down = (): void => setOffline(true);
+    window.addEventListener('online', up);
+    window.addEventListener('offline', down);
+    return () => {
+      window.removeEventListener('online', up);
+      window.removeEventListener('offline', down);
+    };
+  }, []);
+
+  /**
+   * `FV-17` (`EX-SCR-126`) — l'amorce SANS-FILTRE est une AMORCE : elle ne doit pas revenir après
+   * que l'utilisateur a posé puis effacé ses filtres (« Tout effacer » relançait l'écran d'accueil).
+   * Drapeau de SESSION (jamais persistant : une nouvelle session revoit l'amorce).
+   */
+  const [primerDismissed, setPrimerDismissed] = useState<boolean>(() => readPrimerFlag());
+  const dismissPrimer = useCallback((): void => {
+    writePrimerFlag();
+    setPrimerDismissed(true);
+  }, []);
+  useEffect(() => {
+    if (currentQuery !== '') dismissPrimer();
+  }, [currentQuery, dismissPrimer]);
+
   // ---- État CRUD (relu à chaque tick ; rafraîchi par l'événement storage inter-onglets) ---------
   const [crudTick, setCrudTick] = useState(0);
   const bumpCrud = useCallback((): void => setCrudTick((n) => n + 1), []);
@@ -249,6 +353,61 @@ export function App(props: AppProps): JSX.Element {
     if (view.kind === 'market') void reloadMarket(selection);
   }, [start, view.kind, currentQuery, reloadMarket, selection]);
 
+  /**
+   * `D8-02` / `FV-02` / `E2E-04`, `E2E-05` (BLOQUANT) — agrégats MODÈLE du marché filtré, chargés
+   * APRÈS le marché et pour TOUTES les cartes rendues (un seul aller de portée marché).
+   *
+   * Sans eux, `modelAggregatesByMake` restait vide tant qu'aucune carte n'était dépliée : la barre
+   * de synthèse annonçait « 0 modèles » sur une population qui en compte des centaines, et aucune
+   * carte-marque ne rendait ses zones-modèles avant un clic (`EX-SCR-22` : 0 zone à 1 440 × 900).
+   * L'appel est SÉPARÉ de `loadMarket` — le premier affichage utile (`EX-NFR-9`) reste servi par les
+   * seuls agrégats de marque, les zones arrivent ensuite ; un échec laisse les cartes sans zones
+   * (repli `EX-SCR-132`), jamais un cardinal inventé.
+   */
+  useEffect(() => {
+    if (start === null || view.kind !== 'market') return undefined;
+    if (marketPhase.phase !== 'loaded') return undefined;
+    let live = true;
+    void controller
+      .loadAllModels(selection)
+      .then((byMake) => {
+        if (!live || byMake.size === 0) return;
+        setModelsByMake((prev) => {
+          const next = new Map(prev);
+          for (const [makeId, models] of byMake) if (!next.has(makeId)) next.set(makeId, models);
+          return next;
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [start, view.kind, marketPhase.phase, currentQuery, controller, selection]);
+
+  /**
+   * `D8-03` / `FV-03` / `E2E-26` — CONSOMMATION des corrections d'URL : réécriture `replaceState`
+   * vers la requête canonique (`EX-NAV-22` : les bornes permutées sont visibles dans la barre
+   * d'adresse) et publication du bandeau `ET-URL-CORRIGEE`. La canonisation préserve l'état
+   * d'interface reçu (`mk`, `g4v`, `page`… `EX-NAV-10bis`) : seule la composante de FILTRES est
+   * corrigée.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (parsedQuery.corrections.length === 0) return;
+    if (correctedFrom === location.search) return;
+    const uiObj: Record<string, string> = {};
+    for (const [k, v] of Object.entries(uiStateFromUrl)) {
+      uiObj[k] = Array.isArray(v) ? v.map(String).join(',') : String(v);
+    }
+    const canonical = assembleUrl(
+      location.pathname,
+      serializeQuery(selection, uiObj, { filterDefaults: FILTER_DEFAULTS }),
+    ).url;
+    setUrlCorrections(parsedQuery.corrections);
+    setCorrectedFrom(location.search);
+    if (`${location.pathname}${location.search}` !== canonical) navigate(canonical, 'replace');
+  }, [parsedQuery, location.pathname, location.search, selection, uiStateFromUrl, navigate, correctedFrom]);
+
   // ---- Historique récent (EX-CRUD-11) : marché et route canonique d'écran B ---------------------
   // `DR-159` : une entrée n'est ajoutée que si le JEU DE FILTRES change — un changement d'état
   // d'interface (`selx`, `sely`, `g4v`, `page`, échelles log) n'est pas « une recherche différente ».
@@ -274,7 +433,10 @@ export function App(props: AppProps): JSX.Element {
     // de filtre du bandeau mode 2 doit RECALCULER, pas seulement réécrire l'URL.
     const key = `${view.makeId}:${view.modelId}:${currentQuery}:${mode2Attempt}`;
     if (mode2?.key === key && mode2.status !== 'error') return;
-    setMode2({ key, status: 'loading' });
+    // `D8-24` (`ET-CHARGE-INIT`/`ET-CHARGE-MAJ`, `EX-SCR-24`/`173`) : le payload PRÉCÉDENT est
+    // conservé pendant le recalcul. Premier calcul (aucun payload) ⇒ squelettes ; recalcul ⇒ figures
+    // atténuées avec barre de progression, jamais un écran vidé puis repeuplé.
+    setMode2((prev) => ({ key, status: 'loading', ...(prev?.payload === undefined ? {} : { payload: prev.payload }) }));
     void controller
       .enterMode2(view.makeId, view.modelId, selection)
       .then((payload) => setMode2({ key, status: 'ready', payload }))
@@ -285,6 +447,114 @@ export function App(props: AppProps): JSX.Element {
     const unsubs = [stores.saved.subscribe(bumpCrud), stores.followed.subscribe(bumpCrud), stores.recent.subscribe(bumpCrud)];
     return () => unsubs.forEach((u) => u());
   }, [stores, bumpCrud]);
+
+  /**
+   * `D8-05` / `FV-06` (`EX-SCR-65`/`89`/`90`, `EX-DATA-110bis`) — FACETTES du dernier recalcul,
+   * DIFFÉRÉES (≤ 100 ms normatif) : pendant l'écart, `facetCountsPending` fait afficher `…` à la
+   * place de chaque effectif plutôt qu'une valeur périmée non signalée.
+   *
+   * Portée : le moteur ne peut facetter que ce qu'il a en mémoire, c'est-à-dire le jeu de données
+   * local du mode 2 (décision O17 : le mode 1 ne charge JAMAIS les colonnes d'annonces, `EX-NFR-9`).
+   * En mode 1 aucune facette n'est passée — le bandeau ne rend alors AUCUNE parenthèse, jamais un
+   * `(0)` par défaut (règle de `CheckboxList`).
+   */
+  const [facetCounts, setFacetCounts] = useState<ReadonlyMap<string, FacetCounts> | undefined>(undefined);
+  const [facetCountsPending, setFacetCountsPending] = useState(false);
+  const mode2Status = mode2?.status;
+  const mode2Key = mode2?.key;
+  useEffect(() => {
+    if (currentMode !== 'mode2') {
+      setFacetCounts(undefined);
+      setFacetCountsPending(false);
+      return undefined;
+    }
+    if (mode2Status !== 'ready') return undefined;
+    let live = true;
+    setFacetCountsPending(true);
+    const timer = setTimeout(() => {
+      void controller
+        .computeFacets(selection)
+        .then((f) => {
+          if (!live) return;
+          setFacetCounts(f ?? undefined);
+          setFacetCountsPending(false);
+        })
+        .catch(() => {
+          if (live) setFacetCountsPending(false);
+        });
+    }, FACET_DEFER_MS);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [currentMode, mode2Status, mode2Key, controller, selection]);
+
+  /**
+   * `D8-05` / `FV-05` (`EX-SCR-216`) — effectifs de l'écran G : par marque depuis les agrégats du
+   * marché courant, par modèle depuis les agrégats-modèles (`D8-02`). Absents ⇒ `screen-g-model.ts`
+   * retombe sur `announcedCount`, jamais sur `0`.
+   */
+  const screenGMakeCounts = useMemo<ReadonlyMap<number, number>>(() => {
+    const out = new Map<number, number>();
+    if (marketPhase.phase !== 'loaded') return out;
+    for (const agg of marketPhase.data.makeAggregates) out.set(agg.makeId, agg.listingCount);
+    return out;
+  }, [marketPhase]);
+  const screenGModelCounts = useMemo<ReadonlyMap<string, number>>(() => {
+    const out = new Map<string, number>();
+    for (const [makeId, models] of modelsByMake) {
+      if (models === 'unavailable') continue;
+      for (const m of models) out.set(modelKey(makeId, m.modelId), m.listingCount);
+    }
+    return out;
+  }, [modelsByMake]);
+
+  /**
+   * `D8-05` / `FV-23` (`EX-SCR-78`, `EX-SRCH-21`) — compteur de la zone (4) du bandeau : effectif de
+   * la sélection RÉELLEMENT appliquée. Mode 2 : Σ du lot élagué ; mode 1 : `selectionCount` publié
+   * par le provider, à défaut la somme des cartes. `undefined` = inconnu (le bandeau n'affiche alors
+   * aucun chiffre, jamais `0`).
+   */
+  const resultCount = useMemo<number | undefined>(() => {
+    if (currentMode === 'mode2') return mode2?.payload?.rows.length;
+    if (marketPhase.phase !== 'loaded') return undefined;
+    return (
+      controller.marketSelectionCount ??
+      marketPhase.data.makeAggregates.reduce((sum, a) => sum + a.listingCount, 0)
+    );
+  }, [currentMode, mode2, marketPhase, controller]);
+  const resultCountLoading =
+    currentMode === 'mode2' ? mode2Status === 'loading' : marketPhase.phase === 'loading';
+
+  /**
+   * `D8-05` / `FV-23` (`EX-SCR-46`, `EX-DATA-110bis`) — DOUBLE compteur du fil d'Ariane
+   * « <n> offres | <n> ici » : le premier nombre est l'effectif de la sélection PRIVÉE de sa
+   * composante taxonomique (`selectionHashWithoutTaxonomy`), le second celui du périmètre courant.
+   * `null` = non établi (provider en échec) : le fil d'Ariane n'affiche alors que « ici ».
+   */
+  const [countWithoutTaxonomy, setCountWithoutTaxonomy] = useState<number | null>(null);
+  useEffect(() => {
+    if (currentMode !== 'mode2' || start === null) {
+      setCountWithoutTaxonomy(null);
+      return undefined;
+    }
+    let live = true;
+    void controller.countForSelection(withoutTaxonomy(selection)).then((n) => {
+      if (live) setCountWithoutTaxonomy(n);
+    });
+    return () => {
+      live = false;
+    };
+  }, [currentMode, start, controller, selection]);
+
+  /** `D8-15` (`EX-SCR-97`) — effectif PROJETÉ de la sélection brouillon de la feuille compacte. */
+  const [projectedResultCount, setProjectedResultCount] = useState<number | undefined>(undefined);
+  const onDraftSelectionChange = useCallback(
+    (draft: SelectionState): void => {
+      void controller.countForSelection(draft).then((n) => setProjectedResultCount(n ?? undefined));
+    },
+    [controller],
+  );
 
   // ---- Sélection de comparaison (session, EX-CRUD-13bis) ----------------------------------------
   const [compareKeys, setCompareKeys] = useState<readonly CompareModelKey[]>([]);
@@ -380,27 +650,33 @@ export function App(props: AppProps): JSX.Element {
   const [sortField, setSortField] = useState<MakeSortField>(prefs.sortField as MakeSortField);
   const [sortDirection, setSortDirection] = useState<SortDirection>(prefs.sortDirection);
   const [hideSparse, setHideSparse] = useState<boolean>(prefs.hideSparseModels);
-  const [expandedMakeIds, setExpandedMakeIds] = useState<ReadonlySet<number>>(new Set());
   const [loadedMakeCount, setLoadedMakeCount] = useState(GRID_LOAD_BATCH_SIZE * 3);
   const [showAllMakes, setShowAllMakes] = useState(false);
   const [screenGOpen, setScreenGOpen] = useState(false);
 
   const applyMode1Query = useCallback(
     (sel: SelectionState, mode: 'push' | 'replace' = 'push'): void => {
-      const q = serializeQuery(sel, {}, { filterDefaults: FILTER_DEFAULTS });
+      const q = serializeQuery(sel, mode1Ui, { filterDefaults: FILTER_DEFAULTS });
       navigate(assembleUrl('/marche', q).url, mode);
     },
-    [navigate],
+    [navigate, mode1Ui],
   );
 
+  /**
+   * `FV-17` (`EX-SCR-123`) — le dépliage d'une carte est un ÉTAT D'INTERFACE partageable : il est
+   * écrit dans `mk` en mode `replace` (pas d'entrée d'historique, `UI_STATE_PARAMS`), et non plus
+   * gardé dans un `useState` invisible de l'URL.
+   */
   const onToggleExpand = useCallback(
     (makeId: number, next: boolean): void => {
-      setExpandedMakeIds((prev) => {
-        const s = new Set(prev);
-        if (next) s.add(makeId);
-        else s.delete(makeId);
-        return s;
-      });
+      const ids = new Set(expandedMakeIds);
+      if (next) ids.add(makeId);
+      else ids.delete(makeId);
+      const mk = [...ids].sort((a, b) => a - b).join(',');
+      const q = serializeQuery(selection, mk === '' ? {} : { mk }, { filterDefaults: FILTER_DEFAULTS });
+      navigate(assembleUrl(location.pathname, q).url, 'replace');
+      // `EX-SCR-132` : le détail par modèle d'une carte reste chargeable à la demande, en filet de
+      // sécurité, quand le chargement de portée marché (`D8-02`) n'a pas encore abouti.
       if (next && !modelsByMake.has(makeId)) {
         void controller
           .loadModelsForMake(selection, makeId)
@@ -408,7 +684,7 @@ export function App(props: AppProps): JSX.Element {
           .catch(() => setModelsByMake((prev) => new Map(prev).set(makeId, 'unavailable')));
       }
     },
-    [controller, selection, modelsByMake],
+    [controller, selection, modelsByMake, expandedMakeIds, navigate, location.pathname],
   );
 
   /**
@@ -432,6 +708,21 @@ export function App(props: AppProps): JSX.Element {
     },
     [navigate, referenceData, selection, currentMode],
   );
+
+
+  /**
+   * `D8-04b` / `FV-04` (`EX-SCR-104`) — un `mmmv` portant un couple COMPLET (marque ET modèle) n'est
+   * pas un filtre de l'écran A : c'est la désignation d'un modèle, donc l'écran B. La coquille y
+   * redirige (`push` : c'est bien une navigation utilisateur), `carryFiltersAcrossMode` absorbant le
+   * bloc taxonomique dans la route. Un `mmmv` réduit à la marque (`make|||`, `D-09`) reste un filtre
+   * d'écran A et ne redirige pas.
+   */
+  useEffect(() => {
+    if (view.kind !== 'market') return;
+    const pair = completeMmmvPair(selection);
+    if (pair === null) return;
+    goToModel(pair.makeId, pair.modelId);
+  }, [view.kind, selection, goToModel]);
 
   const toggleCompare = useCallback((makeId: number, modelId: number, next: boolean): void => {
     setCompareKeys((prev) => (next ? addToCompare(prev, { makeId, modelId }) : removeFromCompare(prev, { makeId, modelId })));
@@ -457,13 +748,18 @@ export function App(props: AppProps): JSX.Element {
             ? data.makeAggregates.reduce((s, a) => s + a.listingCount, 0)
             : 0;
       try {
+        // `E2E-24` (`EX-CRUD-1`/`EX-CRUD-3`) : l'homonymie est évaluée sur l'état ANTÉRIEUR. Elle
+        // l'était après `create`, si bien que l'entrée qui venait d'être créée comptait comme son
+        // propre doublon : le message d'homonymie s'affichait à CHAQUE enregistrement, même sur une
+        // collection vide, et perdait tout pouvoir informatif.
+        const duplicate = stores.saved.hasDuplicateName(nom);
         stores.saved.create({
           nom,
           url: location.pathname + location.search,
           effectifInitial,
           snapshotInitial: controller.snapshotDescriptor?.snapshotId ?? '',
         });
-        setBanner(stores.saved.hasDuplicateName(nom) ? 'Recherche enregistrée (un nom identique existait déjà).' : 'Recherche enregistrée.');
+        setBanner(duplicate ? 'Recherche enregistrée (un nom identique existait déjà).' : 'Recherche enregistrée.');
         bumpCrud();
       } catch (e) {
         setBanner(e instanceof CapExceededError ? e.message : e instanceof Error ? e.message : 'Échec de l’enregistrement.');
@@ -566,6 +862,8 @@ export function App(props: AppProps): JSX.Element {
         }
       }
       const q = serializeQuery(next, extraUi, { filterDefaults: FILTER_DEFAULTS });
+      // `EX-SCR-38bis` : le bandeau `ET-URL-CORRIGEE` vit jusqu'au prochain changement de filtre.
+      setUrlCorrections([]);
       navigate(assembleUrl(location.pathname, q).url, 'push');
     },
     [selection, navigate, location.pathname],
@@ -594,6 +892,27 @@ export function App(props: AppProps): JSX.Element {
     [selection, navigate, location.pathname, ui],
   );
 
+  /**
+   * `EX-NAV-23`/`25` (`D8-14`/`FV-21`) — RAFRAÎCHISSEMENT explicite du snapshot : le moteur est
+   * libéré (jeu de données obsolète), la sélection de comparaison purgée (identifiants d'un autre
+   * snapshot, `EX-NAV-24`), le provider redemandé. Si le snapshot servi CHANGE, le bandeau
+   * « Nouvelles données du … » le dit — jamais un remplacement silencieux.
+   */
+  const refreshSnapshot = useCallback((): void => {
+    const previousId = controller.snapshotDescriptor?.snapshotId ?? null;
+    setCompareKeys([]);
+    setCompareRows([]);
+    controller.dispose();
+    void controller.start().then((r) => {
+      setStart(r);
+      const nextId = r.descriptor?.snapshotId ?? null;
+      if (nextId !== null && previousId !== null && nextId !== previousId) {
+        setBanner(`Nouvelles données du ${frDate(r.descriptor?.capturedAt ?? null)} — les chiffres affichés ont été recalculés.`);
+      }
+      if (view.kind === 'market') void reloadMarket(selection);
+    });
+  }, [controller, view.kind, reloadMarket, selection]);
+
   /** `EX-NFR-22` (DR-092) — « Réessayer » relance RÉELLEMENT le provider, puis rejoue le marché. */
   const onStarted = useCallback(
     (r: StartResult): void => {
@@ -614,8 +933,11 @@ export function App(props: AppProps): JSX.Element {
         modelId: view.modelId,
         modelSlug: referenceData.modelByKey.get(`${view.makeId}:${view.modelId}`)?.slug ?? String(view.modelId),
       });
+      // `D8-04c` / `FV-04` (`EX-NAV-16`, `D-09`) : le retour vers l'écran A réinjecte la MARQUE
+      // SEULE (`make|||`), jamais le couple complet — un `mmmv` complet désignerait de nouveau
+      // l'écran B (`EX-SCR-104`) et le retour boucler ait sur lui-même.
       const trail: { label: string; href?: string }[] = [
-        { label: 'Marché', href: marketUrlFrom({ makeId: view.makeId, modelId: view.modelId }) },
+        { label: 'Marché', href: marketUrlFrom({ makeId: view.makeId }) },
       ];
       if (view.kind === 'modelListings') {
         trail.push({ label: name, href: modelHref }, { label: 'Annonces' });
@@ -627,20 +949,42 @@ export function App(props: AppProps): JSX.Element {
     return [{ label: VIEW_TITLES[view.kind] }];
   }, [view, referenceData, marketUrlFrom]);
 
-  /** `EX-SCR-47` — panneau Diagnostic du pied de page (état d'orchestration, jamais une donnée R3). */
-  const diagnostics = useMemo<readonly (readonly [string, string])[]>(
-    () => [
+  /**
+   * `EX-SCR-47`/`53`/`218`/`224` (`D8-14`/`FV-21`) — panneau Diagnostic du pied de page. Il ne
+   * portait que huit lignes d'ORCHESTRATION ; il expose désormais aussi ce que le `SnapshotDescriptor`
+   * mesure réellement sur le jeu servi : champs inconnus par champ (`unknownCountByField`), drapeaux
+   * d'ingestion posés (`ingestFlagCounts` — ITÉRÉ, jamais dérivé du vocabulaire à 17 codes, cf.
+   * fix-providers §6.4), conflits de valeur sur doublon, doublons, rejets d'ingestion par motif
+   * (journal d'erreurs) et taux de version élaguée. Aucune donnée R3 : ce sont des COMPTEURS.
+   */
+  const diagnostics = useMemo<readonly (readonly [string, string])[]>(() => {
+    const d = controller.snapshotDescriptor;
+    const counts = (record: Readonly<Record<string, number>> | undefined): string => {
+      const entries = Object.entries(record ?? {}).filter(([, n]) => n > 0);
+      if (entries.length === 0) return 'aucun';
+      return entries
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, n]) => `${k} : ${n}`)
+        .join(' · ');
+    };
+    return [
       ['Statut du démarrage', start?.status ?? 'en cours'],
       ['Source', start?.sourceKind ?? 'inconnue'],
-      ['Snapshot', controller.snapshotDescriptor?.snapshotId ?? '—'],
-      ['Annonces du snapshot', String(controller.snapshotDescriptor?.listingCount ?? '—')],
+      ['Snapshot', d?.snapshotId ?? '—'],
+      ['Annonces du snapshot', String(d?.listingCount ?? '—')],
+      ['Annonces annoncées par la source', d?.announcedListingCount === null || d?.announcedListingCount === undefined ? '—' : String(d.announcedListingCount)],
       ['Code d’erreur', start?.errorCode ?? 'aucun'],
       ['Dernière tentative', start?.attemptedAt ?? '—'],
       ['Requête canonique', currentQuery === '' ? '(aucun filtre)' : currentQuery],
       ['Régime d’affichage', regime],
-    ],
-    [start, controller, currentQuery, regime],
-  );
+      ['Champs inconnus (par champ)', counts(d?.unknownCountByField)],
+      ['Drapeaux d’ingestion posés', counts(d?.ingestFlagCounts)],
+      ['Doublons détectés', String(d?.duplicateListingCount ?? '—')],
+      ['Conflits de valeur sur doublon', String(d?.duplicateValueConflictCount ?? '—')],
+      ['Journal des rejets d’ingestion', d === null || d === undefined ? '—' : `${d.rejectedCount} rejetées — ${counts(d.rejectedByReason)}`],
+      ['Versions élaguées (taux)', d === null || d === undefined ? '—' : d.versionStrippedRate.toFixed(3)],
+    ];
+  }, [start, controller, currentQuery, regime]);
 
   /**
    * `EX-NFR-14`/`16` (DR-101) — titre de document PAR VUE et prise de focus après navigation : le
@@ -654,7 +998,17 @@ export function App(props: AppProps): JSX.Element {
     document.title = `KYCAR — ${VIEW_TITLES[view.kind]}${suffix === '' ? '' : ` · ${suffix}`}`;
     const main = document.getElementById('kycar-main');
     const heading = (main?.querySelector('h1') ?? main) as HTMLElement | null;
-    if (heading !== null && typeof heading.focus === 'function') heading.focus();
+    // `E2E-16` / `FV-16` (`EX-NFR-12`, `DR-101`) : `focus()` sur un `h1` SANS `tabindex` est sans
+    // effet — l'appel échouait en silence et le focus restait sur `<body>` (chargement direct) ou
+    // sur le lien cliqué (navigation interne). Le titre est rendu focalisable par programme
+    // (`tabindex="-1"` : atteignable au script, JAMAIS inséré dans l'ordre de tabulation, donc le
+    // lien d'évitement reste le premier arrêt du document) avant la prise de focus ; en dernier
+    // recours le repli sur `#kycar-main`, lui-même `tabIndex={-1}`, s'applique.
+    if (heading !== null && typeof heading.focus === 'function') {
+      if (heading.getAttribute('tabindex') === null) heading.setAttribute('tabindex', '-1');
+      heading.focus();
+      if (document.activeElement !== heading && main !== null) main.focus();
+    }
   }, [view, referenceData]);
 
   // ---- Composition ------------------------------------------------------------------------------
@@ -676,12 +1030,102 @@ export function App(props: AppProps): JSX.Element {
     metricCoverage: '',
   };
 
-  /** `EX-NFR-31` (DR-154) — résumé TEXTUEL des filtres actifs, imprimé à la place du bandeau. */
-  const printFilterSummary =
-    currentQuery === '' ? 'Aucun filtre actif' : `Filtres actifs : ${currentQuery.replace(/&/g, ' · ')}`;
+  /**
+   * `EX-NFR-31` règle 3 (`D8-14`/`FV-13`, `E2E-23`) — résumé TEXTUEL des filtres actifs, imprimé à la
+   * place du bandeau. Il citait les noms de PARAMÈTRES d'URL sur UNE ligne (« body=3 · kmto=100000 »)
+   * alors que la règle demande « un résumé textuel des filtres actifs, **un par ligne** » et que les
+   * jetons du bandeau (`EX-SCR-75`) savent déjà dire « Carrosserie : Coupé ». Même modèle, même
+   * source : `buildActiveFilterTokens`.
+   */
+  const activeFilterTokens = useMemo(
+    () => buildActiveFilterTokens(selection, referenceData),
+    [selection, referenceData],
+  );
+  const printFilterLines = useMemo<readonly string[]>(
+    () => activeFilterTokens.map((t) => t.text),
+    [activeFilterTokens],
+  );
+  /** `EX-SCR-94` (`D8-14`/`FV-24`) — nom PRÉREMPLI du formulaire d'enregistrement. */
+  const suggestedSearchName = useMemo(() => buildSearchDescription(activeFilterTokens), [activeFilterTokens]);
 
   /** `ET-FILTRE-NON-APPLIQUE` (D-03, DR-103) — bandeau nommant les filtres non appliqués. */
   const unapplied = loadedData?.unappliedFilterIds ?? [];
+
+  /**
+   * `D8-20` (`ET-FILTRE-NON-APPLIQUE`, `EX-SCR-221`, O15) — filtres DÉCLARÉS non appliqués par le
+   * moteur en mode 2. Cas particulier tranché par le fix-lead sur relevé de fix-providers §6.3 :
+   * `bodyType` sur une sélection pincée à un modèle est le SEUL identifiant pour lequel l'effectif
+   * publié reste complet et exploitable (l'index carrosserie est vide, `O15`) — il est donc affiché
+   * avec sa mention propre plutôt que refusé comme un plancher (`D-03`, cas général).
+   */
+  const unsupportedMode2 = mode2?.payload?.unappliedFilterIds ?? [];
+  const bodyFilterUnapplied = unsupportedMode2.includes('bodyType');
+
+  /**
+   * `EX-SCR-38` (`D8-06`/`FV-07`) — EMPILEMENT des bandeaux d'état de la coquille : au plus DEUX
+   * simultanés, dans l'ordre de priorité normatif `ET-ERREUR-PROVIDER` > `ET-HORS-LIGNE` >
+   * `ET-PARTIEL-CACHE` > `ET-TROP-RESULTATS`/`ET-FILTRE-NON-APPLIQUE` > `ET-URL-CORRIGEE` ; les
+   * suivants sont repliés derrière un jeton `+k avertissements` cliquable. Le bandeau `C3` de
+   * couverture est rendu par les écrans A et B (une seule fois chacun) et n'entre pas dans ce
+   * plafond (exception explicite d'`EX-SCR-38`).
+   */
+  const shellBanners = useMemo<readonly ShellBanner[]>(() => {
+    const out: ShellBanner[] = [];
+    if (start?.status === 'failed') {
+      out.push({
+        id: 'ET-ERREUR-PROVIDER',
+        className: 'kycar-banner-provider-error',
+        dismissible: false,
+        text: `Données indisponibles — le fournisseur n’a pas répondu (code ${start.errorCode ?? 'inconnu'}), dernière tentative le ${frDateTime(start.attemptedAt)}.`,
+        retry: true,
+      });
+    }
+    if (offline) {
+      out.push({
+        id: 'ET-HORS-LIGNE',
+        className: 'kycar-banner-offline',
+        dismissible: true,
+        text: 'Hors ligne — les filtres qui exigent un nouveau jeu de données sont désactivés ; les filtres appliqués localement restent actifs sur le dernier jeu chargé.',
+      });
+    }
+    if (degraded) {
+      out.push({
+        id: 'ET-PARTIEL-CACHE',
+        className: 'kycar-banner-degraded',
+        dismissible: true,
+        text: `Mode dégradé — Données du ${frDate(start?.status === 'degraded-cache' ? (descriptor?.capturedAt ?? null) : null)} — dernière tentative de mise à jour échouée le ${frDateTime(start?.attemptedAt ?? null)} (code ${start?.errorCode ?? 'inconnu'}). Les agrégats marqués d’un astérisque proviennent du cache ; l’export est désactivé.`,
+        retry: true,
+      });
+    }
+    if (unapplied.length > 0) {
+      out.push({
+        id: 'ET-FILTRE-NON-APPLIQUE',
+        className: 'kycar-banner-unapplied',
+        dismissible: true,
+        text: `Agrégats filtrés indisponibles — ${unapplied.length === 1 ? 'le filtre' : 'les filtres'} ${unapplied.join(', ')} ${unapplied.length === 1 ? 'n’a pas pu être appliqué' : 'n’ont pas pu être appliqués'} : les chiffres affichés sont ceux de la sélection NON filtrée.`,
+      });
+    }
+    if (bodyFilterUnapplied) {
+      out.push({
+        id: 'ET-FILTRE-NON-APPLIQUE-BODY',
+        className: 'kycar-banner-unapplied-body',
+        dismissible: true,
+        text: 'Filtre Carrosserie non appliqué à ce modèle (donnée indisponible) — l’effectif affiché est complet, mais il ne tient pas compte de ce critère.',
+      });
+    }
+    if (urlCorrections.length > 0) {
+      // `EX-SCR-38bis` : une ligne par paramètre corrigé, au plus TROIS, puis « et <k> autres ».
+      const head = urlCorrections.slice(0, 3).map((c) => c.message);
+      const rest = urlCorrections.length - head.length;
+      out.push({
+        id: 'ET-URL-CORRIGEE',
+        className: 'kycar-banner-url-corrected',
+        dismissible: true,
+        text: [...head, ...(rest > 0 ? [`et ${rest} autres paramètres corrigés`] : [])].join('\n'),
+      });
+    }
+    return out;
+  }, [start, offline, degraded, descriptor, unapplied, bodyFilterUnapplied, urlCorrections]);
 
   return (
     <div class="kycar-app" data-crud-rev={crudTick}>
@@ -690,24 +1134,28 @@ export function App(props: AppProps): JSX.Element {
         Aller au contenu principal
       </a>
       <AppHeader
-        degraded={degraded}
-        degradedSince={start?.status === 'degraded-cache' ? (descriptor?.capturedAt ?? null) : null}
-        errorCode={start?.errorCode ?? null}
-        attemptedAt={start?.attemptedAt ?? null}
         sourceKind={sourceKind}
-        snapshotId={descriptor?.snapshotId ?? null}
         snapshotDate={descriptor?.capturedAt ?? null}
         compareCount={compareKeys.length}
         followedCount={stores.followed.list().length}
         banner={banner}
-        unappliedFilterIds={unapplied}
+        banners={shellBanners}
+        regime={regime}
+        currentQuery={currentQuery}
+        breadcrumbCount={resultCount}
+        breadcrumbCountWithoutTaxonomy={currentMode === 'mode2' ? countWithoutTaxonomy : null}
         onDismissBanner={() => setBanner(null)}
         onNavigate={navigate}
         onRetry={() => void controller.start().then(onStarted)}
         breadcrumb={breadcrumb}
       />
 
-      {view.kind === 'market' || view.kind === 'modelDistribution' || view.kind === 'modelListings' ? (
+      {/* `D8-06`/`FV-15` (`EX-SCR-103`) : le bandeau de filtres C1 est aussi rendu sur `/comparer`. */}
+      {view.kind === 'market' ||
+      view.kind === 'modelDistribution' ||
+      view.kind === 'modelListings' ||
+      view.kind === 'compare' ? (
+        <>
         <div class="filter-bar kycar-filter-bar">
           <FilterBand
             key={`${location.pathname}${location.search}`}
@@ -720,30 +1168,43 @@ export function App(props: AppProps): JSX.Element {
             onRecomputeLocal={() => {
               if (view.kind === 'market') void reloadMarket(selection);
             }}
-            onReload={() => {
-              // `EX-NAV-24` (DR-155) : un remplacement de snapshot purge la sélection de comparaison
-              // (des identifiants d'un autre snapshot) et libère le moteur (jeu de données obsolète).
-              setCompareKeys([]);
-              setCompareRows([]);
-              controller.dispose();
-              void controller.start().then((r) => {
-                setStart(r);
-                if (view.kind === 'market') void reloadMarket(selection);
-              });
-            }}
+            // `EX-NAV-24` (DR-155) : un remplacement de snapshot purge la sélection de comparaison
+            // (identifiants d'un autre snapshot) et libère le moteur — même chemin que « Rafraîchir ».
+            onReload={refreshSnapshot}
             onUrlBudgetExceeded={(msg) => setBanner(msg)}
             // `EX-SCR-94` (DR-139) : bouton « Enregistrer la recherche » de la zone (4) du bandeau,
             // routé sur le même CRUD que la barre d'outils (`saveCurrentSearch`), actif quand un
             // résultat est chargé (mode 1) ou en mode 2 (Σ connu).
+            // `EX-SCR-94` (`D8-14`/`FV-24`, résidu `DR-139`) : le formulaire de `SaveSearchForm` est
+            // PRÉREMPLI par la description des jetons ; la coquille recevait une fonction d'arité 0
+            // qui écrasait ce nom par « Recherche du <date> ». Le NOM VALIDÉ est désormais utilisé.
             onSaveSearch={
               marketPhase.phase === 'loaded' || view.kind !== 'market'
-                ? () => saveCurrentSearch(defaultSearchName())
+                ? (name: string) => saveCurrentSearch(name)
                 : undefined
             }
+            resultCount={resultCount}
+            resultCountLoading={resultCountLoading}
+            facetCounts={facetCounts}
+            facetCountsPending={facetCountsPending}
+            screenGMakeCounts={screenGMakeCounts}
+            screenGModelCounts={screenGModelCounts}
+            regime={bandRegimeOf(regime)}
+            projectedResultCount={projectedResultCount}
+            onDraftSelectionChange={onDraftSelectionChange}
+            onSelectionApplied={() => setUrlCorrections([])}
           />
-          {/* `EX-NFR-31` (DR-154) : le bandeau de filtres disparaît à l'impression, ce résumé le remplace. */}
-          <p class="kycar-print-filter-summary print-filter-summary">{printFilterSummary}</p>
         </div>
+        {/* `EX-NFR-31` règle 3 (`D8-14`/`FV-13`, `E2E-22`) : le résumé imprimé est FRÈRE de
+            `.filter-bar`, jamais son enfant — `print.css` met `.filter-bar` en `display: none` à
+            l'impression, et un ancêtre masqué masque toute sa descendance : la règle
+            `.print-filter-summary { display: block }` ne pouvait pas la rattraper. */}
+        <div class="kycar-print-filter-summary print-filter-summary">
+          {printFilterLines.length === 0
+            ? 'Aucun filtre actif'
+            : `Filtres actifs\n${printFilterLines.join('\n')}`}
+        </div>
+        </>
       ) : null}
 
       <main class="kycar-main">
@@ -758,6 +1219,7 @@ export function App(props: AppProps): JSX.Element {
         snapshotDate={descriptor?.capturedAt ?? null}
         diagnostics={diagnostics}
         onNavigate={navigate}
+        onRefresh={refreshSnapshot}
       />
     </div>
   );
@@ -769,10 +1231,15 @@ export function App(props: AppProps): JSX.Element {
           marketPhase.phase === 'loaded' ? { ...marketPhase.data, modelAggregatesByMake: modelsByMake } : null;
         const load: LoadPhase =
           marketPhase.phase === 'loaded' && mergedData !== null ? { phase: 'loaded', data: mergedData } : marketPhase;
-        const state = deriveScreenAState(load);
+        const derived = deriveScreenAState(load);
+        // `FV-17` (`EX-SCR-126`) : l'amorce SANS-FILTRE est une AMORCE. Une fois que l'utilisateur a
+        // posé des filtres dans cette session, « Tout effacer » ne le renvoie plus à l'écran
+        // d'accueil : la grille complète (état `ready`) reste rendue, sans raccourcis d'amorce.
+        const state =
+          derived.kind === 'no-filter' && primerDismissed ? { kind: 'ready' as const, data: derived.data } : derived;
         return (
           <>
-            <MarketToolbar onSave={saveCurrentSearch} canSave={marketPhase.phase === 'loaded'} />
+            <MarketToolbar onSave={saveCurrentSearch} canSave={marketPhase.phase === 'loaded'} suggestedName={suggestedSearchName} />
             <MarketScreen
               state={state}
               referenceData={referenceData}
@@ -801,7 +1268,11 @@ export function App(props: AppProps): JSX.Element {
               showAllMakesRequested={showAllMakes}
               onShowAllMakes={() => setShowAllMakes(true)}
               onApplyPrimerShortcut={(id) => applyMode1Query(PRIMER_SELECTIONS[id])}
-              onSelectMake={(makeId) => onToggleExpand(makeId, !expandedMakeIds.has(makeId))}
+              // `D8-04a` / `FV-04` (`EX-SCR-110`) : un clic sur l'EN-TÊTE de carte POSE le filtre
+              // `mmmv` sur la marque (`make|||`, `D-09`) au lieu de simplement déplier la carte —
+              // c'est la désignation d'une marque, pas un pliage. Le chevron reste la voie du
+              // dépliage (`onToggleExpand`).
+              onSelectMake={(makeId) => applyMode1Query({ ...selection, makesModelsVariants: String(makeId) })}
               onSelectModel={goToModel}
               compareSelection={new Set(compareKeys.map((k) => `${k.makeId}:${k.modelId}`))}
               compareAtCapacity={compareKeys.length >= MAX_COMPARE}
@@ -813,7 +1284,12 @@ export function App(props: AppProps): JSX.Element {
                 delete (next as Record<string, unknown>)[filterId];
                 applyMode1Query(next);
               }}
-              onResetAllFilters={() => navigate('/marche')}
+              onResetAllFilters={() => {
+                // `FV-17` : « Tout effacer » vide la sélection sans rouvrir l'amorce SANS-FILTRE.
+                dismissPrimer();
+                setUrlCorrections([]);
+                navigate('/marche');
+              }}
               onSaveSearch={() => saveCurrentSearch(defaultSearchName())}
               screenGOpen={screenGOpen}
               onOpenScreenG={() => setScreenGOpen(true)}
@@ -845,6 +1321,18 @@ export function App(props: AppProps): JSX.Element {
             onRemove={(makeId, modelId) => setCompareKeys((prev) => removeFromCompare(prev, { makeId, modelId }))}
             onOpen={goToModel}
             onClearAll={() => setCompareKeys([])}
+            // `EX-SCR-197` (`D8-06`/`FV-15`) — « + Ajouter un modèle » : le sélecteur marque/modèle
+            // du bandeau C1 (rendu sur `/comparer` depuis ce lot) est la voie d'ajout.
+            onAddModel={() => navigate('/marche')}
+            // `EX-SCR-198` (`D8-06`/`FV-15`) — redirections normatives : 0 modèle → écran A,
+            // 1 modèle → écran B de ce modèle. `CompareScreen` étant sans hook, l'appel arrive
+            // pendant le rendu : il est différé d'un tick pour ne pas naviguer depuis un rendu.
+            onRedirect={(target: CompareRedirectTarget) => {
+              setTimeout(() => {
+                if (target.kind === 'market') navigate(marketUrlFrom());
+                else goToModel(target.makeId, target.modelId);
+              }, 0);
+            }}
           />
         );
 
@@ -958,7 +1446,10 @@ export function App(props: AppProps): JSX.Element {
       );
     }
 
-    if (mode2 === null || mode2.status === 'loading') {
+    // `D8-24` (`ET-CHARGE-INIT`, `EX-SCR-23`/`173`) : PREMIER calcul seulement — aucun payload
+    // précédent à atténuer, l'écran annonce son chargement. Un RECALCUL (payload conservé) passe par
+    // le rendu nominal avec `recalculating`, c'est-à-dire `ET-CHARGE-MAJ` (atténuation + barre).
+    if (mode2 === null || (mode2.status === 'loading' && mode2.payload === undefined)) {
       return <div class="kycar-mode2-loading" aria-busy="true">Chargement des distributions…</div>;
     }
     if (mode2.status === 'error' || mode2.payload === undefined) {
@@ -977,7 +1468,7 @@ export function App(props: AppProps): JSX.Element {
       <div class="kycar-model-toolbar no-print">
         <h1 class="kycar-model-title">{payload.makeModelName || name}</h1>
         {/* `EX-CRUD-4` (DR-102) : « Enregistrer cette recherche » est disponible sur les DEUX écrans. */}
-        <MarketToolbar onSave={saveCurrentSearch} canSave={true} />
+        <MarketToolbar onSave={saveCurrentSearch} canSave={true} suggestedName={suggestedSearchName} />
         <div class="kycar-model-actions">
           <button type="button" aria-pressed={followed} onClick={() => toggleFollow(makeId, modelId)}>
             {followed ? 'Ne plus suivre' : 'Suivre'}
@@ -1034,6 +1525,8 @@ export function App(props: AppProps): JSX.Element {
             page={ui.page ?? 1}
             onPageChange={(page) => applyUiState({ ...ui, page })}
             sel={ui.sel ?? null}
+            /* `EX-SCR-209` (`D8-15`) — régime détecté par la coquille, seule propriétaire du viewport. */
+            regime={regime}
           />
         </>
       );
@@ -1052,6 +1545,21 @@ export function App(props: AppProps): JSX.Element {
           csvMeta={csvMeta}
           degraded={regime === 'compact'}
           isFollowed={followed}
+          /* `EX-SCR-113bis` (`D8-06`/`FV-08`) — `modelId = 0` : mode « Modèle non identifié ». */
+          modelId={modelId}
+          /* `EX-SCR-31`/`175` (`D8-06`/`FV-07`) — bandeau C3 + ligne de représentativité. */
+          snapshotCoverage={
+            descriptor === null
+              ? undefined
+              : {
+                  listingCount: descriptor.listingCount,
+                  announcedListingCount: descriptor.announcedListingCount,
+                  hasUserFilters: currentQuery !== '',
+                }
+          }
+          onOpenMentions={() => navigate('/mentions')}
+          /* `D8-24` (`ET-CHARGE-INIT`/`ET-CHARGE-MAJ`) — un recalcul est EN COURS sur ce périmètre. */
+          recalculating={mode2.status === 'loading'}
           onUiChange={(next) => applyUiState(next)}
           onApplyFilters={(patch) => applyFilters(patch)}
           onViewBrushedListings={(sel) =>
@@ -1077,6 +1585,47 @@ function toCompareBucket(b: { lowerBound: number; upperBound: number; count: num
   count: number;
 } {
   return { lowerBound: b.lowerBound, upperBound: b.upperBound, count: b.count };
+}
+
+/**
+ * `D8-04b` / `FV-04` (`EX-SCR-104`) — couple marque/modèle COMPLET porté par `mmmv`, ou `null`.
+ * Format du sélecteur (`screen-g-model.ts::serializeMmmv`) : `<makeId>` (marque seule, `D-09`) ou
+ * `<makeId>|<modelId>`. Plusieurs blocs = sélection multiple : ce n'est pas la désignation d'UN
+ * modèle, donc pas de redirection.
+ */
+function completeMmmvPair(selection: SelectionState): { makeId: number; modelId: number } | null {
+  const raw = selection['makesModelsVariants'];
+  if (raw === undefined) return null;
+  const blocks = (Array.isArray(raw) ? raw : [raw]).map(String).filter((b) => b.length > 0);
+  if (blocks.length !== 1) return null;
+  const [makeIdStr, modelIdStr] = (blocks[0] as string).split('|');
+  if (modelIdStr === undefined || modelIdStr.length === 0) return null;
+  const makeId = Number(makeIdStr);
+  const modelId = Number(modelIdStr);
+  if (!Number.isFinite(makeId) || !Number.isFinite(modelId)) return null;
+  return { makeId, modelId };
+}
+
+/** `FV-17` (`EX-SCR-126`) — drapeau de SESSION de l'amorce SANS-FILTRE (jamais persistant). */
+const PRIMER_FLAG_KEY = 'kycar:primer-seen';
+function readPrimerFlag(): boolean {
+  try {
+    return typeof sessionStorage !== 'undefined' && sessionStorage.getItem(PRIMER_FLAG_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function writePrimerFlag(): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(PRIMER_FLAG_KEY, '1');
+  } catch {
+    // Stockage refusé (mode privé strict) : l'amorce reviendra, ce n'est pas une valeur affichée.
+  }
+}
+
+/** `EX-SCR-96`/`97` (`D8-15`) — régime du bandeau de filtres, au vocabulaire de `band-model.ts`. */
+function bandRegimeOf(regime: MarketRegime): BandRegime {
+  return regime === 'compact' ? 'compact' : regime === 'intermediate' ? 'intermediaire' : 'large';
 }
 
 /** `EX-NFR-18` — régime responsive courant, mesuré sur les points de rupture partagés de `src/styles`. */
@@ -1115,6 +1664,19 @@ function frDate(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? iso : new Intl.DateTimeFormat('fr-BE', { dateStyle: 'short' }).format(d);
 }
 
+/** `EX-SCR-43` (`D8-14`/`FV-17`) — date COURTE `JJ/MM` du jeton de snapshot (le reste en infobulle). */
+function frDayMonth(iso: string | null): string {
+  if (iso === null) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return new Intl.DateTimeFormat('fr-BE', { day: '2-digit', month: '2-digit' }).format(d);
+}
+
+/** `EX-SCR-46` — effectif formaté à la française (séparateur d'unités de mille insécable). */
+function formatCount(n: number): string {
+  return new Intl.NumberFormat('fr-BE').format(n);
+}
+
 /** Horodatage court `JJ/MM/AAAA HH:MM` de la dernière tentative de mise à jour (`EX-NFR-22`). */
 function frDateTime(iso: string | null): string {
   if (iso === null) return 'inconnue';
@@ -1132,45 +1694,74 @@ function frDateTime(iso: string | null): string {
  * `/mentions` n'est PAS un onglet : c'est un lien du pied de page (`EX-SCR-47`).
  */
 function AppHeader(props: {
-  readonly degraded: boolean;
-  readonly degradedSince: string | null;
-  readonly errorCode: string | null;
-  readonly attemptedAt: string | null;
   readonly sourceKind: string | null;
-  readonly snapshotId: string | null;
   readonly snapshotDate: string | null;
   readonly compareCount: number;
   readonly followedCount: number;
   readonly banner: string | null;
-  readonly unappliedFilterIds: readonly string[];
+  readonly banners: readonly ShellBanner[];
+  readonly regime: MarketRegime;
+  readonly currentQuery: string;
+  readonly breadcrumbCount: number | undefined;
+  readonly breadcrumbCountWithoutTaxonomy: number | null;
   readonly onDismissBanner: () => void;
   readonly onNavigate: (url: string) => void;
   readonly onRetry: () => void;
   readonly breadcrumb: readonly { readonly label: string; readonly href?: string }[];
 }): JSX.Element {
+  /** `EX-SCR-38` — bandeaux repliés derrière le jeton `+k avertissements`, dépliables. */
+  const [bannersExpanded, setBannersExpanded] = useState(false);
+  /** `EX-SCR-38` — bandeaux fermés par l'utilisateur (les non-repliables ne le sont jamais). */
+  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+  /** `EX-SCR-48` (`D8-15`) — en régime compact, la navigation passe par un tiroir. */
+  const [menuOpen, setMenuOpen] = useState(false);
+  const compact = props.regime === 'compact';
+
+  const live = props.banners.filter((b) => !dismissed.has(b.id));
+  const shown = bannersExpanded ? live : live.slice(0, BANNER_STACK_MAX);
+  const hiddenCount = live.length - shown.length;
   const links: ReadonlyArray<{ readonly href: string; readonly label: string }> = [
     { href: '/marche', label: 'Marché' },
     { href: '/comparer', label: 'Comparer' },
     { href: '/recherches', label: 'Recherches' },
     { href: '/suivis', label: 'Suivis' },
   ];
-  /** `EX-SCR-42` — les deux onglets à cardinal portent leur compteur dans leur libellé. */
+  /**
+   * `EX-SCR-42` (`D8-14`/`FV-17`) — les deux onglets à cardinal portent leur compteur dans leur
+   * libellé, MASQUÉ à zéro : « Comparer (0) » annonçait un cardinal là où il n'y a rien à compter.
+   */
   const labelOfTab = (href: string, label: string): string => {
-    if (href === '/comparer') return `Comparer (${props.compareCount})`;
-    if (href === '/suivis') return `Suivis (${props.followedCount})`;
+    if (href === '/comparer') return props.compareCount > 0 ? `Comparer (${props.compareCount})` : 'Comparer';
+    if (href === '/suivis') return props.followedCount > 0 ? `Suivis (${props.followedCount})` : 'Suivis';
     return label;
   };
   // `EX-SCR-44` : comparer exige au moins 2 modèles — l'onglet reste visible mais inopérant.
   const compareDisabled = props.compareCount < 2;
   const age = snapshotAgeDays(props.snapshotDate);
   const freshness = age === null ? 'inconnu' : age < SNAPSHOT_FRESH_DAYS ? 'frais' : age < SNAPSHOT_STALE_DAYS ? 'ancien' : 'perime';
+  /** `EX-SCR-43` (`D8-14`/`FV-17`) — jeton court `Snapshot <JJ/MM>` ; le détail va en infobulle. */
+  const tokenLabel = `Snapshot ${frDayMonth(props.snapshotDate)}`;
+  const tokenTooltip = `Snapshot du ${frDate(props.snapshotDate)}${age === null ? '' : ` — ${age} jour${age > 1 ? 's' : ''}`} (${freshness})`;
+  /** `EX-SCR-42` (`D8-14`/`FV-17`) — la marque renvoie au marché AVEC les filtres courants. */
+  const brandHref = assembleUrl('/marche', props.currentQuery).url;
 
   return (
-    <header class="app-header kycar-header">
-      <a class="kycar-brand" href="/marche" onClick={(e) => { e.preventDefault(); props.onNavigate('/marche'); }}>
+    <header class="app-header kycar-header" data-regime={props.regime}>
+      <a class="kycar-brand" href={brandHref} onClick={(e) => { e.preventDefault(); props.onNavigate(brandHref); }}>
         KYCAR
       </a>
-      <nav aria-label="Navigation principale">
+      {compact ? (
+        <button
+          type="button"
+          class="kycar-nav-toggle no-print"
+          aria-expanded={menuOpen}
+          aria-controls="kycar-nav-drawer"
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          Menu
+        </button>
+      ) : null}
+      <nav aria-label="Navigation principale" id="kycar-nav-drawer" class={compact && !menuOpen ? 'kycar-nav-drawer kycar-nav-drawer--closed' : 'kycar-nav-drawer'}>
         <ul class="kycar-nav">
           {links.map((l) => {
             const disabled = l.href === '/comparer' && compareDisabled;
@@ -1193,10 +1784,9 @@ function AppHeader(props: {
         </ul>
       </nav>
 
-      {/* `EX-SCR-43` — jeton de snapshot : identifiant, date et âge (7 j / 30 j). */}
-      <p class={`kycar-snapshot-token kycar-snapshot-token--${freshness}`}>
-        Snapshot {props.snapshotId ?? '—'} du {frDate(props.snapshotDate)}
-        {age === null ? '' : ` (${age} j)`}
+      {/* `EX-SCR-43` — jeton de snapshot : `Snapshot <JJ/MM>`, le reste en infobulle. */}
+      <p class={`kycar-snapshot-token kycar-snapshot-token--${freshness}`} title={tokenTooltip}>
+        {tokenLabel}
       </p>
 
       {/* `EX-DATA-107` (DR-094) — la source est dite sur TOUS les écrans, pas seulement /mentions. */}
@@ -1221,26 +1811,48 @@ function AppHeader(props: {
             </li>
           ))}
         </ol>
+        {/* `EX-SCR-46` (`D8-05`/`FV-23`) — double compteur : offres de la sélection hors taxonomie,
+            puis effectif du périmètre courant. Chaque nombre absent est tu, jamais remplacé par 0. */}
+        {props.breadcrumbCount !== undefined || props.breadcrumbCountWithoutTaxonomy !== null ? (
+          <p class="kycar-breadcrumb-counts">
+            {props.breadcrumbCountWithoutTaxonomy !== null
+              ? `${formatCount(props.breadcrumbCountWithoutTaxonomy)} offres | `
+              : ''}
+            {props.breadcrumbCount === undefined ? '— ici' : `${formatCount(props.breadcrumbCount)} ici`}
+          </p>
+        ) : null}
       </nav>
 
-      {props.degraded ? (
-        <div class="status-banner kycar-banner-degraded" role="status">
-          Mode dégradé — Données du {frDate(props.degradedSince)} — dernière tentative de mise à jour
-          échouée le {frDateTime(props.attemptedAt)} (code {props.errorCode ?? 'inconnu'}). Les
-          agrégats marqués d’un astérisque proviennent du cache ; l’export est désactivé.
-          <button type="button" class="no-print" onClick={props.onRetry}>
-            Réessayer
-          </button>
+      {/* `EX-SCR-38` — pile de bandeaux d'état : au plus deux, le reste derrière `+k`. */}
+      {shown.map((b) => (
+        <div key={b.id} class={`status-banner ${b.className}`} role="status" data-banner-id={b.id}>
+          <span class="kycar-banner-text">{b.text}</span>
+          {b.retry === true ? (
+            <button type="button" class="no-print" onClick={props.onRetry}>
+              Réessayer
+            </button>
+          ) : null}
+          {b.dismissible ? (
+            <button
+              type="button"
+              class="no-print"
+              aria-label="Fermer ce bandeau"
+              onClick={() => setDismissed((prev) => new Set(prev).add(b.id))}
+            >
+              ×
+            </button>
+          ) : null}
         </div>
+      ))}
+      {hiddenCount > 0 ? (
+        <button type="button" class="kycar-banner-more no-print" onClick={() => setBannersExpanded(true)}>
+          +{hiddenCount} avertissement{hiddenCount > 1 ? 's' : ''}
+        </button>
       ) : null}
-
-      {props.unappliedFilterIds.length > 0 ? (
-        <div class="status-banner kycar-banner-unapplied" role="status">
-          Agrégats filtrés indisponibles — {props.unappliedFilterIds.length === 1 ? 'le filtre' : 'les filtres'}{' '}
-          {props.unappliedFilterIds.join(', ')}{' '}
-          {props.unappliedFilterIds.length === 1 ? "n’a pas pu être appliqué" : "n’ont pas pu être appliqués"} :
-          les chiffres affichés sont ceux de la sélection NON filtrée.
-        </div>
+      {bannersExpanded && live.length > BANNER_STACK_MAX ? (
+        <button type="button" class="kycar-banner-more no-print" onClick={() => setBannersExpanded(false)}>
+          Replier les avertissements
+        </button>
       ) : null}
 
       {props.banner !== null ? (
@@ -1264,6 +1876,7 @@ function AppFooter(props: {
   readonly snapshotDate: string | null;
   readonly diagnostics: readonly (readonly [string, string])[];
   readonly onNavigate: (url: string) => void;
+  readonly onRefresh: () => void;
 }): JSX.Element {
   return (
     <footer class="kycar-footer">
@@ -1286,13 +1899,30 @@ function AppFooter(props: {
             </div>
           ))}
         </dl>
+        {/* `EX-NAV-23`/`25` (`D8-14`/`FV-21`) — action explicite de rafraîchissement du snapshot :
+            elle relâche le jeu de données courant et REDEMANDE le snapshot au provider. */}
+        <p class="kycar-footer-refresh">
+          <button type="button" onClick={props.onRefresh}>
+            Rafraîchir les données
+          </button>
+        </p>
       </details>
     </footer>
   );
 }
 
-/** Barre d'action de l'écran A : « Enregistrer cette recherche » (EX-CRUD-4, dispo sur les 2 écrans). */
-function MarketToolbar(props: { readonly onSave: (nom: string) => void; readonly canSave: boolean }): JSX.Element {
+/**
+ * Barre d'action de l'écran A : « Enregistrer cette recherche » (EX-CRUD-4, dispo sur les 2 écrans).
+ *
+ * `EX-SCR-94` (`D8-14`/`FV-24`) — le champ est PRÉREMPLI par la description des filtres actifs
+ * (`buildSearchDescription`, même modèle que `SaveSearchForm` du bandeau : « Opel Corsa · ≤ 20 000 €
+ * · Belgique »), et non plus laissé vide pour retomber sur « Recherche du <date> ».
+ */
+function MarketToolbar(props: {
+  readonly onSave: (nom: string) => void;
+  readonly canSave: boolean;
+  readonly suggestedName: string;
+}): JSX.Element {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   return (
@@ -1325,7 +1955,14 @@ function MarketToolbar(props: { readonly onSave: (nom: string) => void; readonly
           </button>
         </form>
       ) : (
-        <button type="button" disabled={!props.canSave} onClick={() => setOpen(true)}>
+        <button
+          type="button"
+          disabled={!props.canSave}
+          onClick={() => {
+            setName(props.suggestedName);
+            setOpen(true);
+          }}
+        >
           Enregistrer cette recherche
         </button>
       )}
