@@ -118,6 +118,7 @@ export type {
   ParseModelVersionOptions,
   ParsedModelVersion,
   BadgePower,
+  ParsedFirstRegistration,
 } from './shared-rules';
 export {
   PRICE_SENTINEL_ABSOLUTE_EUR,
@@ -131,6 +132,7 @@ export {
   TRIM_TOKENS_MAX,
   cleanModelVersion,
   parseModelVersion,
+  parseFirstRegistrationYearMonth,
 } from './shared-rules';
 
 // Validation + garde R3.
