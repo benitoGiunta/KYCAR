@@ -1,0 +1,249 @@
+[
+  {
+    "step": "A ouverture d’une annonce (écran D)",
+    "at": "2026-09-08T14:38:18.866Z",
+    "control": {
+      "tag": "BUTTON",
+      "href": null,
+      "target": null,
+      "rel": null,
+      "outer": "<button type=\"button\" class=\"kycar-open\" aria-label=\"Ouvrir l'annonce d'origine\">Ouvrir ↗</button>"
+    },
+    "opened": [
+      {
+        "u": "https://www.autoscout24.be/fr/annonce/opel-corsa/62147",
+        "t": "_blank",
+        "f": "noopener"
+      }
+    ],
+    "popup": null,
+    "banner": null
+  },
+  {
+    "step": "A2 ouverture depuis G8",
+    "at": "2026-09-08T14:38:25.318Z",
+    "lollipopFound": true,
+    "opened": [
+      {
+        "u": "https://www.autoscout24.be/fr/annonce/opel-corsa/62147",
+        "t": "_blank",
+        "f": "noopener"
+      },
+      {
+        "u": "https://www.autoscout24.be/fr/annonce/opel-corsa/62147",
+        "t": "_blank",
+        "f": "noopener"
+      }
+    ],
+    "popup": "chrome-error://chromewebdata/"
+  },
+  {
+    "step": "A3 étiquetage de la base de comparaison (EX-SCR-158bis)",
+    "at": "2026-09-08T14:38:25.366Z",
+    "lollipopTitle": "écart calculé sur : Opel Corsa · n = 1089 · score : écart au prix attendu (M2)",
+    "g8Subtitle": "Écart au prix attendu Voir les données 5 500 € -79,1 % 5 450 € -77,9 % 5 850 € -31,0 % 19 800 € -30,2 % 5 400 € -28,1 % 21 800 € -26,7 % 26 250 € -25,7 % 22 800 € -25,6 % 12 100 € -25,5 % 3 350 € -25,4 % 25 550 € -25,3 % 28 150 € -25,2 % 23 500 € -25,1 % 4 750 € -24,9 % 19 450 € -24,9 % 4 300 € -24,3 % 16 500 € -24,1 % 22 400 € -23,7 % 28 350 € -23,6 % 21 700 € -23,3 %"
+  },
+  {
+    "step": "B modelId = 0",
+    "at": "2026-09-08T14:38:27.658Z",
+    "banners": [
+      "Données synthétiques de démonstration — chiffres générés, sans valeur de marché réelle."
+    ],
+    "titles": [
+      "Offres par prix (24)",
+      "Offres par kilométrage",
+      "Offres par année",
+      "Prix × année × kilométrage",
+      "Prix médian par année",
+      "Dépréciation (base 100)",
+      "Densité prix × km",
+      "Écart au prix attendu",
+      "Répartition par carburant",
+      "Prix par tranche de kilométrage",
+      "Évaluation de prix AutoScout24",
+      "Type de vendeur",
+      "Prix médian par puissance",
+      "Répartition par pays"
+    ],
+    "compareDisabled": false
+  },
+  {
+    "step": "C axe écran A — détail",
+    "at": "2026-09-08T14:38:30.451Z",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": ".kycar-market-card:nth-child(2) > .kycar-market-card-header[role=\"button\"] > .kycar-market-badge[aria-hidden=\"true\"]",
+            "html": "<span class=\"kycar-market-badge\" aria-hidden=\"true\" style=\"background: rgb(202, 43, 69);\">ME</span>",
+            "summary": "Fix any of the following: Element has insufficient color contrast of 3.37 (foreground color: #14171c, background color: #ca2b45, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": ".kycar-market-card:nth-child(3) > .kycar-market-card-header[role=\"button\"] > .kycar-market-badge[aria-hidden=\"true\"]",
+            "html": "<span class=\"kycar-market-badge\" aria-hidden=\"true\" style=\"background: rgb(163, 57, 172);\">AU</span>",
+            "summary": "Fix any of the following: Element has insufficient color contrast of 3.19 (foreground color: #14171c, background color: #a339ac, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": ".kycar-market-card:nth-child(5) > .kycar-market-card-header[role=\"button\"] > .kycar-market-badge[aria-hidden=\"true\"]",
+            "html": "<span class=\"kycar-market-badge\" aria-hidden=\"true\" style=\"background: rgb(40, 127, 189);\">OP</span>",
+            "summary": "Fix any of the following: Element has insufficient color contrast of 4.15 (foreground color: #14171c, background color: #287fbd, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": ".kycar-market-card:nth-child(6) > .kycar-market-card-header[role=\"button\"] > .kycar-market-badge[aria-hidden=\"true\"]",
+            "html": "<span class=\"kycar-market-badge\" aria-hidden=\"true\" style=\"background: rgb(40, 138, 138);\">FO</span>",
+            "summary": "Fix any of the following: Element has insufficient color contrast of 4.35 (foreground color: #14171c, background color: #288a8a, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": ".kycar-market-card:nth-child(7) > .kycar-market-card-header[role=\"button\"] > .kycar-market-badge[aria-hidden=\"true\"]",
+            "html": "<span class=\"kycar-market-badge\" aria-hidden=\"true\" style=\"background: rgb(59, 96, 206);\">PE</span>",
+            "summary": "Fix any of the following: Element has insufficient color contrast of 3.2 (foreground color: #14171c, background color: #3b60ce, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": ".kycar-market-card:nth-child(8) > .kycar-market-card-header[role=\"button\"] > .kycar-market-badge[aria-hidden=\"true\"]",
+            "html": "<span class=\"kycar-market-badge\" aria-hidden=\"true\" style=\"background: rgb(184, 46, 126);\">TO</span>",
+            "summary": "Fix any of the following: Element has insufficient color contrast of 3.19 (foreground color: #14171c, background color: #b82e7e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ],
+        "distinctTargets": [
+          ".kycar-market-card:nth-child(n) > .kycar-market-card-header[role=\"button\"] > .kycar-market-badge[aria-hidden=\"true\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "step": "C2 axe écran A carte dépliée",
+    "at": "2026-09-08T14:38:37.319Z",
+    "rules": [
+      "color-contrast (serious, 30)",
+      "nested-interactive (serious, 120)"
+    ]
+  },
+  {
+    "step": "C3 axe écran G ouvert",
+    "at": "2026-09-08T14:38:44.581Z",
+    "rules": [
+      "aria-allowed-attr (critical, 82)",
+      "color-contrast (serious, 30)",
+      "nested-interactive (serious, 200)"
+    ]
+  },
+  {
+    "step": "D1 écran C : erreurs console et polylines",
+    "at": "2026-09-08T14:38:51.633Z",
+    "errs": [
+      "[C] Error: <polyline> attribute points: Expected number, \"…975903614457835 NaN,54.746987951…\".",
+      "[C] Error: <polyline> attribute points: Expected number, \"….29032258064516 NaN,57.806451612…\".",
+      "[C] Error: <polyline> attribute points: Expected number, \"….29032258064516 NaN,57.290322580…\"."
+    ],
+    "figures": [
+      {
+        "tag": "svg",
+        "cls": "",
+        "polylines": 0,
+        "nanPolylines": 0,
+        "text": ""
+      },
+      {
+        "tag": "svg",
+        "cls": "",
+        "polylines": 0,
+        "nanPolylines": 0,
+        "text": ""
+      },
+      {
+        "tag": "svg",
+        "cls": "",
+        "polylines": 0,
+        "nanPolylines": 0,
+        "text": ""
+      },
+      {
+        "tag": "svg",
+        "cls": "",
+        "polylines": 0,
+        "nanPolylines": 0,
+        "text": ""
+      },
+      {
+        "tag": "svg",
+        "cls": "",
+        "polylines": 2,
+        "nanPolylines": 2,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "step": "D2 écran B : erreurs console et NaN",
+    "at": "2026-09-08T14:38:54.752Z",
+    "errs": [],
+    "nan": []
+  },
+  {
+    "step": "E média print — règles et états",
+    "at": "2026-09-08T14:38:54.775Z",
+    "filterBar": [
+      {
+        "sel": ".kycar-filter-bar",
+        "cls": "filter-bar kycar-filter-bar",
+        "display": "none",
+        "position": "static"
+      }
+    ],
+    "bandRoot": [
+      {
+        "sel": ".filter-bar > *",
+        "cls": "kycar-filter-band",
+        "display": "block",
+        "position": "static"
+      },
+      {
+        "sel": ".filter-bar > *",
+        "cls": "kycar-print-filter-summary print-filter-summary",
+        "display": "none",
+        "position": "static"
+      }
+    ],
+    "printSummary": [
+      {
+        "sel": ".kycar-print-filter-summary",
+        "cls": "kycar-print-filter-summary print-filter-summary",
+        "display": "none",
+        "position": "static"
+      }
+    ],
+    "header": [
+      {
+        "sel": ".kycar-header",
+        "cls": "app-header kycar-header",
+        "display": "flex",
+        "position": "static"
+      }
+    ],
+    "c3": [
+      {
+        "sel": ".kycar-market-banner-c3",
+        "cls": "kycar-market-banner-c3 summary-bar-c3",
+        "display": "block",
+        "position": "static"
+      }
+    ],
+    "rules": [
+      ".app-header, .filter-bar, .summary-bar { position: static !important; top: auto !important; }",
+      ".status-banner, .summary-bar-c3 { display: block !important; }",
+      ".filter-bar { display: none; }",
+      ".print-filter-summary { display: block; white-space: pre-line; }",
+      "button, input, select, textarea, [role=\"button\"], .no-print { display: none !important; }"
+    ]
+  },
+  {
+    "step": "P4 fin",
+    "at": "2026-09-08T14:38:54.779Z",
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  }
+]

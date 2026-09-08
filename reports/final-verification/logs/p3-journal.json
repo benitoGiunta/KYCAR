@@ -1,0 +1,255 @@
+[
+  {
+    "step": "A clic sur une barre de G1 (EX-SCR-149)",
+    "at": "2026-09-08T14:35:04.495Z",
+    "barsFound": 39,
+    "chosen": {
+      "label": "10 500 € à 11 000 €: 6 offres",
+      "count": 6
+    },
+    "urlAfter": "http://localhost:4173/marche/54-opel/1918-corsa?fregfrom=2017&fregto=2017&pricefrom=10500&priceto=10999",
+    "headerBefore": "Opel Corsa 54 offres médiane 15 200 € P25 12 238 € P75 17 20",
+    "headerAfter": "Opel Corsa 6 offres médiane 10 750 € P25 10 675 € P75 10 825 € min 10 600 € – max 10 950 € (du moins cher au plus cher) ",
+    "band": "2 filtres actifs Prix : 10 500 € – 10 999 €× Première immatriculation : 2 017 – 2 017× Tout effacer"
+  },
+  {
+    "screenshot": "reports/final-verification/P3-A-clic-barre.png"
+  },
+  {
+    "step": "AXE écran B (Corsa 2017, après clic barre)",
+    "at": "2026-09-08T14:35:06.634Z",
+    "violations": 0,
+    "nodesByImpact": {},
+    "rules": [],
+    "passes": 31
+  },
+  {
+    "step": "B écran D (chemin chaud)",
+    "at": "2026-09-08T14:35:07.420Z",
+    "rendered": true,
+    "url": "http://localhost:4173/marche/54-opel/1918-corsa/annonces?fregfrom=2017&fregto=2017&pricefrom=10500&priceto=10999",
+    "head": "Annonces — Opel Corsa 6 lignes affichées sur 6 de la sélection — écarts calculés sur les 6 Tri : prix croissant (aucun score d’opportunité) CSV des annonces du périmètre CSV des agrégats affichés",
+    "scope": "6 lignes affichées sur 6 de la sélection — écarts calculés sur les 6",
+    "foot": "6 annonces Précédent page 1 / 1 Suivant",
+    "pager": "Précédent page 1 / 1 Suivant",
+    "rows": 6,
+    "headers": [
+      "Version",
+      "Prix",
+      "Écart attendu",
+      "Km",
+      "1ʳᵉ immat.",
+      "Année-mod.",
+      "Puissance",
+      "Carburant",
+      "Conso.",
+      "CO₂",
+      "Propr.",
+      "Éval. AS24",
+      "Vendeur",
+      "Pays",
+      "Lien"
+    ],
+    "first2": [
+      "385 kW Electric 10 600 € 219 000 km 11/2017 mod. 2017 385 kW Electrique 0 g/km 2 Un peu cher Professionnel Belgique Ouvrir ↗",
+      "3.3 TSI 10 650 € 164 200 km 12/2017 mod. 2017 363 kW Essence 14,5 l/100 km 340 g/km 4 Offre équitable Professionnel Belgique Ouvrir ↗"
+    ]
+  },
+  {
+    "screenshot": "reports/final-verification/P3-B-ecran-D.png"
+  },
+  {
+    "step": "AXE écran D",
+    "at": "2026-09-08T14:35:08.837Z",
+    "violations": 0,
+    "nodesByImpact": {},
+    "rules": [],
+    "passes": 29
+  },
+  {
+    "step": "B ouverture d’une annonce (seul lien sortant)",
+    "at": "2026-09-08T14:35:16.847Z",
+    "popupOpened": false,
+    "popupUrl": null,
+    "external": null,
+    "opener": null
+  },
+  {
+    "step": "B tri colonne",
+    "at": "2026-09-08T14:35:17.393Z",
+    "url": "http://localhost:4173/marche/54-opel/1918-corsa/annonces?fregfrom=2017&fregto=2017&pricefrom=10500&priceto=10999",
+    "firstRow": "385 kW Electric 10 600 € 219 000 km 11/2017 mod. 2017 385 kW Electrique 0 g/km 2 Un peu cher Professionnel Belgique Ouvrir ↗"
+  },
+  {
+    "step": "C1 enregistrement d’une recherche",
+    "at": "2026-09-08T14:35:20.236Z",
+    "banner": "Recherche enregistrée (un nom identique existait déjà). ×",
+    "nav": "Marché Comparer (0) Recherches Suivis (0)"
+  },
+  {
+    "step": "C2 sélection de comparaison",
+    "at": "2026-09-08T14:35:25.093Z",
+    "nav": "Marché Comparer (2) Recherches Suivis (0)"
+  },
+  {
+    "step": "C3 écran E /recherches",
+    "at": "2026-09-08T14:35:27.655Z",
+    "main": "Recherches sauvegardées Recherche du 8/09/26 16:35 Mode 1 · 2 656 offres à la création · créée le 8 sept. 2026 2 656 offres actuellement Renommer Supprimer Recherches récentes Vider l’historique /marche?body=3&kmto=100000&priceto=20000 8 sept. 2026 /marche/54-opel/1918-corsa?fregfrom=2017&fregto=2017&pricefrom=10500&priceto=10999 8 sept. 2026 /marche/54-opel/1918-corsa?fregfrom=2017&fregto=2017 8 sept. 2026 /marche/54-opel/1918-corsa?fregfrom=2017 8 sept. 2026 /marche/54-opel/1918-corsa 8 sept. 2026"
+  },
+  {
+    "screenshot": "reports/final-verification/P3-C3-ecran-E.png"
+  },
+  {
+    "step": "AXE écran E",
+    "at": "2026-09-08T14:35:29.116Z",
+    "violations": 0,
+    "nodesByImpact": {},
+    "rules": [],
+    "passes": 22
+  },
+  {
+    "step": "C4 écran F /suivis",
+    "at": "2026-09-08T14:35:35.546Z",
+    "main": "Modèles suivis (1 / 30 modèles suivis) Opel Corsa suivi depuis le 8 sept. 2026 1 352 offres actuellement Ne plus suivre"
+  },
+  {
+    "screenshot": "reports/final-verification/P3-C4-ecran-F.png"
+  },
+  {
+    "step": "AXE écran F",
+    "at": "2026-09-08T14:35:36.988Z",
+    "violations": 0,
+    "nodesByImpact": {},
+    "rules": [],
+    "passes": 22
+  },
+  {
+    "step": "C5 écran C /comparer?m=54-1918,74-2084",
+    "at": "2026-09-08T14:35:43.065Z",
+    "main": "Comparer des modèles Tout retirer Comparaison des agrégats de 2 modèles Critère Opel Corsa Ouvrir Retirer Volkswagen Golf Ouvrir Retirer Distribution des prix (G1) Distribution des années (G3) Prix superposés (G5, échelle commune) Nombre d’offres 1 352 1 750 Prix (P05–P95) 3 800 – 51 600 € 1 150 – 15 950 € Année (P05–P95) 2 008 – 2 026 2 007 – 2 026 Kilométrage (P05–P95) 58 – 279 200 km 58 – 281 600 km",
+    "figures": 5,
+    "h3": [],
+    "filterBar": false
+  },
+  {
+    "screenshot": "reports/final-verification/P3-C5-ecran-C.png"
+  },
+  {
+    "step": "AXE écran C",
+    "at": "2026-09-08T14:35:44.608Z",
+    "violations": 0,
+    "nodesByImpact": {},
+    "rules": [],
+    "passes": 25
+  },
+  {
+    "step": "C6 /mentions",
+    "at": "2026-09-08T14:35:45.460Z",
+    "main": "Mentions et méthodologie Données actuellement affichées : jeu synthétique de démonstration (source : kycar-synthetic D3-1.0.0 · snapshot be-synthetic-100000-4b594341) — capture du 2026-09-01T00:00:00.000Z. Ce que montre KYCAR KYCAR est un outil d’analyse : il ne liste pas des annonces, il montre la structure statistique de l’offre (effectifs, fourchettes de prix, d’année et de kilométrage, puis distributions fines) pour faire ressortir les anomalies. Aucune valeur affichée n’est inventée : une donnée absente est signalée comme inconnue, jamais comblée. Sources et limites de collecte Il n’existe aucune API publique de lecture chez la place de marché ciblée ; les agrégats proviennent donc soit d’un jeu synthétique clairement étiqueté, soit d’un adaptateur de source réelle lorsqu’il est disponible. La source réelle visée est 2dehands.be / marktplaats.nl (même plateforme, groupe Adevinta) : "
+  },
+  {
+    "step": "AXE /mentions",
+    "at": "2026-09-08T14:35:45.845Z",
+    "violations": 0,
+    "nodesByImpact": {},
+    "rules": [],
+    "passes": 21
+  },
+  {
+    "step": "D1 URL fautive (EX-NAV-21/22)",
+    "at": "2026-09-08T14:35:46.559Z",
+    "landed": "http://localhost:4173/marche?fuel=Z,B&pricefrom=abc&kmfrom=100000&kmto=1000&foo=1&priceto=99999999",
+    "banners": [
+      "Données synthétiques de démonstration — chiffres générés, sans valeur de marché réelle.",
+      "Couverture d’échantillon non applicable sous filtre — 100 000 annonces observées",
+      "242 marques correspondent — affinez pour comparer"
+    ],
+    "band": "3 filtres actifs Prix : ≤ 100 000 €× Kilométrage : 1 000 km – 100 000 km× Carburant : Essence× Tout effacer"
+  },
+  {
+    "screenshot": "reports/final-verification/P3-D1-url-corrigee.png"
+  },
+  {
+    "step": "D2 route héritée /",
+    "at": "2026-09-08T14:35:48.398Z",
+    "landed": "http://localhost:4173/marche"
+  },
+  {
+    "step": "D3 route héritée /modele/54/1918",
+    "at": "2026-09-08T14:35:51.435Z",
+    "landed": "http://localhost:4173/marche/54-opel/1918-corsa?priceto=20000",
+    "screenB": true
+  },
+  {
+    "step": "D4 slug erroné (EX-SCR-140)",
+    "at": "2026-09-08T14:35:54.482Z",
+    "landed": "http://localhost:4173/marche/54-opel/1918-corsa?priceto=20000",
+    "screenB": true
+  },
+  {
+    "step": "D5 marque inconnue (EX-NAV-19)",
+    "at": "2026-09-08T14:35:56.046Z",
+    "main": "Marque inconnue La marque « 999999 » ne figure pas dans le référentiel du snapshot. Revenir au marché (vos filtres sont conservés)"
+  },
+  {
+    "step": "D6 modèle hors marque (EX-NAV-20)",
+    "at": "2026-09-08T14:35:57.611Z",
+    "main": "Ce modèle n’existe pas pour cette marque Le modèle « 424242 » n’appartient pas à la marque « 54 » dans le référentiel du snapshot. Revenir au marché (vos filtres sont conservés)",
+    "link": "/marche?priceto=20000"
+  },
+  {
+    "step": "D7 modelId = 0 (EX-SCR-113bis)",
+    "at": "2026-09-08T14:36:00.672Z",
+    "landed": "http://localhost:4173/marche/54-opel/0-modele-non-identifie",
+    "main": "Opel Modèle non identifié Enregistrer cette recherche Suivre Comparer Voir les annonces Opel Modèle non identifié 26 offres médiane 6 200 € P25 3 400 € P75 8 788 € min 900 € – max 18 050 € (du moins cher au plus cher) km médian 83 700 km 1ʳᵉ immat. médiane 2020 0 % particuliers Voir les 26 annonces "
+  },
+  {
+    "step": "E1 média print (EX-NFR-31)",
+    "at": "2026-09-08T14:36:01.198Z",
+    "filterBand": "block",
+    "printSummary": "none",
+    "header": "static",
+    "summaryBar": "static",
+    "c3": "block",
+    "noPrintCount": 0,
+    "summaryText": "Filtres actifs : priceto=20000"
+  },
+  {
+    "step": "E2 premier arrêt de tabulation (EX-NFR-12)",
+    "at": "2026-09-08T14:36:01.210Z",
+    "tag": "BUTTON",
+    "text": "Enregistrer cette recherche",
+    "href": null
+  },
+  {
+    "step": "AXE écran A (priceto=20000)",
+    "at": "2026-09-08T14:36:02.955Z",
+    "violations": 1,
+    "nodesByImpact": {
+      "serious": 30
+    },
+    "rules": [
+      "color-contrast (serious, 30 nœuds)"
+    ],
+    "passes": 27
+  },
+  {
+    "step": "E3 coquille S0",
+    "at": "2026-09-08T14:36:02.980Z",
+    "snapshotToken": "Snapshot be-synthetic-100000-4b594341 du 1/09/26 (7 j)",
+    "footer": "Source : AutoScout24 — agrégat non affilié. Données du 1/09/26 — jeu de données synthétique de démonstration. Mentions légales Diagnostic",
+    "nav": "Marché Comparer (0) Recherches Suivis (1)",
+    "title": "KYCAR — Survol du marché"
+  },
+  {
+    "step": "P3 fin",
+    "at": "2026-09-08T14:36:02.980Z",
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "[error] Error: <polyline> attribute points: Expected number, \"…975903614457835 NaN,54.746987951…\".",
+      "[error] Error: <polyline> attribute points: Expected number, \"….29032258064516 NaN,57.806451612…\".",
+      "[error] Error: <polyline> attribute points: Expected number, \"….29032258064516 NaN,57.290322580…\"."
+    ],
+    "pageErrors": []
+  }
+]

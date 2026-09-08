@@ -1,0 +1,126 @@
+{
+  "stats": {
+    "A": {
+      "COUVERTE": 113,
+      "PARTIELLE": 19,
+      "NON COUVERTE": 5,
+      "HORS PÉRIMÈTRE": 3,
+      "total": 140
+    },
+    "B": {
+      "COUVERTE": 131,
+      "PARTIELLE": 76,
+      "NON COUVERTE": 22,
+      "HORS PÉRIMÈTRE": 2,
+      "total": 231
+    },
+    "C": {
+      "COUVERTE": 91,
+      "PARTIELLE": 18,
+      "NON COUVERTE": 1,
+      "HORS PÉRIMÈTRE": 4,
+      "total": 114
+    },
+    "C·NAV": {
+      "COUVERTE": 23,
+      "PARTIELLE": 4,
+      "NON COUVERTE": 1,
+      "HORS PÉRIMÈTRE": 0,
+      "total": 28
+    },
+    "C·SRCH": {
+      "COUVERTE": 25,
+      "PARTIELLE": 5,
+      "NON COUVERTE": 0,
+      "HORS PÉRIMÈTRE": 4,
+      "total": 34
+    },
+    "C·CRUD": {
+      "COUVERTE": 20,
+      "PARTIELLE": 0,
+      "NON COUVERTE": 0,
+      "HORS PÉRIMÈTRE": 0,
+      "total": 20
+    },
+    "C·NFR": {
+      "COUVERTE": 23,
+      "PARTIELLE": 9,
+      "NON COUVERTE": 0,
+      "HORS PÉRIMÈTRE": 0,
+      "total": 32
+    },
+    "P": {
+      "COUVERTE": 6,
+      "PARTIELLE": 0,
+      "NON COUVERTE": 0,
+      "HORS PÉRIMÈTRE": 0,
+      "total": 6
+    },
+    "total485": {
+      "COUVERTE": 335,
+      "PARTIELLE": 113,
+      "NON COUVERTE": 28,
+      "HORS PÉRIMÈTRE": 9,
+      "total": 485
+    },
+    "all": {
+      "COUVERTE": 341,
+      "PARTIELLE": 113,
+      "NON COUVERTE": 28,
+      "HORS PÉRIMÈTRE": 9,
+      "total": 491
+    }
+  },
+  "rates": {
+    "A": {
+      "couverte": "80.7",
+      "couverteOuHors": "82.9",
+      "horsPerimetreExclu": "82.5"
+    },
+    "B": {
+      "couverte": "56.7",
+      "couverteOuHors": "57.6",
+      "horsPerimetreExclu": "57.2"
+    },
+    "C": {
+      "couverte": "79.8",
+      "couverteOuHors": "83.3",
+      "horsPerimetreExclu": "82.7"
+    },
+    "C·NAV": {
+      "couverte": "82.1",
+      "couverteOuHors": "82.1",
+      "horsPerimetreExclu": "82.1"
+    },
+    "C·SRCH": {
+      "couverte": "73.5",
+      "couverteOuHors": "85.3",
+      "horsPerimetreExclu": "83.3"
+    },
+    "C·CRUD": {
+      "couverte": "100.0",
+      "couverteOuHors": "100.0",
+      "horsPerimetreExclu": "100.0"
+    },
+    "C·NFR": {
+      "couverte": "71.9",
+      "couverteOuHors": "71.9",
+      "horsPerimetreExclu": "71.9"
+    },
+    "P": {
+      "couverte": "100.0",
+      "couverteOuHors": "100.0",
+      "horsPerimetreExclu": "100.0"
+    },
+    "total485": {
+      "couverte": "69.1",
+      "couverteOuHors": "70.9",
+      "horsPerimetreExclu": "70.4"
+    },
+    "all": {
+      "couverte": "69.5",
+      "couverteOuHors": "71.3",
+      "horsPerimetreExclu": "70.7"
+    }
+  }
+}

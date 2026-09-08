@@ -1,0 +1,24 @@
+
+> kycar@0.1.0 size
+> node tools/check-bundle-size.mjs
+
+
+[size] initial bundle (static from entry) - EX-NFR-10:
+     88.50 KiB  assets/index-BSSmQp_l.js  (index.html)
+  ----------------------------------------
+     88.50 KiB  TOTAL
+
+[size] chunks shipped outside the manifest graph (worker) - EX-NFR-10:
+     10.63 KiB  assets/aggregation.worker-DxWTsNLS.js  (hors manifest)
+  ----------------------------------------
+     10.63 KiB  TOTAL
+
+[size] no deferred (dynamically-imported) chunk yet - EX-NFR-11 not applicable in D1.
+
+[size] budgets: initial 99.13/300 KiB gzip, deferred 0.00/400 KiB gzip.
+[size] OK: within budget.
+
+real	0m0.196s
+user	0m0.184s
+sys	0m0.025s
+SIZE EXIT=0

@@ -1,0 +1,53 @@
+[
+  {
+    "step": "C clés localStorage après 1 suivi + 1 recherche (D-16)",
+    "at": "2026-09-08T14:46:31.028Z",
+    "keys": [
+      "kycar:followed-models#index = [\"54:1918\"]",
+      "kycar:followed-models/54:1918 = {\"schemaVersion\":1,\"makeId\":54,\"modelId\":1918,\"ajouteLe\":\"2026-09-08T14:46:30.316Z\"}",
+      "kycar:recent-history#index = [\"e12ydj\"]",
+      "kycar:recent-history/e12ydj = {\"schemaVersion\":1,\"url\":\"/marche/54-opel/1918-corsa\",\"visiteLe\":\"2026-09-08T14:46:29.077Z",
+      "kycar:saved-searches#index = [\"7b44ab2f-b099-4b84-856b-64d62ff34470\"]",
+      "kycar:saved-searches/7b44ab2f-b099-4b84-856b-64d62ff34470 = {\"schemaVersion\":1,\"id\":\"7b44ab2f-b099-4b84-856b-64d62ff34470\",\"nom\":\"Corsa toutes années\""
+    ]
+  },
+  {
+    "step": "D écran B à zéro résultat (EX-SCR-174)",
+    "at": "2026-09-08T14:46:33.844Z",
+    "header": "Opel Corsa 3 offres médiane 2 436 700 € P25 1 304 175 € P75 2 624 650 € min 171 650 € – max 2 812 600 € (du moins cher au plus cher) km médian 37 600 km 1ʳᵉ immat. médiane 2024 0 % particuliers Voir l",
+    "main": "Opel Corsa Enregistrer cette recherche Ne plus suivre Comparer Voir les annonces Opel Corsa 3 offres médiane 2 436 700 € P25 1 304 175 € P75 2 624 650 € min 171 650 € – max 2 812 600 € (du moins cher au plus cher) km médian 37 600 km 1ʳᵉ immat. médiane 2024 0 % particuliers Voir les 3 annonces Comparer Suivi ✓ Exporter Offres par prix Voir les données 1 0 −∞ 250 000 € 350 000 € 450 000 € 550 000 € 650 000 € 750 000 € 850 000 € 950 000 € 1 050 000 € 1 150 000 € 1 250 000 € 1 350 000 € 1 450 000 €",
+    "figures": 14
+  },
+  {
+    "screenshot": "reports/final-verification/P5-D-ecran-B-vide.png"
+  },
+  {
+    "step": "E écran D pagination (EX-SCR-208 / D-12)",
+    "at": "2026-09-08T14:46:39.872Z",
+    "pagerBefore": "Précédent page 1 / 26 Suivant",
+    "url": "http://localhost:4173/marche/54-opel/1918-corsa/annonces?kmto=300000&page=2",
+    "pagerAfter": "Précédent page 2 / 26 Suivant",
+    "rows": 50,
+    "foot": "1281 annonces Précédent page 2 / 26 Suivant"
+  },
+  {
+    "step": "E retour arrière après pagination (replaceState attendu → revient à B ?)",
+    "at": "2026-09-08T14:46:40.591Z",
+    "url": "http://localhost:4173/marche/54-opel/1918-corsa?kmto=300000",
+    "screenB": true,
+    "screenD": false
+  },
+  {
+    "step": "F écran G → Opel Corsa → Appliquer",
+    "at": "2026-09-08T14:46:43.001Z",
+    "opelRow": true,
+    "corsaRow": false,
+    "applyDisabled": true,
+    "url": "http://localhost:4173/marche?fregfrom=2017&fregto=2017",
+    "screenB": false,
+    "summary": "145 marques · 0 modèles · 4 170 offres — 36 marques affichées Trier par Nombre d'offres Prix médian Alphabétique Nombre de modèles ↓ Masquer les modèles à moins de 3 offresExporter"
+  },
+  {
+    "screenshot": "reports/final-verification/P5-F-apres-ecran-G.png"
+  }
+]

@@ -1,0 +1,45 @@
+
+> kycar@0.1.0 test:perf
+> vitest run --config vitest.perf.config.ts
+
+
+ RUN  v3.2.7 /home/user/KYCAR
+
+stdout | src/engine/recalc.perf.test.ts > D4 — performance du recalcul (EX-NFR-4bis / EX-NFR-5) > recalcul FULL (pire cas non filtré) : p50/p95 réels sur 100 exécutions à N=100000
+[perf recalc] N=100000 runs=100 : p50=152.4ms p95=165.5ms max=192.9ms — cible EX-NFR-5 p95≤200ms : TENUE
+
+stdout | src/engine/recalc.perf.test.ts > D4 — performance du recalcul (EX-NFR-4bis / EX-NFR-5) > recalcul d’une sélection ÉLAGUÉE (marque) tient la cible ≤ 200 ms p95
+[perf recalc élagué] plus grande marque (m=9283) : p50=45.4ms p95=54.1ms max=58.7ms
+
+stdout | src/engine/recalc.perf.test.ts > D4 — performance du recalcul (EX-NFR-4bis / EX-NFR-5) > facettes différées ≤ 100 ms au p95 (8 filtres, un seul balayage)
+[perf facettes] 8 filtres : p50=19.1ms p95=21.8ms
+
+stdout | src/engine/recalc.perf.test.ts > D4 — élagage taxonomique (EX-DATA-116) > une sélection modèle travaille sur m ≪ N (facteur > 100)
+[élagage] modèle 51859:75836 : m=8 (attendu 8), pruned=true, facteur N/scannedCount = 12500× ; [distribution modèles] min=1 médiane=8 max=2008 (3120 modèles)
+
+stdout | src/engine/recalc.perf.test.ts > D4 — élagage taxonomique (EX-DATA-116) > une sélection marque élague aussi (départ de IDX_MAKE)
+[élagage marque] make 6 : m=691 (attendu 691) pruned=true facteur=144.7×
+
+ ✓ src/engine/recalc.perf.test.ts (5 tests) 24835ms
+   ✓ D4 — performance du recalcul (EX-NFR-4bis / EX-NFR-5) > recalcul FULL (pire cas non filtré) : p50/p95 réels sur 100 exécutions à N=100000  16785ms
+   ✓ D4 — performance du recalcul (EX-NFR-4bis / EX-NFR-5) > recalcul d’une sélection ÉLAGUÉE (marque) tient la cible ≤ 200 ms p95  5061ms
+   ✓ D4 — performance du recalcul (EX-NFR-4bis / EX-NFR-5) > facettes différées ≤ 100 ms au p95 (8 filtres, un seul balayage)  2104ms
+stdout | src/screens/distribution/scatter.perf.test.ts > nuage G4 — performance (EX-NFR-7/8) > EX-NFR-7 : rendu initial de ≤ 5 000 points ≤ 500 ms au p95
+[EX-NFR-7] points=5000 p50=1.18ms p95=3.92ms checksum=145713958.18292892
+
+stdout | src/screens/distribution/scatter.perf.test.ts > nuage G4 — performance (EX-NFR-7/8) > EX-NFR-8 : ≥ 30 img/s dans ≥ 95 % des fenêtres de 1 s sur 10 s d’interaction
+[EX-NFR-8] frames=8390 windows=91 failing=0 okRatio=100.0% minFpsInstant=172 checksum=30202883613.771614
+
+ ✓ src/screens/distribution/scatter.perf.test.ts (2 tests) 10075ms
+   ✓ nuage G4 — performance (EX-NFR-7/8) > EX-NFR-8 : ≥ 30 img/s dans ≥ 95 % des fenêtres de 1 s sur 10 s d’interaction  10006ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  14:21:37
+   Duration  37.39s (transform 767ms, setup 0ms, collect 1.96s, tests 34.91s, environment 0ms, prepare 120ms)
+
+
+real	0m38.188s
+user	0m40.386s
+sys	0m2.018s
+PERF EXIT=0

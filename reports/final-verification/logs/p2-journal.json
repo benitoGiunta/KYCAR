@@ -1,0 +1,308 @@
+[
+  {
+    "step": "P2-1 écran B Opel Corsa",
+    "at": "2026-09-08T14:28:53.483Z",
+    "url": "http://localhost:4173/marche/54-opel/1918-corsa",
+    "wallMs": 2182,
+    "sinceNavigationStartMs": 2200,
+    "domContentLoadedMs": 67,
+    "loadEventMs": 67,
+    "transferBytes": 211653,
+    "resourceCount": 22,
+    "title": "KYCAR — Distribution d’un modèle · Opel Corsa"
+  },
+  {
+    "step": "P2-1 en-tête statistique",
+    "at": "2026-09-08T14:28:53.511Z",
+    "header": "Opel Corsa 1352 offres médiane 25 100 € P25 13 900 € P75 36 888 € min 2 500 € – max 2 812 600 € (du moins cher au plus cher) km médian 70 850 km 1ʳᵉ immat. médiane 2021 0 % particuliers Voir les 1352 annonces Comparer Suivre Exporter",
+    "lines": [
+      "Opel Corsa 1352 offres médiane 25 100 € P25 13 900 € P75 36 888 € min 2 500 € – max 2 812 600 € (du moins cher au plus cher)",
+      "km médian 70 850 km 1ʳᵉ immat. médiane 2021 0 % particuliers",
+      "Voir les 1352 annonces Comparer Suivre Exporter"
+    ]
+  },
+  {
+    "step": "P2-1 bandeaux",
+    "at": "2026-09-08T14:28:53.522Z",
+    "banners": [
+      "Données synthétiques de démonstration — chiffres générés, sans valeur de marché réelle."
+    ]
+  },
+  {
+    "step": "P2-1 titres de graphes",
+    "at": "2026-09-08T14:28:53.585Z",
+    "titles": [
+      "Offres par prix (1246)",
+      "Offres par kilométrage (1332)",
+      "Offres par année (1337)",
+      "Prix × année × kilométrage",
+      "Prix médian par année",
+      "Dépréciation (base 100)",
+      "Densité prix × km",
+      "Écart au prix attendu",
+      "Répartition par carburant",
+      "Prix par tranche de kilométrage",
+      "Évaluation de prix AutoScout24",
+      "Type de vendeur",
+      "Prix médian par puissance",
+      "Répartition par pays"
+    ]
+  },
+  {
+    "step": "P2-1 détail des 14 figures",
+    "at": "2026-09-08T14:28:53.589Z",
+    "figures": [
+      {
+        "title": "Offres par prix (1246)",
+        "hasTable": true,
+        "svg": 1,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Offres par prix (1246)Voir les données8302 500 € – 5 000 € · 83 offres · 6.7 %5 000 € – 7 500 € · 65 offres · 5.2 %7 500 € – 10 000 € · 72 offres · 5.8 %10 000 € – 12 500 € · 66 offres · 5.3 %12 500 € – 15 000 € · 55 off"
+      },
+      {
+        "title": "Offres par kilométrage (1332)",
+        "hasTable": true,
+        "svg": 1,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Offres par kilométrage (1332)Voir les données21800 km – 20 000 km · 218 offres · 16.4 %20 000 km – 40 000 km · 189 offres · 14.2 %40 000 km – 60 000 km · 189 offres · 14.2 %60 000 km – 80 000 km · 129 offres · 9.7 %80 00"
+      },
+      {
+        "title": "Offres par année (1337)",
+        "hasTable": true,
+        "svg": 1,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Offres par année (1337)Voir les données1390−∞ – 2001 · 9 offres · 0.7 %2001 – 2002 · 5 offres · 0.4 %2002 – 2003 · 4 offres · 0.3 %2003 – 2004 · 5 offres · 0.4 %2004 – 2005 · 6 offres · 0.4 %2005 – 2006 · 7 offres · 0.5 "
+      },
+      {
+        "title": "Prix × année × kilométrage",
+        "hasTable": true,
+        "svg": 0,
+        "canvas": 1,
+        "empty": null,
+        "note": "année non renseignée sur les 0 offres",
+        "textHead": "Prix × année × kilométrageNuée empiléePrix × annéeannée non renseignée sur les 0 offres+−RéinitialiserVoir les donnéesKilométrage0 km – 1 kmTaillepuissance (kW) — sinon taille fixe, taille non porteuse d'information0 out"
+      },
+      {
+        "title": "Prix médian par année",
+        "hasTable": true,
+        "svg": 1,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Prix médian par annéeVoir les donnéesClassenPrix médian"
+      },
+      {
+        "title": "Dépréciation (base 100)",
+        "hasTable": false,
+        "svg": 0,
+        "canvas": 0,
+        "empty": "Dépréciation non calculable — il faut au moins 3 années comptant chacune 5 offres",
+        "note": null,
+        "textHead": "Dépréciation (base 100)Voir les donnéesDépréciation non calculable — il faut au moins 3 années comptant chacune 5 offresDépréciation non calculable — il faut au moins 3 années comptant chacune 5 offres"
+      },
+      {
+        "title": "Densité prix × km",
+        "hasTable": false,
+        "svg": 0,
+        "canvas": 0,
+        "empty": "Densité non calculable en dessous de 40 offres — voir la nuée ci-dessus",
+        "note": null,
+        "textHead": "Densité prix × kmVoir les donnéesDensité non calculable en dessous de 40 offres — voir la nuée ci-dessusDensité non calculable en dessous de 40 offres — voir la nuée ci-dessus"
+      },
+      {
+        "title": "Écart au prix attendu",
+        "hasTable": true,
+        "svg": 0,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Écart au prix attenduVoir les donnéesÉcarts au prix attendu (base de comparaison en légende)PrixÉcartPrix attenduBase"
+      },
+      {
+        "title": "Répartition par carburant",
+        "hasTable": true,
+        "svg": 0,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Répartition par carburantVoir les donnéesRépartition par carburantClasseEffectifPartPrix médian"
+      },
+      {
+        "title": "Prix par tranche de kilométrage",
+        "hasTable": true,
+        "svg": 0,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Prix par tranche de kilométrageVoir les donnéesBoîtes de prix par tranche de kmTranche kmnP25MédianeP75"
+      },
+      {
+        "title": "Évaluation de prix AutoScout24",
+        "hasTable": true,
+        "svg": 0,
+        "canvas": 0,
+        "empty": null,
+        "note": "Évaluation calculée par AutoScout24, méthode non publiée.",
+        "textHead": "Évaluation de prix AutoScout24Voir les donnéesÉvaluation calculée par AutoScout24, méthode non publiée.Évaluation de prix AutoScout24ClasseEffectifPartPrix médian"
+      },
+      {
+        "title": "Type de vendeur",
+        "hasTable": true,
+        "svg": 0,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Type de vendeurVoir les donnéesType de vendeurClasseEffectifPartPrix médian"
+      },
+      {
+        "title": "Prix médian par puissance",
+        "hasTable": true,
+        "svg": 1,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Prix médian par puissanceVoir les donnéesPrix médian par palier de 20 kWPaliernMédiane"
+      },
+      {
+        "title": "Répartition par pays",
+        "hasTable": true,
+        "svg": 0,
+        "canvas": 0,
+        "empty": null,
+        "note": null,
+        "textHead": "Répartition par paysVoir les donnéesRépartition par paysClasseEffectifPartPrix médian"
+      }
+    ]
+  },
+  {
+    "step": "P2-1 histogrammes",
+    "at": "2026-09-08T14:28:53.614Z",
+    "count": 3,
+    "notes": [],
+    "figures": 14,
+    "tables": 12
+  },
+  {
+    "step": "P2-1 nuage G4",
+    "at": "2026-09-08T14:28:53.636Z",
+    "canvas": 1,
+    "svgPoints": 0,
+    "controls": "Nuée empiléePrix × année année non renseignée sur les 0 offres +−Réinitialiser Voir les données",
+    "sampleNote": null,
+    "legend": "Kilométrage 0 km – 1 km Taille puissance (kW) — sinon taille fixe, taille non porteuse d'information"
+  },
+  {
+    "step": "P2-1 G8 annonces signalées",
+    "at": "2026-09-08T14:28:53.645Z",
+    "lollipops": 0,
+    "first3": [],
+    "g8Head": ""
+  },
+  {
+    "screenshot": "reports/final-verification/P2-1-ecran-B-corsa.png"
+  },
+  {
+    "step": "P2-2 écran B Opel Corsa 2017 (URL)",
+    "at": "2026-09-08T14:28:56.941Z",
+    "url": "http://localhost:4173/marche/54-opel/1918-corsa?fregfrom=2017&fregto=2017",
+    "wallMs": 2069,
+    "sinceNavigationStartMs": 2088,
+    "domContentLoadedMs": 39,
+    "loadEventMs": 39,
+    "transferBytes": 6990,
+    "resourceCount": 21
+  },
+  {
+    "step": "P2-2 en-tête statistique",
+    "at": "2026-09-08T14:28:56.952Z",
+    "header": "Opel Corsa 54 offres médiane 15 200 € P25 12 238 € P75 17 200 € min 10 150 € – max 20 150 € (du moins cher au plus cher) km médian 131 250 km 1ʳᵉ immat. médiane 2017 0 % particuliers Voir les 54 annonces Comparer Suivre Exporter"
+  },
+  {
+    "step": "P2-2 jetons actifs",
+    "at": "2026-09-08T14:28:56.960Z",
+    "band": "Marque / Modèle / VersionToutes les marques Prix à 500 €1 000 €1 500 €2 000 €2 500 €3 000 €4 000 €5 000 €6 000 €7 000 €8 000 €9 000 €10 000 €12 500 €15 000 €17 500 €20 000 €25 000 €30 000 €40 000 €50 000 €75 000 €100 000 € Kilométrage à 2 500 km5 000 km10 000 km20 000 km30 000 km40 000 km50 000 km60 000 km70 000 km80 000 km90 000 km100 000 km125 000 km150 000 km175 000 km200 000 km Première immatriculation à Carburant Au moins une de ces valeurs Electrique/EssenceElectrique/DieselEssenceCNGDiese"
+  },
+  {
+    "step": "P2-2 histogrammes",
+    "at": "2026-09-08T14:28:56.975Z",
+    "notes": [],
+    "emptyFrames": [
+      "Dépréciation non calculable — il faut au moins 3 années comptant chacune 5 offres",
+      "Densité non calculable en dessous de 40 offres — voir la nuée ci-dessus"
+    ]
+  },
+  {
+    "step": "P2-2 G8",
+    "at": "2026-09-08T14:28:56.983Z",
+    "lollipops": 0,
+    "g8Text": ""
+  },
+  {
+    "screenshot": "reports/final-verification/P2-2-ecran-B-corsa-2017.png"
+  },
+  {
+    "step": "P2-2bis champs numériques du bandeau",
+    "at": "2026-09-08T14:28:59.784Z",
+    "count": 6,
+    "labels": [
+      "Prix de",
+      "Prix à",
+      "Kilométrage de",
+      "Kilométrage à",
+      "Première immatriculation de",
+      "Première immatriculation à"
+    ]
+  },
+  {
+    "step": "P2-2bis après saisie 2017–2017 dans le bandeau",
+    "at": "2026-09-08T14:29:03.056Z",
+    "urlMid": "http://localhost:4173/marche/54-opel/1918-corsa?fregfrom=2017",
+    "url": "http://localhost:4173/marche/54-opel/1918-corsa?fregfrom=2017&fregto=2017",
+    "headerBefore": "Opel Corsa 1352 offres médiane 25 100 € P25 13 900 € P75 36 888 € min 2 500 € – max 2 812 600 € (du moins cher au plus cher) km médian 70 850 km 1ʳᵉ immat. médiane 2021 0 % particuliers Voir les 1352 annonces Comparer Suivre Exporter",
+    "headerAfter": "Opel Corsa 54 offres médiane 15 200 € P25 12 238 € P75 17 200 € min 10 150 € – max 20 150 € (du moins cher au plus cher) km médian 131 250 km 1ʳᵉ immat. médiane 2017 31 % particuliers Voir les 54 annonces Comparer Suivre Exporter"
+  },
+  {
+    "screenshot": "reports/final-verification/P2-2bis-bandeau-2017.png"
+  },
+  {
+    "step": "P2-3 barres de G1",
+    "at": "2026-09-08T14:29:05.615Z",
+    "bars": 0
+  },
+  {
+    "step": "P2-3 après clic sur une barre",
+    "at": "2026-09-08T14:29:07.125Z",
+    "barInfo": null,
+    "url": "http://localhost:4173/marche/54-opel/1918-corsa?fregfrom=2017&fregto=2017",
+    "header": "Opel Corsa 54 offres médiane 15 200 € P25 12 238 € P75 17 200 € min 10 150 € – max 20 150 € (du moins cher au plus cher) km médian 131 250 km 1ʳᵉ immat. médiane 2017 0 % particuliers Voir les 54 annonces Comparer Suivre Exporter"
+  },
+  {
+    "screenshot": "reports/final-verification/P2-3-clic-barre.png"
+  },
+  {
+    "step": "ERREUR",
+    "at": "2026-09-08T14:30:08.810Z",
+    "message": "page.waitForSelector: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.kycar-screen-d') to be visible\u001b[22m\n",
+    "stack": [
+      "page.waitForSelector: Timeout 60000ms exceeded.",
+      "Call log:",
+      "\u001b[2m  - waiting for locator('.kycar-screen-d') to be visible\u001b[22m",
+      ""
+    ]
+  },
+  {
+    "step": "P2 fin",
+    "at": "2026-09-08T14:30:08.810Z",
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "[pageerror] Cannot perform Construct on a detached ArrayBuffer"
+    ],
+    "externalRequests": []
+  }
+]
