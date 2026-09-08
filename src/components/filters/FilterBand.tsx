@@ -21,7 +21,10 @@ import './filter-band.css';
 import { FILTER_BY_ID, FILTER_DEFAULTS, FILTER_DEFS, isDependencySatisfied } from '../../state/filter-registry';
 import { resolveFilterClass } from '../../state/filter-registry';
 import type { MutableSelectionState, ScreenMode, SelectionState } from '../../state/filter-types';
+import type { IneffectiveTaxonomy } from '../../state/ineffective-filters';
 import { InteractionController } from '../../state/interaction';
+import { parseMmmvBlock, resolveMakeChange } from '../../state/navigation';
+import type { ModeCarryPair } from '../../state/router';
 import {
   URL_BUDGET_EXCEEDED_MESSAGE,
   assembleUrl,
@@ -87,6 +90,25 @@ export interface FilterBandProps {
    * la sélection réellement appliquée (`onSelectionApplied`, `onRecomputeLocal`). */
   readonly onDraftSelectionChange?: (draft: SelectionState) => void;
   readonly referenceData?: ScreenGReferenceData;
+  /** `EX-SCR-101` (`D8-31`) — date du snapshot SERVI (`SnapshotDescriptor.capturedAt`), routée vers
+   * la zone (4). Absente ⇒ aucun marquage « sans effet », rendu strictement inchangé. */
+  readonly snapshotDate?: string | Date;
+  /** `EX-SCR-101` — taxonomie du snapshot quand elle diffère du référentiel de libellés (voir
+   * `ActiveFilterTokens`). Aujourd'hui inutile : les deux coïncident. */
+  readonly snapshotTaxonomy?: IneffectiveTaxonomy;
+  /**
+   * `EX-SRCH-14` (`D8-31`) — couple marque/modèle porté par la ROUTE en mode 2 (`matchRoute`). Il
+   * n'est PAS dans `initialSelection` : `carryFiltersAcrossMode` retire le bloc `mmmv` à l'entrée
+   * en mode 2 (`EX-NAV-15`). Sans lui, le bandeau ne peut pas savoir si la marque choisie dans le
+   * sélecteur est la marque courante — il conserve alors le comportement d'avant `D8-31`.
+   */
+  readonly routePair?: ModeCarryPair;
+  /**
+   * `EX-SRCH-14`/`EX-NAV-15` — appelé quand le sélecteur désigne un MODÈLE depuis le mode 2 : seule
+   * la coquille sait construire le chemin `/marche/:makeId-:slug/:modelId-:slug` (les slugs viennent
+   * de la taxonomie). Absent ⇒ repli sur le comportement d'avant (`mmmv` posé comme filtre).
+   */
+  readonly onSelectModel?: (pair: { readonly makeId: number; readonly modelId: number }) => void;
   readonly onHistoryReplace: (url: string) => void;
   readonly onHistoryPush: (url: string) => void;
   readonly onRecomputeLocal: () => void;
@@ -243,13 +265,23 @@ export function FilterBand(props: FilterBandProps) {
     });
   };
 
-  const forcePushSelection = (next: MutableSelectionState): void => {
+  /** `EX-NAV-14` : pousse une sélection sur un chemin DONNÉ (le chemin courant par défaut). Le
+   * paramètre `path` sert la redirection d'`EX-SRCH-14`, seule situation où le bandeau change de
+   * route ; l'état d'interface est alors volontairement VIDÉ (brossage, page, variante de G4 du
+   * mode 2 n'ont aucun sens sur l'écran A). */
+  const forcePushSelectionTo = (
+    next: MutableSelectionState,
+    path: string = props.originAndPath,
+    uiState: UiState = props.uiState ?? {},
+  ): void => {
     selectionRef.current = next;
     setSelection(next);
     props.onSelectionApplied?.(next);
-    const query = serializeQuery(next, props.uiState ?? {}, { filterDefaults: FILTER_DEFAULTS });
-    controllerRef.current?.forcePush(assembleUrl(props.originAndPath, query).url);
+    const query = serializeQuery(next, uiState, { filterDefaults: FILTER_DEFAULTS });
+    controllerRef.current?.forcePush(assembleUrl(path, query).url);
   };
+
+  const forcePushSelection = (next: MutableSelectionState): void => forcePushSelectionTo(next);
 
   const handleRemove = (filterIds: readonly string[]): void => {
     const before = selectionRef.current;
@@ -289,6 +321,49 @@ export function FilterBand(props: FilterBandProps) {
 
   const handleClearAll = (): void => {
     forcePushSelection({});
+  };
+
+  /**
+   * `EX-SRCH-14` (`D8-31`) — application du sélecteur marque/modèle (écran G, `EX-SCR-103` : sur
+   * l'écran B, le contrôle `Marque / Modèle` affiche le couple courant et ouvre `G` positionné
+   * dessus). C'est le SEUL chemin par lequel la marque change en mode 2.
+   *
+   * Avant cette correction, tout passait par `handleChange`, donc par `applyToSelection`, donc par
+   * `assembleUrl(props.originAndPath, …)` : choisir une autre marque depuis l'écran B produisait
+   * `/marche/54-opel/1918-corsa?mmmv=74` — la route restait sur l'ANCIEN couple et un `mmmv`
+   * orphelin s'ajoutait, au lieu de vider le modèle et de revenir à l'écran A.
+   *
+   * La décision est prise par `resolveMakeChange` (`src/state/navigation.ts`, source de vérité
+   * unique, sondée par `tests/review/D5/make-change-mode2.test.ts`) ; ce composant ne fait
+   * qu'exécuter la cible. Sans `routePair` fourni par l'appelant, le comportement d'avant est
+   * conservé à l'identique (non-régression).
+   */
+  const handleScreenGApply = (mmmv: string): void => {
+    setScreenGOpen(false);
+    const chosen = parseMmmvBlock(mmmv);
+    if (chosen !== null && props.mode === 'mode2' && props.routePair !== undefined) {
+      const outcome = resolveMakeChange({
+        mode: 'mode2',
+        selection: selectionRef.current,
+        chosen,
+        routePair: props.routePair,
+      });
+      if (outcome.kind === 'unchanged') return;
+      if (outcome.kind === 'redirectToMarket') {
+        // `EX-NAV-11` : même règle que partout ailleurs — refus avec message, jamais de troncature.
+        if (wouldExceedBudget(outcome.path, outcome.selection, {}, { filterDefaults: FILTER_DEFAULTS })) {
+          props.onUrlBudgetExceeded?.(URL_BUDGET_EXCEEDED_MESSAGE);
+          return;
+        }
+        forcePushSelectionTo(outcome.selection, outcome.path, {});
+        return;
+      }
+      if (outcome.kind === 'goToModel' && props.onSelectModel !== undefined) {
+        props.onSelectModel(outcome.pair);
+        return;
+      }
+    }
+    handleChange({ filterId: 'makesModelsVariants', value: mmmv, gesture: 'selection-immediate' });
   };
 
   /** `Annuler` de la notification de cascade (`EX-SCR-73`) : restitue la sélection D'AVANT le
@@ -426,10 +501,7 @@ export function FilterBand(props: FilterBandProps) {
       counts={props.screenGMakeCounts}
       modelCounts={props.screenGModelCounts}
       onCancel={() => setScreenGOpen(false)}
-      onApply={(mmmv) => {
-        setScreenGOpen(false);
-        handleChange({ filterId: 'makesModelsVariants', value: mmmv, gesture: 'selection-immediate' });
-      }}
+      onApply={handleScreenGApply}
     />
   ) : null;
 
@@ -447,6 +519,8 @@ export function FilterBand(props: FilterBandProps) {
             onNarrow={handleNarrow}
             selection={selection}
             referenceData={props.referenceData}
+            snapshotDate={props.snapshotDate}
+            snapshotTaxonomy={props.snapshotTaxonomy}
             resultCount={props.resultCount}
             resultCountLoading={props.resultCountLoading}
             onRemove={handleRemove}
@@ -518,6 +592,8 @@ export function FilterBand(props: FilterBandProps) {
         onNarrow={handleNarrow}
         selection={selection}
         referenceData={props.referenceData}
+        snapshotDate={props.snapshotDate}
+        snapshotTaxonomy={props.snapshotTaxonomy}
         resultCount={props.resultCount}
         resultCountLoading={props.resultCountLoading}
         onRemove={handleRemove}
