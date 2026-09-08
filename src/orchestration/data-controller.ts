@@ -35,7 +35,8 @@ import { resolveTaxonomyRoute } from '../state/router';
 import { partitionSelection, splitSelection } from '../state/tr-split';
 import type { ReferenceData } from '../types/reference';
 import { serializeSelection } from '../types/selection';
-import { buildRefinePredicates } from './refine-predicates';
+import { FACET_FILTER_SPECS, buildRefinePredicates } from './refine-predicates';
+import type { FacetCount } from '../engine/facets';
 import type { ListingColumnBatch } from '../types/index';
 import type { ScreenALoadedData } from '../screens/market/state';
 
@@ -151,6 +152,17 @@ export class DataController {
   private degraded = false;
   /** Dernière clé de jeu local chargée dans le moteur (évite un rechargement redondant). */
   private loadedDatasetKey: string | null = null;
+  /**
+   * `D8-05` / `FV-23` (`EX-SCR-78`, `EX-SRCH-21`) — effectif de la DERNIÈRE réponse d'agrégats
+   * mode 1 (`AggregateResult.selectionCount`), c'est-à-dire le nombre d'offres de la sélection
+   * réellement appliquée. `null` tant qu'aucun agrégat filtré n'est revenu : la coquille affiche
+   * alors la somme des cartes, jamais un zéro inventé.
+   */
+  private lastMarketSelectionCount: number | null = null;
+  /** `D8-05` / `FV-06` — dernières facettes calculées par le moteur, par `filterId` puis par code. */
+  private lastFacets: ReadonlyMap<string, ReadonlyMap<string, number>> | null = null;
+  /** `selectionHash` du recalcul auquel `lastFacets` se rapporte (facettes périmées ⇒ écartées). */
+  private lastFacetsHash: string | null = null;
 
   constructor(options: DataControllerOptions) {
     this.provider = options.provider;
@@ -168,6 +180,21 @@ export class DataController {
 
   get snapshotDescriptor(): SnapshotDescriptor | null {
     return this.descriptor;
+  }
+
+  /** `D8-05`/`FV-23` — effectif de la sélection mode 1 réellement appliquée (`null` = inconnu). */
+  get marketSelectionCount(): number | null {
+    return this.lastMarketSelectionCount;
+  }
+
+  /** `D8-05`/`FV-06` — facettes du dernier recalcul mode 2 (`null` = aucun recalcul disponible). */
+  get facetCounts(): ReadonlyMap<string, ReadonlyMap<string, number>> | null {
+    return this.lastFacets;
+  }
+
+  /** `selectionHash` auquel se rapportent `facetCounts` (comparé par la coquille avant usage). */
+  get facetCountsHash(): string | null {
+    return this.lastFacetsHash;
   }
 
   /** `EX-DATA-107` (`D-24`/`D-43`, DR-094/DR-152) — capacités DÉCLARÉES du provider mode 1 : c'est
@@ -258,6 +285,7 @@ export class DataController {
     // Sélection vide : agrégats de base (précalculés / cache), sans balayage (EX-NFR-9).
     if (!hasUserFilters) {
       const baseline = this.requireBaseline();
+      this.lastMarketSelectionCount = baseline.selectionCount;
       return this.screenDataFrom(baseline.rows, false, selection);
     }
 
@@ -266,6 +294,7 @@ export class DataController {
     // déclarés non appliqués et l'écran l'annonce (`ET-FILTRE-NON-APPLIQUE`).
     if (this.handle === null) {
       const baseline = this.requireBaseline();
+      this.lastMarketSelectionCount = null;
       return this.screenDataFrom(baseline.rows, false, selection, {
         unappliedFilterIds: Object.keys(selection),
         unappliedReason: 'DEGRADED_CACHE',
@@ -278,11 +307,15 @@ export class DataController {
     // l'effectif filtré. On publie la baseline en la disant explicitement non filtrée.
     if (unsupported.length > 0) {
       const baseline = this.requireBaseline();
+      // `D-03` : l'effectif publié serait un PLANCHER — il n'est pas présenté comme celui de la
+      // sélection (`FV-23` : jamais un chiffre faux plutôt qu'un chiffre absent).
+      this.lastMarketSelectionCount = null;
       return this.screenDataFrom(baseline.rows, false, selection, {
         unappliedFilterIds: unsupported,
         unappliedReason: 'PROVIDER_UNSUPPORTED',
       });
     }
+    this.lastMarketSelectionCount = result.selectionCount;
     return this.screenDataFrom(result.rows as readonly MakeAggregate[], true, selection);
   }
 
@@ -299,6 +332,60 @@ export class DataController {
     const query = serializeSelection(selection, { defaults: FILTER_DEFAULTS });
     const result = await this.provider.fetchAggregates(this.handle, query, 'MODEL', makeId);
     return result.rows.filter((r): r is ModelAggregate => 'modelId' in r);
+  }
+
+  /**
+   * `D8-02` / `FV-02` / `E2E-04`, `E2E-05` (BLOQUANT) — agrégats MODÈLE de TOUT le marché filtré, en
+   * UN appel de portée marché (`fetchAggregates(level = 'MODEL')` sans `makeScope`, cf. contrat
+   * `DataProvider` §« Sans `makeScope`, retourne tous les modèles de la sélection »), regroupés par
+   * `makeId`.
+   *
+   * Sans cet appel, `modelAggregatesByMake` restait vide tant qu'aucune carte n'était dépliée :
+   * la barre de synthèse annonçait « 0 modèles » sur une population qui en compte des centaines, et
+   * aucune carte ne rendait ses zones-modèles avant un clic (densité `EX-SCR-22` = 0 zone).
+   *
+   * L'appel est DISTINCT de `loadMarket` et déclenché APRÈS lui par la coquille : le premier
+   * affichage utile (`EX-NFR-9`, ≤ 2 000 ms) reste servi par les seuls agrégats de marque, les
+   * zones arrivent ensuite. Un échec n'est jamais un zéro : la carte reste sans zones (repli
+   * `EX-SCR-132` déjà rendu par l'écran).
+   */
+  async loadAllModels(selection: SelectionState): Promise<ReadonlyMap<number, readonly ModelAggregate[]>> {
+    if (this.handle === null) return new Map();
+    const query = serializeSelection(selection, { defaults: FILTER_DEFAULTS });
+    const result = await this.provider.fetchAggregates(this.handle, query, 'MODEL');
+    const byMake = new Map<number, ModelAggregate[]>();
+    for (const row of result.rows) {
+      if (!('modelId' in row)) continue;
+      const bucket = byMake.get(row.makeId);
+      if (bucket === undefined) byMake.set(row.makeId, [row]);
+      else bucket.push(row);
+    }
+    return byMake;
+  }
+
+  /**
+   * `D8-05` / `FV-06` (`EX-DATA-110bis`, `EX-SCR-65`/`89`/`90`) — facettes de la sélection courante,
+   * calculées par le moteur en UN balayage. Elles ne sont disponibles que lorsqu'un jeu de données
+   * est chargé dans le moteur, c'est-à-dire en mode 2 (décision O17 : le mode 1 ne charge JAMAIS
+   * les colonnes d'annonces). En mode 1 la méthode rend `null` — la coquille ne passe alors aucun
+   * `facetCounts` et le bandeau n'affiche aucune parenthèse, jamais un `(0)` par défaut.
+   */
+  async computeFacets(selection: SelectionState): Promise<ReadonlyMap<string, ReadonlyMap<string, number>> | null> {
+    const engine = this.engine;
+    if (engine === null || this.loadedDatasetKey === null) return null;
+    const { r } = partitionSelection(selection, 'mode2');
+    const { refine } = buildRefinePredicates(r, this.ref);
+    const selectionHash = `${this.loadedDatasetKey}:${splitSelection(selection, 'mode2').refineHash}`;
+    try {
+      const result = await engine.computeFacets({ selectionHash, refine }, FACET_FILTER_SPECS);
+      const grouped = groupFacets(result.facets);
+      this.lastFacets = grouped;
+      this.lastFacetsHash = selectionHash;
+      return grouped;
+    } catch {
+      // Une facette indisponible n'est jamais une facette à zéro : on garde l'état précédent.
+      return this.lastFacets;
+    }
   }
 
   /**
@@ -467,4 +554,22 @@ export class DataController {
       totalMakesAttempted: makeAggregates.length,
     };
   }
+}
+
+/**
+ * `D8-05` — `FacetCount[]` du moteur → `Map<filterId, Map<code, count>>`, la forme exacte que
+ * `FilterBand`/`CheckboxList` attendent (`FacetCounts = ReadonlyMap<string, number>`, clés = codes
+ * d'option en TEXTE, comme dans le registre de filtres).
+ */
+function groupFacets(facets: readonly FacetCount[]): ReadonlyMap<string, ReadonlyMap<string, number>> {
+  const out = new Map<string, Map<string, number>>();
+  for (const f of facets) {
+    let bucket = out.get(f.filterId);
+    if (bucket === undefined) {
+      bucket = new Map<string, number>();
+      out.set(f.filterId, bucket);
+    }
+    bucket.set(String(f.code), f.count);
+  }
+  return out;
 }

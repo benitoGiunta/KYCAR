@@ -159,3 +159,15 @@ export function buildRefinePredicates(rSelection: SelectionState, ref: Reference
 
   return { refine, unsupported };
 }
+
+/**
+ * `D8-05` / `FV-06` (`EX-SCR-65`/`89`/`90`, `EX-DATA-110bis`) — filtres énumérés à FACETTER, en un
+ * seul balayage du moteur. Dérivé de la même table `ENUM_FILTERS` que les prédicats : une facette
+ * ne peut donc jamais porter sur un filtre que le moteur ne sait pas appliquer, et l'ajout d'un
+ * filtre énuméré n'a pas à être répété ici. `countryType` y est joint explicitement (même exception
+ * que dans `buildRefinePredicates` : domaine D5 `cy` → colonne `countryCode`).
+ */
+export const FACET_FILTER_SPECS: readonly { readonly filterId: string; readonly column: EnumColumnName }[] = [
+  ...Object.entries(ENUM_FILTERS).map(([filterId, spec]) => ({ filterId, column: spec.column })),
+  { filterId: 'countryType', column: 'countryCode' as EnumColumnName },
+];

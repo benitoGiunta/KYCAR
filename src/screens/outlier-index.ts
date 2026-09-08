@@ -16,6 +16,17 @@
  */
 
 import type { OutlierVerdict } from '../types/index';
+import { isNotEvaluableOutlierCode } from '../types/vocabularies';
+
+/**
+ * `D8-09` (`EX-DATA-85`/`86`/`95`) — drapeaux d'un verdict qui constituent une ANOMALIE réelle,
+ * c'est-à-dire hors des deux codes de NON-ÉVALUABILITÉ. Un verdict réduit à `INSUFFICIENT_DATA` ou
+ * `INSUFFICIENT_SPREAD` dit précisément que l'annonce n'a PAS pu être évaluée : il n'est ni une
+ * annonce signalée (`|A|`, `EX-DATA-101`) ni une annonce évaluée (`I6`, `EX-DATA-104`).
+ */
+function realFlags(flags: readonly string[]): readonly string[] {
+  return flags.filter((f) => !isNotEvaluableOutlierCode(f));
+}
 
 /** Vue agrégée d'une annonce signalée. */
 export interface OutlierEntry {
@@ -53,12 +64,23 @@ export class OutlierIndex {
    */
   has(listingId: string): boolean {
     const entry = this.byId.get(listingId);
-    return entry !== undefined && entry.flags.length > 0;
+    return entry !== undefined && realFlags(entry.flags).length > 0;
   }
 
-  /** Vrai si l'annonce a été ÉVALUÉE par M1/M2, signalée ou non (I6, EX-DATA-104). */
+  /**
+   * Vrai si l'annonce a été ÉVALUÉE par M1/M2, signalée ou non (I6, EX-DATA-104).
+   *
+   * `D8-09` (constat relevé par fix-engine §6.1, corrigé par fix-app) : depuis l'extension du
+   * vocabulaire à 8 codes, une annonce NON évaluable reçoit elle aussi un verdict — la seule
+   * présence d'une entrée ne prouve plus l'évaluation. Un verdict dont TOUS les drapeaux sont
+   * `INSUFFICIENT_*` compte donc comme non évaluée, conformément à `EX-DATA-95` (score, prix
+   * attendu et écart y sont `null`).
+   */
   isEvaluated(listingId: string): boolean {
-    return this.byId.has(listingId);
+    const entry = this.byId.get(listingId);
+    if (entry === undefined) return false;
+    if (entry.flags.length === 0) return true; // évaluée, aucune barrière franchie (D-48)
+    return realFlags(entry.flags).length > 0;
   }
 
   get(listingId: string): OutlierEntry | undefined {
@@ -73,7 +95,7 @@ export class OutlierIndex {
   /** Nombre d'annonces SIGNALÉES (`|A|` d'EX-DATA-101). */
   get flaggedCount(): number {
     let n = 0;
-    for (const entry of this.byId.values()) if (entry.flags.length > 0) n += 1;
+    for (const entry of this.byId.values()) if (realFlags(entry.flags).length > 0) n += 1;
     return n;
   }
 

@@ -103,16 +103,48 @@ export class CappedCollection<T extends Versioned> {
     return `${this.key}/${id}`;
   }
 
-  /** Identifiants de l'index ordonné (format par entrée). Tolérant : `[]` si absent ou illisible. */
+  /**
+   * Identifiants de l'index ordonné (format par entrée). Tolérant : `[]` si absent ou illisible.
+   *
+   * `E2E-25` (`EX-CRUD-19`, `ADV-13`) — l'index est AUTO-RÉPARATEUR. La relecture-réconciliation de
+   * `mutate` (étape 3) ne protégeait que ce que l'index CITAIT déjà : deux onglets qui écrivaient au
+   * même instant produisaient bien deux blobs d'entrée, mais le dernier écrivain écrasait l'index du
+   * premier, dont l'entrée devenait orpheline — invisible à jamais sur l'écran E, sans message
+   * (mesuré 7 à 8 rondes perdantes sur 8). Le verrou `navigator.locks` étant écarté par `D-16`, la
+   * réparation se fait ici : à CHAQUE lecture, l'index est réconcilié avec les clés
+   * `<collection>/<id>` réellement présentes dans le stockage. Une entrée écrite ne peut alors plus
+   * être perdue par une course sur l'index — au pire elle change de rang.
+   *
+   * L'ordre de l'index stocké fait foi ; les orphelines sont ajoutées ensuite, dans l'ordre
+   * d'énumération du backend (stable pour `localStorage` comme pour `memoryBackend`).
+   */
   private readIndex(): string[] {
     const stored = this.backend.get(this.indexKey);
-    if (stored === null) return [];
-    try {
-      const parsed: unknown = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
-    } catch {
-      return [];
+    let ids: string[] = [];
+    if (stored !== null) {
+      try {
+        const parsed: unknown = JSON.parse(stored);
+        if (Array.isArray(parsed)) ids = parsed.filter((v): v is string => typeof v === 'string');
+      } catch {
+        ids = [];
+      }
     }
+    return this.reconcileWithStoredEntries(ids);
+  }
+
+  /** `E2E-25` — complète une liste d'identifiants par les blobs d'entrée présents qu'elle ignore. */
+  private reconcileWithStoredEntries(ids: readonly string[]): string[] {
+    if (this.idOf === undefined || typeof this.backend.keys !== 'function') return [...ids];
+    const prefix = `${this.key}/`;
+    const seen = new Set(ids);
+    const out = [...ids];
+    for (const key of this.backend.keys(prefix)) {
+      const id = key.slice(prefix.length);
+      if (id.length === 0 || seen.has(id)) continue;
+      seen.add(id);
+      out.push(id);
+    }
+    return out;
   }
 
   /**

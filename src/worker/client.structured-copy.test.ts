@@ -19,7 +19,6 @@
 import { Worker } from 'node:worker_threads';
 import { describe, expect, it } from 'vitest';
 
-import type { ListingColumnBatch } from '../types/index';
 
 /** Colonnes lues par les écrans après `loadDataset` (échantillon représentatif du défaut FV-01). */
 const READ_BACK_COLUMNS = ['priceEur', 'mileageKm', 'firstRegistrationYearMonth', 'sellerType'] as const;

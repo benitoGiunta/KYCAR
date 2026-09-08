@@ -17,6 +17,14 @@ export interface KvBackend {
   get(key: string): string | null;
   set(key: string, value: string): void;
   remove(key: string): void;
+  /**
+   * `E2E-25` (`EX-CRUD-19`, `ADV-13`) — énumération des clés existantes portant un préfixe. Sert à
+   * rendre l'index ordonné d'une collection AUTO-RÉPARATEUR : à la lecture, tout blob d'entrée
+   * réellement présent que l'index ne cite pas (course inter-onglets sur l'index) est réintégré,
+   * de sorte qu'aucune entrée écrite ne peut plus être perdue. Optionnelle : un backend qui ne sait
+   * pas énumérer garde le comportement antérieur (index tel quel), jamais une erreur.
+   */
+  keys?(prefix: string): readonly string[];
 }
 
 /** Backend mémoire pour les tests et le repli quand `localStorage` est indisponible. */
@@ -30,6 +38,7 @@ export function memoryBackend(seed?: Readonly<Record<string, string>>): KvBacken
     remove: (k) => {
       map.delete(k);
     },
+    keys: (prefix) => [...map.keys()].filter((k) => k.startsWith(prefix)),
   };
 }
 
@@ -48,6 +57,14 @@ export function browserLocalStorageBackend(): KvBackend | null {
       get: (k) => localStorage.getItem(k),
       set: (k, v) => localStorage.setItem(k, v),
       remove: (k) => localStorage.removeItem(k),
+      keys: (prefix) => {
+        const out: string[] = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key !== null && key.startsWith(prefix)) out.push(key);
+        }
+        return out;
+      },
     };
   } catch {
     return null;
