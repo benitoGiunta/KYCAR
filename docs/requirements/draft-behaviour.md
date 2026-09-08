@@ -52,13 +52,12 @@ renommage. Trois raisons :
    couche de traduction.
 3. Un lien KYCAR copié-collé reste lisible par quiconque a consulté `REF-filters.md`.
 
-Exception : les concepts propres à KYCAR sans équivalent AutoScout24 reçoivent un nom KYCAR
-explicite plutôt qu'un détournement d'un paramètre existant :
-- `make` (multi-valeurs, liste de `makeId` séparés par virgule) — filtre marque du **mode 1
-  uniquement**. Il n'est PAS `mmmv` : `mmmv` encode marque+modèle+version en un seul bloc structuré
-  fait pour le mode « annonce individuelle » d'AutoScout24 ; le mode 1 de KYCAR ne filtre que sur la
-  marque (le modèle n'existe pas encore comme critère à ce stade). Réutiliser `mmmv` avec des
-  segments modèle/version vides aurait été plus ambigu qu'un paramètre dédié.
+**Aucun paramètre KYCAR `make` n'existe.** `mmmv` (`makesModelsVariants`, relevé, §A.2.2 /
+`filters-scope.json`) est le **seul** paramètre marque/modèle, en mode 1 comme en mode 2 (R6) :
+en mode 1, un filtre de marque sans modèle s'écrit avec le segment modèle vide
+(`mmmv=54|||`), multi-valeurs par virgule pour plusieurs marques (`mmmv=54|||,60|||`) ; en
+mode 2, le bloc `mmmv` du couple marque-modèle choisi est absorbé par la route
+(`EX-NAV-15`). [amendée 2.6 — D-09]
 
 #### A.2.2 Périmètre des filtres — renvoi normatif
 
@@ -146,6 +145,9 @@ brossage) et suivent néanmoins l'ordre canonique alphabétique d'`EX-NAV-9` et 
 | `sort` | `offres` \| `median` \| `alpha` \| `modeles` | `offres` | `replaceState` | oui |
 | `g4v` | `a` \| `b` | `a` | `replaceState` | oui |
 | `selx` / `sely` | deux bornes numériques par axe, forme `<lo>-<hi>` | absent | `pushState` | oui |
+| `page` | entier ≥ 1, pagination client de l'écran D (`EX-SCR-208`) | `1` | `replaceState` | oui |
+| `size` | entier, taille de page de l'écran D | `50` (`EX-SCR-208`) | `replaceState` | oui |
+| `sel` | deux bornes par axe, même format que `selx`/`sely` ; restreint l'affichage de l'écran D | absent | `replaceState` | oui |
 
 Le paramètre de tri de l'écran A s'appelle `sort` et son domaine est celui de l'écran (ordre des
 cartes-marques) : il n'a **aucun rapport** avec le paramètre `sort` d'AutoScout24, qui n'est exposé
@@ -156,6 +158,12 @@ axes du graphe** (`selx`, `sely` ci-dessus), et **non** par une empreinte : une 
 restitue pas un sous-ensemble d'annonces. Une URL portant `selx`/`sely` restitue la même sélection de
 brossage sur tout snapshot où les axes ont un sens. Le paramètre `sel` de l'écran D porte les mêmes
 bornes, avec une sémantique de restriction d'affichage distincte (`draft-screens.md`).
+
+**`page`, `size` et `sel` sont des paramètres d'état d'interface au sens strict** : hors du
+registre de filtres, hors des classes `R`/`T`/`D`, ils n'entrent ni dans `selectionHash` ni dans
+`localDatasetKey` et ne changent jamais la sélection `Σ` — ils décrivent uniquement ce que l'écran
+D affiche de la sélection courante (page affichée, taille de page, restriction d'affichage brossée).
+L'écran D lit et écrit `page` depuis l'URL. [amendée 2.6 — D-11, D-12]
 
 ### A.3 Comportement de l'historique navigateur
 
@@ -191,20 +199,26 @@ exploration, qu'il s'attend explicitement à pouvoir annuler une par une avec le
 ### A.4 Navigation entre les deux écrans
 
 **EX-NAV-15** — Passage du mode 1 au mode 2 (clic sur une zone-modèle d'une carte-marque) :
-- les filtres partagés entre les deux modes (tous les filtres IN de §A.2.2 hors `make`, car le mode 2
-  n'a plus besoin d'un filtre marque puisque la marque est dans le chemin) sont **conservés tels
-  quels** dans la nouvelle URL ;
-- `make` est retiré de l'URL (il n'a plus de sens : la marque est désormais fixée par le chemin) ;
-- `makeId`/`modelId` du couple cliqué deviennent les segments de chemin.
+- les filtres partagés entre les deux modes (tous les filtres IN de §A.2.2 hors `mmmv`, car le
+  mode 2 n'a plus besoin d'un filtre marque/modèle séparé puisqu'il est désormais dans le chemin)
+  sont **conservés tels quels** dans la nouvelle URL ;
+- `mmmv` est retiré de l'URL : le bloc marque-modèle du couple cliqué est **absorbé** par la route
+  `/marche/:makeId-:makeSlug/:modelId-:modelSlug`, qui en devient la seule représentation ;
+- `makeId`/`modelId` du couple cliqué deviennent les segments de chemin ;
+- `carryFiltersAcrossMode(selection, 'mode1', 'mode2')` implémente ce transfert.
+[amendée 2.6 — D-09]
 
 **EX-NAV-16** — Retour du mode 2 au mode 1 (bouton « retour au marché », pas le bouton précédent du
-navigateur) : les filtres partagés sont conservés, `make` est réinjecté avec pour seule valeur la
-marque du modèle quitté (l'utilisateur revient sur *ce* marché, pas sur un marché vide). Le bouton
-précédent du navigateur, lui, restaure l'état exact précédemment empilé (§A.3), qui peut différer.
+navigateur) : les filtres partagés sont conservés, `mmmv` est **réinjecté** avec pour seul bloc
+`<makeId>|||` (segment modèle vide) de la marque du modèle quitté — l'utilisateur revient sur *ce*
+marché, pas sur un marché vide. `carryFiltersAcrossMode(selection, 'mode2', 'mode1')` implémente
+ce transfert. Le bouton précédent du navigateur, lui, restaure l'état exact précédemment empilé
+(§A.3), qui peut différer. [amendée 2.6 — D-09]
 
 **EX-NAV-17** — Changement de modèle à l'intérieur du mode 2 (ex. via `/suivis`, un lien interne, ou
 la modification du couple marque/modèle) : tous les filtres partagés sont conservés à l'identique ;
-seuls `makeId`/`modelId` changent. C'est la même logique que EX-NAV-15.
+seuls `makeId`/`modelId` du chemin changent, `mmmv` reste absent de l'URL en mode 2 (`EX-NAV-15`).
+C'est la même logique que EX-NAV-15. [amendée 2.6 — D-09]
 
 ### A.5 Deep-linking
 
