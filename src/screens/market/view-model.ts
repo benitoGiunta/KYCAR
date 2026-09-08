@@ -127,6 +127,11 @@ export interface ModelZoneViewModel {
   readonly relativeShareRatio: number;
   /** `EX-SCR-128` : effectif strictement inférieur à 3. */
   readonly isSparse: boolean;
+  /** Les trois `MetricRange` BRUTES de l'agrégat, non reformatées : `EX-SCR-4`/`draft-data-
+   * dictionary.md` (« les écrans B et D ET L'EXPORT CSV publient `rawRange`, sans écrêtage ») —
+   * l'export (`csv.ts`) a besoin de `min`/`max` bruts, jamais de `displayRange`, contrairement au
+   * rendu de cette même zone. Portées ici plutôt que refaites depuis les libellés déjà arrondis. */
+  readonly rawMetrics: { readonly price: MetricRange; readonly year: MetricRange; readonly mileage: MetricRange };
 }
 
 export function buildModelZoneViewModel(
@@ -178,6 +183,7 @@ export function buildModelZoneViewModel(
     italicizeRanges: shouldItalicizeRanges(coverage),
     relativeShareRatio,
     isSparse: isSparseModel(agg.listingCount),
+    rawMetrics: { price: agg.price, year: agg.year, mileage: agg.mileage },
   };
 }
 
