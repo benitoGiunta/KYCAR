@@ -246,8 +246,9 @@ export class SyntheticDataProvider implements DataProvider {
       announcedListingCount: dataset.rowCount,
       rejectedCount: 0,
       rejectedByReason: {},
-      duplicateListingCount: 0,
-      duplicateValueConflictCount: 0,
+      // EX-DATA-15 / ARB-54 : compteurs MESURÉS par l'audit de doublons, jamais écrits en dur.
+      duplicateListingCount: dataset.duplicates.duplicateListingCount,
+      duplicateValueConflictCount: dataset.duplicates.duplicateValueConflictCount,
       unknownCountByField,
       ingestFlagCounts,
       versionStrippedRate: 0,

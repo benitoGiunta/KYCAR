@@ -52,6 +52,7 @@ import {
   type WeightedDist,
 } from './catalog';
 import { allocColumns, finalizeBatch, type MutableColumns } from './columnar';
+import { auditDuplicateListings, type DuplicateAudit } from './dedupe';
 import {
   MAKE_POPULARITY,
   MAKE_TAIL_TOTAL_WEIGHT,
@@ -118,6 +119,8 @@ export interface GeneratedDataset {
    */
   readonly unknownCountByField: Readonly<Record<string, number>>;
   readonly ingestFlagCounts: Readonly<Record<string, number>>;
+  /** Doublons MESURÉS dans l'ordre total d'ingestion d'ARB-54 (EX-DATA-15, DR-003/DR-004). */
+  readonly duplicates: DuplicateAudit;
 }
 
 /**
@@ -612,6 +615,7 @@ interface CoreDataset {
   presentationDone: boolean;
   readonly unknownCountByField: Record<string, number>;
   readonly ingestFlagCounts: Record<string, number>;
+  readonly duplicates: DuplicateAudit;
 }
 
 /** Génère le dataset complet et la vérité terrain des outliers (zone de chaînes différée). */
@@ -646,6 +650,7 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
     rowCount: core.rowCount,
     unknownCountByField: core.unknownCountByField,
     ingestFlagCounts: core.ingestFlagCounts,
+    duplicates: core.duplicates,
   };
 }
 
@@ -907,6 +912,13 @@ function generateCore(options: GenerateOptions): CoreDataset {
     }
   }
 
+  // EX-DATA-15 / ARB-54 (DR-003, DR-004) : les doublons sont MESURÉS dans l'ordre total
+  // d'ingestion — ici l'ordre des lignes — et non plus supposés absents.
+  const duplicates = auditDuplicateListings(cols, count);
+  if (duplicates.duplicateValueConflictCount > 0) {
+    flagCounts[INGEST_FLAG_BIT.DUPLICATE_VALUE_CONFLICT] = duplicates.duplicateValueConflictCount;
+  }
+
   const ingestFlagCounts: Record<string, number> = {};
   INGEST_FLAG_VALUES.forEach((def, b) => {
     const n = flagCounts[b] as number;
@@ -937,6 +949,7 @@ function generateCore(options: GenerateOptions): CoreDataset {
       firstRegistrationYearMonth: unknownFrym,
     },
     ingestFlagCounts,
+    duplicates,
   };
 }
 
