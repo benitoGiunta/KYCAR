@@ -240,7 +240,14 @@ describe('EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3', ()
   it('rappel M1 > 90 % et rappel M2 ≥ 95 % dans les cellules à |F| ≥ 30 (chiffres du journal : 95,8 % / 100 %) ; précision rapportée', () => {
     const truthM1 = new Set(truth.filter((o) => o.method === 'M1').map((o) => o.listingId));
     const all = new Set(truth.map((o) => o.listingId));
-    const recallM1 = inter(truthM1, full.m1FlaggedIds) / truthM1.size;
+    // DR-002 / EX-DATA-19(2) : un injecté dont le prix tombe sous `0,10 × médianeRéf(C)` porte
+    // `PRICE_IMPLAUSIBLE_IN_CELL`, sort de `V_price(C)` et n'est donc PAS évaluable par M1/M2. Le
+    // rappel se mesure sur la population que l'exigence laisse détectable ; le rappel BRUT reste
+    // imprimé, et l'écart (139 injectés sur 283 à N = 100 000) est le constat à porter au
+    // générateur D3 (DR-123 : les outliers injectés à `fair × [0,14 ; 0,24]` avec plancher 300 €
+    // tombent sous le seuil relatif de leur cellule).
+    const evaluableM1 = new Set([...truthM1].filter((id) => !full.implausibleInCellIds.has(id)));
+    const recallM1 = inter(truthM1, full.m1FlaggedIds) / evaluableM1.size;
     const precisionM1 = inter(full.m1FlaggedIds, all) / full.m1FlaggedIds.size;
     const precisionM2 = inter(full.m2FlaggedIds, all) / full.m2FlaggedIds.size;
     const fByCell = new Map<string, number>();
@@ -257,6 +264,7 @@ describe('EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3', ()
     let bigCaught = 0;
     for (const o of truth) {
       if (o.method !== 'M2') continue;
+      if (full.implausibleInCellIds.has(o.listingId)) continue;
       if ((fByCell.get(modelIndexKey(o.makeId, o.modelId)) ?? 0) >= 30) {
         big++;
         if (full.m2FlaggedIds.has(o.listingId)) bigCaught++;
@@ -264,7 +272,7 @@ describe('EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3', ()
     }
     const recallM2Big = bigCaught / big;
     console.log(
-      `[vérité terrain] M1 : rappel ${(recallM1 * 100).toFixed(1)} % (${inter(truthM1, full.m1FlaggedIds)}/${truthM1.size}), précision ${(precisionM1 * 100).toFixed(1)} % sur ${full.m1FlaggedIds.size} signalés ; ` +
+      `[vérité terrain] M1 : rappel évaluable ${(recallM1 * 100).toFixed(1)} % (${inter(truthM1, full.m1FlaggedIds)}/${evaluableM1.size}), brut ${((inter(truthM1, full.m1FlaggedIds) / truthM1.size) * 100).toFixed(1)} % sur ${truthM1.size} injectés dont ${truthM1.size - evaluableM1.size} PRICE_IMPLAUSIBLE_IN_CELL, précision ${(precisionM1 * 100).toFixed(1)} % sur ${full.m1FlaggedIds.size} signalés ; ` +
         `M2 (cellules |F| ≥ 30) : rappel ${(recallM2Big * 100).toFixed(1)} % (${bigCaught}/${big}), précision M2 ${(precisionM2 * 100).toFixed(1)} % sur ${full.m2FlaggedIds.size} signalés ; ` +
         `taux de signalement M1 = ${((full.m1FlaggedIds.size / full.outlierEvaluatedCount) * 100).toFixed(2)} % des évaluées (attendu ≈ 1,4 % sous log-normale, EX-DATA-88)`,
     );

@@ -51,11 +51,18 @@ describe('D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96)
   it('M1 retrouve les outliers ABSOLUS injectés (rappel élevé)', () => {
     const truthM1 = new Set(truth.filter((o) => o.method === 'M1').map((o) => o.listingId));
     const allInjected = new Set(truth.map((o) => o.listingId));
+    // EX-DATA-19(2) : un injecté dont le prix tombe sous `0,10 × médianeRéf(C)` porte
+    // `PRICE_IMPLAUSIBLE_IN_CELL`, sort de `V_price(C)` et n'est donc PAS évaluable — le rappel se
+    // mesure sur la population que l'exigence laisse détectable. Le rappel brut reste imprimé.
+    const evaluable = new Set([...truthM1].filter((id) => !result.implausibleInCellIds.has(id)));
     const tp = inter(truthM1, result.m1FlaggedIds);
-    const recall = tp / truthM1.size;
+    const recall = tp / evaluable.size;
+    const rawRecall = tp / truthM1.size;
     const precision = inter(result.m1FlaggedIds, allInjected) / result.m1FlaggedIds.size;
     console.log(
-      `[M1] rappel = ${(recall * 100).toFixed(1)}% (${tp}/${truthM1.size}) ; ` +
+      `[M1] rappel évaluable = ${(recall * 100).toFixed(1)}% (${tp}/${evaluable.size}) ; ` +
+        `rappel brut = ${(rawRecall * 100).toFixed(1)}% (${tp}/${truthM1.size}) ; ` +
+        `injectés écartés PRICE_IMPLAUSIBLE_IN_CELL = ${truthM1.size - evaluable.size} ; ` +
         `précision(injecté-tout) = ${(precision * 100).toFixed(1)}% (sur ${result.m1FlaggedIds.size} signalés)`,
     );
     expect(truthM1.size).toBeGreaterThan(50);
@@ -68,14 +75,18 @@ describe('D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96)
     // Un injecté relatif peut être capté par M1 (absolu) ou M2 : on mesure le rappel par l'UNION des
     // deux détecteurs, plus la part propre à M2.
     const union = new Set<string>([...result.m1FlaggedIds, ...result.m2FlaggedIds]);
+    // Même correction qu'en M1 : les injectés marqués `PRICE_IMPLAUSIBLE_IN_CELL` (EX-DATA-19(2))
+    // sortent de `V_price(C)` et ne sont pas évaluables.
+    const evaluable = new Set([...truthM2].filter((id) => !result.implausibleInCellIds.has(id)));
     const tpUnion = inter(truthM2, union);
     const tpM2 = inter(truthM2, result.m2FlaggedIds);
-    const recallUnion = tpUnion / truthM2.size;
-    const recallM2 = tpM2 / truthM2.size;
+    const recallUnion = tpUnion / evaluable.size;
+    const recallM2 = tpM2 / evaluable.size;
     const precisionM2 = inter(result.m2FlaggedIds, allInjected) / result.m2FlaggedIds.size;
     console.log(
-      `[M2] rappel(union M1∪M2) = ${(recallUnion * 100).toFixed(1)}% (${tpUnion}/${truthM2.size}) ; ` +
-        `rappel(M2 seul) = ${(recallM2 * 100).toFixed(1)}% (${tpM2}/${truthM2.size}) ; ` +
+      `[M2] rappel(union M1∪M2) = ${(recallUnion * 100).toFixed(1)}% (${tpUnion}/${evaluable.size}) ; ` +
+        `rappel(M2 seul) = ${(recallM2 * 100).toFixed(1)}% (${tpM2}/${evaluable.size}) ; ` +
+        `injectés écartés PRICE_IMPLAUSIBLE_IN_CELL = ${truthM2.size - evaluable.size} ; ` +
         `précision M2(injecté-tout) = ${(precisionM2 * 100).toFixed(1)}% (sur ${result.m2FlaggedIds.size} signalés)`,
     );
     expect(truthM2.size).toBeGreaterThan(50);

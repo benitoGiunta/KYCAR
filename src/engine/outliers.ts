@@ -19,7 +19,14 @@
  */
 
 import type { ListingColumnBatch, OutlierVerdict } from '../types/index';
-import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED, yearFromYearMonth } from './flags';
+import {
+  implausibleInCellThreshold,
+  isMileageValid,
+  isPriceValid,
+  isYearValid,
+  PRICE_STATUS_QUOTED,
+  yearFromYearMonth,
+} from './flags';
 import { quantileFromSorted } from './quantiles';
 import { decodeListingId } from './uuid';
 
@@ -40,6 +47,7 @@ const M2_Z_THRESHOLD = 2.5;
 const M2_TRIM = 3.5;
 const MIN_M1 = 12;
 const MIN_M2 = 30;
+
 
 /* ---- Codes de drapeau (vocabulaire gelé KYCAR_OUTLIER_FLAG) ----------------------------------- */
 const FLAG_M1_LOW = 'M1_LOW';
@@ -65,6 +73,18 @@ export interface OutlierResult {
   readonly outlierNotEvaluatedCount: number;
   readonly m1FlaggedIds: ReadonlySet<string>;
   readonly m2FlaggedIds: ReadonlySet<string>;
+  /**
+   * Annonces écartées de `V_price(C)` au titre de `PRICE_IMPLAUSIBLE_IN_CELL` dans la cellule que le
+   * moteur leur a retenue (EX-DATA-19(2)). Elles comptent dans tout effectif, ne sont ni évaluées ni
+   * signalées, et l'écran peut les nommer (EX-DATA-87).
+   */
+  readonly implausibleInCellIds: ReadonlySet<string>;
+  /**
+   * Seuil relatif de la cellule `C₃ = Σ` (`0,10 × médianeRéf(Σ)`), ou `null` si `n_price(Σ) < 12`.
+   * Publié pour que l'éligibilité du nuage et de la densité (EX-DATA-99, D-05) applique la MÊME
+   * règle sans recalculer la médiane.
+   */
+  readonly selectionImplausibleThreshold: number | null;
   readonly m3: M3Control;
 }
 
@@ -110,7 +130,7 @@ function median(values: readonly number[]): number {
 
 /* ---- Structures de cellule ------------------------------------------------------------------- */
 
-/** Échantillon d'une cellule pour M1 : les `ln(prix)` valides. */
+/** Barrières de Tukey d'une cellule (M1, EX-DATA-88), calculées sur `V_price(C)` hors implausibles. */
 interface M1Fence {
   readonly n: number;
   readonly median: number;
@@ -120,8 +140,11 @@ interface M1Fence {
   readonly spread: boolean;
 }
 
-function computeM1Fence(lnPrices: readonly number[]): M1Fence {
-  const sorted = Float64Array.from(lnPrices).sort();
+/** Barrière de Tukey sur `ln(prix)` (EX-DATA-88). `sortedPrices` est déjà croissant. */
+function fenceFromSortedPrices(sortedPrices: Float64Array): M1Fence {
+  // `ln` est strictement croissante : l'ordre est conservé, aucun second tri n'est nécessaire.
+  const sorted = new Float64Array(sortedPrices.length);
+  for (let i = 0; i < sortedPrices.length; i++) sorted[i] = Math.log(sortedPrices[i] as number);
   const q1 = quantileFromSorted(sorted, 0.25);
   const q3 = quantileFromSorted(sorted, 0.75);
   const med = quantileFromSorted(sorted, 0.5);
@@ -136,7 +159,65 @@ function computeM1Fence(lnPrices: readonly number[]): M1Fence {
   };
 }
 
-/** Points d'ajustement `F` d'une cellule pour M2 (EX-DATA-90). */
+/**
+ * Échantillon d'une cellule d'homogénéité (EX-DATA-86) : `V_price(C)`, la sentinelle RELATIVE
+ * d'EX-DATA-19(2) appliquée, et la barrière M1 qui en découle.
+ *
+ * UN SEUL passage, dans l'ordre imposé par ARB-13 — `filtrer l'absolu → médiane → marquer le
+ * relatif` — sans itération ni recherche de point fixe : les sentinelles ABSOLUES sont déjà hors de
+ * `V_price(C)` (EX-DATA-60, `isPriceValid`), `médianeRéf(C)` est la médiane du reste, et le marquage
+ * relatif ne rétroagit jamais sur elle. La règle ne s'applique pas sous 12 prix valides.
+ */
+interface CellSample {
+  /** `0,10 × médianeRéf(C)`, ou `null` quand la règle relative ne s'applique pas (`n_price < 12`). */
+  readonly implausibleThreshold: number | null;
+  /** Annonces écartées de `V_price(C)` au titre de `PRICE_IMPLAUSIBLE_IN_CELL` (EX-DATA-87). */
+  readonly implausibleInCellCount: number;
+  /** `n_price(C)` HORS implausibles : l'effectif publié avec le verdict (EX-DATA-87). */
+  readonly keptCount: number;
+  /** Barrière M1 de la cellule, ou `null` si `keptCount < 12`. */
+  readonly fence: M1Fence | null;
+}
+
+const EMPTY_CELL: CellSample = {
+  implausibleThreshold: null,
+  implausibleInCellCount: 0,
+  keptCount: 0,
+  fence: null,
+};
+
+function buildCellSample(prices: readonly number[] | undefined): CellSample {
+  if (prices === undefined || prices.length === 0) return EMPTY_CELL;
+  const sorted = Float64Array.from(prices).sort();
+  let start = 0;
+  const threshold = implausibleInCellThreshold(quantileFromSorted(sorted, 0.5), sorted.length);
+  if (threshold !== null) {
+    // Les prix implausibles sont les plus petits : ils occupent la tête du tableau trié.
+    while (start < sorted.length && (sorted[start] as number) < threshold) start++;
+  }
+  const kept = sorted.subarray(start);
+  return {
+    implausibleThreshold: threshold,
+    implausibleInCellCount: start,
+    keptCount: kept.length,
+    fence: kept.length >= MIN_M1 ? fenceFromSortedPrices(kept) : null,
+  };
+}
+
+/** Vrai si ce prix porte `PRICE_IMPLAUSIBLE_IN_CELL` dans cette cellule (EX-DATA-19(2)). */
+function isImplausibleInCell(sample: CellSample, price: number): boolean {
+  return sample.implausibleThreshold !== null && price < sample.implausibleThreshold;
+}
+
+/** Points d'ajustement `F` d'une cellule pour M2 (EX-DATA-90) : lignes, `ln(prix)`, année, km. */
+interface M2Points {
+  readonly rows: number[];
+  readonly y: number[];
+  readonly year: number[];
+  readonly mileage: number[];
+}
+
+/** Ajustement M2 d'une cellule (EX-DATA-90). */
 interface M2Fit {
   readonly ok: boolean;
   /** `z_i` robuste par ligne (uniquement pour les lignes de `F`). */
@@ -249,12 +330,14 @@ export function detectOutliers(
   const qvpRows: number[] = [];
   let priceQuotedCount = 0;
 
-  // Regroupements de ln(prix) par cellule (M1) et de points F par cellule (M2). Clés entières.
-  const c1Ln = new Map<number, number[]>();
-  const c2Ln = new Map<number, number[]>();
-  const c3Ln: number[] = [];
-  const c2F = new Map<number, { rows: number[]; y: number[]; year: number[]; mileage: number[] }>();
-  const c3F = { rows: [] as number[], y: [] as number[], year: [] as number[], mileage: [] as number[] };
+  // Regroupements de PRIX par cellule (M1 + sentinelle relative) et de points F par cellule (M2).
+  // Les prix — et non les `ln(prix)` — parce que `médianeRéf(C)` d'EX-DATA-19(2) est la médiane des
+  // PRIX de la cellule : l'interpolation du quantile de type 7 ne commute pas avec `ln`.
+  const c1Prices = new Map<number, number[]>();
+  const c2Prices = new Map<number, number[]>();
+  const c3Prices: number[] = [];
+  const c2F = new Map<number, M2Points>();
+  const c3F: M2Points = { rows: [], y: [], year: [], mileage: [] };
 
   for (let i = 0; i < n; i++) {
     const row = rows[i] as number;
@@ -276,12 +359,12 @@ export function detectOutliers(
     const mileage = batch.mileageKm[row] as number;
     const mileageValid = isMileageValid(mileage, ingest);
 
-    // M1 : cellules C1 / C2 / C3.
+    // M1 et sentinelle relative : cellules C1 / C2 / C3.
     if (yearValid) {
-      pushTo(c1Ln, cellC1(c2Key, year), ln);
+      pushTo(c1Prices, cellC1(c2Key, year), price);
     }
-    pushTo(c2Ln, c2Key, ln);
-    c3Ln.push(ln);
+    pushTo(c2Prices, c2Key, price);
+    c3Prices.push(price);
 
     // M2 : points F (prix, année, km tous valides).
     if (yearValid && mileageValid) {
@@ -301,48 +384,56 @@ export function detectOutliers(
     }
   }
 
-  // Fences M1 par cellule (lazy), un cache par niveau de cellule.
-  const c1FenceCache = new Map<number, M1Fence>();
-  const c2FenceCache = new Map<number, M1Fence>();
-  const fenceOf = (
+  // Échantillons de cellule (lazy) : sentinelle relative + barrière M1. Un cache par niveau.
+  const c1SampleCache = new Map<number, CellSample>();
+  const c2SampleCache = new Map<number, CellSample>();
+  const sampleOf = (
     map: Map<number, number[]>,
-    cache: Map<number, M1Fence>,
+    cache: Map<number, CellSample>,
     key: number,
-  ): M1Fence | null => {
-    const arr = map.get(key);
-    if (arr === undefined || arr.length < MIN_M1) return null;
-    let f = cache.get(key);
-    if (f === undefined) {
-      f = computeM1Fence(arr);
-      cache.set(key, f);
+  ): CellSample => {
+    let s = cache.get(key);
+    if (s === undefined) {
+      s = buildCellSample(map.get(key));
+      cache.set(key, s);
     }
-    return f;
+    return s;
   };
-  let c3Fence: M1Fence | null | undefined;
-  const fenceC3 = (): M1Fence | null => {
-    if (c3Fence === undefined) c3Fence = c3Ln.length >= MIN_M1 ? computeM1Fence(c3Ln) : null;
-    return c3Fence;
+  let c3SampleMemo: CellSample | undefined;
+  const sampleC3 = (): CellSample => (c3SampleMemo ??= buildCellSample(c3Prices));
+
+  /** Ajuste M2 sur les points `F` de la cellule, IMPLAUSIBLES ÉCARTÉS (EX-DATA-19(2)). */
+  const fitCell = (f: M2Points | undefined, sample: CellSample): M2Fit => {
+    if (f === undefined || sample.keptCount < MIN_M2) return FIT_EMPTY;
+    const t = sample.implausibleThreshold;
+    if (t === null || sample.implausibleInCellCount === 0) return fitM2(f.rows, f.y, f.year, f.mileage);
+    const rows: number[] = [];
+    const y: number[] = [];
+    const year: number[] = [];
+    const mileage: number[] = [];
+    for (let i = 0; i < f.rows.length; i++) {
+      const r = f.rows[i] as number;
+      if ((batch.priceEur[r] as number) < t) continue;
+      rows.push(r);
+      y.push(f.y[i] as number);
+      year.push(f.year[i] as number);
+      mileage.push(f.mileage[i] as number);
+    }
+    return fitM2(rows, y, year, mileage);
   };
 
   // Fits M2 par cellule (lazy).
   const m2FitCache = new Map<number, M2Fit>();
-  const fitC2 = (key: number): M2Fit => {
+  const fitC2 = (key: number, sample: CellSample): M2Fit => {
     let fit = m2FitCache.get(key);
     if (fit === undefined) {
-      const f = c2F.get(key);
-      const c2n = c2Ln.get(key)?.length ?? 0;
-      fit = f !== undefined && c2n >= MIN_M2 ? fitM2(f.rows, f.y, f.year, f.mileage) : FIT_EMPTY;
+      fit = fitCell(c2F.get(key), sample);
       m2FitCache.set(key, fit);
     }
     return fit;
   };
   let c3Fit: M2Fit | undefined;
-  const fitC3 = (): M2Fit => {
-    if (c3Fit === undefined) {
-      c3Fit = c3Ln.length >= MIN_M2 ? fitM2(c3F.rows, c3F.y, c3F.year, c3F.mileage) : FIT_EMPTY;
-    }
-    return c3Fit;
-  };
+  const fitC3 = (): M2Fit => (c3Fit ??= fitCell(c3F, sampleC3()));
 
   const verdicts: OutlierVerdict[] = [];
   const m1FlaggedIds = new Set<string>();
@@ -351,6 +442,8 @@ export function detectOutliers(
 
   // Pour M3 : besoin, par ligne, du fait d'avoir été signalée BAS.
   const flaggedLowRow = new Set<number>();
+  // Annonces marquées `PRICE_IMPLAUSIBLE_IN_CELL` dans leur cellule (EX-DATA-19(2)).
+  const implausibleInCellIds = new Set<string>();
 
   for (const row of qvpRows) {
     const price = batch.priceEur[row] as number;
@@ -362,27 +455,30 @@ export function detectOutliers(
     const yearValid = isYearValid(ym);
     const year = yearValid ? yearFromYearMonth(ym) : 0;
 
-    // --- M1 : choisir la première cellule à n ≥ 12 ---
+    const c2Sample = sampleOf(c2Prices, c2SampleCache, c2Key);
+
+    // --- M1 : choisir la première cellule à n ≥ 12 (implausibles déjà écartés) ---
+    let m1Cell: CellSample = EMPTY_CELL;
     let m1Fence: M1Fence | null = null;
     let m1Level: 'MODEL_YEAR' | 'MODEL' | 'SELECTION' | null = null;
     if (yearValid) {
-      const f = fenceOf(c1Ln, c1FenceCache, cellC1(c2Key, year));
-      if (f) {
-        m1Fence = f;
+      const s = sampleOf(c1Prices, c1SampleCache, cellC1(c2Key, year));
+      if (s.fence !== null) {
+        m1Cell = s;
+        m1Fence = s.fence;
         m1Level = 'MODEL_YEAR';
       }
     }
-    if (m1Fence === null) {
-      const f = fenceOf(c2Ln, c2FenceCache, c2Key);
-      if (f) {
-        m1Fence = f;
-        m1Level = 'MODEL';
-      }
+    if (m1Fence === null && c2Sample.fence !== null) {
+      m1Cell = c2Sample;
+      m1Fence = c2Sample.fence;
+      m1Level = 'MODEL';
     }
     if (m1Fence === null) {
-      const f = fenceC3();
-      if (f) {
-        m1Fence = f;
+      const s = sampleC3();
+      if (s.fence !== null) {
+        m1Cell = s;
+        m1Fence = s.fence;
         m1Level = 'SELECTION';
       }
     }
@@ -391,28 +487,43 @@ export function detectOutliers(
     let m1Low = false;
     let m1High = false;
     let zIqr: number | null = null;
-    if (m1Fence !== null && m1Fence.spread) {
+    // EX-DATA-19(2) : une annonce marquée `PRICE_IMPLAUSIBLE_IN_CELL` dans SA cellule est hors de
+    // `V_price(C)` — elle n'est ni évaluée ni signalée, et l'on ne redescend pas à une cellule plus
+    // grossière pour la faire évaluer autrement.
+    const m1Implausible = m1Fence !== null && isImplausibleInCell(m1Cell, price);
+    if (m1Fence !== null && m1Fence.spread && !m1Implausible) {
       m1Evaluated = true;
       zIqr = (ln - m1Fence.median) / (m1Fence.iqr / ROBUST_SD_FROM_IQR);
       if (price < m1Fence.lowFence) m1Low = true;
       else if (price > m1Fence.highFence) m1High = true;
     }
 
-    // --- M2 : cellule C2 (n_price ≥ 30) puis C3 ---
+    // --- M2 : cellule C2 (n_price ≥ 30 hors implausibles) puis C3 ---
     let m2Fit: M2Fit = FIT_EMPTY;
+    let m2Cell: CellSample = EMPTY_CELL;
     let m2Level: 'MODEL' | 'SELECTION' | null = null;
-    if ((c2Ln.get(c2Key)?.length ?? 0) >= MIN_M2) {
-      const fit = fitC2(c2Key);
-      if (fit.ok && fit.zByRow.has(row)) {
-        m2Fit = fit;
-        m2Level = 'MODEL';
+    let m2Implausible = false;
+    if (c2Sample.keptCount >= MIN_M2) {
+      if (isImplausibleInCell(c2Sample, price)) {
+        m2Implausible = true;
+      } else {
+        const fit = fitC2(c2Key, c2Sample);
+        if (fit.ok && fit.zByRow.has(row)) {
+          m2Fit = fit;
+          m2Cell = c2Sample;
+          m2Level = 'MODEL';
+        }
       }
     }
-    if (m2Fit === FIT_EMPTY && c3Ln.length >= MIN_M2) {
-      const fit = fitC3();
-      if (fit.ok && fit.zByRow.has(row)) {
-        m2Fit = fit;
-        m2Level = 'SELECTION';
+    if (!m2Implausible && m2Level === null) {
+      const s = sampleC3();
+      if (s.keptCount >= MIN_M2 && !isImplausibleInCell(s, price)) {
+        const fit = fitC3();
+        if (fit.ok && fit.zByRow.has(row)) {
+          m2Fit = fit;
+          m2Cell = s;
+          m2Level = 'SELECTION';
+        }
       }
     }
 
@@ -431,6 +542,8 @@ export function detectOutliers(
       if (m2Z <= -M2_Z_THRESHOLD) m2Low = true;
       else if (m2Z >= M2_Z_THRESHOLD) m2High = true;
     }
+
+    if (m1Implausible || m2Implausible) implausibleInCellIds.add(decodeListingId(batch.listingId, row));
 
     if (m1Evaluated || m2Evaluated) evaluatedCount++;
 
@@ -457,7 +570,8 @@ export function detectOutliers(
         deviationPct: null,
         opportunityScore,
         cellLabel: m1Level,
-        cellCount: m1Fence ? m1Fence.n : 0,
+        cellCount: m1Cell.keptCount,
+        implausibleInCellCount: m1Cell.implausibleInCellCount,
       });
     }
     if (m2Low || m2High) {
@@ -476,7 +590,8 @@ export function detectOutliers(
         deviationPct: deviation,
         opportunityScore,
         cellLabel: m2Level,
-        cellCount: (m2Level === 'MODEL' ? c2Ln.get(c2Key)?.length : c3Ln.length) ?? 0,
+        cellCount: m2Cell.keptCount,
+        implausibleInCellCount: m2Cell.implausibleInCellCount,
       });
     }
   }
@@ -492,6 +607,8 @@ export function detectOutliers(
     outlierNotEvaluatedCount,
     m1FlaggedIds,
     m2FlaggedIds,
+    implausibleInCellIds,
+    selectionImplausibleThreshold: sampleC3().implausibleThreshold,
     m3,
   };
 }

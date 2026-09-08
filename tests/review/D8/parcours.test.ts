@@ -226,12 +226,27 @@ describe('Parcours 2 — mode 2 « Opel Corsa 2017 »', () => {
     expect(target).toBeDefined();
     const [makeId, modelId] = target!.k.split(':').map(Number) as [number, number];
     const cell = await controller.enterMode2(makeId, modelId);
-    const truth = inner.getGroundTruthOutliers().filter((o) => o.makeId === makeId && o.modelId === modelId);
+    const injected = inner.getGroundTruthOutliers().filter((o) => o.makeId === makeId && o.modelId === modelId);
+    // DR-002 / EX-DATA-19(2) : un injecté dont le prix tombe sous `0,10 × médianeRéf(C)` porte
+    // `PRICE_IMPLAUSIBLE_IN_CELL`, sort de `V_price(C)` et n'est donc PAS évaluable. La cellule du
+    // mode 2 EST la sélection : sa médiane de référence se recalcule ici, hors moteur.
+    const cellPrices: number[] = [];
+    for (let i = 0; i < cell.batch.rowCount; i++) {
+      const p = cell.batch.priceEur[i] as number;
+      if (p > 0) cellPrices.push(p);
+    }
+    cellPrices.sort((a, b) => a - b);
+    const mid = cellPrices.length === 0 ? 0 : (cellPrices.length % 2 === 1
+      ? (cellPrices[(cellPrices.length - 1) / 2] as number)
+      : ((cellPrices[cellPrices.length / 2 - 1] as number) + (cellPrices[cellPrices.length / 2] as number)) / 2);
+    const implausibleBelow = 0.1 * mid;
+    const truth = injected.filter((o) => o.injectedPriceEur >= implausibleBelow);
     const flagged = new Set(cell.recalc.outlierVerdicts.filter((v) => v.flags.length > 0).map((v) => v.listingId.toLowerCase()));
     const found = truth.filter((o) => flagged.has(o.listingId.toLowerCase()));
-    console.log(`[parcours 2] cellule substitut ${cell.makeModelName} : n=${cell.batch.rowCount}, injectés=${truth.length}, retrouvés=${found.length}, verdicts=${cell.recalc.outlierVerdicts.length}`);
+    console.log(`[parcours 2] cellule substitut ${cell.makeModelName} : n=${cell.batch.rowCount}, injectés=${injected.length} dont évaluables=${truth.length} (seuil PRICE_IMPLAUSIBLE_IN_CELL = ${implausibleBelow.toFixed(0)} EUR), retrouvés=${found.length}, verdicts=${cell.recalc.outlierVerdicts.length}`);
     expect(cell.batch.rowCount).toBe(target!.size);
     // Rapport D4-verif : M1 95,8 % / M2 100 % en cellules éligibles ; on exige ici la majorité.
+    expect(truth.length).toBeGreaterThan(0);
     expect(found.length / truth.length).toBeGreaterThanOrEqual(0.5);
     // Tout verdict porte sur une annonce de la cellule (jamais une annonce hors élagage).
     expect(new Set(cell.recalc.outlierVerdicts.map((v) => v.listingId)).size).toBeLessThanOrEqual(cell.batch.rowCount);
