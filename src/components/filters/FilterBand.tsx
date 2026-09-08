@@ -38,6 +38,13 @@ export interface FilterBandProps {
   readonly originAndPath: string;
   readonly uiState?: UiState;
   readonly resultCount?: number;
+  /** `EX-SCR-78` : `true` pendant `ET-CHARGE-MAJ` — le compteur affiche `resultCount` (la dernière
+   * valeur connue) atténué et suivi de `…`, jamais `0` (`DR-139`, résidu). */
+  readonly resultCountLoading?: boolean;
+  /** `EX-SCR-94` (zone 4) : routé tel quel vers `ActiveFilterTokens` — absent ⇒ le bouton
+   * `Enregistrer la recherche` n'est pas rendu (`DR-139`, résidu). Le CRUD lui-même appartient à
+   * `src/app.tsx` (`saveCurrentSearch`) : c'est à l'appelant de brancher ce callback ici. */
+  readonly onSaveSearch?: () => void;
   readonly referenceData?: ScreenGReferenceData;
   readonly onHistoryReplace: (url: string) => void;
   readonly onHistoryPush: (url: string) => void;
@@ -225,8 +232,10 @@ export function FilterBand(props: FilterBandProps) {
         onRemovePartial={handleRemovePartial}
         selection={selection}
         resultCount={props.resultCount}
+        resultCountLoading={props.resultCountLoading}
         onRemove={handleRemove}
         onClearAll={handleClearAll}
+        onSaveSearch={props.onSaveSearch}
       />
       {screenGOpen ? (
         <ScreenG
