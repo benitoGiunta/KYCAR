@@ -26,10 +26,18 @@ vi.mock('preact/hooks', () => ({
 
 const { DistributionScreen } = await import('../../../src/screens/distribution/DistributionScreen');
 const { EMPTY_UI_STATE } = await import('../../../src/screens/distribution/url-state');
-const { fixture, deepRender, findAll, byType, visibleTextOf, textOf } = await import('./_helpers');
+const { fixture, withCountryCodes, deepRender, findAll, byType, visibleTextOf, textOf } = await import('./_helpers');
 
 const NOOP = (): void => {};
-const f = fixture(1200, 0xb1);
+// D8-25 (D-31) : `fixture()` seul produit un périmètre à UN SEUL `countryCode` (`generateSyntheticDataset`
+// fixe `countryCode = 0` pour toutes les lignes, D3) — depuis la fusion de fix-engine, `RecalcResult.groupStats`
+// est réellement peuplé et `EX-SCR-170` masque alors G15 (« tracé seulement au-delà d'un seul pays »), faisant
+// tomber à 13 les figures attendues à 14 partout dans ce fichier (titres EX-SCR-144/191, tableaux EX-NFR-15,
+// empreintes EX-SCR-176, mode « Modèle non identifié »). Le fixture DE RÉFÉRENCE de ce fichier porte donc
+// désormais deux pays (`withCountryCodes`) pour que G15 soit dans son état NORMAL (rendu) partout où la sonde
+// ne teste pas spécifiquement le masquage ; le masquage à un seul pays est prouvé à part, plus bas, sur un
+// fixture mono-pays dédié — sans toucher au reste (prix, km, année, outliers) de ce fixture de référence.
+const f = withCountryCodes(fixture(1200, 0xb1), [0, 1]);
 
 /** Normalise les blancs : `visibleTextOf` insère un séparateur entre chaque enfant de VNode. */
 const norm = (s: string): string => s.replace(/\s+/g, ' ').trim();
@@ -158,6 +166,24 @@ describe('D7 · écran B — structure des blocs et graphes (EX-SCR-141/144/191)
     expect(figures).toHaveLength(14);
     for (const fig of figures) {
       expect(fig.props['data-selection'], `graphe ${String(fig.props['data-graph'])}`).toBe(f.recalc.selectionStats.selectionHash);
+    }
+  });
+
+  // D8-06/D8-25/D-31 — cas dédié, SÉPARÉ du fixture de référence `f` (deux pays) : G15 (`EX-SCR-170`)
+  // n'est « tracé que si… le périmètre contient plus d'un `countryCode` distinct » ; sinon « le bloc
+  // est absent du DOM », et ce n'est PAS un `ET-CHAMP-ABSENT-SOURCE` (le champ existe, seul le graphe
+  // est sans objet). On prouve donc ICI, sur un fixture volontairement mono-pays (celui que produit
+  // `fixture()` seul, avant redistribution), que G15 est bien absent et que les 13 AUTRES figures
+  // restent rendues normalement (le masquage de G15 ne dégrade rien d'autre).
+  it('EX-SCR-170 (D8-25) : G15 est absent du DOM quand le périmètre ne porte qu’un seul `countryCode`, les 13 autres figures restant rendues', () => {
+    const monoCountry = fixture(1200, 0xb1);
+    expect(new Set(monoCountry.batch.countryCode).size).toBe(1); // prémisse du cas : un seul pays
+    const monoTree = renderScreen({ batch: monoCountry.batch, recalc: monoCountry.recalc, rows: monoCountry.rows });
+    const figures = findAll(monoTree, (n) => n.type === 'figure').map((n) => String(n.props['data-graph']));
+    expect(figures).toHaveLength(13);
+    expect(figures).not.toContain('G15');
+    for (const kept of ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G12', 'G13', 'G14']) {
+      expect(figures, kept).toContain(kept);
     }
   });
 });
@@ -352,6 +378,87 @@ describe('D7 · G4 — légendes et table des points (EX-SCR-154/155/156/160, EX
   it('R-D7-23 — EX-SCR-158 : aucun survol de point (infobulle 6 lignes) ni clic sortant vers l’annonce d’origine dans G4', () => {
     const src = readFileSync(join(process.cwd(), 'src', 'screens', 'distribution', 'ScatterCloud.tsx'), 'utf8');
     expect(src).toMatch(/noopener|onOpenListing|webPage/);
+  });
+});
+
+// D8-24 (EX-SCR-159) : sous 4 offres tracées dans G4, les légendes passent en style discret (texte
+// atténué, taille réduite, annexe B) et le brossage/zoom rectangulaire est neutralisé
+// (`aria-disabled`, message court) — seul le clic simple (survol, ouverture d'annonce) reste actif.
+describe('D7 · G4 — faible effectif (EX-SCR-159, D8-24)', () => {
+  const gp = (row: number) => ({ row, priceEur: 10000 + row * 1000, year: 2018 + row, regYearMonth: (2018 + row) * 12, mileageKm: 50000 + row * 10000, fuelCategory: 1, powerKw: 90, isOutlier: false, opportunityScore: null });
+  const info = (n: number) => ({ eligibleCount: n, plottedCount: n, outlierCount: 0, outlierPlottedCount: 0, sampled: false, outlierTruncated: false });
+  const fakeTarget = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 900, height: 480 }) };
+  const down = (x: number, y: number) => ({ clientX: x, clientY: y, shiftKey: false, currentTarget: fakeTarget });
+  const move = (x: number, y: number) => ({ clientX: x, clientY: y, currentTarget: fakeTarget });
+
+  async function renderCloud(n: number, onBrushChange: (bx: unknown, by: unknown) => void) {
+    const { ScatterCloud } = await import('../../../src/screens/distribution/ScatterCloud');
+    const points = Array.from({ length: n }, (_v, i) => gp(i));
+    const tree = deepRender(
+      ScatterCloud({ points, variant: 'scatter', onVariantChange: NOOP, sampleInfo: info(n), brushX: null, brushY: null, onBrushChange } as never),
+    );
+    const canvas = findAll(tree, byType('canvas'))[0]!;
+    const legends = findAll(tree, (nn) => nn.props['class'] === 'kycar-legend' || nn.props['class'] === 'kycar-legend kycar-legend-size' || nn.props['class'] === 'kycar-legend kycar-legend--discrete' || nn.props['class'] === 'kycar-legend kycar-legend-size kycar-legend--discrete');
+    return { canvas, legends };
+  }
+
+  it('n = 3 (< 4) : les légendes portent la classe discrète (`kycar-legend--discrete`)', async () => {
+    const { legends } = await renderCloud(3, NOOP);
+    expect(legends.length).toBeGreaterThan(0);
+    for (const l of legends) expect(String(l.props['class'])).toContain('kycar-legend--discrete');
+  });
+
+  it('n = 4 (seuil atteint) : les légendes restent en style CONTINU, aucune classe discrète', async () => {
+    const { legends } = await renderCloud(4, NOOP);
+    expect(legends.length).toBeGreaterThan(0);
+    for (const l of legends) expect(String(l.props['class'])).not.toContain('kycar-legend--discrete');
+  });
+
+  it('n = 3 : le canevas porte `aria-disabled` et un message court, un VRAI glisser (brossage) ne pose rien', async () => {
+    const calls: unknown[] = [];
+    const { canvas } = await renderCloud(3, (bx, by) => calls.push([bx, by]));
+    expect(canvas.props['aria-disabled']).toBe(true);
+    expect(String(canvas.props['title'])).toBe('Sélection inutile en dessous de 4 offres');
+    expect(String(canvas.props['class'])).toContain('kycar-scatter-canvas--brush-disabled');
+    (canvas.props['onMouseDown'] as (e: unknown) => void)(down(10, 10));
+    (canvas.props['onMouseMove'] as (e: unknown) => void)(move(200, 200));
+    (canvas.props['onMouseUp'] as (e: unknown) => void)(move(200, 200));
+    expect(calls).toHaveLength(0); // brossage neutralisé sous 4 offres
+  });
+
+  it('n = 4 (non-régression) : ni `aria-disabled` ni message, un glisser pose bien un brossage', async () => {
+    const calls: unknown[] = [];
+    const { canvas } = await renderCloud(4, (bx, by) => calls.push([bx, by]));
+    expect(canvas.props['aria-disabled']).toBeFalsy();
+    expect(canvas.props['title']).toBeUndefined();
+    expect(String(canvas.props['class'])).not.toContain('kycar-scatter-canvas--brush-disabled');
+    (canvas.props['onMouseDown'] as (e: unknown) => void)(down(10, 10));
+    (canvas.props['onMouseMove'] as (e: unknown) => void)(move(200, 200));
+    (canvas.props['onMouseUp'] as (e: unknown) => void)(move(200, 200));
+    expect(calls).toHaveLength(1); // comportement normal inchangé au-delà du seuil
+  });
+
+  it('n = 3 : le clic simple (aucun déplacement, aucun point sous le curseur) efface un brossage existant — jamais bloqué par le seuil', async () => {
+    const calls: Array<[unknown, unknown]> = [];
+    const { ScatterCloud } = await import('../../../src/screens/distribution/ScatterCloud');
+    const points = [gp(0), gp(1), gp(2)];
+    const tree = deepRender(
+      ScatterCloud({
+        points,
+        variant: 'scatter',
+        onVariantChange: NOOP,
+        sampleInfo: info(3),
+        brushX: { from: 0, to: 1 },
+        brushY: { from: 0, to: 1 },
+        onBrushChange: (bx: unknown, by: unknown) => calls.push([bx, by]),
+      } as never),
+    );
+    const canvas = findAll(tree, byType('canvas'))[0]!;
+    // (2, 2) tombe dans le remplissage du cadre (padLeft = 52, padTop = 16) : jamais assez près d'un
+    // point tracé (`HIT_RADIUS_PX = 8`) pour déclencher `onOpenListing` plutôt que l'effacement.
+    (canvas.props['onMouseDown'] as (e: unknown) => void)(down(2, 2));
+    (canvas.props['onMouseUp'] as (e: unknown) => void)(move(2, 2));
+    expect(calls).toEqual([[null, null]]); // clic simple actif : efface le brossage, PAS neutralisé par lowSample
   });
 });
 

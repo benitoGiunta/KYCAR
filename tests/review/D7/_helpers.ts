@@ -142,6 +142,36 @@ export function fixture(rowCount: number, seed = 0xd7): D7Fixture {
   };
 }
 
+/**
+ * `EX-SCR-170`/D8-25 — clone d'un `D7Fixture` dont la colonne `countryCode` est redistribuée sur les
+ * codes fournis (répartition cyclique), moteur et outliers recalculés en entier sur ce batch dérivé.
+ * Nécessaire car `generateSyntheticDataset` (D3) fixe `countryCode = 0` (« be ») sur TOUTES les
+ * lignes : sans cet outil, aucune fixture D7 ne peut jamais porter plus d'un `countryCode` distinct,
+ * donc jamais exercer le rendu de G15 (`EX-SCR-170` : tracé seulement au-delà d'un seul pays) — c'est
+ * la cause du constat D8-25 (quatre sondes rouges après fusion de fix-engine, qui fait maintenant
+ * appliquer ce masquage réel). `codes` doit porter au moins deux valeurs distinctes pour que
+ * `RecalcResult.groupStats` (clé `countryCode`) produise plus d'un groupe.
+ */
+export function withCountryCodes(base: D7Fixture, codes: readonly number[]): D7Fixture {
+  const n = base.batch.countryCode.length;
+  const countryCode = new Uint8Array(n);
+  for (let i = 0; i < n; i++) countryCode[i] = codes[i % codes.length] as number;
+  const batch: ListingColumnBatch = { ...base.batch, countryCode };
+  const rows = base.rows;
+  const dataset = new AggregationDataset(batch);
+  const recalc = dataset.recalculate({ selectionHash: base.recalc.selectionHash });
+  const out = detectOutliers(batch, rows, batch.snapshotId, 'rev-d7');
+  const index = new OutlierIndex(out.verdicts);
+  return {
+    batch,
+    rows,
+    recalc,
+    index,
+    isOutlier: (row) => index.has(decodeListingId(batch.listingId, row)),
+    opportunityScore: (row) => index.scoreOf(decodeListingId(batch.listingId, row)),
+  };
+}
+
 /** Séquence des `listingId` (hexadécimal minuscule) d'une liste de lignes — comparaison octet à octet. */
 export function listingIdSequence(batch: ListingColumnBatch, rows: Int32Array | readonly number[]): string {
   const out: string[] = [];

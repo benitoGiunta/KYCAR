@@ -155,3 +155,129 @@ describe('D7 · G1–G3 — rendu SVG (EX-SCR-148/145) et table équivalente (EX
     expect(texts.length).toBeGreaterThan(2);
   });
 });
+
+// D8-24 (EX-SCR-149) : brossage horizontal, `Ctrl` + clic, double-clic. `Histogram` reste un
+// composant SANS hook — comme le reste de ce fichier, on APPELLE la fonction directement (aucun
+// rendu Preact) et on INVOQUE les gestionnaires attachés aux VNodes `<rect>`/`<svg>` avec de faux
+// événements ; c'est exactement la même technique que le reste du fichier, poussée jusqu'aux
+// interactions (aucun DOM/jsdom disponible dans cet environnement de sonde, `environment: 'node'`).
+describe('D7 · G1–G3 — interactions (EX-SCR-149, D8-24)', () => {
+  const five: DistributionBucket[] = [
+    bucket(0, 0, 1000, 4),
+    bucket(1, 1000, 2000, 6),
+    bucket(2, 2000, 3000, 9),
+    bucket(3, 3000, 4000, 2),
+    bucket(4, 4000, 5000, 5),
+  ];
+
+  function render(graphId: string, onSelectBucket: (b: unknown) => void, onClearFilter?: (m: unknown) => void) {
+    const tree = Histogram({
+      graphId,
+      title: 'Offres par prix',
+      metric: 'price',
+      buckets: five,
+      log: false,
+      onToggleLog: NOOP,
+      onSelectBucket: onSelectBucket as never,
+      onClearFilter: onClearFilter as never,
+    });
+    const rects = findAll(tree, byType('rect')).filter((r) => typeof r.props['onClick'] === 'function');
+    const svg = findAll(tree, byType('svg'))[0]!;
+    return { rects, svg };
+  }
+
+  it('clic simple (sans `Ctrl`) pose le bucket exact — comportement inchangé', () => {
+    const calls: unknown[] = [];
+    const { rects } = render('G1-simple', (b) => calls.push(b));
+    (rects[2]!.props['onClick'] as (e: { ctrlKey: boolean }) => void)({ ctrlKey: false });
+    expect(calls).toEqual([five[2]]);
+  });
+
+  it('`Ctrl` + clic accumule des buckets NON CONTIGUS et pose l’enveloppe la plus petite qui les englobe', () => {
+    const calls: unknown[] = [];
+    const { rects } = render('G1-ctrl-accumule', (b) => calls.push(b));
+    const onClick = (i: number, ctrlKey: boolean): void => (rects[i]!.props['onClick'] as (e: { ctrlKey: boolean }) => void)({ ctrlKey });
+    onClick(1, true); // sélection {1} → enveloppe = bucket 1 seul
+    onClick(3, true); // sélection {1, 3} → enveloppe = [lo(1), hi(3)]
+    expect(calls).toEqual([
+      { lowerBound: 1000, upperBound: 2000 },
+      { lowerBound: 1000, upperBound: 4000 },
+    ]);
+  });
+
+  it('`Ctrl` + clic sur un bucket déjà sélectionné le RETIRE de la sélection (pose l’enveloppe réduite)', () => {
+    const calls: unknown[] = [];
+    const { rects } = render('G1-ctrl-retire', (b) => calls.push(b));
+    const onClick = (i: number, ctrlKey: boolean): void => (rects[i]!.props['onClick'] as (e: { ctrlKey: boolean }) => void)({ ctrlKey });
+    onClick(1, true);
+    onClick(3, true);
+    onClick(1, true); // retire le bucket 1 : ne reste que {3}
+    expect(calls).toHaveLength(3);
+    expect(calls[2]).toEqual({ lowerBound: 3000, upperBound: 4000 });
+  });
+
+  it('`Ctrl` + clic qui retire le DERNIER bucket sélectionné ne pose rien (sélection vide)', () => {
+    const calls: unknown[] = [];
+    const { rects } = render('G1-ctrl-vide', (b) => calls.push(b));
+    const onClick = (i: number, ctrlKey: boolean): void => (rects[i]!.props['onClick'] as (e: { ctrlKey: boolean }) => void)({ ctrlKey });
+    onClick(2, true);
+    onClick(2, true); // retire le seul bucket sélectionné
+    expect(calls).toHaveLength(1); // un seul appel, celui de la première sélection
+  });
+
+  it('un clic simple APRÈS un `Ctrl` + clic repart d’une sélection propre (pas de fusion avec l’ancienne)', () => {
+    const calls: unknown[] = [];
+    const { rects } = render('G1-ctrl-puis-simple', (b) => calls.push(b));
+    const click = (i: number, ctrlKey: boolean): void => (rects[i]!.props['onClick'] as (e: { ctrlKey: boolean }) => void)({ ctrlKey });
+    click(0, true);
+    click(4, false); // clic simple : ignore le bucket 0 précédemment `Ctrl`-cliqué
+    expect(calls[calls.length - 1]).toEqual(five[4]);
+    // Un `Ctrl` + clic qui suit repart bien à zéro (pas de fusion avec le bucket 0 d’avant) :
+    click(1, true);
+    expect(calls[calls.length - 1]).toEqual({ lowerBound: 1000, upperBound: 2000 });
+  });
+
+  it('brossage horizontal (mousedown → mouseenter × N → mouseup) pose l’intervalle [lo du premier bin, hi du dernier bin]', () => {
+    const calls: unknown[] = [];
+    const { rects, svg } = render('G1-brush', (b) => calls.push(b));
+    (rects[0]!.props['onMouseDown'] as () => void)();
+    (rects[1]!.props['onMouseEnter'] as () => void)();
+    (rects[2]!.props['onMouseEnter'] as () => void)();
+    (svg.props['onMouseUp'] as () => void)();
+    expect(calls).toEqual([{ lowerBound: 0, upperBound: 3000 }]); // bucket 0 → bucket 2
+  });
+
+  it('un brossage qui ne quitte jamais son bucket de départ (mousedown/mouseup sans déplacement) ne pose rien (c’est un simple clic)', () => {
+    const calls: unknown[] = [];
+    const { rects, svg } = render('G1-brush-nul', (b) => calls.push(b));
+    (rects[2]!.props['onMouseDown'] as () => void)();
+    (svg.props['onMouseUp'] as () => void)();
+    expect(calls).toHaveLength(0);
+  });
+
+  it('quitter la zone de tracé en cours de brossage (`mouseleave`) le termine, comme `mouseup`', () => {
+    const calls: unknown[] = [];
+    const { rects, svg } = render('G1-brush-leave', (b) => calls.push(b));
+    (rects[1]!.props['onMouseDown'] as () => void)();
+    (rects[3]!.props['onMouseEnter'] as () => void)();
+    (svg.props['onMouseLeave'] as () => void)();
+    expect(calls).toEqual([{ lowerBound: 1000, upperBound: 4000 }]);
+  });
+
+  it('double-clic dans la zone de tracé retire le filtre posé par CE graphe (`onClearFilter`, métrique du graphe)', () => {
+    const cleared: unknown[] = [];
+    const { svg } = render('G1-dblclick', NOOP, (m) => cleared.push(m));
+    (svg.props['onDblClick'] as () => void)();
+    expect(cleared).toEqual(['price']);
+  });
+
+  it('un double-clic remet à zéro la sélection `Ctrl` en cours (le `Ctrl` + clic suivant repart de zéro)', () => {
+    const calls: unknown[] = [];
+    const { rects, svg } = render('G1-dblclick-reset', (b) => calls.push(b));
+    const click = (i: number, ctrlKey: boolean): void => (rects[i]!.props['onClick'] as (e: { ctrlKey: boolean }) => void)({ ctrlKey });
+    click(0, true);
+    (svg.props['onDblClick'] as () => void)();
+    click(4, true);
+    expect(calls[calls.length - 1]).toEqual({ lowerBound: 4000, upperBound: 5000 }); // bucket 4 seul, pas fusionné avec 0
+  });
+});

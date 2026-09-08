@@ -110,6 +110,14 @@ export function ScatterCloud(props: ScatterCloudProps) {
   const effectiveVariant: ScatterVariant = props.degraded ? 'scatter' : props.variant;
   const { yearMin, yearMax, kmMin, kmMax, hasAnyYear } = ramps(props.points);
 
+  // `EX-SCR-159` (D8-24) — sous 4 offres, le brossage (et le zoom rectangulaire `Maj` + glisser, qui
+  // partage le même geste de glissement) n'a plus de sens (« Sélection inutile en dessous de 4
+  // offres ») ; les légendes passent en styles discrets (texte atténué, taille réduite,
+  // `distribution.css`). Le clic simple (ouvrir une annonce / effacer un brossage existant déjà posé)
+  // reste actif : seule la partie GLISSÉE du geste est neutralisée (cf. `onPointerDown`/`onPointerUp`
+  // plus bas).
+  const lowSample = props.points.length < 4;
+
   const vp: Viewport = useMemo(
     () => ({ width, height, padLeft: 52, padRight: props.degraded ? 16 : 168, padTop: 16, padBottom: 40 }),
     [width, height, props.degraded],
@@ -228,14 +236,16 @@ export function ScatterCloud(props: ScatterCloudProps) {
     if (props.degraded) return;
     const { x, y } = eventPos(e);
     dragRef.current = { x0: x, y0: y, x1: x, y1: y, shiftKey: e.shiftKey };
-    setDragRect(dragRef.current);
+    // `EX-SCR-159` : pas d'aperçu de rectangle sous 4 offres — le geste glissé est neutralisé (voir
+    // `onPointerUp`), montrer un rectangle qui n'aboutira à rien serait trompeur.
+    if (!lowSample) setDragRect(dragRef.current);
   };
   const onPointerMove = (e: MouseEvent): void => {
     if (dragRef.current !== null) {
       const { x, y } = eventPos(e);
       dragRef.current.x1 = x;
       dragRef.current.y1 = y;
-      setDragRect({ ...dragRef.current });
+      if (!lowSample) setDragRect({ ...dragRef.current });
       return;
     }
     // Pas de glisser en cours : survol (DR-084).
@@ -263,6 +273,9 @@ export function ScatterCloud(props: ScatterCloudProps) {
       else props.onBrushChange(null, null);
       return;
     }
+    // `EX-SCR-159` : sous 4 offres, un VRAI glisser (non négligeable) ne pose ni brossage ni zoom —
+    // seul le clic simple ci-dessus reste actif.
+    if (lowSample) return;
     const inv = makeInverseProjector(vp, xB, yB);
     const xa = inv.dataX(Math.min(d.x0, d.x1));
     const xb = inv.dataX(Math.max(d.x0, d.x1));
@@ -338,10 +351,16 @@ export function ScatterCloud(props: ScatterCloudProps) {
           ref={canvasRef}
           width={width}
           height={height}
+          class={lowSample ? 'kycar-scatter-canvas kycar-scatter-canvas--brush-disabled' : 'kycar-scatter-canvas'}
           style={{ maxWidth: '100%', touchAction: 'none' }}
           tabIndex={0}
           role="img"
           aria-label={`Nuage de ${props.sampleInfo.plottedCount} points, ${outlierPoints.length} outliers`}
+          // `EX-SCR-159` (D8-24) — sous 4 offres, `aria-disabled` + curseur dédié (`distribution.css`)
+          // et message court signalent que brossage/zoom sont inertes ; le clic simple (survol,
+          // ouverture d'annonce) reste, lui, pleinement fonctionnel (cf. `onPointerDown`/`onPointerUp`).
+          aria-disabled={lowSample}
+          title={lowSample ? 'Sélection inutile en dessous de 4 offres' : undefined}
           onMouseDown={onPointerDown}
           onMouseMove={onPointerMove}
           onMouseUp={onPointerUp}
@@ -399,8 +418,11 @@ export function ScatterCloud(props: ScatterCloudProps) {
             yearMedian={yearMedian}
             kmMin={kmMin}
             kmMax={kmMax}
+            discrete={lowSample}
           />
-          {!props.degraded ? (effectiveVariant === 'stack' ? <SizeLegend /> : <SizeLegendScatter />) : null}
+          {!props.degraded ? (
+            effectiveVariant === 'stack' ? <SizeLegend discrete={lowSample} /> : <SizeLegendScatter discrete={lowSample} />
+          ) : null}
         </div>
       </div>
 
@@ -457,6 +479,14 @@ export function ScatterCloud(props: ScatterCloudProps) {
   );
 }
 
+/** `EX-SCR-159` (D8-24) — classe commune des trois légendes en dessous de 4 offres : texte atténué
+ * (`--color-text-muted`) et taille réduite (`distribution.css`, §annexe B), simple modificateur de la
+ * légende continue existante — la légende reste la MÊME donnée, seulement moins mise en avant, jamais
+ * un habillage inventé. */
+function legendClass(base: string, discrete: boolean | undefined): string {
+  return discrete ? `${base} kycar-legend--discrete` : base;
+}
+
 function ColorLegend(props: {
   variant: ScatterVariant;
   /** `EX-NFR-19` (E2E-17) : en dégradé, la couleur encode TOUJOURS l'année, quelle que soit
@@ -467,6 +497,8 @@ function ColorLegend(props: {
   yearMedian: number | undefined;
   kmMin: number;
   kmMax: number;
+  /** `EX-SCR-159` : moins de 4 offres tracées — légende discrète (texte atténué, taille réduite). */
+  discrete?: boolean;
 }) {
   const isYear = props.degraded === true || props.variant === 'stack';
   const ramp = isYear ? RAMP_A_YEAR : RAMP_B_MILEAGE;
@@ -475,7 +507,7 @@ function ColorLegend(props: {
   const hi = isYear ? props.yearMax : props.kmMax;
   const fmt = isYear ? (v: number) => formatYear(v) : (v: number) => formatKm(v);
   return (
-    <div class="kycar-legend">
+    <div class={legendClass('kycar-legend', props.discrete)}>
       <span class="kycar-legend-title">{isYear ? 'Année' : 'Kilométrage'}</span>
       <span class="kycar-legend-ramp" style={{ display: 'inline-flex' }}>
         {stops.map((t) => (
@@ -493,14 +525,14 @@ function ColorLegend(props: {
 
 /** `EX-SCR-155` (DR-151) : légende de taille de G4a — trois disques témoins, aire ∝ km (comme le
  * tracé, `mileageDiameter`). */
-function SizeLegend() {
+function SizeLegend(props: { discrete?: boolean }) {
   const stops: readonly [number, string][] = [
     [0, '0 km'],
     [100000, '100 000 km'],
     [MILEAGE_CLIP_KM, '250 000 km et plus'],
   ];
   return (
-    <div class="kycar-legend kycar-legend-size">
+    <div class={legendClass('kycar-legend kycar-legend-size', props.discrete)}>
       <span class="kycar-legend-title">Taille</span>
       {stops.map(([km, label]) => {
         const d = mileageDiameter(km).diameter;
@@ -520,9 +552,9 @@ function SizeLegend() {
 
 /** `EX-SCR-156` (DR-151) : la taille de G4b encode la puissance ; en son absence, taille fixe et
  * mention explicite (« taille non porteuse d'information »), jamais silencieuse. */
-function SizeLegendScatter() {
+function SizeLegendScatter(props: { discrete?: boolean }) {
   return (
-    <div class="kycar-legend kycar-legend-size">
+    <div class={legendClass('kycar-legend kycar-legend-size', props.discrete)}>
       <span class="kycar-legend-title">Taille</span>
       <span>puissance (kW) — sinon taille fixe, taille non porteuse d'information</span>
     </div>

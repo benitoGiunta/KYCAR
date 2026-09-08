@@ -127,6 +127,19 @@
   flex-direction: column;
   gap: 2px;
 }
+/* `EX-SCR-159` (D8-24) : légende discrète sous 4 offres tracées dans G4 — MÊME donnée que la légende
+ * continue, texte atténué et taille réduite (annexe B, `docs/requirements/draft-screens.md`). */
+.kycar-legend--discrete {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  opacity: 0.75;
+}
+/* `EX-SCR-159` (D8-24) : sous 4 offres, brossage/zoom rectangulaire inertes (`aria-disabled`,
+ * `Histogram`/`ScatterCloud.tsx`) — curseur dédié, le clic simple (survol, ouverture d'annonce) reste
+ * fonctionnel et garde le curseur par défaut du canevas. */
+.kycar-scatter-canvas--brush-disabled {
+  cursor: not-allowed;
+}
 .kycar-scatter-samplenote,
 .kycar-scatter-selcount {
   font-size: 0.8rem;
