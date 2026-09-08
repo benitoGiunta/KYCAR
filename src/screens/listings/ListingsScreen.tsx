@@ -50,6 +50,16 @@ export interface ListingsScreenProps {
   readonly labels?: ListingsLabels;
   readonly csvMeta: CsvMeta;
   readonly onOpenListing?: (row: number) => void;
+
+  /** `EX-NAV-10bis` (D-12, DR-066) — pagination CONTRÔLÉE depuis l'URL (1-based) : fournie par
+   * l'hôte via `src/state`/`url-state.ts::readListingsPage` (contrat provisoire, voir le rapport de
+   * lot). Absente : l'écran garde un `useState` interne (comportement inchangé, usage autonome). */
+  readonly page?: number;
+  readonly onPageChange?: (page: number) => void;
+  /** `EX-SCR-202` (D-12, DR-067) — restriction d'AFFICHAGE (paramètre `sel`, bornes de prix,
+   * `url-state.ts::readListingsSel`) : ne filtre que les LIGNES MONTRÉES, Σ (`selectionCount`) reste
+   * celui de la sélection entière. `null`/absent : aucune restriction. */
+  readonly sel?: { readonly from: number; readonly to: number } | null;
 }
 
 export function ListingsScreen(props: ListingsScreenProps) {
@@ -59,14 +69,30 @@ export function ListingsScreen(props: ListingsScreenProps) {
     [props.rows, batch.rowCount],
   );
   const [sort, setSort] = useState<SortState | undefined>(undefined);
-  const [pageIndex, setPageIndex] = useState(0);
+  const [internalPageIndex, setInternalPageIndex] = useState(0);
+  // `page` est 1-based côté URL (D-12), `pageIndex` reste 0-based en interne (`listings-model.ts`).
+  const pageIndex = props.page !== undefined ? Math.max(0, props.page - 1) : internalPageIndex;
+  const setPageIndex = (updater: (prev: number) => number): void => {
+    const next = updater(pageIndex);
+    if (props.onPageChange) props.onPageChange(next + 1);
+    else setInternalPageIndex(next);
+  };
 
   const index = useMemo(() => new OutlierIndex(recalc.outlierVerdicts), [recalc.outlierVerdicts]);
   const listingRows = useMemo(() => {
     const out: ListingRow[] = [];
-    for (let i = 0; i < rows.length; i++) out.push(buildListingRow(batch, rows[i] as number, index));
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i] as number;
+      // `EX-SCR-202` (DR-067) — `sel` restreint l'AFFICHAGE (pas Σ) : les bornes portent sur le
+      // prix, l'axe commun aux deux projections du nuage (cf. `url-state.ts::readListingsSel`).
+      if (props.sel) {
+        const p = batch.priceEur[row] as number;
+        if (p < props.sel.from || p > props.sel.to) continue;
+      }
+      out.push(buildListingRow(batch, row, index));
+    }
     return out;
-  }, [batch, rows, index]);
+  }, [batch, rows, index, props.sel]);
 
   // P10 des écarts (EX-SCR-207), calculé sur tout le périmètre, en pourcentage.
   const p10 = useMemo(() => {
@@ -84,7 +110,7 @@ export function ListingsScreen(props: ListingsScreenProps) {
     : 'score d’opportunité décroissant';
 
   const onSort = (col: SortColumn): void => {
-    setPageIndex(0);
+    setPageIndex(() => 0);
     setSort((prev) =>
       prev && prev.column === col
         ? { column: col, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
