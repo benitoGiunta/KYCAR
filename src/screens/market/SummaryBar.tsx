@@ -33,6 +33,10 @@ export interface SummaryBarProps {
    * (contrainte du lot, `structure-a11y.test.ts` l'appelle hors cycle de rendu Preact) : la
    * « feuille » de tri compacte est un `<details>` natif, pas un état local. */
   readonly regime?: 'compact' | 'intermediate' | 'large';
+  /** `ET-PARTIEL-CACHE` (`EX-SCR-29`, DR-093) — les chiffres viennent du CACHE (mode dégradé) : ils
+   * portent un astérisque et l'export est refusé (on n'exporte pas un agrégat qu'on ne peut pas
+   * dater du snapshot courant). Absent = nominal. */
+  readonly partialCache?: boolean;
 }
 
 const SORT_FIELDS: readonly MakeSortField[] = ['offres', 'median', 'alpha', 'modeles'];
@@ -54,6 +58,7 @@ export function SummaryBar(props: SummaryBarProps): JSX.Element {
               </>
             ) : null}{' '}
             · {formatOfferCount(props.offerCount)}
+            {props.partialCache === true ? <abbr title="chiffres issus du cache (mode dégradé)">&nbsp;*</abbr> : null}
             {props.displayedMakeCount !== undefined && props.displayedMakeCount !== props.makeCount ? (
               <span class="kycar-muted"> — {formatInteger(props.displayedMakeCount)} marques affichées</span>
             ) : null}

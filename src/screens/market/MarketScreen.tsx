@@ -119,6 +119,10 @@ export interface MarketScreenProps {
    * normatif. Absentes : reploi explicite (`buildAggregateCsvFileName`/`AggregateCsvMeta`), jamais
    * une valeur inventée (voir le rapport de lot, § « Câblage attendu de fix-app »). */
   readonly csvMeta?: AggregateCsvMeta;
+
+  /** `ET-PARTIEL-CACHE` (`EX-SCR-29`, DR-093) — servi depuis le cache (mode dégradé) : astérisques
+   * sur la barre de synthèse et `Exporter` désactivé avec son motif. Détecté par la coquille. */
+  readonly partialCache?: boolean;
 }
 
 function currentSelectionForScreenG(mmmv: string | undefined): SelectionState {
@@ -358,7 +362,13 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
                 buildAggregateCsvFileName('agregats-mode1', props.csvMeta?.snapshotId ?? 'inconnu', new Date()),
               )
             }
-            exportDisabled={false}
+            exportDisabled={props.partialCache === true}
+            exportDisabledReason={
+              props.partialCache === true
+                ? 'Données du cache (mode dégradé) — export indisponible tant que le snapshot n’est pas rafraîchi'
+                : undefined
+            }
+            partialCache={props.partialCache}
             regime={regime}
           />
 

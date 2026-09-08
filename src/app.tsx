@@ -800,6 +800,7 @@ export function App(props: AppProps): JSX.Element {
               currentMmmv={typeof selection.makesModelsVariants === 'string' ? selection.makesModelsVariants : undefined}
               regime={regime}
               csvMeta={aggregateCsvMeta}
+              partialCache={degraded}
             />
           </>
         );

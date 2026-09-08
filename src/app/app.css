@@ -21,6 +21,28 @@
   border: 0;
 }
 
+/* ---- Lien d'évitement (EX-NFR-12, DR-101) ----------------------------------------------------- */
+/* Hors flux tant qu'il n'a pas le focus : premier élément tabulable, visible dès qu'il est atteint. */
+.kycar-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+}
+
+.kycar-skip-link:focus {
+  left: var(--space-2);
+}
+
+.kycar-main-inner:focus {
+  outline: none;
+}
+
 /* ---- En-tête + navigation --------------------------------------------------------------------- */
 .kycar-header {
   position: sticky;
@@ -74,6 +96,54 @@
   background: #fff4d6;
   color: var(--color-text);
   border: 1px solid var(--color-border);
+}
+
+/* Onglet désactivé (EX-SCR-44) : visible, non actionnable, distinct au contraste. */
+.kycar-nav-link--disabled {
+  color: var(--color-muted, #6b7280);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+/* Jeton de snapshot (EX-SCR-43) : trois âges (frais < 7 j, ancien < 30 j, périmé au-delà). */
+.kycar-snapshot-token {
+  margin: 0;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-small, 0.875rem);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.kycar-snapshot-token--frais { background: #e7f6ec; }
+.kycar-snapshot-token--ancien { background: #fff4d6; }
+.kycar-snapshot-token--perime { background: #fde8e8; }
+.kycar-snapshot-token--inconnu { background: var(--color-surface); }
+
+.kycar-banner-synthetic {
+  background: #eef2ff;
+  border: 1px solid var(--color-border);
+}
+
+.kycar-banner-unapplied {
+  background: #fff4d6;
+  border: 1px solid var(--color-border);
+}
+
+/* Fil d'Ariane (EX-SCR-45). */
+.kycar-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-small, 0.875rem);
+}
+
+.kycar-breadcrumb li + li::before {
+  content: '›';
+  margin-right: var(--space-2);
+  color: var(--color-muted, #6b7280);
 }
 
 .kycar-banner-message {
@@ -258,6 +328,39 @@ button:disabled {
 
 .kycar-mentions-provenance {
   padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+/* ---- Pied de page obligatoire (EX-SCR-47, DR-100) --------------------------------------------- */
+.kycar-footer {
+  margin-top: var(--space-4, 2rem);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-small, 0.875rem);
+  color: var(--color-text);
+}
+
+.kycar-footer-diagnostic dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1, 0.25rem) var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+
+.kycar-footer-diagnostic dt {
+  font-weight: 600;
+}
+
+.kycar-footer-diagnostic dd {
+  margin: 0;
+}
+
+/* ---- Écran d'erreur de route (EX-NAV-19/20, DR-099) ------------------------------------------- */
+.kycar-route-error {
+  max-width: 60ch;
+  padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
