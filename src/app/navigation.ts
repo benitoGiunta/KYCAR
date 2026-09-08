@@ -1,0 +1,56 @@
+/**
+ * KYCAR — Résolution de vue et navigation (lot D8)
+ * =================================================================================================
+ * La coquille rend une fonction PURE du chemin (EX-NAV-18). `matchRoute` (D5) reste la source de
+ * vérité pour les six routes qu'il connaît ; il ne connaît PAS `/suivis` (écran F, EX-NAV-4) ni
+ * `/mentions` (page statique, REQUIREMENTS.md l.158) — son test verrouille exactement six routes.
+ * Plutôt que de modifier ce contrat D5 figé, la coquille reconnaît ces deux chemins additionnels
+ * AVANT de déléguer à `matchRoute`. Divergence assumée et signalée dans le rapport de lot.
+ */
+
+import { matchRoute } from '../state/router';
+
+export type AppView =
+  | { readonly kind: 'market' }
+  | { readonly kind: 'modelDistribution'; readonly makeId: number; readonly makeSlug: string; readonly modelId: number; readonly modelSlug: string }
+  | { readonly kind: 'modelListings'; readonly makeId: number; readonly makeSlug: string; readonly modelId: number; readonly modelSlug: string }
+  | { readonly kind: 'compare' }
+  | { readonly kind: 'savedSearches' }
+  | { readonly kind: 'followed' }
+  | { readonly kind: 'mentions' }
+  | { readonly kind: 'notFound'; readonly path: string };
+
+function bare(pathname: string): string {
+  const p = pathname.split('?')[0]?.split('#')[0] ?? '';
+  return p.replace(/\/+$/, '') || '/';
+}
+
+/** Résout un chemin en vue applicative. `/suivis` et `/mentions` d'abord, puis les six routes D5. */
+export function resolveView(pathname: string): AppView {
+  const p = bare(pathname);
+  if (p === '/suivis') return { kind: 'followed' };
+  if (p === '/mentions') return { kind: 'mentions' };
+  const route = matchRoute(pathname);
+  switch (route.name) {
+    case 'market':
+      return { kind: 'market' };
+    case 'compare':
+      return { kind: 'compare' };
+    case 'savedSearches':
+      return { kind: 'savedSearches' };
+    case 'modelDistribution':
+      return { kind: 'modelDistribution', makeId: route.makeId, makeSlug: route.makeSlug, modelId: route.modelId, modelSlug: route.modelSlug };
+    case 'modelListings':
+      return { kind: 'modelListings', makeId: route.makeId, makeSlug: route.makeSlug, modelId: route.modelId, modelSlug: route.modelSlug };
+    case 'notFound':
+      return { kind: 'notFound', path: route.path };
+  }
+}
+
+/** Chemin+requête courants du navigateur (repli neutre hors navigateur / tests). */
+export function currentLocation(): { pathname: string; search: string } {
+  if (typeof window === 'undefined' || typeof window.location === 'undefined') {
+    return { pathname: '/marche', search: '' };
+  }
+  return { pathname: window.location.pathname, search: window.location.search };
+}

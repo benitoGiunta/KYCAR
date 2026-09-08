@@ -20,7 +20,7 @@ export interface Preferences {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   schemaVersion: SCHEMA_VERSION,
-  sortField: 'listingCount',
+  sortField: 'offres',
   sortDirection: 'desc',
   hideSparseModels: false,
 };
