@@ -12,10 +12,16 @@ import tseslint from 'typescript-eslint';
  *
  * `scripts/` (chantier 1/2.0-2.3 tooling, e.g. `scripts/fetch-reference-data.mjs`) is out of this
  * lot's periphery per the D1 work order - excluded from linting, not fixed here.
+ *
+ * `reports/` holds reports and the one-shot evidence harnesses that produced them (phase 2.7,
+ * `reports/final-verification/scripts/*.cjs`: plain CommonJS Playwright drivers, run by node, not
+ * type-checked by tsc and not shipped). They are artefacts, not product code - same treatment as
+ * `scripts/`. Without this, `npm run lint` reports 88 errors that are purely environmental
+ * (`console`/`require` undefined under the browser globals of the product config).
  */
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'scripts/**', '.claude/**'],
+    ignores: ['dist/**', 'node_modules/**', 'scripts/**', '.claude/**', 'reports/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
