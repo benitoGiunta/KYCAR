@@ -30,6 +30,9 @@ export interface HistogramProps {
   readonly exclusions?: readonly ExclusionNote[];
   /** Clic sur une barre → pose l'intervalle correspondant (EX-SCR-149). Point d'intégration D8. */
   readonly onSelectBucket?: (bucket: DistributionBucket) => void;
+  /** `EX-SCR-184` (DR-080) — part sélectionnée (brossage G4) par indice de bucket, pour la
+   * surimpression de liaison croisée. `undefined`/absent = aucun brossage actif. */
+  readonly selectedCounts?: ReadonlyMap<number, number>;
 }
 
 export function Histogram(props: HistogramProps) {
@@ -135,6 +138,35 @@ export function Histogram(props: HistogramProps) {
                 </rect>
               );
             })}
+
+            {/* EX-SCR-184 (DR-080) — surimpression de liaison croisée : part sélectionnée par
+                brossage, en accent secondaire, SANS recalcul d'échelle (même hauteur de référence
+                que la barre principale). */}
+            {props.selectedCounts
+              ? model.bars.map((b, i) => {
+                  const selCount = props.selectedCounts?.get(b.index) ?? 0;
+                  if (selCount <= 0) return null;
+                  const x = PAD_L + b.xFrac * plotW + gap / 2;
+                  const w = Math.max(1, b.widthFrac * plotW - gap);
+                  const denom = model.logApplied ? Math.log1p(model.maxCount) : model.maxCount;
+                  const selFrac = model.logApplied ? Math.log1p(selCount) / denom : selCount / denom;
+                  const h = Math.max(1, selFrac * plotH);
+                  const y = PAD_T + plotH - h;
+                  return (
+                    <rect
+                      key={`sel-${i}`}
+                      data-selected="true"
+                      x={x}
+                      y={y}
+                      width={w}
+                      height={h}
+                      fill="var(--color-secondary, #b3261e)"
+                      fill-opacity={0.85}
+                      pointer-events="none"
+                    />
+                  );
+                })
+              : null}
 
             {/* EX-SCR-145 (DR-074) : étiquettes de borne d'axe X — une sur deux si < 48 px par
                 étiquette, pour rester lisible sans survol ni ouverture de la table. */}
