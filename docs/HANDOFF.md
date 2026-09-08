@@ -1,6 +1,6 @@
 # HANDOFF — reprise du projet KYCAR par un nouvel agent
 
-**Mis à jour le 2026-09-08 par l'agent coordinateur.** Ce fichier suffit à reprendre le travail sans
+**Mis à jour le 2026-09-08 (clôture 2.6) par l'agent coordinateur.** Ce fichier suffit à reprendre le travail sans
 aucun contexte conversationnel. Lis-le en entier, puis lis `docs/EXECUTION-LOG.md` (source de vérité
 de l'avancement).
 
@@ -10,11 +10,19 @@ de l'avancement).
 
 - **Chantier 1** (comment charger les données) : **CLOS.** Rapport : `docs/research/DATA-ACQUISITION-REPORT.md`.
 - **Chantier 2** (l'application) :
-  - Exigences v1.0 gelées (485), architecture figée (`docs/plans/ARCHITECTURE.md`).
-  - **Phase 2.4 (développement D1–D9) : COMPLÈTE — 9 lots sur 9.** Application fonctionnelle.
-  - **Build 0/0 · lint 0 · 536 tests verts · bundle 68/300 Ko gzip · `npm run dev` OK sur 7 vues.**
-- **La seule chose restante = les phases de qualité, NON lancées** (voir §6). **Ne PAS les démarrer
-  sans feu vert explicite de l'utilisateur** : le périmètre autorisé s'arrêtait à la fin de 2.4.
+  - Exigences **v1.1** (v1.0 gelée + 32 amendements 2.6 tracés `[amendée 2.6 — D-xx]`), architecture
+    figée et amendée (`makeId` Int32, `ingestFlags` Uint32, `unsupportedFilterIds`).
+  - **Phase 2.4 (développement D1–D9) : COMPLÈTE.**
+  - **Phase 2.5 (revue de développement) : VALIDÉE** — 10 revues, 190 constats → 160 consolidés
+    (18 BLOQUANT, 86 MAJEUR, 56 MINEUR), 783 sondes exécutables (`reports/DEV-REVIEW.md`).
+  - **Phase 2.6 (remédiation) : VALIDÉE** — 51 décisions du fix-lead
+    (`reports/remediation/FIX-LEAD-DECISIONS.md`), 8 correcteurs, 152 constats corrigés, 8 dettes
+    consignées, vérification indépendante `reports/REMEDIATION.md`.
+  - **Build 0/0 · lint 0 · `npm test` = 615 tests unitaires + 784 sondes de revue, tous verts ·
+    bundle < 300 Ko gzip (chunk worker compris) · recalcul p95 < 200 ms même non élagué.**
+- **Reste : la phase 2.7 (vérification finale, `final-check` Fable/max), NON lancée — feu vert
+  du commanditaire requis.** Puis, hors plan : levée d'AC-01 (juridique 2dehands) avant tout câblage
+  du provider réel (DR-104, dette D-18).
 
 ---
 
@@ -51,8 +59,10 @@ Décisions de cadrage structurantes :
 
 ## 3. État git
 
-- Branche de travail : **`phase-2.4-build`** — tout le développement 2.4 y est fusionné, VERTE.
-- Depuis le 2026-09-08 : phases 2.5/2.6 sur **`claude/kycar-project-ffcplk`**, créée depuis `phase-2.4-build`.
+- Branche de travail courante : **`claude/kycar-project-ffcplk`** (créée depuis `phase-2.4-build` le
+  2026-09-08) — porte les phases 2.5 et 2.6 complètes, VERTE, poussée.
+- `phase-2.4-build` : état à la fin de 2.4 (historique). `main` : historique antérieur. Aucune fusion
+  vers `main`, aucune PR (non demandées).
 - **Identité** : dépôt réglé sur le compte **perso** de l'utilisateur (`benitognt@gmail.com`), poussé
   sur `github.com/benitoGiunta/KYCAR.git` (perso). NB : la config git **globale** de la machine pointe
   par défaut sur l'email **pro** `benito.giunta@bstorm.be` — vérifier l'identité locale avant tout
@@ -88,38 +98,44 @@ base ; entrée mode 2 = `enterMode2(make,model)` qui élague AVANT M1/M2, décis
 ## 5. Comment lancer / vérifier (aide-mémoire)
 
 ```bash
-# racine C:\dev\appCar, branche phase-2.4-build
+# racine du dépôt, branche claude/kycar-project-ffcplk
 npm ci               # SEULEMENT si tsc/eslint "introuvables" (piège worktree, voir §7)
-npm run dev          # sert l'app sur http://localhost:5173 (7 vues fonctionnelles)
+npm run dev          # sert l'app sur http://localhost:5173
 npm run build        # tsc app + worker + vite build ; doit être 0/0
 npm run lint         # eslint . ; vert
-npm test             # vitest run ; 536 tests (sans les bancs de perf)
+npm test             # suite unitaire (615) PUIS sondes de revue promues (784) — tout vert
+npm run test:unit    # suite unitaire seule
+npm run test:review  # sondes de revue seules (tsc review + vitest.review.config.ts)
 npm run test:perf    # bancs de perf lourds (100k), à la demande
-npm run size         # garde bundle < 300 Ko gzip
+npm run size         # garde bundle < 300 Ko gzip (chunk worker inclus depuis DR-036)
 ```
+Pendant `npm test`, des lignes `[size] FAIL …` apparaissent : ce sont les sondes D1 qui éprouvent la
+garde de bundle sur des manifestes factices, pas un échec.
 
 ---
 
-## 6. Ce qui RESTE (hors périmètre du run terminé — feu vert utilisateur requis)
+## 6. Ce qui RESTE (feu vert utilisateur requis)
 
-Les phases de qualité du plan, **non lancées** :
-- **2.5 — Revue de développement** : relire les 9 lots (`reports/DEV-REVIEW.md`).
-- **2.6 — Remédiation** : traiter les points ouverts et tensions (ci-dessous) (`reports/REMEDIATION.md`).
-- **2.7 — Vérification finale** (`reports/FINAL-VERIFICATION.md`).
+- **2.7 — Vérification finale** (`reports/FINAL-VERIFICATION.md`) : un agent `final-check`
+  **Fable/max**, indépendant, reprend `REQUIREMENTS.md` v1.1 exigence par exigence, lance l'app et
+  exerce les deux parcours cibles. Non lancée.
 
-**À traiter en 2.6** (détail dans `docs/EXECUTION-LOG.md` § Points ouverts) :
-- **O17 (perf, EX-NFR-5)** : budget 200 ms tenu sur les chemins de prod (élagué 37 ms, facettes 31 ms,
-  vide précalculé) mais pas sur un recalcul M1/M2 complet non filtré (~720–985 ms/100k). D8 garantit
-  que M1/M2 ne tourne qu'après élagage ; à re-vérifier formellement.
-- **O13** : `ingestFlags` sur 16 bits ; décompte 14 vs 17 drapeaux (annexe A vs interface) à arbitrer.
-- **O14** : table NUTS-2 BE extrapolée en code (fichiers région absents), dette `EX-DATA-53`.
-- **O15** : `Model.bodyTypes` vide (donnée absente) → filtre Carrosserie se dégrade proprement.
-- Tensions d'exigences (ARCHITECTURE §9 + rapports D7/D8) : « rotation » `EX-NFR-8` vs G4 2D ; plafond
-  nuage 5 000 (`EX-DATA-100`) vs 20 000 (annexe B, code mort) ; `EX-DATA-101` vs `100bis`
-  (échantillonnage) ; listes de liaison croisée `EX-SCR-158` vs `184` ; **CRUD en `localStorage`** (D8,
-  imposé par `EX-CRUD-19`) vs brief IndexedDB ; `topRestrictiveFilters` leave-one-out (`EX-SCR-26`) non
-  câblé ; a11y écrans A/B non testée par axe-core (env node, dépendance interdite) — couverte par tests
-  de structure D6/D7 seulement.
+**Dettes consignées à la clôture de 2.6** (détail : `reports/REMEDIATION.md` §4, décisions
+`FIX-LEAD-DECISIONS.md`) — chacune porte une sonde `it.fails` annotée qui se signalera d'elle-même
+quand la dette sera levée :
+
+| Dette | Nature | Décision |
+|---|---|---|
+| DR-034 (MAJEUR) | `GROUPSTAT`/`NTILE`/paliers/`R²` calculés par D7 sur le thread principal, pas dans le worker (`EX-DATA-83bis` non tenue) | D-17 |
+| DR-104 (MAJEUR) | provider réel `TweedehandsDataProvider` non câblé tant qu'AC-01 (validation juridique 2dehands) n'est pas levée ; source par défaut `SYNTHETIC`, dit dans `/mentions` | D-18 |
+| DR-114 | verdicts `INSUFFICIENT_DATA`/`INSUFFICIENT_SPREAD` par annonce (vocabulaire gelé 6 → 8 codes) | D-45 |
+| D-38 | colonne « TVA » de l'écran D (aucun champ `taxDeductible` dans l'interface) | D-38 |
+| DR-105, DR-112, DR-132, DR-134, DR-147, DR-143 | RGPD E15–E17 hors R3, `postal-regions-be.json` (source externe interdite par E5), libellés `zipr`, suggestions Levenshtein, mention des graphes A-08, grille compacte 4 lignes | §6.5 DEV-REVIEW, D-40, D-49 |
+
+**Points à instruire en 2.7** : D-51 (seuil d'implausibilité de Σ ≠ seuils par cellule d'analyse :
+`outlierEvaluatedCount` majoré par l'échantillon purgé des seules sentinelles absolues) ; O15
+(`Model.bodyTypes` toujours vide, donnée à fournir) ; `EX-NFR-16`/`EX-NFR-6` (axe-core et rendu réel,
+non exécutables en environnement node sans dépendance interdite).
 
 ---
 
@@ -142,6 +158,15 @@ Les phases de qualité du plan, **non lancées** :
    à `vite.config.ts` et à `src/orchestration/reference-fs.ts`, chargeur Node de test). Le code
    navigateur ne doit PAS utiliser `fs`/`process` — charger les référentiels par `fetch('/reference/…')`
    (via le plugin Vite `kycar-reference-data`).
+8. **Lien symbolique `node_modules` dans un worktree** : le créer (`ln -s <racine>/node_modules`) au lieu
+   de `npm ci`, et **le supprimer (`rm`) avant `git worktree remove`** — sinon le `node_modules` de la
+   racine est détruit ou remplacé par un lien sur lui-même (vu le 2026-09-08, D-50).
+9. **Fiches de rôle `.claude/agents/*.md`** : chargées au démarrage de session seulement. En session
+   ouverte, lancer le type générique avec le paramètre `model` et imposer l'effort dans la mission
+   (`CLAUDE.md` §3).
+10. **Sondes de revue = contrat de remédiation** : une sonde rouge est un constat, la correction la fait
+    passer sans la modifier ; toute modification de sonde est justifiée par écrit (D-31) et contrôlée par
+    un vérificateur indépendant. Une dette consignée devient `it.fails` annoté, jamais `skip` (D-49).
 
 ---
 
@@ -160,11 +185,13 @@ exact) dans le schéma ni le stockage. `sellerType` (particulier/pro) et `region
 
 ---
 
-## 9. Definition of Done de la phase 2.4 — ATTEINTE
+## 9. Definition of Done — phases 2.4, 2.5, 2.6 ATTEINTES
 
-- ✅ D1–D9 fusionnés dans `phase-2.4-build`, tous critères vérifiés par exécution.
-- ✅ build 0/0, lint vert, 536 tests verts, bundle 68/300 Ko gzip.
-- ✅ `npm run dev` sert l'app ; les 2 parcours cibles se déroulent de bout en bout ; repli provider testé.
-- ✅ `docs/EXECUTION-LOG.md` à jour (2.4 VALIDÉ).
-- ✅ Commité et poussé sur le dépôt perso `benitoGiunta/KYCAR`.
-- ⏸️ Arrêt. Prochaine action = phase 2.5, **sur feu vert de l'utilisateur uniquement**.
+- ✅ 2.4 : D1–D9 fusionnés, critères vérifiés par exécution.
+- ✅ 2.5 : S1–S4 de PLAN-2 §2.5 atteints (`reports/DEV-REVIEW.md` §7) ; 783 sondes, 116 critères jugés.
+- ✅ 2.6 : S1–S4 de PLAN-2 §2.6 atteints (`reports/REMEDIATION.md` §6) ; porte G5 : zéro BLOQUANT/MAJEUR
+  ouvert — deux MAJEUR en dette **motivée et consignée** (DR-034, DR-104).
+- ✅ build 0/0, lint vert, `npm test` vert (615 + 784), bundle < 300 Ko gzip, perf p95 < 200 ms.
+- ✅ `docs/EXECUTION-LOG.md`, `CLAUDE.md`, ce handoff à jour ; tout commité et poussé sur
+  `claude/kycar-project-ffcplk` (dépôt perso `benitoGiunta/KYCAR`).
+- ⏸️ Arrêt. Prochaine action = **phase 2.7**, sur feu vert de l'utilisateur uniquement.
