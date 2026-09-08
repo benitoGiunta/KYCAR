@@ -228,6 +228,16 @@ export async function brushScatter(page: Page, graphId = 'G4'): Promise<void> {
  * Focus, clavier
  * ============================================================================================== */
 
+/**
+ * Sélecteur des éléments TABULABLES (ordre de tabulation naturel) : `tabindex="-1"` est exclu, un
+ * `tabindex` roulant (motif ARIA `radiogroup`) ne compte donc qu'une fois — c'est bien ce
+ * qu'`EX-NFR-14` demande, « atteignables et actionnables », pas « un arrêt par élément ».
+ */
+export const FOCUSABLE_SELECTOR =
+  'a[href]:not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), ' +
+  'input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), ' +
+  'textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
+
 /** Description compacte de l'élément focalisé (tag, classe, libellé accessible approximatif). */
 export async function focusDescription(page: Page): Promise<string> {
   return page.evaluate(() => {
@@ -239,15 +249,27 @@ export async function focusDescription(page: Page): Promise<string> {
 }
 
 /**
- * Ramène le focus au tout début du document, comme le fait un `Tab` depuis la barre d'adresse : la
- * coquille place le focus dans `#kycar-main` après chaque navigation (`EX-NFR-12`), il faut donc
- * défocaliser pour vérifier que le lien d'évitement est bien le PREMIER arrêt de tabulation.
+ * Ramène le point de départ de la tabulation au tout début du document. `blur()` ne suffit pas :
+ * Chromium conserve le « sequential focus navigation starting point » du dernier élément focalisé, et
+ * la coquille place le focus dans `#kycar-main` après chaque navigation (`EX-NFR-12`). On focalise
+ * donc explicitement le PREMIER élément tabulable du document, ce qui replace le point de départ ;
+ * la tabulation suivante donne le DEUXIÈME arrêt.
  */
-export async function resetFocusToDocumentStart(page: Page): Promise<void> {
-  await page.evaluate(() => {
+export async function focusFirstTabbable(page: Page): Promise<void> {
+  await page.evaluate((selector) => {
     const el = document.activeElement as HTMLElement | null;
     if (el !== null && typeof el.blur === 'function') el.blur();
-  });
+    document.querySelector<HTMLElement>(selector)?.focus();
+  }, FOCUSABLE_SELECTOR);
+}
+
+/** Description courte du premier élément tabulable du document (`EX-NFR-12`). */
+export async function firstTabbableDescription(page: Page): Promise<string> {
+  return page.evaluate((selector) => {
+    const el = document.querySelector<HTMLElement>(selector);
+    if (el === null) return 'aucun';
+    return `${el.tagName.toLowerCase()}.${String(el.className).split(/\s+/)[0]}|${(el.textContent ?? '').trim().slice(0, 60)}`;
+  }, FOCUSABLE_SELECTOR);
 }
 
 /** Enchaîne `n` tabulations et retourne la description du focus après chacune. */
