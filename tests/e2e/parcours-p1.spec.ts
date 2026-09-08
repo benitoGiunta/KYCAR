@@ -10,7 +10,7 @@
  *
  * Vérité terrain des effectifs : `tests/review/D8/parcours.test.ts` (2 656 offres / 112 marques).
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 import {
   P1_QUERY,
@@ -30,6 +30,24 @@ import {
 /** Ouvre l'écran A vierge et attend le premier affichage utile. */
 async function openMarket(page: import('@playwright/test').Page, query = ''): Promise<void> {
   await open(page, `/marche${query}`);
+}
+
+/**
+ * `EX-SCR-97` (D8-15) — coche « Berline » là où le régime courant place le contrôle : directement
+ * dans la ligne primaire en `large`/`intermédiaire`, dans la FEUILLE plein écran à application
+ * différée en `compact`. Le fait exercé (ajouter une carrosserie au filtre `body`) est identique.
+ */
+async function checkBerline(page: Page, compact: boolean): Promise<void> {
+  if (compact) {
+    await page.locator('.kycar-compact-bar__open').click();
+    await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
+  }
+  await page.getByLabel('Berline', { exact: true }).check();
+  if (compact) {
+    await page.locator('.kycar-compact-sheet__footer button').last().click();
+    await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeHidden();
+  }
+  await page.waitForFunction(() => window.location.search.includes('body=3,6'), null, { timeout: 20_000 });
 }
 
 test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
@@ -55,19 +73,39 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
 
   test('pose des quatre filtres du parcours par le bandeau réel : URL canonique et effectif affiché (EX-NAV-9, EX-SCR-106)', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await openMarket(page);
+
+    // D8-15/D-31 : depuis que la coquille fournit `regime`, le régime COMPACT d'`EX-SCR-97` est
+    // réellement atteignable — sous 768 px les contrôles vivent dans une FEUILLE plein écran à
+    // application DIFFÉRÉE (« Appliquer »), et l'URL ne bouge qu'à l'application. Le parcours
+    // mesuré (les trois filtres posés, l'URL canonique, l'effectif affiché) est identique ; seul le
+    // chemin d'interaction suit l'exigence.
+    const compact = regimeOf(testInfo) === 'compact';
+    if (compact) {
+      await page.locator('.kycar-compact-bar__open').click();
+      await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
+    }
 
     // (1) budget ≤ 20 000 € — saisie libre dans la borne haute du couple `EX-SCR-67`.
     await page.locator('.kycar-primary-line').getByLabel('Prix à', { exact: true }).fill('20000');
-    await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
+    if (!compact) {
+      await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
+    }
 
     // (2) kilométrage ≤ 100 000 km.
     await page.locator('.kycar-primary-line').getByLabel('Kilométrage à', { exact: true }).fill('100000');
-    await page.waitForFunction(() => window.location.search.includes('kmto=100000'), null, { timeout: 20_000 });
+    if (!compact) {
+      await page.waitForFunction(() => window.location.search.includes('kmto=100000'), null, { timeout: 20_000 });
+    }
 
     // (3) carrosserie coupé — case à cocher du groupe primaire `Carrosserie`.
     await page.getByLabel('Coupé', { exact: true }).check();
+    if (compact) {
+      // `EX-SCR-97` — application DIFFÉRÉE : rien n'est posé avant ce clic.
+      await page.locator('.kycar-compact-sheet__footer button').last().click();
+      await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeHidden();
+    }
     await page.waitForFunction(() => window.location.search.includes('body=3'), null, { timeout: 20_000 });
 
     // (4) pays BE : `EX-SRCH-18bis` interdit d'en faire un filtre utilisateur — le périmètre belge
@@ -189,7 +227,7 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     mesure(testInfo, 'P1 — export CSV', `${download.suggestedFilename()}, ${lines.length - 4} lignes de données`);
   });
 
-  test('changement de filtre R : recalcul sans rechargement de page (EX-NFR-2, EX-NAV-12)', async ({ page }) => {
+  test('changement de filtre R : recalcul sans rechargement de page (EX-NFR-2, EX-NAV-12)', async ({ page }, testInfo) => {
     await openMarket(page, P1_QUERY);
     // Témoin de session : il ne survit pas à un rechargement de document.
     await page.evaluate(() => {
@@ -197,8 +235,7 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     });
     const before = await readMarketSummary(page);
 
-    await page.getByLabel('Berline', { exact: true }).check();
-    await page.waitForFunction(() => window.location.search.includes('body=3,6'), null, { timeout: 20_000 });
+    await checkBerline(page, regimeOf(testInfo) === 'compact');
     await expect.poll(async () => (await readMarketSummary(page)).offers, { timeout: 30_000 }).not.toBe(before.offers);
 
     const after = await readMarketSummary(page);
@@ -208,12 +245,11 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
 
   test('retour arrière : une entrée d’historique par changement appliqué, état restauré (EX-NAV-12/13)', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await openMarket(page, P1_QUERY);
     const filtered = await readMarketSummary(page);
 
-    await page.getByLabel('Berline', { exact: true }).check();
-    await page.waitForFunction(() => window.location.search.includes('body=3,6'), null, { timeout: 20_000 });
+    await checkBerline(page, regimeOf(testInfo) === 'compact');
     await expect.poll(async () => (await readMarketSummary(page)).offers, { timeout: 30_000 }).not.toBe(filtered.offers);
 
     await page.goBack();
@@ -236,13 +272,18 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
       'EX-SCR-106',
       'la barre de synthèse affiche « 0 modèles » tant qu’aucune carte n’est dépliée, alors que les trois cardinaux doivent être ceux de la population filtrée',
     );
+    // D-31 : le cardinal des MODÈLES est un enrichissement PROGRESSIF, rendu à la boucle
+    // d'inactivité pour ne pas disputer le thread principal à la peinture des cartes (`EX-NFR-9`,
+    // budget 2 000 ms) : il est donc attendu par `expect.poll`, comme l'effectif ci-dessous. Le fait
+    // mesuré — les trois cardinaux sont ceux de la population filtrée, jamais un `0` — est intact.
     test.skip(regimeOf(testInfo) === 'compact', 'le cardinal « modèles » est absent par contrat en régime compact (EX-SCR-135)');
 
     await openMarket(page, P1_QUERY);
-    const summary = await readMarketSummary(page);
-    expect(summary.offers).toBe(P1_EXPECTED.offers);
+    expect((await readMarketSummary(page)).offers).toBe(P1_EXPECTED.offers);
     // La population filtrée compte des modèles : le cardinal ne peut valoir 0.
-    expect(summary.models).toBeGreaterThan(0);
+    await expect
+      .poll(async () => (await readMarketSummary(page)).models ?? 0, { timeout: 30_000 })
+      .toBeGreaterThan(0);
   });
 
   test('CONSTAT E2E-05 — le résumé de carte-marque annonce « 0 modèles » avant dépliage (EX-SCR-107 ligne 1)', async ({

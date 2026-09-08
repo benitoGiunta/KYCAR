@@ -161,6 +161,20 @@ export async function readMarketSummary(page: Page): Promise<MarketSummary> {
   };
 }
 
+/**
+ * `EX-SCR-48` (D8-15) — en régime COMPACT, les quatre onglets d'`EX-SCR-42` sont remplacés par un
+ * bouton de menu ouvrant un tiroir. Ce helper ouvre le tiroir quand il existe, et ne fait rien
+ * ailleurs : les tests continuent de désigner l'onglet par son nom accessible, quel que soit le
+ * régime. Idempotent (n'ouvre pas deux fois).
+ */
+export async function openNav(page: Page): Promise<void> {
+  const toggle = page.locator('.kycar-nav-toggle');
+  if (!(await toggle.isVisible())) return;
+  const drawer = page.locator('#kycar-nav-drawer');
+  if (!(await drawer.isVisible())) await toggle.click();
+  await expect(drawer).toBeVisible();
+}
+
 /** `EX-SCR-142` — effectif Σ de l'en-tête de l'écran B (« <n> offres »). */
 export async function readSelectionCount(page: Page): Promise<number> {
   const text = await page.locator('.kycar-stat-header .kycar-stat-line').first().innerText();

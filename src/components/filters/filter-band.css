@@ -44,6 +44,20 @@
   align-items: end;
 }
 
+/*
+ * `E2E-19` / `EX-NFR-19` — corrigé par fix-app (D8-15), HORS de son périmètre nominal, parce que
+ * c'est le câblage de `regime` par la coquille qui a rendu ce régime atteignable pour la première
+ * fois : jusqu'ici `FilterBand` recevait toujours `large` et la grille à cinq colonnes n'était
+ * jamais exercée. `minmax(0, 1fr)` borne la PISTE, mais `.kycar-control { min-width: 9rem }` borne
+ * l'ÉLÉMENT : à 768 px, 5 × 144 px + 4 gaps + les marges du bandeau font 864 px et le document
+ * débordait de ~96 px sur les surfaces A, B et C (mesuré au projet `tablet`). Les contrôles de la
+ * ligne primaire sont donc autorisés à se réduire à la largeur de leur piste dans ce seul régime ;
+ * leur min-width de 9 rem reste la règle partout ailleurs.
+ */
+[data-regime='intermediaire'] .kycar-primary-line .kycar-control {
+  min-width: 0;
+}
+
 /* Zone (2) — recherche de filtre, EX-SCR-79, largeur 320 px en `large`. */
 .kycar-filter-search {
   display: flex;

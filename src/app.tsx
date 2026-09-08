@@ -368,19 +368,41 @@ export function App(props: AppProps): JSX.Element {
     if (start === null || view.kind !== 'market') return undefined;
     if (marketPhase.phase !== 'loaded') return undefined;
     let live = true;
-    void controller
-      .loadAllModels(selection)
-      .then((byMake) => {
-        if (!live || byMake.size === 0) return;
-        setModelsByMake((prev) => {
-          const next = new Map(prev);
-          for (const [makeId, models] of byMake) if (!next.has(makeId)) next.set(makeId, models);
-          return next;
-        });
-      })
-      .catch(() => undefined);
+    const run = (): void => {
+      if (!live) return;
+      void controller
+        .loadAllModels(selection)
+        .then((byMake) => {
+          if (!live || byMake.size === 0) return;
+          setModelsByMake((prev) => {
+            const next = new Map(prev);
+            for (const [makeId, models] of byMake) if (!next.has(makeId)) next.set(makeId, models);
+            return next;
+          });
+        })
+        .catch(() => undefined);
+    };
+    // `EX-NFR-9` — l'agrégation par MODÈLE est un second balayage du jeu servi : lancée dans la
+    // foulée du rendu, elle bloquait le thread principal AVANT la peinture des cartes et repoussait
+    // le « premier affichage utile » de ~400 ms (mesuré : médiane 1 493 → 1 903 ms sur un budget de
+    // 2 000 ms). Le premier affichage utile, au sens de l'exigence, est la grille de cartes-marques ;
+    // les zones-modèles sont un enrichissement PROGRESSIF. Le travail est donc rendu à la boucle
+    // d'inactivité (`requestIdleCallback`, repli minuté) : il ne dispute plus le thread à la peinture.
+    const idle = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
+      .requestIdleCallback;
+    const cancelIdle = (window as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+    let handle: number;
+    let idleHandle = false;
+    if (typeof idle === 'function') {
+      idleHandle = true;
+      handle = idle(run, { timeout: 1500 });
+    } else {
+      handle = window.setTimeout(run, 0);
+    }
     return () => {
       live = false;
+      if (idleHandle) cancelIdle?.(handle);
+      else window.clearTimeout(handle);
     };
   }, [start, view.kind, marketPhase.phase, currentQuery, controller, selection]);
 

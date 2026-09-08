@@ -24,6 +24,7 @@ import {
   dumpLocalStorage,
   mesure,
   open,
+  openNav,
   seedFollowedModels,
   seedLocalStorage,
   seedSavedSearches,
@@ -98,6 +99,7 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     await open(page, P2_PATH);
     await page.locator('.kycar-model-actions').getByRole('button', { name: 'Suivre', exact: true }).click();
     await expect(page.locator('.kycar-model-actions').getByRole('button', { name: 'Ne plus suivre' })).toBeVisible();
+    await openNav(page);
     await expect(page.getByRole('link', { name: 'Suivis (1)' })).toBeVisible();
 
     await open(page, SURFACES.F);
@@ -128,6 +130,7 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
   }, testInfo) => {
     await seedLocalStorage(page, seedFollowedModels(CAPS.followed));
     await open(page, P2_PATH);
+    await openNav(page);
     await expect(page.getByRole('link', { name: `Suivis (${CAPS.followed})` })).toBeVisible();
 
     const follow = page.locator('.kycar-model-actions').getByRole('button', { name: 'Suivre', exact: true });
@@ -170,6 +173,7 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     expect(names).toEqual(['Onglet A', 'Onglet B']);
 
     // Réconciliation SANS rechargement : l'onglet A voit l'entrée écrite par l'onglet B.
+    await openNav(page);
     await page.getByRole('link', { name: 'Recherches' }).click();
     await expect(page.getByRole('button', { name: 'Onglet A' })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: 'Onglet B' })).toBeVisible();
@@ -235,6 +239,7 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
 
     await page.reload({ waitUntil: 'commit' });
     await waitForMarket(page);
+    await openNav(page);
     await page.getByRole('link', { name: 'Recherches' }).click();
     await expect(page.getByRole('button', { name: 'Survivante' })).toBeVisible({ timeout: 20_000 });
   });
@@ -247,10 +252,12 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     await open(page, '/marche?priceto=8000');
 
     // La lecture ne lève jamais (`DR-098`) : l'écran E s'affiche, vide.
+    await openNav(page);
     await page.getByRole('link', { name: 'Recherches' }).click();
     await expect(page.locator('#kycar-main h1')).toBeVisible();
 
     // La première ÉCRITURE préserve le blob illisible sous `<clé>.corrupt`.
+    await openNav(page);
     await page.getByRole('link', { name: 'Marché' }).click();
     await waitForMarket(page);
     await saveSearch(page, 'Après corruption');

@@ -22,6 +22,7 @@ import {
   focusFirstTabbable,
   mesure,
   open,
+  regimeOf,
   waitForMarket,
 } from './_helpers';
 
@@ -98,6 +99,15 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
     page,
   }, testInfo) => {
     await open(page, SURFACES.A);
+    // D8-15/D-31 : depuis que la coquille fournit `regime` (câblage exigé par D8-15), le régime
+    // COMPACT d'`EX-SCR-97` est réellement atteignable : sous 768 px le bandeau se réduit à une
+    // barre unique et la ligne primaire n'existe qu'à l'intérieur de la FEUILLE plein écran. Le fait
+    // mesuré (tous les contrôles de la ligne primaire atteints au clavier, dans l'ordre du DOM) est
+    // inchangé ; il est simplement exercé là où l'exigence place désormais la ligne.
+    if (regimeOf(testInfo) === 'compact') {
+      await page.locator('.kycar-compact-bar__open').click();
+      await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
+    }
     const total = await markFocusables(page, '.kycar-primary-line');
     expect(total).toBeGreaterThan(10);
 
