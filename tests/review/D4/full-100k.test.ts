@@ -189,7 +189,6 @@ describe('EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3', ()
 
   it('rappel M1 > 90 % et rappel M2 ≥ 95 % dans les cellules à |F| ≥ 30 (chiffres du journal : 95,8 % / 100 %) ; précision rapportée', () => {
     const truthM1 = new Set(truth.filter((o) => o.method === 'M1').map((o) => o.listingId));
-    const truthM2 = new Set(truth.filter((o) => o.method === 'M2').map((o) => o.listingId));
     const all = new Set(truth.map((o) => o.listingId));
     const recallM1 = inter(truthM1, full.m1FlaggedIds) / truthM1.size;
     const precisionM1 = inter(full.m1FlaggedIds, all) / full.m1FlaggedIds.size;

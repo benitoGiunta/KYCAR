@@ -130,7 +130,9 @@ describe('CRUD câblé dans la coquille (EX-CRUD-4 / 6)', () => {
   });
 
   it('R-D8-25 — EX-CRUD-4 : « Enregistrer cette recherche » disponible sur les DEUX écrans — absent du mode 2 (renderMode2 n’a ni MarketToolbar ni onSave)', () => {
-    const mode2 = app.slice(app.indexOf('function renderMode2'));
+    const start = app.indexOf('function renderMode2');
+    const mode2 = app.slice(start, app.indexOf('\nfunction modelName', start));
+    expect(mode2.length).toBeGreaterThan(500);
     expect(mode2).toMatch(/MarketToolbar|saveCurrentSearch/);
   });
 });

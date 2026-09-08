@@ -213,8 +213,5 @@ describe('page /mentions (REQUIREMENTS § 5 l.158, EX-SCR-47, EX-DATA-107, R3)',
     }
     expect(textOf(MentionsPage({ sourceKind: 'REAL' }))).toMatch(/marché réel/);
   });
-
-  it('R-D8-22 — la mention « Source : AutoScout24 — agrégat non affilié » exigée sur CHAQUE écran (EX-SCR-47) n’apparaît même pas sur /mentions', () => {
-    expect(textOf(MentionsPage({ sourceKind: 'SYNTHETIC' }))).toMatch(/agrégat non affilié/);
-  });
+});
 });

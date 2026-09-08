@@ -39,7 +39,11 @@ const realMode1Only: ProviderCapabilities = {
 function mode1OnlyProvider(): DataProvider {
   return {
     describe: () => realMode1Only,
-    openSnapshot: (r) => synthetic.openSnapshot(r),
+    // Le descripteur se déclare REAL (le synthétique ne sert ici que de source de chiffres mode 1).
+    openSnapshot: async (r) => {
+      const h = await synthetic.openSnapshot(r);
+      return { descriptor: { ...h.descriptor, sourceKind: 'REAL', providerVersion: 'review-mode1-only' } };
+    },
     closeSnapshot: (h) => synthetic.closeSnapshot(h),
     fetchBaselineAggregates: (h) => synthetic.fetchBaselineAggregates(h),
     fetchAggregates: (h, s, l, m) => synthetic.fetchAggregates(h, s, l, m),

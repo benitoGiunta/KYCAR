@@ -126,9 +126,6 @@ describe('AggregationEngine — cache clé `selectionHash` devant le worker', ()
     // Le seul détenteur restant est la variable locale `first` : on la relâche et on tente un GC.
     const gc = (globalThis as unknown as { gc?: () => void }).gc;
     if (typeof gc === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      let hold: RecalcResult | null = first;
-      hold = null;
       gc();
       await new Promise((r) => setTimeout(r, 10));
       gc();

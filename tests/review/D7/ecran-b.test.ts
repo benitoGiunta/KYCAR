@@ -237,3 +237,40 @@ describe('D7 · G4 — légendes et table des points (EX-SCR-154/155/156/160, EX
     expect(src).toMatch(/noopener|onOpenListing|webPage/);
   });
 });
+
+describe('D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17)', () => {
+  it('EX-SCR-189 : construction des modèles des 14 graphes ≤ 300 ms pour n = 20 000 (5 mesures)', async () => {
+    const g = await import('../../../src/screens/distribution/graphs-model');
+    const sm = await import('../../../src/screens/distribution/scatter-model');
+    const ss = await import('../../../src/screens/distribution/scatter-sample');
+    const hm = await import('../../../src/screens/distribution/histogram-model');
+    const big = fixture(20000, 0xb4);
+    const samples: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      const t0 = performance.now();
+      hm.buildHistogram('price', big.recalc.priceHistogram);
+      hm.buildHistogram('mileage', big.recalc.mileageHistogram);
+      hm.buildHistogram('year', big.recalc.yearHistogram);
+      const elig = sm.computeEligibility(big.batch, big.rows);
+      const sample = ss.sampleScatter({ eligible: elig.eligible, listingId: big.batch.listingId, isOutlier: big.isOutlier, opportunityScore: big.opportunityScore });
+      sm.buildScatterPoints(big.batch, sample.rows, { isOutlier: big.isOutlier, opportunityScore: big.opportunityScore });
+      const ym = g.buildYearMedian(big.batch, big.rows);
+      g.buildDepreciation(ym);
+      g.buildPriceMileageDensity(big.batch, big.rows);
+      g.buildOutlierLollipops(big.batch, big.rows, big.index, 20);
+      g.buildCategoryBars(big.batch, big.rows, 'fuelCategory');
+      g.buildCategoryBars(big.batch, big.rows, 'sellerType');
+      g.buildCategoryBars(big.batch, big.rows, 'priceEvaluationCategory');
+      g.buildCategoryBars(big.batch, big.rows, 'countryCode');
+      g.buildMileageBoxes(big.batch, big.rows);
+      g.buildPowerTiers(big.batch, big.rows);
+      samples.push(performance.now() - t0);
+    }
+    samples.sort((a, b) => a - b);
+    const p50 = samples[2] as number;
+    const worst = samples[samples.length - 1] as number;
+    // eslint-disable-next-line no-console
+    console.log(`[EX-SCR-189] n=20000 modèles des 14 graphes : p50=${p50.toFixed(1)} ms, pire=${worst.toFixed(1)} ms`);
+    expect(worst).toBeLessThanOrEqual(300);
+  });
+});

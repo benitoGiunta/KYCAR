@@ -22,7 +22,6 @@ let ref: ReferenceData;
 let batch: ListingColumnBatch;
 let dataset: AggregationDataset;
 let full: RecalcResult;
-let filtered: RecalcResult;
 let filteredSel: EngineSelection;
 
 beforeAll(async () => {
@@ -51,7 +50,6 @@ beforeAll(async () => {
     scope: { makeIds: [bestMake] },
     refine: [{ kind: 'enum', filterId: 'fuel', column: 'fuelCategory', codes: [topFuel] }],
   };
-  filtered = dataset.recalculate(filteredSel);
 });
 
 function allBuckets(r: RecalcResult) {

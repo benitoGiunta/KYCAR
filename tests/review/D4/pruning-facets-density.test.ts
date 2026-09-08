@@ -292,7 +292,8 @@ describe('EX-DATA-110bis — facettes en UN balayage', () => {
       expect(gotMap).toEqual(expected);
       // Cohérence avec le recalcul : facet(fuel, c) ≥ effectif de la sélection restreinte à fuel = c.
       const sel = dataset.recalculate({ selectionHash: `FULL:f${t}`, scope, refine }).selectionStats.selectionCount;
-      const sumSelectedFuel = (refine[0] as { codes: number[] }).codes.reduce((a, c) => a + (gotMap.get(`fuel:${c}`) ?? 0), 0);
+      const fuelPred = refine[0] as Extract<RefinePredicate, { kind: 'enum' }>;
+      const sumSelectedFuel = fuelPred.codes.reduce((a, c) => a + (gotMap.get(`fuel:${c}`) ?? 0), 0);
       expect(sumSelectedFuel).toBe(sel);
     }
   });
