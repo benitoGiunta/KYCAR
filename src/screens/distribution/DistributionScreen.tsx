@@ -37,6 +37,8 @@ import {
   selectedCountsByBucket,
 } from './brush-model';
 import { buildC3Banner, representativityUnproven } from '../market/coverage';
+import { formatInteger } from '../market/format';
+import type { RestrictiveFilterHint } from '../market/state';
 import {
   YearMedianChart,
   DepreciationChart,
@@ -128,6 +130,24 @@ export interface DistributionScreenProps {
   /** `EX-NFR-19` (DR-081) — régime dégradé (< 768 px, prix × km, année en couleur, brossage off).
    * Absent : repli par `matchMedia` (voir `defaultDegradedFromViewport`, plus bas). */
   readonly degraded?: boolean;
+  /** `EX-SCR-174`/`EX-SCR-26` (D8-31) — nombre de filtres ACTIFS, pour la phrase
+   * « <n> filtres actifs restreignent la recherche. » de l'état `ET-VIDE-FILTRES`. Détenu par le
+   * bandeau de filtres (`countActiveFilters`), donc fourni par la coquille : absent, la phrase n'est
+   * pas rendue (jamais un compte inventé) — voir le rapport de lot, § « Câblage attendu de fix-app-2 ».
+   */
+  readonly activeFilterCount?: number;
+  /** `EX-SCR-26` (D8-31) — les 3 filtres les plus restrictifs (« leave-one-out » sur
+   * `selectionHashWithoutFilter`, `EX-DATA-110bis`), calculés par le contrôleur. `gain === null`
+   * pour un filtre de classe `T` : le bouton s'affiche alors SANS chiffre. Absent ou vide : aucune
+   * suggestion n'est rendue, le reste du bloc l'est. */
+  readonly topRestrictiveFilters?: readonly RestrictiveFilterHint[];
+  /** `EX-SCR-26` — retrait d'un filtre depuis une suggestion. */
+  readonly onRemoveFilter?: (filterId: string) => void;
+  /** `EX-SCR-26` — `Réinitialiser tous les filtres`. */
+  readonly onResetAllFilters?: () => void;
+  /** `EX-SCR-26` — `Enregistrer cette recherche` (reste actif : une recherche vide est une veille
+   * légitime). */
+  readonly onSaveSearch?: () => void;
   /**
    * `D8-24` (`ET-CHARGE-MAJ`, `EX-SCR-24`/`173`, `EX-SRCH-22`) — un recalcul est EN COURS sur ce
    * périmètre alors que les figures affichées portent encore le périmètre PRÉCÉDENT. L'écran les
@@ -205,6 +225,16 @@ export function DistributionScreen(props: DistributionScreenProps) {
 
   // `EX-SCR-113bis` (D8-06/FV-08) — mode « Modèle non identifié ».
   const isUnresolvedModel = props.modelId === MODEL_ID_UNRESOLVED;
+
+  // `EX-SCR-174` (D8-31) — `ET-VIDE-FILTRES` : zéro offre dans la sélection courante. Sur l'écran B,
+  // la sélection porte TOUJOURS au moins le filtre de modèle (`mmmv`, route canonique `EX-NAV-2`),
+  // donc un effectif nul est nécessairement « zéro résultat, filtres posés » — jamais
+  // `ET-VIDE-SANS-FILTRE` (`EX-SCR-27`), qui est un état de l'écran A sans aucun prédicat.
+  const isEmptySelection = selectionCount === 0;
+  /** `EX-SCR-174` : `—` pour CHAQUE statistique dès que la sélection est vide (et, comme avant,
+   * pour toute valeur non calculable) — jamais un chiffre hérité du périmètre précédent. */
+  const statOrDash = (value: number | null, fmt: (v: number) => string): string =>
+    isEmptySelection || value == null ? '—' : fmt(value);
 
   // `EX-SCR-31`/`175` (D8-06/FV-07) — bandeau C3 + ligne de représentativité, obligatoires sur B.
   const c3 = props.snapshotCoverage ? buildC3Banner(props.snapshotCoverage) : undefined;
@@ -355,24 +385,32 @@ export function DistributionScreen(props: DistributionScreenProps) {
       <header class="kycar-stat-header">
         <div class="kycar-stat-line">
           <strong>{props.makeModelName ?? 'Modèle'}</strong>
-          <span title={`n = ${selectionCount}`}>{selectionCount} offres</span>
-          <span title={`n = ${price.n}`}>médiane {price.p50 != null ? formatPrice(price.p50) : '—'}</span>
-          <span title={`n = ${price.n}`}>P25 {price.p25 != null ? formatPrice(price.p25) : '—'}</span>
-          <span title={`n = ${price.n}`}>P75 {price.p75 != null ? formatPrice(price.p75) : '—'}</span>
+          {/* `EX-SCR-174` : à zéro, l'en-tête dit `aucune offre` — jamais « 0 offres ». */}
+          <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
+          <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
+          <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
+          <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
           <span title={`n = ${price.n}`}>
-            min {price.min != null ? formatPrice(price.min) : '—'} – max {price.max != null ? formatPrice(price.max) : '—'}
+            min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
             <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
           </span>
         </div>
         <div class="kycar-stat-line">
-          <span title={`n = ${stats.mileage.n}`}>km médian {stats.mileage.p50 != null ? formatKm(stats.mileage.p50) : '—'}</span>
-          <span title={`n = ${stats.year.n}`}>1ʳᵉ immat. médiane {stats.year.p50 != null ? formatYear(stats.year.p50) : '—'}</span>
+          <span title={`n = ${stats.mileage.n}`}>km médian {statOrDash(stats.mileage.p50, formatKm)}</span>
+          <span title={`n = ${stats.year.n}`}>1ʳᵉ immat. médiane {statOrDash(stats.year.p50, formatYear)}</span>
           <span title={particulier ? `n = ${particulier.n}` : undefined}>
-            {particulier ? `${particulier.pct.toFixed(0)} % particuliers` : '— % particuliers'}
+            {particulier && !isEmptySelection ? `${particulier.pct.toFixed(0)} % particuliers` : '— % particuliers'}
           </span>
         </div>
         <div class="kycar-stat-line kycar-stat-actions">
-          <button type="button" onClick={props.onViewListings}>
+          {/* `EX-SCR-174` : à zéro, le bouton reste AFFICHÉ (l'en-tête est conservé) mais désactivé,
+              avec l'infobulle normative — un bouton qui mènerait à une liste vide serait trompeur. */}
+          <button
+            type="button"
+            onClick={props.onViewListings}
+            disabled={isEmptySelection}
+            title={isEmptySelection ? 'Aucune annonce à lister' : undefined}
+          >
             Voir les {selectionCount} annonces
           </button>
           <button
@@ -434,78 +472,113 @@ export function DistributionScreen(props: DistributionScreenProps) {
         </div>
       ) : null}
 
-      {/* Bloc 2 — histogrammes G1–G3 */}
-      <section class="kycar-hist-row" aria-label="Distributions">
-        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
-        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
-        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
-      </section>
+      {/* `EX-SCR-174` (D8-31) — `ET-VIDE-FILTRES` : les graphes sont RETIRÉS (hors DOM, jamais
+          seulement masqués : un graphe vide ferait croire à une distribution plate) et remplacés
+          par le bloc d'`EX-SCR-26`, suggestions de retrait comprises. L'en-tête statistique
+          ci-dessus, lui, reste affiché. */}
+      {isEmptySelection ? (
+        <div class="kycar-screen-b-empty" role="status">
+          <h2>Aucune offre ne correspond</h2>
+          {props.activeFilterCount !== undefined ? (
+            <p>{props.activeFilterCount} filtres actifs restreignent la recherche.</p>
+          ) : null}
+          {props.topRestrictiveFilters && props.topRestrictiveFilters.length > 0 ? (
+            <div class="kycar-screen-b-empty-shortcuts">
+              {props.topRestrictiveFilters.map((hint) => (
+                <button key={hint.filterId} type="button" onClick={() => props.onRemoveFilter?.(hint.filterId)}>
+                  {/* `EX-SCR-26` : un filtre de classe `T` (`gain === null`) n'affiche AUCUN chiffre —
+                      son retrait rechargerait le jeu local, le gain n'est donc pas calculable ici. */}
+                  {hint.gain === null
+                    ? `retirer « ${hint.label} »`
+                    : `retirer « ${hint.label} » : ${formatInteger(hint.gain)} offres de plus`}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <button type="button" onClick={props.onResetAllFilters}>
+            Réinitialiser tous les filtres
+          </button>
+          {/* `EX-SCR-26` : reste ACTIF — enregistrer une recherche vide est une veille légitime. */}
+          <button type="button" onClick={props.onSaveSearch}>
+            Enregistrer cette recherche
+          </button>
+        </div>
+      ) : (
+        <>
+        {/* Bloc 2 — histogrammes G1–G3 */}
+        <section class="kycar-hist-row" aria-label="Distributions">
+          <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
+        </section>
 
-      {/* Bloc 3 — nuage G4 */}
-      <section class="kycar-scatter-row" aria-label="Nuage prix, année, kilométrage">
-        <ScatterCloud
-          points={scatter.points}
-          variant={variant}
-          /* `EX-SCR-153` (D8-31) — G4a lit la grille de G1 : mêmes bornes, mêmes buckets. */
-          priceBuckets={recalc.priceHistogram}
-          onVariantChange={onVariantChange}
-          sampleInfo={scatter.sample}
-          brushX={ui.brushX}
-          brushY={ui.brushY}
-          onBrushChange={onBrushChange}
-          degraded={degraded}
-          resolveTooltip={resolveTooltip}
-          onOpenListing={props.onOpenListing}
-          dataSelection={stats.selectionHash}
-        />
-        {selectedRows && selectedRows.size > 0 ? (
-          <div class="kycar-scatter-selection-actions">
-            <button type="button" onClick={onConvertBrushToFilter}>
-              Convertir la sélection en filtre
-            </button>
-            <button type="button" onClick={onViewBrushedListings}>
-              Voir ces annonces
-            </button>
-          </div>
-        ) : null}
-      </section>
-
-      {/* Bloc 4 — graphes additionnels (ordre EX-SCR-144). `EX-SCR-113bis` (D8-06/FV-08) : en mode
-          « Modèle non identifié », G5/G6/G8/G10/G14 sont hors DOM (jamais seulement masqués en CSS —
-          C₁/C₂ de la détection d'outlier exigent un `modelId` résolu, EX-SCR-113bis). */}
-      <section class="kycar-graph-grid" aria-label="Graphes additionnels">
-        {!isUnresolvedModel ? <YearMedianChart points={yearMedian} dataSelection={stats.selectionHash} /> : null}
-        {!isUnresolvedModel ? <DepreciationChart model={depreciation} dataSelection={stats.selectionHash} /> : null}
-        <DensityHeatmap density={density} log={ui.logHistograms.has(7)} onToggleLog={() => onToggleLog(7)} dataSelection={stats.selectionHash} />
-        {!isUnresolvedModel ? (
-          <OutlierLollipopChart
-            items={lollipops}
-            perimeter={{ makeModel: props.makeModelName }}
-            onOpen={props.onOpenListing}
-            modelCaption={g8Caption}
-            rSquaredWarning={g8Warning}
+        {/* Bloc 3 — nuage G4 */}
+        <section class="kycar-scatter-row" aria-label="Nuage prix, année, kilométrage">
+          <ScatterCloud
+            points={scatter.points}
+            variant={variant}
+            /* `EX-SCR-153` (D8-31) — G4a lit la grille de G1 : mêmes bornes, mêmes buckets. */
+            priceBuckets={recalc.priceHistogram}
+            onVariantChange={onVariantChange}
+            sampleInfo={scatter.sample}
+            brushX={ui.brushX}
+            brushY={ui.brushY}
+            onBrushChange={onBrushChange}
+            degraded={degraded}
+            resolveTooltip={resolveTooltip}
+            onOpenListing={props.onOpenListing}
             dataSelection={stats.selectionHash}
           />
-        ) : null}
-        <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} dataSelection={stats.selectionHash} />
-        {!isUnresolvedModel ? <MileageBoxes boxes={mileageBoxes} dataSelection={stats.selectionHash} /> : null}
-        <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." dataSelection={stats.selectionHash} />
-        <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} dataSelection={stats.selectionHash} />
-        {!isUnresolvedModel ? <PowerTiers tiers={powerTiers} dataSelection={stats.selectionHash} /> : null}
-        {/* `EX-SCR-170` (D8-06/FV-18) — G15 n'est tracé QUE si le périmètre contient plus d'un
-            `countryCode` distinct (ou si le filtre `cy` porte plusieurs valeurs — hors périmètre de
-            ce composant, qui ne reçoit pas l'état du filtre actif ; condition sur les données seule,
-            ci-dessous). Sinon le bloc est absent du DOM (pas un `ET-CHAMP-ABSENT-SOURCE`). */}
-        {countryBars === 'unavailable' || countryBars.length > 1 ? (
-          <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} dataSelection={stats.selectionHash} />
-        ) : null}
-      </section>
-      {/* A-08 (DR-147, D8-12 — dette LEVÉE) : les graphes CO₂/consommation/boîte de vitesses restent
-          écartés de la grille (dette A-08 elle-même inchangée), mais `EX-SCR-39` (« aucun état n'est
-          silencieux ») exige désormais une mention à l'utilisateur, là où il n'y en avait aucune. */}
-      <p class="kycar-graph-note">
-        Graphes CO₂, consommation et boîte de vitesses : non disponibles dans cette version (dette A-08).
-      </p>
+          {selectedRows && selectedRows.size > 0 ? (
+            <div class="kycar-scatter-selection-actions">
+              <button type="button" onClick={onConvertBrushToFilter}>
+                Convertir la sélection en filtre
+              </button>
+              <button type="button" onClick={onViewBrushedListings}>
+                Voir ces annonces
+              </button>
+            </div>
+          ) : null}
+        </section>
+
+        {/* Bloc 4 — graphes additionnels (ordre EX-SCR-144). `EX-SCR-113bis` (D8-06/FV-08) : en mode
+            « Modèle non identifié », G5/G6/G8/G10/G14 sont hors DOM (jamais seulement masqués en CSS —
+            C₁/C₂ de la détection d'outlier exigent un `modelId` résolu, EX-SCR-113bis). */}
+        <section class="kycar-graph-grid" aria-label="Graphes additionnels">
+          {!isUnresolvedModel ? <YearMedianChart points={yearMedian} dataSelection={stats.selectionHash} /> : null}
+          {!isUnresolvedModel ? <DepreciationChart model={depreciation} dataSelection={stats.selectionHash} /> : null}
+          <DensityHeatmap density={density} log={ui.logHistograms.has(7)} onToggleLog={() => onToggleLog(7)} dataSelection={stats.selectionHash} />
+          {!isUnresolvedModel ? (
+            <OutlierLollipopChart
+              items={lollipops}
+              perimeter={{ makeModel: props.makeModelName }}
+              onOpen={props.onOpenListing}
+              modelCaption={g8Caption}
+              rSquaredWarning={g8Warning}
+              dataSelection={stats.selectionHash}
+            />
+          ) : null}
+          <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} dataSelection={stats.selectionHash} />
+          {!isUnresolvedModel ? <MileageBoxes boxes={mileageBoxes} dataSelection={stats.selectionHash} /> : null}
+          <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." dataSelection={stats.selectionHash} />
+          <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} dataSelection={stats.selectionHash} />
+          {!isUnresolvedModel ? <PowerTiers tiers={powerTiers} dataSelection={stats.selectionHash} /> : null}
+          {/* `EX-SCR-170` (D8-06/FV-18) — G15 n'est tracé QUE si le périmètre contient plus d'un
+              `countryCode` distinct (ou si le filtre `cy` porte plusieurs valeurs — hors périmètre de
+              ce composant, qui ne reçoit pas l'état du filtre actif ; condition sur les données seule,
+              ci-dessous). Sinon le bloc est absent du DOM (pas un `ET-CHAMP-ABSENT-SOURCE`). */}
+          {countryBars === 'unavailable' || countryBars.length > 1 ? (
+            <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} dataSelection={stats.selectionHash} />
+          ) : null}
+        </section>
+        {/* A-08 (DR-147, D8-12 — dette LEVÉE) : les graphes CO₂/consommation/boîte de vitesses restent
+            écartés de la grille (dette A-08 elle-même inchangée), mais `EX-SCR-39` (« aucun état n'est
+            silencieux ») exige désormais une mention à l'utilisateur, là où il n'y en avait aucune. */}
+        <p class="kycar-graph-note">
+          Graphes CO₂, consommation et boîte de vitesses : non disponibles dans cette version (dette A-08).
+        </p>
+        </>
+      )}
     </div>
   );
 }
