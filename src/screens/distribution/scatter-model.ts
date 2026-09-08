@@ -200,6 +200,26 @@ export interface Projector {
   readonly yOut: (value: number) => boolean;
 }
 
+/** Projection INVERSE pixel → donnée (pour traduire un rectangle de brossage en bornes d'axe). */
+export interface InverseProjector {
+  readonly dataX: (px: number) => number;
+  readonly dataY: (py: number) => number;
+}
+
+/** Fabrique l'inverse d'un projecteur linéaire (mêmes bornes/viewport). */
+export function makeInverseProjector(vp: Viewport, xB: AxisBounds, yB: AxisBounds): InverseProjector {
+  const x0 = vp.padLeft;
+  const x1 = vp.width - vp.padRight;
+  const y0 = vp.height - vp.padBottom;
+  const y1 = vp.padTop;
+  const spanX = xB.hi - xB.lo || 1;
+  const spanY = yB.hi - yB.lo || 1;
+  return {
+    dataX: (px) => xB.lo + ((px - x0) / (x1 - x0 || 1)) * spanX,
+    dataY: (py) => yB.lo + ((py - y0) / (y1 - y0 || 1)) * spanY,
+  };
+}
+
 /**
  * Fabrique un projecteur linéaire. Y est inversé (0 en bas). Les valeurs hors bornes sont écrêtées
  * sur la bordure (jamais supprimées, EX-SCR-18) ; `xOut`/`yOut` les signalent pour le marqueur.
