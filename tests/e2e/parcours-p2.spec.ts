@@ -256,7 +256,14 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     mesure(testInfo, 'P2 — erreurs de page sur l’écran D', errors.join(' | ') || '(aucune)');
 
     expect(errors, 'aucune exception ne doit remonter du rendu de l’écran D').toEqual([]);
-    await expect(page.locator('.kycar-listings-table')).toBeVisible({ timeout: 20_000 });
+    // `EX-SCR-209` (D8-15) : en régime COMPACT l'écran D remplace le tableau par des cartes — le
+    // fait mesuré (les annonces sont RENDUES, la route ne lève plus) est le même sur les deux
+    // formes ; seul le conteneur diffère, comme le contrat responsive le prévoit.
+    const listings =
+      regimeOf(testInfo) === 'compact'
+        ? page.locator('.kycar-listings-cards')
+        : page.locator('.kycar-listings-table');
+    await expect(listings).toBeVisible({ timeout: 20_000 });
   });
 
   test('CONSTAT E2E-07 — pagination 50, tri, jeton de doublon et « Ouvrir ↗ » de l’écran D (EX-SCR-203/206/208, EX-DATA-15)', async ({
@@ -269,6 +276,11 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
       'EX-SCR-203/206/208',
       'aucun des contrôles de l’écran D n’est atteignable (pagination de 50, tri mono-colonne, jeton « ! » de DUPLICATE_VALUE_CONFLICT, lien sortant « Ouvrir ↗ » vers l’annonce d’origine) : conséquence d’E2E-01',
     );
+
+    // `EX-SCR-209` (D8-15) : le TABLEAU et son tri par en-tête n'existent pas en régime compact
+    // (cartes + sélecteur « Trier par… »). Inadéquation de plate-forme, jamais un masquage : les
+    // mêmes contrôles y sont exercés par le test de régime de `responsive.spec.ts`.
+    test.skip(regimeOf(testInfo) === 'compact', 'EX-SCR-209 : l’écran D est rendu en cartes sous 768 px, sans en-tête de tri');
 
     await page.goto(`${P2_LISTINGS_PATH}`, { waitUntil: 'commit' });
     await expect(page.locator('.kycar-model-title')).toContainText('Opel Corsa', { timeout: 60_000 });

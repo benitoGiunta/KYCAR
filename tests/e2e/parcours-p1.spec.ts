@@ -15,9 +15,11 @@ import { test, expect, type Page } from '@playwright/test';
 import {
   P1_QUERY,
   P1_EXPECTED,
+  applyFilterSheet,
   constat,
   mesure,
   open,
+  openFilterSheet,
   parseInteger,
   readCardCounts,
   readCardTitles,
@@ -38,15 +40,9 @@ async function openMarket(page: import('@playwright/test').Page, query = ''): Pr
  * différée en `compact`. Le fait exercé (ajouter une carrosserie au filtre `body`) est identique.
  */
 async function checkBerline(page: Page, compact: boolean): Promise<void> {
-  if (compact) {
-    await page.locator('.kycar-compact-bar__open').click();
-    await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
-  }
+  await openFilterSheet(page, compact);
   await page.getByLabel('Berline', { exact: true }).check();
-  if (compact) {
-    await page.locator('.kycar-compact-sheet__footer button').last().click();
-    await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeHidden();
-  }
+  await applyFilterSheet(page, compact);
   await page.waitForFunction(() => window.location.search.includes('body=3,6'), null, { timeout: 20_000 });
 }
 
@@ -82,10 +78,7 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     // mesuré (les trois filtres posés, l'URL canonique, l'effectif affiché) est identique ; seul le
     // chemin d'interaction suit l'exigence.
     const compact = regimeOf(testInfo) === 'compact';
-    if (compact) {
-      await page.locator('.kycar-compact-bar__open').click();
-      await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
-    }
+    await openFilterSheet(page, compact);
 
     // (1) budget ≤ 20 000 € — saisie libre dans la borne haute du couple `EX-SCR-67`.
     await page.locator('.kycar-primary-line').getByLabel('Prix à', { exact: true }).fill('20000');
@@ -101,11 +94,8 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
 
     // (3) carrosserie coupé — case à cocher du groupe primaire `Carrosserie`.
     await page.getByLabel('Coupé', { exact: true }).check();
-    if (compact) {
-      // `EX-SCR-97` — application DIFFÉRÉE : rien n'est posé avant ce clic.
-      await page.locator('.kycar-compact-sheet__footer button').last().click();
-      await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeHidden();
-    }
+    // `EX-SCR-97` — application DIFFÉRÉE en compact : rien n'est posé avant ce clic.
+    await applyFilterSheet(page, compact);
     await page.waitForFunction(() => window.location.search.includes('body=3'), null, { timeout: 20_000 });
 
     // (4) pays BE : `EX-SRCH-18bis` interdit d'en faire un filtre utilisateur — le périmètre belge

@@ -17,11 +17,14 @@ import {
   P1_QUERY,
   P2_PATH,
   SURFACES,
+  applyFilterSheet,
   constat,
   mesure,
   open,
+  openFilterSheet,
   readMarketSummary,
   readSelectionCount,
+  regimeOf,
   waitForMarket,
 } from './_helpers';
 
@@ -48,11 +51,21 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     page,
     browser,
   }, testInfo) => {
+    // D8-15/D-31 : la coquille fournit désormais `regime` au bandeau, donc le régime compact
+    // d'`EX-SCR-97` (feuille plein écran, application différée) est réellement atteignable. Le
+    // parcours mesuré (poser deux filtres, partager l'URL, la rouvrir dans un contexte neuf) est
+    // identique ; seul le chemin d'interaction suit le régime.
+    const compact = regimeOf(testInfo) === 'compact';
     await open(page, SURFACES.A);
+    await openFilterSheet(page, compact);
     await page.locator('.kycar-primary-line').getByLabel('Prix à', { exact: true }).fill('20000');
-    await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
+    if (!compact) {
+      await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
+    }
     await page.getByLabel('Coupé', { exact: true }).check();
+    await applyFilterSheet(page, compact);
     await page.waitForFunction(() => window.location.search.includes('body=3'), null, { timeout: 20_000 });
+    await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
     await waitForMarket(page);
 
     const shared = page.url();
@@ -101,6 +114,10 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     const lengthBefore = await page.evaluate(() => window.location.pathname.length + window.location.search.length);
     expect(lengthBefore).toBeLessThanOrEqual(2_000);
 
+    // D8-15/D-31 : en régime compact les contrôles ne sont montés que dans la feuille plein écran
+    // (`EX-SCR-97`) ; le refus de plafond est le MÊME, il est simplement exercé là où le contrôle
+    // existe désormais.
+    await openFilterSheet(page, regimeOf(testInfo) === 'compact');
     const checkbox = page.locator('#filter-bodyType-3');
     await checkbox.click();
 

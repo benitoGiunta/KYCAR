@@ -162,6 +162,24 @@ export async function readMarketSummary(page: Page): Promise<MarketSummary> {
 }
 
 /**
+ * `EX-SCR-97` (D8-15) — en régime COMPACT, la ligne primaire et les groupes secondaires ne vivent
+ * qu'à l'intérieur d'une FEUILLE plein écran à application DIFFÉRÉE. Ces deux aides encadrent la
+ * pose de filtres pour que chaque test décrive le MÊME parcours quel que soit le régime : ouvrir
+ * (si besoin), agir sur les mêmes libellés, appliquer (si besoin). Elles ne font rien hors compact.
+ */
+export async function openFilterSheet(page: Page, compact: boolean): Promise<void> {
+  if (!compact) return;
+  await page.locator('.kycar-compact-bar__open').click();
+  await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
+}
+
+export async function applyFilterSheet(page: Page, compact: boolean): Promise<void> {
+  if (!compact) return;
+  await page.locator('.kycar-compact-sheet__footer button').last().click();
+  await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeHidden();
+}
+
+/**
  * `EX-SCR-48` (D8-15) — en régime COMPACT, les quatre onglets d'`EX-SCR-42` sont remplacés par un
  * bouton de menu ouvrant un tiroir. Ce helper ouvre le tiroir quand il existe, et ne fait rien
  * ailleurs : les tests continuent de désigner l'onglet par son nom accessible, quel que soit le
