@@ -23,7 +23,9 @@ const GROUP_FORMAT = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 0 }
 /** Normalise n'importe quel séparateur de groupe retourné par l'ICU de l'environnement vers le
  * U+202F normatif (`EX-SCR-1`) : robuste à une ICU qui renverrait U+00A0 ou une espace ordinaire. */
 function toNarrowNbspGroups(formatted: string): string {
-  return formatted.replace(/[   ]/g, NNBSP);
+  // Echappe en \u pour eviter tout caractere d'espace irregulier LITTERAL dans un regex
+  // (ESLint no-irregular-whitespace inspecte aussi les litteraux regex, pas seulement les chaines).
+  return formatted.replace(/[\u00A0\u2009\u0020]/g, NNBSP);
 }
 
 /** `EX-SCR-1` — entier ≥ 1 000 groupé par 3 avec U+202F. Aucun signe pour un entier négatif n'est
