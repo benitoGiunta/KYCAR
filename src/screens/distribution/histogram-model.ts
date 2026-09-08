@@ -174,3 +174,40 @@ export function bucketToIntervalFilters(
   if (Number.isFinite(bucket.upperBound)) out[ids.to] = bucket.upperBound - u;
   return out;
 }
+
+/**
+ * `EX-SCR-149` (D8-24) — plus petit intervalle englobant un ENSEMBLE de buckets. Sert indifféremment
+ * au brossage horizontal (les buckets CONTIGUS entre le premier et le dernier bin brossé) et au
+ * `Ctrl` + clic (des buckets NON contigus, accumulés un par un ; note normative « intervalle élargi
+ * aux bornes des buckets sélectionnés »). Le résultat n'est PAS encore un filtre : il a exactement la
+ * forme d'un bucket (`lowerBound`/`upperBound`), passé tel quel à `onSelectBucket`
+ * (`Histogram.tsx`), que l'hôte convertit en `SelectionInput` via `bucketToIntervalFilters` — le MÊME
+ * chemin que le clic simple sur une barre, sans dupliquer la règle de l'unité canonique (`ARB-09`).
+ * `buckets` non vide (garanti par l'appelant : rien à envelopper sur un ensemble vide).
+ */
+export function envelopeBounds(
+  buckets: readonly Pick<DistributionBucket, 'lowerBound' | 'upperBound'>[],
+): Pick<DistributionBucket, 'lowerBound' | 'upperBound'> {
+  let lowerBound = Infinity;
+  let upperBound = -Infinity;
+  for (const b of buckets) {
+    if (b.lowerBound < lowerBound) lowerBound = b.lowerBound;
+    if (b.upperBound > upperBound) upperBound = b.upperBound;
+  }
+  return { lowerBound, upperBound };
+}
+
+/**
+ * `EX-SCR-149` (double-clic, D8-24) — retire le filtre posé par CE graphe. Le contrat public
+ * `SelectionInput`/`FilterValue` (D2, `src/types/selection.ts`, hors périmètre de ce lot) ne porte
+ * pas `undefined` dans son type déclaré ; l'hôte le reconnaît pourtant DÉJÀ, à l'exécution, comme un
+ * ordre de suppression de la clé (`src/app.tsx::applyFilters` : `if (value === undefined …) delete`),
+ * exactement comme tous les contrôles de `src/components/filters/controls/*`
+ * (`FilterChangeEvent.value: FilterValue | undefined`). Ce module ne peut pas élargir un type gelé
+ * pour l'exprimer honnêtement dans sa propre signature : le repli explicite ci-dessous, au SEUL point
+ * qui en a besoin, en est la conséquence assumée (D-31).
+ */
+export function clearMetricFilters(metric: 'price' | 'year' | 'mileage'): SelectionInput {
+  const ids = METRIC_FILTER_IDS[metric];
+  return { [ids.from]: undefined, [ids.to]: undefined } as unknown as SelectionInput;
+}

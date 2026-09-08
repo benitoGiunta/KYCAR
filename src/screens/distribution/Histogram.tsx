@@ -7,7 +7,7 @@
  * `GraphFrame` (EX-NFR-15).
  */
 
-import { buildHistogram, histogramTable, type HistogramModel } from './histogram-model';
+import { buildHistogram, histogramTable, envelopeBounds, type HistogramModel } from './histogram-model';
 import { GraphFrame, type ExclusionNote } from './GraphFrame';
 import { formatMetric } from './format';
 import type { DistributionBucket } from '../../types/index';
@@ -28,14 +28,36 @@ export interface HistogramProps {
   readonly onToggleLog: () => void;
   readonly headerCount?: number;
   readonly exclusions?: readonly ExclusionNote[];
-  /** Clic sur une barre → pose l'intervalle correspondant (EX-SCR-149). Point d'intégration D8. */
-  readonly onSelectBucket?: (bucket: DistributionBucket) => void;
+  /** Clic sur une barre, brossage horizontal ou `Ctrl` + clic (EX-SCR-149) → pose l'intervalle
+   * correspondant. Type volontairement affaibli à `Pick<…, 'lowerBound' | 'upperBound'>` (au lieu du
+   * `DistributionBucket` complet) : le brossage et le `Ctrl` + clic ne produisent qu'une ENVELOPPE
+   * (`envelopeBounds`), pas un bucket réel du moteur — même chemin d'intégration D8 que le clic
+   * simple, compatible avec le câblage existant de l'hôte (`bucketToIntervalFilters` ne lit que ces
+   * deux champs). Aucune nouvelle prop : c'est la même que celle du lot précédent, élargie.
+   */
+  readonly onSelectBucket?: (bucket: Pick<DistributionBucket, 'lowerBound' | 'upperBound'>) => void;
+  /** `EX-SCR-149` (double-clic, D8-24) — retire le filtre posé par ce graphe. Optionnelle : absente
+   * tant que l'hôte (`DistributionScreen`/`app.tsx`, hors périmètre de ce lot) ne la câble pas, sans
+   * aucun effet par défaut — même convention que les props D8-06 laissées à fix-app (rapport
+   * `fix-screens.md` §3). */
+  readonly onClearFilter?: (metric: 'price' | 'year' | 'mileage') => void;
   /** `EX-SCR-184` (DR-080) — part sélectionnée (brossage G4) par indice de bucket, pour la
    * surimpression de liaison croisée. `undefined`/absent = aucun brossage actif. */
   readonly selectedCounts?: ReadonlyMap<number, number>;
   /** `EX-SCR-176` (D8-06/FV-18) — empreinte du jeu de filtres, transmise telle quelle à `GraphFrame`. */
   readonly dataSelection?: string;
 }
+
+/**
+ * `EX-SCR-149` (D8-24) — accumulation du `Ctrl` + clic, PAR `graphId` (G1/G2/G3 sont trois instances
+ * indépendantes). Portée MODULE, délibérément PAS un état Preact : `Histogram` reste un composant
+ * SANS hook (les sondes `tests/review/D7/histogrammes.test.ts` l'appellent comme une fonction pure,
+ * hors de tout rendu Preact — un hook y lèverait une exception) et cet accroissement ne doit de toute
+ * façon PAS provoquer de nouveau rendu à lui seul : seul l'appel à `onSelectBucket` (qui pose un vrai
+ * filtre côté hôte) fait progresser l'écran. Remise à zéro par clic simple ou double-clic sur ce
+ * graphe (repart d'une sélection propre, EX-SCR-149).
+ */
+const ctrlSelectionByGraph = new Map<string, Set<number>>();
 
 export function Histogram(props: HistogramProps) {
   const model: HistogramModel = buildHistogram(props.metric, props.buckets, { log: props.log });
@@ -45,6 +67,61 @@ export function Histogram(props: HistogramProps) {
 
   const table = histogramTable(model, formatMetric);
   const ariaLabel = `Histogramme ${props.title}, ${model.bars.length} classes, ${model.totalCount} offres`;
+
+  // ---- EX-SCR-149 (D8-24) — brossage horizontal / `Ctrl` + clic / double-clic ------------------
+  // Variables de FERMETURE (pas un état Preact, cf. commentaire de `ctrlSelectionByGraph`) : un
+  // brossage complet (mousedown → mouseup) ne traverse jamais de nouveau rendu de CE composant (aucun
+  // changement de props en cours de geste), donc une simple fermeture locale suffit et reste plus
+  // simple qu'un état module — contrairement au `Ctrl` + clic, dont chaque étape POSE réellement un
+  // filtre (et déclenche donc un nouveau rendu), d'où sa portée module.
+  let dragStartIndex: number | null = null;
+  let dragEndIndex: number | null = null;
+
+  const barBoundsAt = (i: number): Pick<DistributionBucket, 'lowerBound' | 'upperBound'> | undefined => model.bars[i];
+
+  /** Termine un brossage horizontal (mouseup/mouseleave) : n'agit QUE si au moins deux bins distincts
+   * ont été traversés — un brossage nul (aucun déplacement) est un simple clic, déjà géré par
+   * `onClick` de la barre, jamais compté deux fois. */
+  const finalizeBrush = (): void => {
+    const start = dragStartIndex;
+    const end = dragEndIndex;
+    dragStartIndex = null;
+    dragEndIndex = null;
+    if (start === null || end === null || start === end) return;
+    const lo = Math.min(start, end);
+    const hi = Math.max(start, end);
+    const spanned = model.bars.slice(lo, hi + 1);
+    if (spanned.length === 0) return;
+    props.onSelectBucket?.(envelopeBounds(spanned));
+  };
+
+  /** Clic simple (pose le bucket exact, comportement inchangé) ou `Ctrl` + clic (accumule/retire ce
+   * bucket dans la sélection non contiguë du graphe, pose l'enveloppe des buckets accumulés). */
+  const onBarClick = (i: number, ctrlKey: boolean): void => {
+    const bar = model.bars[i];
+    if (bar === undefined) return;
+    if (ctrlKey) {
+      const selected = ctrlSelectionByGraph.get(props.graphId) ?? new Set<number>();
+      if (selected.has(i)) selected.delete(i);
+      else selected.add(i);
+      ctrlSelectionByGraph.set(props.graphId, selected);
+      if (selected.size === 0) return; // dernier bucket retiré de la sélection : rien à poser
+      const spanned = [...selected]
+        .map((idx) => barBoundsAt(idx))
+        .filter((b): b is Pick<DistributionBucket, 'lowerBound' | 'upperBound'> => b !== undefined);
+      props.onSelectBucket?.(envelopeBounds(spanned));
+      return;
+    }
+    ctrlSelectionByGraph.delete(props.graphId); // clic simple : repart d'une sélection propre
+    const bucket = props.buckets.find((bk) => bk.index === bar.index);
+    if (bucket) props.onSelectBucket?.(bucket);
+  };
+
+  /** Double-clic dans la zone de tracé (EX-SCR-149) : retire le filtre posé par ce graphe. */
+  const onPlotDoubleClick = (): void => {
+    ctrlSelectionByGraph.delete(props.graphId);
+    props.onClearFilter?.(props.metric);
+  };
 
   return (
     <GraphFrame
@@ -98,7 +175,15 @@ export function Histogram(props: HistogramProps) {
             </label>
           ) : null}
 
-          <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} class="kycar-hist" role="img" aria-label={ariaLabel}>
+          <svg
+            viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+            class="kycar-hist"
+            role="img"
+            aria-label={ariaLabel}
+            onMouseUp={finalizeBrush}
+            onMouseLeave={finalizeBrush}
+            onDblClick={onPlotDoubleClick}
+          >
             <defs>
               <pattern id={`${props.graphId}-hatch`} width="4" height="4" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
                 <rect width="4" height="4" fill="var(--color-surface)" />
@@ -135,7 +220,17 @@ export function Histogram(props: HistogramProps) {
                   tabIndex={0}
                   role="button"
                   aria-label={`${formatMetric(b.lowerBound, props.metric)} à ${formatMetric(b.upperBound, props.metric)}: ${b.count} offres`}
-                  onClick={() => props.onSelectBucket?.(props.buckets.find((bk) => bk.index === b.index) as DistributionBucket)}
+                  // EX-SCR-149 : clic = bucket exact ; `Ctrl` + clic = accumulation non contiguë
+                  // (`onBarClick`) ; mousedown/mouseenter amorcent/prolongent le brossage horizontal,
+                  // fini au `mouseup`/`mouseleave` du tracé (`finalizeBrush`, sur le `<svg>`).
+                  onClick={(e: MouseEvent) => onBarClick(i, e.ctrlKey)}
+                  onMouseDown={() => {
+                    dragStartIndex = i;
+                    dragEndIndex = i;
+                  }}
+                  onMouseEnter={() => {
+                    if (dragStartIndex !== null) dragEndIndex = i;
+                  }}
                 >
                   <title>{`${formatMetric(b.lowerBound, props.metric)} – ${formatMetric(b.upperBound, props.metric)} · ${b.count} offres · ${(b.share * 100).toFixed(1)} %`}</title>
                 </rect>
