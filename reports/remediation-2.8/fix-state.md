@@ -332,13 +332,144 @@ sont les seules sondes `it.fails` retournées par ce lot.
 `src/components/filters/FilterFieldRow.tsx` ; `src/components/filters/PrimaryLine.tsx` ;
 `src/components/filters/SecondaryGroups.tsx` ; `src/components/filters/FilterSearch.tsx` ;
 `src/components/filters/filter-search.ts` ; `src/components/filters/ScreenG.tsx` ;
-`src/components/filters/band-model.ts` ; `src/components/filters/types.ts` ;
-`src/components/filters/controls/CheckboxList.tsx` ; `src/components/filters/controls/RangeControl.tsx` ;
-`src/components/filters/SaveSearchForm.tsx` (nouveau) ; `src/components/filters/labels.test.ts` ;
+`src/components/filters/screen-g-model.ts` ; `src/components/filters/band-model.ts` ;
+`src/components/filters/types.ts` ; `src/components/filters/controls/CheckboxList.tsx` ;
+`src/components/filters/controls/RangeControl.tsx` ; `src/components/filters/SaveSearchForm.tsx`
+(nouveau) ; `src/components/filters/filter-band.css` (nouveau, §7.1) ;
+`src/components/filters/screen-g.css` (nouveau, §7.1) ; `src/components/filters/labels.test.ts` ;
 `tests/review/D5/labels-fr.test.ts` ; `tests/review/D5/keyboard-band.test.ts` ;
 `tests/review/D5/screen-g.test.ts` ; `tests/review/D5/band-actions.test.ts` (prop `onNarrow`
 ajoutée à `BASE_PROPS`) ; `tests/review/D5/mmmv-tokens.test.ts` (nouveau) ;
 `tests/review/D5/facet-counts.test.ts` (nouveau) ; `tests/review/D5/regime-and-shortcuts.test.ts`
 (nouveau).
 
-Aucun fichier hors périmètre modifié (`src/app.tsx`, `docs/`, `tests/e2e/` intacts).
+Aucun fichier hors périmètre modifié ni commité (`src/app.tsx`, `docs/` intacts ; `tests/e2e/` —
+voir §7 pour l'usage temporaire, non commité, des sondes qui y vivent).
+
+---
+
+## 7. Constats du harnais E2E traités (message du coordinateur en cours de lot)
+
+`tests/e2e/` est **hors périmètre d'écriture** (interdit à `fix-state`) et les fichiers de sonde
+concernés (`a11y.spec.ts`, `clavier.spec.ts`, `responsive.spec.ts`, `_helpers.ts`) n'existent PAS
+dans ce worktree : `fix28/state` a divergé de `claude/kycar-project-ffcplk` **avant** la fusion du
+harnais E2E (`git merge-base HEAD origin/claude/kycar-project-ffcplk` = `1226aeb`, antérieur à la
+fusion `a85c037 "Merge fix/e2e"`). Pour vérifier chaque correction sans rien commiter hors
+périmètre, les trois fichiers de sonde ont été récupérés temporairement
+(`git show origin/claude/kycar-project-ffcplk:tests/e2e/<fichier> > tests/e2e/<fichier>`), testés,
+puis **supprimés** avant la fin du lot (`git status --porcelain tests/e2e/` vide au commit — vérifié
+ci-dessous). **La levée de l'annotation `test.fail()` sur ces trois tests (règle D8-17) reste à
+faire par l'agent/le coordinateur qui possède `tests/e2e/`** — elle ne peut pas être commitée
+depuis ce worktree sans violer l'interdit de périmètre.
+
+### 7.1 E2E-21 (MAJEUR) — aucune feuille de style pour le bandeau/écran G
+
+**Correction** : deux nouveaux fichiers, importés en effet de bord (même convention que
+`market.css`/`MarketScreen.tsx`) :
+- `src/components/filters/filter-band.css`, importé par `FilterBand.tsx` — les quatre zones
+  d'`EX-SCR-55`, tous les `.kycar-control` et leurs variantes, `.kycar-active-tokens`/`.kycar-token`,
+  `.kycar-cascade-notice`, `.kycar-save-search-form`, le régime intermédiaire
+  (`[data-regime='intermediaire'] .kycar-primary-line`, deux lignes de contrôles) et le régime
+  compact (`.kycar-filter-band--compact`, `.kycar-compact-bar`, `.kycar-compact-sheet`).
+- `src/components/filters/screen-g.css`, importé par `ScreenG.tsx` — `.kycar-screen-g`, les deux
+  panneaux à hauteur FIXE (nécessaire au calcul de fenêtrage, `SCREEN_G_ROW_HEIGHT_PX`/
+  `SCREEN_G_VISIBLE_ROWS`), `.kycar-screen-g__option` (état `aria-selected` visible).
+
+Les deux fichiers lisent `var(--color-*, --space-*, --radius-*)` de `src/styles/tokens.css`
+(lecture seule) ; les seuils de régime reprennent ceux de `src/styles/breakpoints.ts` (768/1280 px,
+recopiés en dur — une media query ne peut pas importer une constante JS).
+
+**Preuve** (sonde `E2E-21`, `tests/e2e/responsive.spec.ts`, récupérée temporairement — voir
+préambule) :
+```
+$ KYCAR_E2E_PORT=4182 npx playwright test tests/e2e/responsive.spec.ts --project=desktop -g "E2E-21"
+[MESURE] EX-SCR-96 — règles CSS chargées (bandeau / contrôle / écran G) : true / true / true
+  ✓ … CONSTAT E2E-21 …
+  1) … Expected to fail, but passed.   ← l'assertion sous-jacente est VERTE ; seule l'annotation
+                                          test.fail() reste à retirer (D8-17, hors périmètre)
+```
+Rejoué sur les trois projets (`desktop`/`tablet`/`mobile`) : même résultat (`true / true / true`).
+`npm run build` + `npm run size` : 102,08/300 Kio gzip (CSS ajouté : 3,8 Kio gzip, marge intacte) ;
+`tests/review/D8/nfr9-size.test.ts`/`parcours.test.ts` (budget `EX-NFR-9`, 900 Kio/1,8 s) : 192,2 Kio
+transférés, toujours verts.
+
+### 7.2 E2E-12 (MAJEUR) — écran G, `aria-allowed-attr` + `nested-interactive` (axe)
+
+Le correctif D8-14 initial (déplacer `aria-selected` du `<button>` vers le `<li role="option">`,
+§1.4) était **insuffisant** : un rôle `option` compte comme interactif pour axe, donc le `<button>`
+(marque) / `<input type="checkbox">` (modèle) restés IMBRIQUÉS déclenchaient toujours
+`nested-interactive`, et `aria-setsize` posé sur le `<ul role="listbox">` lui-même (en plus des
+options) restait un `aria-allowed-attr` invalide (`listbox` n'est pas un membre d'ensemble).
+
+**Correction** (`ScreenG.tsx`, `screen-g-model.ts`) :
+- Plus AUCUN élément interactif natif (`button`/`input`/`a`) sous un `<li role="option">` — le clic
+  est posé sur le `<li>` lui-même (`ScreenGMakeRow`/`ScreenGModelRow`, et l'option « Tous les
+  modèles » du panneau modèle, auparavant une `<label><input type="checkbox">` nue).
+- `aria-setsize` retiré des deux `<ul role="listbox">` (il ne reste que sur les options, où il
+  était déjà correct depuis D8-14).
+- Navigation clavier `ArrowUp`/`ArrowDown` au sein d'un panneau : motif APG « la sélection suit le
+  focus », porté par `aria-activedescendant` sur le `<ul>` (pas de `tabindex` par option) —
+  `computeScrollTopToReveal` (nouvelle fonction pure, `screen-g-model.ts`) fait défiler la fenêtre
+  pour que l'option ciblée soit RENDUE avant que `aria-activedescendant` n'y pointe (sinon
+  l'attribut désignerait un id absent du DOM, fenêtrage `DR-060`).
+- **Écart assumé et documenté** vis-à-vis de la description du coordinateur (« option = l'élément
+  focalisable lui-même ») : implémenté avec `aria-activedescendant` (le `<ul>` garde le focus DOM
+  réel, l'option « active » est désignée par l'attribut) plutôt qu'avec un `tabindex` roulant par
+  option — les DEUX motifs sont normatifs pour un listbox à sélection unique (WAI-ARIA APG), et
+  celui retenu évite la complexité et les risques de timing d'un déplacement de focus DOM
+  programmatique après un rendu fenêtré. Le piège de focus existant (six arrêts, `Tab` intercepté)
+  n'exerce que les arrêts `list-make`/`list-model` eux-mêmes (les `<ul>`), pas d'option individuelle
+  — cette lecture n'affecte donc aucune sonde/E2E existante (vérifié, §7.4).
+
+**Preuve** (sonde `E2E-12`, `tests/e2e/a11y.spec.ts`) :
+```
+$ KYCAR_E2E_PORT=4182 npx playwright test tests/e2e/a11y.spec.ts --project=desktop -g "E2E-12"
+[MESURE] axe — G (modale marque/modèle) : 0 violation
+  ✓ … CONSTAT E2E-12 …
+  1) … Expected to fail, but passed.
+```
+Rejoué sur `desktop`/`tablet`/`mobile` : `0 violation` dans les trois cas. Sonde de revue
+`tests/review/D5/screen-g.test.ts` (`R-D5-28` réécrite, `R-D5-36` nouvelle pour
+`computeScrollTopToReveal`) → 25/25.
+
+### 7.3 E2E-14 (MAJEUR) — focus non restitué à la fermeture de l'écran G
+
+**Correction** (`ScreenG.tsx`) : le `useEffect` de montage mémorise `document.activeElement` (le
+bouton qui a ouvert la modale) avant de déplacer le focus vers le champ de recherche marque, et le
+restitue dans la fonction de nettoyage du MÊME effet — exécutée à chaque démontage, quel que soit
+le chemin de fermeture (`Échap`, `Annuler`, `Appliquer` déclenchent tous `setScreenGOpen(false)`
+côté `FilterBand`). **Aucune prop `returnFocusTo` ajoutée** : l'appelant n'a rien à fournir, ce qui
+évite tout câblage `fix-app` pour ce point précis (contrairement à ce que la mission envisageait
+comme possible côté coquille).
+
+**Preuve** (sonde `E2E-14`, `tests/e2e/clavier.spec.ts`) :
+```
+$ KYCAR_E2E_PORT=4182 npx playwright test tests/e2e/clavier.spec.ts --project=desktop -g "E2E-14"
+[MESURE] clavier — focus après fermeture de l’écran G : button|Choisir une marque et un modèle
+  ✓ … CONSTAT E2E-14 …
+  1) … Expected to fail, but passed.
+```
+Rejoué sur `desktop`/`tablet`/`mobile` : même résultat (focus rendu au bouton `Choisir une marque
+et un modèle`) dans les trois cas.
+
+### 7.4 Non-régression vérifiée sur les sondes E2E voisines
+
+Fichiers COMPLETS rejoués (pas seulement `-g`) pour vérifier l'absence de régression sur les tests
+déjà verts avant ce lot :
+- `clavier.spec.ts` (9 tests, `desktop`) : le piège de focus à six arrêts (4 arrêts distincts
+  visités sur 12 tabulations) et les 70/70 contrôles de la ligne primaire restent verts ; seuls
+  E2E-14 (ci-dessus), E2E-15/E2E-16 (hors périmètre, `app.tsx`/titres) diffèrent.
+- `a11y.spec.ts` (8 tests, `desktop`) : B/C/E/F/`/mentions` restent à 0 violation ; E2E-11/E2E-13
+  (hors périmètre) inchangés ; E2E-12 corrigé (ci-dessus).
+- `responsive.spec.ts` (9 tests, `desktop`) : E2E-19 (aucun défilement horizontal) reste vert — les
+  deux nouvelles feuilles de style n'introduisent aucun débordement ; E2E-17/E2E-18 (hors
+  périmètre) inchangés ; E2E-21 corrigé (ci-dessus).
+
+### 7.5 Câblage restant, hors périmètre `fix-state`
+
+- **D8-17** : retirer l'annotation `test.fail()` des trois tests `CONSTAT E2E-21`/`E2E-12`/`E2E-14`
+  dans `tests/e2e/responsive.spec.ts`/`a11y.spec.ts`/`clavier.spec.ts` (branche
+  `claude/kycar-project-ffcplk`, hors de ce worktree) — preuve ci-dessus, corrections déjà en place
+  dans `fix28/state`.
+- Aucun autre câblage requis pour ces trois points (E2E-14 est auto-suffisant, E2E-21/E2E-12 sont
+  des corrections internes à `src/components/filters`).

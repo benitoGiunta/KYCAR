@@ -9,8 +9,14 @@
  * Le composant ne câble RIEN dans `src/app.tsx` : c'est un export nommé que D8 monte où il veut,
  * avec les callbacks `onHistoryReplace`/`onHistoryPush`/`onRecomputeLocal`/`onReload` reliés à
  * l'historique navigateur réel et au moteur d'agrégation réels (hors périmètre D5).
+ *
+ * `./filter-band.css` importé en effet de bord (`E2E-21`, même convention que
+ * `MarketScreen.tsx`/`market.css`) — Vite le bundle partout où `FilterBand` est monté, aucun
+ * câblage `src/app.tsx` requis.
  */
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+
+import './filter-band.css';
 
 import { FILTER_BY_ID, FILTER_DEFAULTS, FILTER_DEFS, isDependencySatisfied } from '../../state/filter-registry';
 import { resolveFilterClass } from '../../state/filter-registry';

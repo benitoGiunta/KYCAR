@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import {
   clearScreenGSearch,
   computeRowWindow,
+  computeScrollTopToReveal,
   INITIAL_SCREEN_G_SEARCH_STATE,
   isSameSelection,
   makePanelEmptyState,
@@ -311,12 +312,13 @@ describe('R-D5-26 — écran G : « Effacer la recherche » et `ET-VIDE-FILTRES`
   });
 });
 
-describe('R-D5-28 — FV-16/D8-14 : `aria-allowed-attr` de l’écran G (axe-core critique ×82)', () => {
-  // Avant correction : `aria-selected` était posé sur le `<button>` interne (rôle implicite
-  // `button`), qui ne le supporte pas — axe-core lève `aria-allowed-attr` (critique) sur chaque
-  // ligne montée. `aria-selected` n'est permis que sur un rôle qui le déclare (dont `option`,
-  // porté ici par le `<li>`) : c'est LUI qui doit recevoir l'attribut d'état.
-  it('R-D5-28 — ScreenGMakeRow : `aria-selected` est sur le `<li role="option">`, jamais sur le `<button>`', () => {
+describe('R-D5-28 — E2E-12/D8-14 : structure ARIA valide de l’écran G (axe `aria-allowed-attr` + `nested-interactive`)', () => {
+  // Avant correction (résidu après le premier passage D8-14) : `aria-selected` avait déjà été
+  // déplacé sur le `<li role="option">`, mais un `<button>`/`<input>` restait imbriqué DEDANS —
+  // `option` est un rôle interactif pour axe, donc tout élément interactif natif qu'il contient
+  // déclenche `nested-interactive`, quel que soit l'endroit où vit `aria-selected` par ailleurs.
+  // Corrigé en profondeur : plus aucun `button`/`input`/`a` sous un `<li role="option">`.
+  it('R-D5-28 — ScreenGMakeRow : `aria-selected`/`id` sur le `<li role="option">`, AUCUN élément interactif imbriqué', () => {
     const vnode = ScreenGMakeRow({
       row: { make: { makeId: 1, label: 'Test', slug: 'test', announcedCount: 5 }, count: 5 },
       index: 0,
@@ -326,12 +328,14 @@ describe('R-D5-28 — FV-16/D8-14 : `aria-allowed-attr` de l’écran G (axe-cor
     });
     expect(vnode.props.role).toBe('option');
     expect(vnode.props['aria-selected']).toBe(true);
-    const button = findAll(vnode, (n) => n.type === 'button')[0];
-    expect(button).toBeDefined();
-    expect(button?.props['aria-selected']).toBeUndefined();
+    expect(vnode.props.id).toBe('screen-g-make-1');
+    expect(typeof vnode.props.onClick).toBe('function');
+    for (const tag of ['button', 'input', 'a']) {
+      expect(findAll(vnode, (n) => n.type === tag), `aucun <${tag}> imbriqué`).toHaveLength(0);
+    }
   });
 
-  it('R-D5-28 — ScreenGModelRow : même règle, `aria-selected` sur le `<li role="option">`', () => {
+  it('R-D5-28 — ScreenGModelRow : même règle, aucun `<input type=checkbox>` imbriqué', () => {
     const vnode = ScreenGModelRow({
       row: {
         model: { makeId: 1, modelId: 2, label: 'Modèle', slug: 'modele', bodyTypes: [], announcedCount: 3 },
@@ -344,5 +348,45 @@ describe('R-D5-28 — FV-16/D8-14 : `aria-allowed-attr` de l’écran G (axe-cor
     });
     expect(vnode.props.role).toBe('option');
     expect(vnode.props['aria-selected']).toBe(false);
+    expect(vnode.props.id).toBe('screen-g-model-2');
+    for (const tag of ['button', 'input', 'a']) {
+      expect(findAll(vnode, (n) => n.type === tag), `aucun <${tag}> imbriqué`).toHaveLength(0);
+    }
+  });
+
+  it('R-D5-28 — cliquer le `<li>` appelle `onSelect` (le clic est posé sur l’option elle-même)', () => {
+    let called = false;
+    const vnode = ScreenGMakeRow({
+      row: { make: { makeId: 7, label: 'Test', slug: 'test', announcedCount: 5 }, count: 5 },
+      index: 0,
+      totalCount: 1,
+      selected: false,
+      onSelect: () => {
+        called = true;
+      },
+    });
+    (vnode.props.onClick as () => void)();
+    expect(called).toBe(true);
+  });
+});
+
+describe('R-D5-36 — E2E-12 : navigation clavier au sein d’un panneau (ArrowUp/ArrowDown, aria-activedescendant)', () => {
+  it('computeScrollTopToReveal (screen-g-model.ts) : ne bouge pas si la ligne est déjà visible', () => {
+    expect(computeScrollTopToReveal(5, 0)).toBe(0);
+  });
+
+  it('computeScrollTopToReveal : fait défiler VERS LE HAUT si la ligne est au-dessus de la fenêtre', () => {
+    expect(computeScrollTopToReveal(2, 500, 32, 60)).toBe(2 * 32);
+  });
+
+  it('computeScrollTopToReveal : fait défiler VERS LE BAS si la ligne est sous la fenêtre', () => {
+    // 60 lignes visibles de 32px = fenêtre de 1920px ; la ligne 100 (à 3200px) est hors champ.
+    const result = computeScrollTopToReveal(100, 0, 32, 60);
+    const rowBottom = (100 + 1) * 32;
+    expect(result).toBe(rowBottom - 60 * 32);
+  });
+
+  it('computeScrollTopToReveal : une liste vide (scrollTop=0, index=0) ne fait rien', () => {
+    expect(computeScrollTopToReveal(0, 0)).toBe(0);
   });
 });
