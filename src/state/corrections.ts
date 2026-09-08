@@ -8,12 +8,14 @@
  * réécrire l'URL par `replaceState` (jamais `pushState` — cette fonction ne touche pas l'historique
  * elle-même, voir `history.ts`).
  *
- * Les cinq classes (table `EX-NAV-21`) :
+ * Les classes de correction (table `EX-NAV-21`, plus deux ajoutées par la remédiation 2.6) :
  *   1. code énuméré absent du vocabulaire → valeur retirée, les autres valeurs du filtre conservées
  *   2. borne numérique hors domaine → écrêtée à la borne
  *   3. borne numérique non numérique ou vide → paramètre retiré
  *   4. intervalle inversé (reçu dans une URL) → bornes permutées (`EX-NAV-22`)
  *   5. paramètre inconnu de `filters-scope.json` → ignoré et retiré
+ *   6. paramètre RÉPÉTÉ dans la requête (`DR-051`) → dernière occurrence retenue, signalée
+ *   7. séquence `%` invalide (`DR-136`) → valeur conservée non décodée, signalée
  *
  * Note de conception — pourquoi ce module ne prend PAS `ReferenceData` (D2) en paramètre : tous
  * les domaines nécessaires (codes énumérés, bornes numériques) sont déjà embarqués dans
@@ -26,10 +28,12 @@
 import { FILTER_BY_ID, FILTER_BY_PARAM, FILTER_DEFS } from './filter-registry';
 import type { FilterDef, MutableSelectionState } from './filter-types';
 import {
+  RAW_PASSTHROUGH_IDS,
   UI_STATE_PARAMS,
   filterDefForParam,
   parseRawQuery,
   splitMultiValue,
+  type RawQueryEntry,
 } from './url-codec';
 
 export type CorrectionKind =
@@ -37,7 +41,9 @@ export type CorrectionKind =
   | 'NUMERIC_OUT_OF_DOMAIN'
   | 'NON_NUMERIC_OR_EMPTY'
   | 'INVERTED_INTERVAL'
-  | 'UNKNOWN_PARAM';
+  | 'UNKNOWN_PARAM'
+  | 'DUPLICATE_PARAM'
+  | 'MALFORMED_ENCODING';
 
 export interface Correction {
   readonly kind: CorrectionKind;
@@ -60,6 +66,10 @@ const fmtInverted = (param: string, a: string, b: string): string =>
   `Paramètre « ${param} » corrigé : bornes interverties, intervalle retenu ${a} – ${b}`;
 const fmtUnknownParam = (param: string): string =>
   `Paramètre « ${param} » corrigé : paramètre inconnu ignoré, valeur retenue aucune`;
+const fmtDuplicate = (param: string, kept: string): string =>
+  `Paramètre « ${param} » corrigé : occurrences multiples fusionnées, valeur retenue ${kept}`;
+const fmtMalformed = (param: string): string =>
+  `Paramètre « ${param} » corrigé : séquence d'encodage invalide, valeur conservée telle quelle`;
 
 /* ================================================================================================
  * État d'interface reconnu (non un filtre) — évite qu'un paramètre EX-NAV-10bis soit classé
@@ -89,7 +99,10 @@ interface ScalarResult {
 }
 
 function validateEnumSingle(def: FilterDef, raw: string): ScalarResult {
-  const known = def.options?.some((o) => o.code === raw) ?? true; // pas d'options = non énuméré réel (ne devrait pas arriver ici)
+  // `DR-052` : un `enum_single` SANS domaine déclaré (seul cas du registre : `atype`, valeur
+  // injectée vers la source, `EX-SRCH-18bis`) n'a par construction AUCUN code valide côté
+  // application — traité en classe 1 (retiré, signalé), jamais accepté sans validation.
+  const known = def.options?.some((o) => o.code === raw) ?? false;
   if (known) return { value: raw };
   return {
     value: undefined,
@@ -147,6 +160,111 @@ function validateNumeric(def: FilterDef, raw: string): ScalarResult {
 }
 
 /* ================================================================================================
+ * `structured_multi` (`mmmv`, `cat`, `mcat`) — scission par virgule AVANT décodage (`DR-014`)
+ * ================================================================================================
+ * `EX-SCR-72` échappe une virgule LITTÉRALE de contenu (dans un bloc `version`) en `%2C`, AVANT
+ * remise au codec. Cette séquence n'est distinguable d'un séparateur de bloc RÉEL (`EX-NAV-6`) QUE
+ * tant que la valeur du paramètre n'a pas encore été décodée dans son ensemble : décoder d'abord
+ * (comme le fait `parseRawQuery` pour tout autre paramètre) transforme `%2C` en `,` avant la
+ * scission et fusionne à tort les deux blocs. On scinde donc la valeur BRUTE (non décodée) par
+ * virgule, puis :
+ *   - `makesModelsVariants` (RAW_PASSTHROUGH, `url-codec.ts`) : chaque bloc est repris tel quel,
+ *     jamais décodé — symétrique de la sérialisation, qui ne l'encode jamais non plus ;
+ *   - `cat`/`mcat` : chaque bloc est individuellement `decodeURIComponent`-é (ils sont, eux,
+ *     encodés bloc par bloc à la sérialisation, `encodeValueSegment`).
+ * Un seul bloc → valeur scalaire (comme avant) ; plusieurs → tableau (`EX-NAV-6`, multi-valeurs).
+ * ============================================================================================== */
+
+const STRUCTURED_MULTI_PARAMS: ReadonlySet<string> = new Set(
+  FILTER_DEFS.filter((d) => d.scopeType === 'structured_multi').map((d) => d.param),
+);
+
+/** Segmente la requête BRUTE (avant tout décodage global) en valeurs encore encodées, une par
+ * paramètre `structured_multi` présent — la dernière occurrence gagne, une correction `DUPLICATE_PARAM`
+ * est émise s'il y en avait plusieurs (`DR-051`). */
+function extractStructuredMultiRawValues(
+  query: string,
+  corrections: Correction[],
+): ReadonlyMap<string, string> {
+  const q = query.startsWith('?') ? query.slice(1) : query;
+  const out = new Map<string, string>();
+  const counts = new Map<string, number>();
+  if (q.length === 0) return out;
+  for (const segment of q.split('&')) {
+    if (segment.length === 0) continue;
+    const eq = segment.indexOf('=');
+    const rawParam = eq === -1 ? segment : segment.slice(0, eq);
+    let param: string;
+    try {
+      param = decodeURIComponent(rawParam);
+    } catch {
+      param = rawParam;
+    }
+    if (!STRUCTURED_MULTI_PARAMS.has(param)) continue;
+    const rawValue = eq === -1 ? '' : segment.slice(eq + 1);
+    out.set(param, rawValue);
+    counts.set(param, (counts.get(param) ?? 0) + 1);
+  }
+  for (const [param, count] of counts) {
+    if (count > 1) {
+      pushCorrection(corrections, 'DUPLICATE_PARAM', param, fmtDuplicate(param, out.get(param) ?? ''));
+    }
+  }
+  return out;
+}
+
+function decodeStructuredMultiBlock(block: string): string {
+  try {
+    return decodeURIComponent(block);
+  } catch {
+    return block; // séquence invalide isolée : conservée telle quelle plutôt que de tout faire échouer
+  }
+}
+
+/** Charge la valeur BRUTE (non décodée) d'un paramètre `structured_multi` en scalaire ou tableau. */
+function loadStructuredMultiValue(filterId: string, rawValue: string): string | readonly string[] | undefined {
+  if (rawValue.length === 0) return undefined;
+  const raw = RAW_PASSTHROUGH_IDS.has(filterId);
+  const blocks = rawValue
+    .split(',')
+    .filter((b) => b.length > 0)
+    .map((b) => (raw ? b : decodeStructuredMultiBlock(b)));
+  if (blocks.length === 0) return undefined;
+  return blocks.length === 1 ? blocks[0] : blocks;
+}
+
+/* ================================================================================================
+ * Paramètre répété (`DR-051`, classe 6 d'`EX-NAV-21`) — hors `structured_multi`, traité ci-dessus
+ * ============================================================================================== */
+
+/** Ne garde que la DERNIÈRE occurrence de chaque paramètre (hors `structured_multi`), en signalant
+ * chaque paramètre répété une seule fois — « dernière occurrence gagne » ne doit jamais rester
+ * silencieux (`A-04`). */
+function dedupeEntries(entries: readonly RawQueryEntry[], corrections: Correction[]): RawQueryEntry[] {
+  const lastIndexByParam = new Map<string, number>();
+  entries.forEach((e, i) => {
+    if (STRUCTURED_MULTI_PARAMS.has(e.param)) return; // géré séparément, raw, avant décodage
+    lastIndexByParam.set(e.param, i);
+  });
+  const counts = new Map<string, number>();
+  for (const e of entries) {
+    if (STRUCTURED_MULTI_PARAMS.has(e.param)) continue;
+    counts.set(e.param, (counts.get(e.param) ?? 0) + 1);
+  }
+  for (const [param, count] of counts) {
+    if (count <= 1) continue;
+    const kept = entries[lastIndexByParam.get(param)!]!.raw;
+    pushCorrection(corrections, 'DUPLICATE_PARAM', param, fmtDuplicate(param, kept));
+  }
+  const out: RawQueryEntry[] = [];
+  entries.forEach((e, i) => {
+    if (STRUCTURED_MULTI_PARAMS.has(e.param)) return;
+    if (lastIndexByParam.get(e.param) === i) out.push(e);
+  });
+  return out;
+}
+
+/* ================================================================================================
  * Chargement complet d'une requête
  * ============================================================================================== */
 
@@ -162,12 +280,18 @@ export interface LoadedQuery {
  * — l'appelant réécrit par `replaceState` s'il y a eu au moins une correction.
  */
 export function loadQuery(query: string): LoadedQuery {
-  const entries = parseRawQuery(query);
   const selection: MutableSelectionState = {};
   const uiState: Record<string, string | readonly string[]> = {};
   const corrections: Correction[] = [];
 
-  for (const { param, raw } of entries) {
+  const structuredRaw = extractStructuredMultiRawValues(query, corrections);
+  const entries = dedupeEntries(parseRawQuery(query), corrections);
+
+  for (const { param, raw, malformed } of entries) {
+    if (malformed === true) {
+      pushCorrection(corrections, 'MALFORMED_ENCODING', param, fmtMalformed(param));
+    }
+
     if (param === 'sort') {
       // Collision de nom assumée (EX-NAV-10bis) : `sort` est soit le filtre `sortTypes` (écran D,
       // AS24), soit l'état d'interface de tri de l'écran A — jamais les deux à la fois puisque les
@@ -233,14 +357,25 @@ export function loadQuery(query: string): LoadedQuery {
         if (r.value !== undefined) selection[def.id] = Number(r.value);
         break;
       }
+      case 'structured_multi':
+        // Traité séparément, à partir de la valeur BRUTE non décodée (voir plus haut, `DR-014`) —
+        // `raw` ici est déjà passé par le décodage GÉNÉRIQUE de `parseRawQuery`, impropre à la
+        // scission par blocs.
+        break;
       case 'text':
       case 'geo_text':
-      case 'structured_multi':
-        // Aucune classe de correction ne s'applique (texte libre / structuré non validé par ce
-        // module, voir note de lot). Reçu tel quel.
+        // Aucune classe de correction ne s'applique (texte libre non validé par ce module, voir
+        // note de lot). Reçu tel quel.
         if (raw.length > 0) selection[def.id] = raw;
         break;
     }
+  }
+
+  for (const [param, rawValue] of structuredRaw) {
+    const def = filterDefForParam(param);
+    if (def === undefined) continue;
+    const value = loadStructuredMultiValue(def.id, rawValue);
+    if (value !== undefined) selection[def.id] = value;
   }
 
   applyIntervalInversionCorrections(selection, corrections);

@@ -19,7 +19,7 @@
  */
 
 import { compareCode } from '../types/selection';
-import { FILTER_DEFAULTS, FILTER_DEFS, FILTER_BY_PARAM } from './filter-registry';
+import { FILTER_DEFAULTS, FILTER_DEFS, FILTER_BY_PARAM, isDependencySatisfied } from './filter-registry';
 import type { FilterValue, SelectionState } from './filter-types';
 
 /** Plafond `EX-NAV-10` : longueur maximale de l'URL complète (origine + chemin + requête). */
@@ -37,8 +37,15 @@ export interface UiStateParamDef {
 }
 
 /**
- * Table des sept paramètres d'état d'interface. `g<n>log` est une FAMILLE de paramètres (un par
+ * Table des dix paramètres d'état d'interface. `g<n>log` est une FAMILLE de paramètres (un par
  * graphe numéroté n) : `uiStateParamName` la génère à la demande plutôt que de l'énumérer ici.
+ *
+ * `page`/`size` (`D-12`, `DR-066`) : un numéro de page ne détermine PAS le jeu de données local —
+ * les classer `T` (comme avant) invalide `localDatasetKey` et provoque un aller réseau par page.
+ * Paramètres d'état d'interface, `historyMode: 'replace'`, lus/écrits par l'écran D.
+ * `sel` (`D-12`, `DR-067`) : restriction d'AFFICHAGE de l'écran D (bornes d'axes d'un brossage de
+ * l'écran B, `EX-SCR-202`) — ne change jamais Σ (la sélection Т/R), donc jamais un filtre non plus
+ * ; seul le lien « Voir ces annonces » (`EX-SCR-184`) l'écrit, `historyMode: 'replace'`.
  */
 export const UI_STATE_PARAMS: readonly UiStateParamDef[] = [
   { param: 'm', historyMode: 'push' },
@@ -48,6 +55,9 @@ export const UI_STATE_PARAMS: readonly UiStateParamDef[] = [
   { param: 'g4v', historyMode: 'replace' },
   { param: 'selx', historyMode: 'push' },
   { param: 'sely', historyMode: 'push' },
+  { param: 'page', historyMode: 'replace' },
+  { param: 'size', historyMode: 'replace' },
+  { param: 'sel', historyMode: 'replace' },
 ];
 
 /** `g<n>log` — un paramètre par graphe numéroté (bascule log conditionnelle, EX-SCR-16). */
@@ -94,16 +104,28 @@ function encodeValueSegment(segment: string): string {
  * `G`, avant remise au codec). Le codec ne réencode donc PAS ses blocs, pour ne jamais les
  * doubler — seule exception à `encodeValueSegment` ci-dessus.
  */
-const RAW_PASSTHROUGH_IDS: ReadonlySet<string> = new Set(['makesModelsVariants']);
+export const RAW_PASSTHROUGH_IDS: ReadonlySet<string> = new Set(['makesModelsVariants']);
 
 /** Sérialise une paire `param=valeur` pour un filtre, ou `null` si la valeur est vide. */
-function serializeFilterPair(filterId: string, value: FilterValue): { param: string; encoded: string } | null {
+function serializeFilterPair(
+  filterId: string,
+  value: FilterValue,
+  selection: SelectionState,
+): { param: string; encoded: string } | null {
   const def = FILTER_DEFS.find((d) => d.id === filterId);
   if (def === undefined) return null; // filtre inconnu du registre : jamais sérialisé
   // Classe D : « contrôle présent, disabled, non sérialisé dans l'URL » (EX-SCR-57). Garde de
   // défense en profondeur — un filtre désactivé ne devrait jamais atteindre `selection`, mais le
   // codec ne fait pas confiance à l'appelant pour cette règle normative.
   if (def.cls === 'D') return null;
+  // `nonExposed` (`DR-052`/`EX-SRCH-18bis` : valeur injectée vers la source ; `D-12`/`DR-066` :
+  // paramètre d'état d'interface de l'écran D) — jamais un filtre utilisateur, jamais sérialisé
+  // par CE codec de filtres (un paramètre d'état d'interface passe par `UI_STATE_PARAMS`).
+  if (def.nonExposed) return null;
+  // `DR-059` (`EX-SCR-73`) : un filtre dont la dépendance n'est plus satisfaite (son parent a été
+  // retiré) ne doit jamais rester sérialisé — l'utilisateur ne pourrait plus ni le voir ni le
+  // retirer par son contrôle, devenu inatteignable. Même défense en profondeur que `cls === 'D'`.
+  if (!isDependencySatisfied(def, selection)) return null;
   const codes = toSortedCodes(value);
   if (codes.length === 0) return null;
   const raw = RAW_PASSTHROUGH_IDS.has(filterId);
@@ -152,7 +174,7 @@ export function serializeQuery(
 
   for (const [filterId, value] of Object.entries(selection)) {
     if (equalsDefault(value, filterDefaults[filterId])) continue;
-    const pair = serializeFilterPair(filterId, value);
+    const pair = serializeFilterPair(filterId, value, selection);
     if (pair !== null) pairs.push(pair);
   }
   for (const [param, value] of Object.entries(uiState)) {
@@ -213,6 +235,10 @@ export interface RawQueryEntry {
   readonly param: string;
   /** Chaîne brute après décodage URL, AVANT scission par virgule. */
   readonly raw: string;
+  /** `true` uniquement quand `decodeURIComponent` a levé sur ce segment (séquence `%` invalide,
+   * `EX-NAV-21` classe « valeur mal encodée », `DR-136`) — absent sinon, pour ne changer la forme
+   * d'aucune comparaison structurelle existante sur les segments bien formés. */
+  readonly malformed?: true;
 }
 
 /**
@@ -234,14 +260,16 @@ export function parseRawQuery(query: string): readonly RawQueryEntry[] {
     try {
       param = decodeURIComponent(rawParam);
       value = decodeURIComponent(rawValue);
+      out.push({ param, raw: value });
     } catch {
       // Séquence `%` invalide : conservée telle quelle, `corrections.ts` la traitera comme une
       // valeur hors domaine (elle ne matchera aucun code connu) plutôt que de faire échouer tout
-      // le chargement de l'URL sur un seul paramètre malformé.
+      // le chargement de l'URL sur un seul paramètre malformé — ET signale une correction
+      // `DR-136` plutôt que d'accepter silencieusement (`EX-NAV-21`).
       param = rawParam;
       value = rawValue;
+      out.push({ param, raw: value, malformed: true });
     }
-    out.push({ param, raw: value });
   }
   return out;
 }
