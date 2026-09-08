@@ -28,7 +28,7 @@ import { computeEligibility, buildScatterPoints, type OutlierLookup } from './sc
 import { sampleScatter } from './scatter-sample';
 import { Histogram } from './Histogram';
 import { ScatterCloud } from './ScatterCloud';
-import { bucketToIntervalFilters } from './histogram-model';
+import { bucketToIntervalFilters, clearMetricFilters } from './histogram-model';
 import {
   computeBrushSelection,
   brushAccessorFor,
@@ -265,6 +265,12 @@ export function DistributionScreen(props: DistributionScreenProps) {
     props.onApplyFilters?.(bucketToIntervalFilters(bucket, metric));
   };
 
+  // `EX-SCR-149` (D8-24, finition) — double-clic sur un histogramme : RETRAIT du filtre de la métrique
+  // (`applyFilters` de la coquille traite `undefined` comme un retrait, fix-app §7).
+  const onClearFilter = (metric: 'price' | 'year' | 'mileage'): void => {
+    props.onApplyFilters?.(clearMetricFilters(metric));
+  };
+
   // `EX-SCR-158`/`184` (DR-079) — actions de la sélection brossée.
   const brushInterval = selectedRows ? brushToIntervalFilters(scatter.points, selectedRows) : null;
   const onConvertBrushToFilter = (): void => {
@@ -430,9 +436,9 @@ export function DistributionScreen(props: DistributionScreenProps) {
 
       {/* Bloc 2 — histogrammes G1–G3 */}
       <section class="kycar-hist-row" aria-label="Distributions">
-        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
-        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
-        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
+        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
+        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
+        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
       </section>
 
       {/* Bloc 3 — nuage G4 */}
