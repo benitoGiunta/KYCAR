@@ -20,7 +20,7 @@
  */
 
 import type { MakeAggregate, MetricRange, ModelAggregate } from '../DataProvider';
-import { NUMERIC_UNKNOWN } from '../../types/sentinels';
+import { MODEL_ID_UNRESOLVED, NUMERIC_UNKNOWN } from '../../types/sentinels';
 import { INGEST_FLAG_BIT } from '../../types/vocabularies';
 import type { MetricColumns } from './generate';
 
@@ -224,6 +224,56 @@ function accumulateByMakeDense(batch: MetricColumns): Map<number, Group> {
   return groups;
 }
 
+/**
+ * `EX-DATA-68` / `EX-DATA-71` (D8-10, FV-02) — modèles DISTINCTS de chaque marque PRÉSENTS dans la
+ * sélection, jamais les modèles du référentiel, la clé réservée `modelId = 0` (« Modèle non
+ * identifié », `EX-DATA-72`) exclue par la formule elle-même (`modelId ≠ INCONNU`).
+ *
+ * Réalisation DENSE, parce que ce calcul est sur le chemin critique du premier affichage (DR-049,
+ * budget d'`R-D3-02`) : un `Int32Array` indexé par `modelId` mémorise la marque de la PREMIÈRE
+ * occurrence de chaque modèle, et la boucle chaude ne fait qu'une lecture et une écriture de
+ * tableau typé par ligne — deux fois moins cher qu'un `Set` de clés composites (mesuré : ≈ 8 ms
+ * contre ≈ 4 ms à 100 000 lignes) et sans allocation par couple distinct.
+ *
+ * Un `modelId` est unique dans TOUTE la taxonomie (`data/reference/taxonomy.json` : 4 955 modèles,
+ * 4 955 identifiants distincts) — l'index dense est donc exact. Cette propriété n'est pas SUPPOSÉE :
+ * si un même `modelId` apparaissait sous deux marques, le couple surnuméraire serait compté à part
+ * dans `extraPairs`, et le résultat resterait la définition d'`EX-DATA-68`.
+ */
+function distinctModelCountByMake(
+  batch: MetricColumns,
+  rowIndices: Iterable<number> | null,
+): Map<number, number> {
+  const makeCol = batch.makeId;
+  const modelCol = batch.modelId;
+  let maxModelId = 0;
+  forEachRow(batch.rowCount, rowIndices, (i) => {
+    const modelId = modelCol[i] as number;
+    if (modelId > maxModelId) maxModelId = modelId;
+  });
+  const firstMakeOf = new Int32Array(maxModelId + 1).fill(-1);
+  const counts = new Map<number, number>();
+  const extraPairs = new Set<number>();
+  forEachRow(batch.rowCount, rowIndices, (i) => {
+    const modelId = modelCol[i] as number;
+    if (modelId === MODEL_ID_UNRESOLVED) return;
+    const makeId = makeCol[i] as number;
+    const known = firstMakeOf[modelId] as number;
+    if (known === makeId) return;
+    if (known === -1) {
+      firstMakeOf[modelId] = makeId;
+      counts.set(makeId, (counts.get(makeId) ?? 0) + 1);
+      return;
+    }
+    // Cas hors taxonomie courante : le même modèle sous deux marques. Compté une fois par couple.
+    const key = makeId * 1_000_000 + modelId;
+    if (extraPairs.has(key)) return;
+    extraPairs.add(key);
+    counts.set(makeId, (counts.get(makeId) ?? 0) + 1);
+  });
+  return counts;
+}
+
 /** Agrégats par marque sur un ensemble de lignes (`null` = tout le lot). `coverage` = 1 si sélection vide. */
 export function aggregateByMake(
   batch: MetricColumns,
@@ -235,10 +285,18 @@ export function aggregateByMake(
     rowIndices === null
       ? accumulateByMakeDense(batch)
       : accumulate(batch, rowIndices, (i) => makeCol[i] as number);
+  const modelCounts = distinctModelCountByMake(batch, rowIndices);
   const rows: MakeAggregate[] = [];
   for (const [makeId, g] of groups) {
-    // D8-10 : `modelCount` obligatoire, valeur neutre `null` (fix-providers calculera).
-    rows.push({ makeId, listingCount: g.listingCount, ...rangesOf(g), sampleCoverage: coverage, modelCount: null });
+    rows.push({
+      makeId,
+      listingCount: g.listingCount,
+      ...rangesOf(g),
+      sampleCoverage: coverage,
+      // D8-10 / FV-02 : une marque dont toutes les annonces sont à `modelId = 0` porte bien `0`
+      // modèle distinct — c'est un fait mesuré, pas la valeur par défaut que FV-02 dénonçait.
+      modelCount: modelCounts.get(makeId) ?? 0,
+    });
   }
   rows.sort((a, b) => b.listingCount - a.listingCount || a.makeId - b.makeId);
   return rows;

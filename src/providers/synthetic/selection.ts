@@ -183,6 +183,38 @@ export function decodeTaxonomyScope(values: readonly string[]): TaxonomySelectio
   return { makeIds, models };
 }
 
+/**
+ * **D8-20 / O15** — vrai si la sélection DÉSIGNE UN MODÈLE UNIQUE, c'est-à-dire si elle est celle de
+ * l'écran B / du mode 2 (`EX-NAV-15` : un couple marque+modèle complet redirige vers B). C'est le
+ * seul critère observable PAR LE PROVIDER de l'entrée en mode 2, et c'est exactement la portée du
+ * bandeau normatif « Filtre Carrosserie non appliqué **à ce modèle** (donnée indisponible) ».
+ * Une sélection qui ne pince qu'une MARQUE (zones-modèles de l'écran A, mode 1) n'est pas concernée.
+ */
+function pinsSingleModel(pairs: ReadonlyMap<string, string[]>): boolean {
+  const model = pairs.get('model');
+  if (model !== undefined && model.length === 1) return true;
+  const mmmv = pairs.get('makesModelsVariants');
+  if (mmmv === undefined) return false;
+  const scope = decodeTaxonomyScope(mmmv);
+  return scope.makeIds.size === 0 && scope.models.size === 1;
+}
+
+/**
+ * **D8-20 / O15 — le seul filtre DÉCLARÉ non appliqué SANS annuler l'effectif.**
+ * `bodyType` est de classe `DYNAMIC_BODY` (`EX-SCR-82` #44, `EX-SCR-221`) : `R` en mode 1, `T` en
+ * mode 2, et sa résolution AU MODÈLE passe par `Model.bodyTypes`, que la taxonomie ne sert pas
+ * (O15 — `bodyTypes = []` sur les 4 955 modèles, `EX-DATA-115bis`). Quand la sélection désigne un
+ * modèle unique, le filtre ne peut donc PAS être honoré à cette granularité.
+ *
+ * Il est alors DÉCLARÉ dans `unsupportedFilterIds` — la coquille en fait le bandeau d'O15 — et
+ * l'effectif publié reste celui de la sélection SANS carrosserie. C'est le SEUL identifiant qui ne
+ * compile pas en prédicat constamment faux : la règle 2 de l'en-tête (« plancher honnête ») vise un
+ * filtre qu'on ne sait pas évaluer ; ici on SAIT que le filtre ne s'applique pas au modèle, et
+ * publier 0 offre mentirait autant que publier un effectif faussement filtré. « Jamais appliqué en
+ * silence, jamais ignoré en silence » : l'effectif est complet ET l'écart est nommé.
+ */
+const BODY_FILTER_ID = 'bodyType';
+
 /** Compile une `SelectionQuery` en prédicat sur les lignes du lot. */
 export function compileSelection(
   batch: CoreColumns,
@@ -198,9 +230,16 @@ export function compileSelection(
   const unsupported: string[] = [];
   // ARB-33 : l'unité des bornes de puissance est portée par `powerType` (`kw` par défaut).
   const powerInHp = (pairs.get('powerType') ?? []).includes('hp');
+  // D8-20 : la carrosserie n'est pas résoluble AU MODÈLE tant que `Model.bodyTypes` est vide (O15).
+  const bodyUnresolvableAtModel = !ref.bodyTypeIndexAvailable && pinsSingleModel(pairs);
 
   for (const [id, values] of pairs) {
     if (id === 'powerType') continue; // paramètre d'UNITÉ, jamais un prédicat (EX-SRCH-18bis).
+
+    if (id === BODY_FILTER_ID && bodyUnresolvableAtModel) {
+      unsupported.push(id); // DÉCLARÉ, non appliqué, sans annuler l'effectif — voir ci-dessus.
+      continue;
+    }
 
     if (id === 'make' || id === 'model') {
       const ids = new Set(values.map((v) => Number(v)).filter((n) => Number.isFinite(n)));

@@ -41,6 +41,14 @@ export interface CompiledSourceSelection {
   readonly residual: readonly ResidualPredicate[];
   /** Identifiants de filtre DÉCLARÉS non appliqués (`AggregateResult.unsupportedFilterIds`, D-03). */
   readonly unsupported: readonly string[];
+  /**
+   * Sous-ensemble de `unsupported` qu'AUCUNE annonce ne peut satisfaire (catégorie 3 de l'en-tête) :
+   * l'échantillon retenu est alors VIDE, plancher honnête. Le seul identifiant déclaré SANS être
+   * bloquant est `bodyType` quand la sélection désigne un modèle unique (D8-20 / O15) : on SAIT que
+   * le filtre ne s'applique pas au modèle, et publier 0 offre mentirait autant que publier un
+   * effectif faussement filtré. « Jamais appliqué en silence, jamais ignoré en silence. »
+   */
+  readonly blocking: readonly string[];
   /** Vrai si la sélection est vide (aucun filtre effectif). */
   readonly isEmpty: boolean;
   /**
@@ -125,21 +133,61 @@ function decodeFirstTaxonomyPair(values: readonly string[]): { makeId?: number; 
   return Number.isFinite(modelId) ? { makeId, modelId } : { makeId };
 }
 
-/** Traduit une `SelectionQuery` canonique pour la surface autorisée de 2dehands. */
-export function compileSourceSelection(selection: SelectionQuery): CompiledSourceSelection {
+/**
+ * **D8-20 / O15** — vrai si la sélection désigne UN MODÈLE UNIQUE, c'est-à-dire l'écran B / le
+ * mode 2 (`EX-NAV-15`). Même critère et même justification que dans le provider synthétique
+ * (`synthetic/selection.ts`) : un seul et même comportement pour les deux sources.
+ */
+function pinsSingleModel(pairs: ReadonlyMap<string, string[]>): boolean {
+  const model = pairs.get('model');
+  if (model !== undefined && model.length === 1 && Number.isFinite(Number(model[0]))) return true;
+  const mmmv = pairs.get('makesModelsVariants');
+  if (mmmv === undefined || mmmv.length !== 1) return false;
+  return decodeFirstTaxonomyPair(mmmv).modelId !== undefined;
+}
+
+/** Identifiant D5 du filtre Carrosserie (`param` = `body`), seul filtre de classe `DYNAMIC_BODY`. */
+const BODY_FILTER_ID = 'bodyType';
+
+/**
+ * Traduit une `SelectionQuery` canonique pour la surface autorisée de 2dehands.
+ * @param bodyTypeIndexAvailable `ReferenceData.bodyTypeIndexAvailable` — faux tant que la taxonomie
+ * ne sert pas `Model.bodyTypes` (O15). Faux ⇒ `bodyType` n'est pas résoluble au modèle (D8-20).
+ */
+export function compileSourceSelection(
+  selection: SelectionQuery,
+  bodyTypeIndexAvailable = true,
+): CompiledSourceSelection {
   const pairs = parsePairs(selection);
   if (pairs.size === 0) {
-    return { makeId: undefined, modelId: undefined, residual: [], unsupported: [], isEmpty: true, exhaustive: true };
+    return {
+      makeId: undefined,
+      modelId: undefined,
+      residual: [],
+      unsupported: [],
+      blocking: [],
+      isEmpty: true,
+      exhaustive: true,
+    };
   }
 
   let makeId: number | undefined;
   let modelId: number | undefined;
   const residual: ResidualPredicate[] = [];
   const unsupported: string[] = [];
+  const declaredNotApplied: string[] = [];
   const powerInHp = (pairs.get('powerType') ?? []).includes('hp');
+  const bodyUnresolvableAtModel = !bodyTypeIndexAvailable && pinsSingleModel(pairs);
 
   for (const [id, values] of pairs) {
     if (id === 'powerType') continue; // paramètre d'UNITÉ, jamais un prédicat (EX-SRCH-18bis).
+
+    if (id === BODY_FILTER_ID && bodyUnresolvableAtModel) {
+      // D8-20 / O15 : DÉCLARÉ non appliqué, mais NON bloquant — l'effectif reste celui de la
+      // sélection sans carrosserie, et la coquille en fait le bandeau d'O15.
+      declaredNotApplied.push(id);
+      continue;
+    }
 
     if (id === 'make') {
       const n = Number(values[0]);
@@ -204,12 +252,17 @@ export function compileSourceSelection(selection: SelectionQuery): CompiledSourc
     unsupported.push(id);
   }
 
+  const declared = [...unsupported, ...declaredNotApplied];
   return {
     makeId,
     modelId,
     residual,
-    unsupported,
-    isEmpty: makeId === undefined && modelId === undefined && residual.length === 0 && unsupported.length === 0,
+    unsupported: declared,
+    blocking: unsupported,
+    isEmpty:
+      makeId === undefined && modelId === undefined && residual.length === 0 && declared.length === 0,
+    // Un `bodyType` déclaré non appliqué ne rend PAS l'effectif non exhaustif : le compte publié est
+    // celui, exhaustif, de la sélection sans carrosserie — et le bandeau le dit (D8-20).
     exhaustive: residual.length === 0 && unsupported.length === 0,
   };
 }
@@ -222,7 +275,7 @@ export function applyResidual(
   sample: readonly NormalizedListing[],
   compiled: CompiledSourceSelection,
 ): readonly NormalizedListing[] {
-  if (compiled.unsupported.length > 0) return [];
+  if (compiled.blocking.length > 0) return [];
   if (compiled.residual.length === 0) return sample;
   return sample.filter((l) => compiled.residual.every((test) => test(l)));
 }

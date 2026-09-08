@@ -50,6 +50,20 @@ export const SYNTHETIC_PROVIDER_VERSION = 'D3-1.0.0';
 /** Instant de capture fixe : le déterminisme couvre aussi l'horodatage du snapshot. */
 export const SYNTHETIC_CAPTURED_AT = '2026-09-01T00:00:00.000Z';
 
+/**
+ * Note de couverture du snapshot synthétique (`SnapshotDescriptor.coverageNote`). Elle nomme les
+ * grandeurs que le lot ne peut PAS porter, plutôt que de les laisser muettes : `EX-DATA-61bis`
+ * interdit l'emploi du mot « couverture » sans qualificatif, et `EX-DATA-46` exige que le rapport
+ * d'ingestion rende auditable ce que l'adaptateur n'a pas su servir.
+ */
+const SYNTHETIC_COVERAGE_NOTE =
+  'Dataset SYNTHETIC (EX-DATA-107) : distributions générées, non issues d’un marché réel. ' +
+  'Provenance de la mesure (co2Source, EX-DATA-35) : le lot colonnaire gelé (EX-DATA-119) n’a ' +
+  'aucune colonne pour la porter — elle vaut UNKNOWN sur 100 % des lignes, comptée comme telle dans ' +
+  'unknownCountByField. Diagnostic de représentativité (coverageWarning, samplingBias, ' +
+  'adTierDistribution, D8-10) : non publié — ce sont des propriétés de la SOURCE, et les inventer ' +
+  'sur un jeu généré décrirait un biais qui n’existe pas.';
+
 /** Options de construction du provider synthétique. */
 export interface SyntheticProviderOptions {
   /** Référentiels statiques assemblés par D2 (`buildReferenceData`). Injecté par l'appelant (D8/tests). */
@@ -235,6 +249,7 @@ export class SyntheticDataProvider implements DataProvider {
 
   private buildDescriptor(dataset: GeneratedDataset): SnapshotDescriptor {
     const { unknownCountByField, ingestFlagCounts } = dataset;
+    const rejectedCount = Object.values(dataset.rejectedByReason).reduce((a, b) => a + b, 0);
     return {
       snapshotId: this.snapshotId,
       marketplace: this.marketplace,
@@ -242,17 +257,24 @@ export class SyntheticDataProvider implements DataProvider {
       sourceKind: 'SYNTHETIC',
       providerVersion: SYNTHETIC_PROVIDER_VERSION,
       listingCount: dataset.rowCount,
-      // Dataset synthétique COMPLET : l'effectif annoncé égale l'effectif ingéré (couverture 1,0).
+      // Dataset synthétique COMPLET : l'effectif annoncé égale l'effectif ingéré (couverture
+      // d'échantillon 1,0 — EX-DATA-61bis). Les candidates rejetées faute de deeplink (EX-DATA-14)
+      // ne comptent PAS ici : `announcedListingCount` est le dénominateur de la couverture
+      // D'ÉCHANTILLON, qui compare ce que l'on expose à ce que la source EXPOSE, tandis qu'un rejet
+      // d'ingestion se lit dans `rejectedCount`/`rejectedByReason` (EX-DATA-46). Confondre les deux
+      // ferait tomber la couverture affichée sous 100 % pour un motif qu'elle ne mesure pas.
       announcedListingCount: dataset.rowCount,
-      rejectedCount: 0,
-      rejectedByReason: {},
+      // EX-DATA-46 (D8-16 / FV-20) : rejets MESURÉS par motif, plus jamais un objet vide écrit en
+      // dur — `LISTING_URL_MISSING` est le rejet d'EX-DATA-14, prononcé par l'ingestion.
+      rejectedCount,
+      rejectedByReason: dataset.rejectedByReason,
       // EX-DATA-15 / ARB-54 : compteurs MESURÉS par l'audit de doublons, jamais écrits en dur.
       duplicateListingCount: dataset.duplicates.duplicateListingCount,
       duplicateValueConflictCount: dataset.duplicates.duplicateValueConflictCount,
       unknownCountByField,
       ingestFlagCounts,
       versionStrippedRate: 0,
-      coverageNote: 'Dataset SYNTHETIC (EX-DATA-107) : distributions générées, non issues d’un marché réel.',
+      coverageNote: SYNTHETIC_COVERAGE_NOTE,
     };
   }
 }

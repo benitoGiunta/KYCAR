@@ -28,6 +28,21 @@
  * | pays hors table | EX-DATA-40 (ARB-60) | pays INCONNU | `MARKETPLACE_UNMAPPED` |
  * | région NUTS-2 | EX-DATA-53 (O14) | toujours INCONNUE sur cette surface | `REGION_UNRESOLVED` |
  *
+ * SIX RÈGLES AJOUTÉES PAR LA PHASE 2.8 (D8-08, D8-16 / FV-20), dans le même esprit :
+ *
+ * | Règle | Exigence | Effet | Drapeau |
+ * |---|---|---|---|
+ * | `*Unit` servi hors unité canonique | EX-DATA-5 | conversion REFUSÉE, champ INCONNU | `UNIT_UNSUPPORTED` |
+ * | `fuelCategory` absente, `fuelTypePrimary` servi | EX-DATA-10 | repli création → recherche | `ENUM_UNKNOWN` + rapport `FUEL_CATEGORY_FROM_FUEL_TYPE` |
+ * | hybride rechargeable sans catégorie | EX-DATA-11 | catégorie INCONNUE, jamais `B`/`D` | `ENUM_UNKNOWN` + rapport `HYBRID_CATEGORY_UNRESOLVED` |
+ * | norme de mesure du CO₂ | EX-DATA-35 | `co2Source` = WLTP / NEDC / UNKNOWN | — |
+ * | champ BTW/TVA de la source | EX-SCR-203, annexe A # 10 | `vatDeductible` tri-état | `ENUM_UNKNOWN` si valeur non traduisible |
+ * | produit de mise en avant | EX-DATA-43 | `adTier` (`KYCAR_AD_TIER`), diagnostic seul | `ENUM_UNKNOWN` si valeur non traduisible |
+ *
+ * L'absence de `listingUrl` (EX-DATA-14) est un REJET, pas un drapeau : il est prononcé par
+ * `TweedehandsDataProvider.queryOne`, seul point qui puisse compter un rejet par motif — la
+ * normalisation, elle, rend le deeplink vide et le recense dans `unknownFields`.
+ *
  * PIVOT TEMPOREL (EX-DATA-25/27, DR-017). `constructionYear` de 2dehands est une ANNÉE-MODÈLE.
  * `EX-DATA-25` impose `firstRegistrationYear` comme seul pivot temporel des agrégats et `EX-DATA-27`
  * interdit de l'imputer depuis l'année-modèle. `firstRegistrationYear` est donc porté par le type et
@@ -43,21 +58,28 @@ import { cleanModelVersion, isPriceSentinelAbsolute } from '../../types/shared-r
 import type { IngestFlagCode } from '../../types/vocabularies';
 import type { RawListing } from './nextData';
 import {
+  isAdTierRecognised,
   isBodyTypeRecognised,
+  isCanonicalUnit,
   isFuelCategoryRecognised,
   isUsageStateRecognised,
+  mapAdTier,
   mapBodyType,
   mapCountryCode,
   mapDrivetrain,
   mapEuEmissionStandard,
   mapFuelCategory,
+  mapFuelCategoryFromFuelType,
   mapRegionCode,
   mapSellerType,
   mapTransmission,
   mapUsageState,
+  mapVatDeductible,
   parseInteger,
   parseNumeric,
+  parseSourceBoolean,
   readAttr,
+  readVatDeductibleAttribute,
   resolveMakeId,
   resolveModelId,
 } from './vocabularyMap';
@@ -128,8 +150,35 @@ export interface NormalizedListing {
   readonly modelVersionClean: string | null;
   /** Date d'annonce brute (`date` : « Vandaag »…), jamais normalisée sur cette surface. */
   readonly listedAt: string | null;
+  /**
+   * TVA déductible (`EX-SCR-203` colonne « TVA », annexe A champ # 10 `isTaxDeductible`, D8-08).
+   * TRI-ÉTAT : `true` déductible, `false` non déductible, `null` INCONNU (la source ne le porte
+   * pas). `null` ne vaut JAMAIS `false` — `encodeVatDeductible` le projette sur le code `0`.
+   */
+  readonly vatDeductible: boolean | null;
+  /** Palier publicitaire `KYCAR_AD_TIER` (`EX-DATA-43`, annexe A champ 79). Absent ⇒ `NONE`. */
+  readonly adTier: string | null;
+  /**
+   * Provenance de la mesure de CO₂ (`EX-DATA-35`, `KYCAR_MEASUREMENT_STANDARD`) : `WLTP` ou `NEDC`
+   * quand la source NOMME la norme, `UNKNOWN` quand la valeur vient du champ d'annonce à repli,
+   * dont la norme n'est pas déclarée. Jamais devinée : WLTP et NEDC ne sont pas comparables.
+   */
+  readonly co2Source: 'WLTP' | 'NEDC' | 'UNKNOWN';
+  /**
+   * D'où vient `fuelCategory` (`EX-DATA-10`) : `SOURCE` (attribut `fuel` servi), `FUEL_TYPE_FALLBACK`
+   * (repli création → recherche depuis `fuelTypePrimary`), `NONE` (aucune des deux).
+   */
+  readonly fuelCategorySource: 'SOURCE' | 'FUEL_TYPE_FALLBACK' | 'NONE';
   /** Codes `KYCAR_INGEST_FLAG` posés par la normalisation de cette annonce (EX-DATA-46). */
   readonly ingestFlags: readonly IngestFlagCode[];
+  /**
+   * SOUS-QUALIFICATIONS d'`ENUM_UNKNOWN` et drapeaux de champ (`EX-DATA-45` dernier alinéa) :
+   * `HYBRID_CATEGORY_UNRESOLVED`, `FUEL_CATEGORY_FROM_FUEL_TYPE`… Ils sont « comptés dans le rapport
+   * d'ingestion mais NON dans le vocabulaire à 17 codes » — ils ne portent donc aucun bit de
+   * `ingestFlags` et ne peuvent pas élargir `KYCAR_INGEST_FLAG` par la bande. Le snapshot les publie
+   * dans `ingestFlagCounts` à côté des 17 codes gelés.
+   */
+  readonly ingestReportFlags: readonly string[];
   /** Champs dont la valeur est restée INCONNUE (comptés dans `unknownCountByField` du snapshot). */
   readonly unknownFields: readonly string[];
 }
@@ -219,6 +268,26 @@ function boundedInteger(
 }
 
 /**
+ * `EX-DATA-5` (D8-16 / FV-20) — GARDE D'UNITÉ, appliquée AVANT toute lecture de valeur. Si la source
+ * sert un attribut `*Unit` dont l'unité n'est pas celle du dictionnaire KYCAR (`EX-DATA-4`), la
+ * conversion est REFUSÉE : le champ vaut INCONNU et l'annonce porte `UNIT_UNSUPPORTED`. Retourne
+ * `true` quand la lecture est autorisée. Aucune conversion n'est devinée — le facteur `mi → km` est
+ * connu, mais l'exigence interdit de deviner : une source qui change d'unité doit se VOIR.
+ */
+function unitAccepted(
+  raw: RawListing,
+  unitAttribute: string,
+  field: string,
+  flags: IngestFlagCode[],
+  unknownFields: string[],
+): boolean {
+  if (isCanonicalUnit(unitAttribute, readAttr(raw, unitAttribute))) return true;
+  if (!flags.includes('UNIT_UNSUPPORTED')) flags.push('UNIT_UNSUPPORTED');
+  unknownFields.push(field);
+  return false;
+}
+
+/**
  * Extrait la VERSION d'une annonce : le titre privé de la marque et du modèle (`EX-DATA-29`). Le
  * nettoyage et la troncature à 80 points de code sont ceux de la couche D2 (`cleanModelVersion`,
  * ARB-61/ADV-24) — jamais réécrits ici.
@@ -259,6 +328,7 @@ export function mapListingToNormalized(
   }
 
   const ingestFlags: IngestFlagCode[] = [];
+  const ingestReportFlags: string[] = [];
   const unknownFields: string[] = [];
 
   const brandRaw = readAttr(raw, 'brand');
@@ -284,19 +354,46 @@ export function mapListingToNormalized(
   const firstRegistrationYear: number | null = null;
   unknownFields.push('firstRegistrationYear');
 
-  const rawMileage = parseInteger(readAttr(raw, 'mileage'));
-  const mileageKm = boundedInteger(rawMileage, 'mileageKm', 'MILEAGE_OUT_OF_RANGE', ingestFlags);
-  if (mileageKm === null) unknownFields.push('mileageKm');
+  // EX-DATA-5 : la garde d'unité PRÉCÈDE la lecture — un kilométrage en miles n'est pas converti.
+  const mileageUnitOk = unitAccepted(raw, 'mileageUnit', 'mileageKm', ingestFlags, unknownFields);
+  const rawMileage = mileageUnitOk ? parseInteger(readAttr(raw, 'mileage')) : null;
+  const mileageKm = mileageUnitOk
+    ? boundedInteger(rawMileage, 'mileageKm', 'MILEAGE_OUT_OF_RANGE', ingestFlags)
+    : null;
+  if (mileageUnitOk && mileageKm === null) unknownFields.push('mileageKm');
   // Annexe A champ 59 : 0 km sur une annonce d'occasion est SUSPECT — la valeur reste, mais elle
   // sort de `V_mileage` (EX-DATA-60) et le rapport d'ingestion la nomme.
   else if (mileageKm === 0) ingestFlags.push('SUSPECT_ZERO_MILEAGE');
 
+  // --- Carburant : catégorie SERVIE, puis repli EX-DATA-10, puis garde hybride EX-DATA-11 --------
   const fuelRaw = readAttr(raw, 'fuel');
-  const fuelCategory = mapFuelCategory(fuelRaw);
+  const fuelTypePrimaryRaw = readAttr(raw, 'fuelTypePrimary') ?? readAttr(raw, 'fuelType');
+  const isPluginHybrid = parseSourceBoolean(readAttr(raw, 'isPluginHybrid'));
+  let fuelCategory = mapFuelCategory(fuelRaw);
+  let fuelCategorySource: 'SOURCE' | 'FUEL_TYPE_FALLBACK' | 'NONE' = fuelCategory === null ? 'NONE' : 'SOURCE';
   if (fuelCategory === null) unknownFields.push('fuelCategory');
   else if (!isFuelCategoryRecognised(fuelRaw)) {
     ingestFlags.push('ENUM_UNKNOWN');
     unknownFields.push('fuelCategory');
+  }
+  if (fuelCategory === null) {
+    if (isPluginHybrid) {
+      // EX-DATA-11 : la catégorie hybride est INATTEIGNABLE par le repli (aucun code de
+      // `KYCAR_FUEL_TYPE` ne projette sur `2` ni `3`). Rattacher un hybride essence à « Essence »
+      // gonflerait la catégorie Essence et viderait la catégorie hybride : on laisse INCONNU.
+      ingestFlags.push('ENUM_UNKNOWN');
+      ingestReportFlags.push('HYBRID_CATEGORY_UNRESOLVED');
+    } else {
+      // EX-DATA-10 : repli création → recherche, utilisé UNIQUEMENT ici (catégorie absente ET
+      // `fuelTypePrimary` présent). La table est `[EXTRAPOLÉ]` : le rapport d'ingestion le dit.
+      const fallback = mapFuelCategoryFromFuelType(fuelTypePrimaryRaw);
+      if (fallback !== null) {
+        fuelCategory = fallback;
+        fuelCategorySource = 'FUEL_TYPE_FALLBACK';
+        ingestFlags.push('ENUM_UNKNOWN');
+        ingestReportFlags.push('FUEL_CATEGORY_FROM_FUEL_TYPE');
+      }
+    }
   }
 
   const bodyRaw = readAttr(raw, 'body');
@@ -345,16 +442,24 @@ export function mapListingToNormalized(
     if (euronormRaw !== undefined) ingestFlags.push('ENUM_UNKNOWN');
   }
 
-  const powerKw = boundedInteger(
-    parseInteger(readAttr(raw, 'enginePowerKW')),
-    'powerKw',
-    'POWER_OUT_OF_RANGE',
-    ingestFlags,
-  );
-  if (powerKw === null) unknownFields.push('powerKw');
+  const powerUnitOk = unitAccepted(raw, 'powerUnit', 'powerKw', ingestFlags, unknownFields);
+  const powerKw = powerUnitOk
+    ? boundedInteger(parseInteger(readAttr(raw, 'enginePowerKW')), 'powerKw', 'POWER_OUT_OF_RANGE', ingestFlags)
+    : null;
+  if (powerUnitOk && powerKw === null) unknownFields.push('powerKw');
 
-  const co2EmissionsGPerKm = parseNumeric(readAttr(raw, 'co2emission'));
-  if (co2EmissionsGPerKm === null) unknownFields.push('co2EmissionsGPerKm');
+  // EX-DATA-35 : la PROVENANCE de la mesure de CO₂ est portée par le champ dont la valeur est
+  // retenue. WLTP et NEDC ne sont pas comparables (écart systématique ≈ 20 %) : une valeur issue du
+  // champ d'annonce à repli, dont la norme n'est pas déclarée, reste `UNKNOWN` — jamais devinée.
+  const co2UnitOk = unitAccepted(raw, 'co2EmissionsUnit', 'co2EmissionsGPerKm', ingestFlags, unknownFields);
+  const co2Wltp = co2UnitOk ? parseNumeric(readAttr(raw, 'co2emissionWLTP')) : null;
+  const co2Nedc = co2UnitOk ? parseNumeric(readAttr(raw, 'co2emissionNEDC')) : null;
+  const co2Fallback = co2UnitOk ? parseNumeric(readAttr(raw, 'co2emission')) : null;
+  const co2EmissionsGPerKm = co2Wltp ?? co2Nedc ?? co2Fallback;
+  const co2Source: 'WLTP' | 'NEDC' | 'UNKNOWN' =
+    co2Wltp !== null ? 'WLTP' : co2Nedc !== null ? 'NEDC' : 'UNKNOWN';
+  if (co2UnitOk && co2EmissionsGPerKm === null) unknownFields.push('co2EmissionsGPerKm');
+  if (co2Source === 'UNKNOWN') unknownFields.push('co2Source');
   const seatCount = parseInteger(readAttr(raw, 'numberOfSeatsBE'));
   if (seatCount === null) unknownFields.push('seatCount');
   const doorCount = parseInteger(readAttr(raw, 'aantaldeurenBE'));
@@ -381,6 +486,25 @@ export function mapListingToNormalized(
   const price = mapPrice(raw.priceInfo?.priceCents, raw.priceInfo?.priceType);
   ingestFlags.push(...price.flags);
   if (price.priceEur === null) unknownFields.push('priceEur');
+
+  // D8-08 (EX-SCR-203, annexe A champ # 10) : TVA déductible, tri-état. Chemin de lecture documenté
+  // dans `vocabularyMap.ts` (`readVatDeductibleAttribute`). Absent ⇒ INCONNU, jamais « non ».
+  const vatRaw = readVatDeductibleAttribute(raw);
+  const vatDeductible = mapVatDeductible(vatRaw);
+  if (vatDeductible === null) {
+    unknownFields.push('vatDeductible');
+    // Valeur PRÉSENTE mais non traduisible : dérive de la source, signalée comme telle (DR-044).
+    if (vatRaw !== undefined) ingestFlags.push('ENUM_UNKNOWN');
+  }
+
+  // EX-DATA-43 : le palier publicitaire est conservé EXCLUSIVEMENT pour le diagnostic de
+  // représentativité (`samplingBias`, `adTierDistribution`) — jamais un critère d'affichage.
+  const adTierRaw = readAttr(raw, 'priorityProduct') ?? readAttr(raw, 'adTier');
+  const adTier = mapAdTier(adTierRaw);
+  if (adTierRaw !== undefined && !isAdTierRecognised(adTierRaw)) {
+    ingestFlags.push('ENUM_UNKNOWN');
+    unknownFields.push('adTier');
+  }
 
   // EX-NFR-26 (DR-127) : un deeplink qui n'est pas une page d'annonce est ÉCARTÉ et recensé — il ne
   // franchit jamais l'adaptateur, même quand la source le sert.
@@ -417,7 +541,12 @@ export function mapListingToNormalized(
     modelVersionRaw,
     modelVersionClean,
     listedAt,
+    vatDeductible,
+    adTier,
+    co2Source,
+    fuelCategorySource,
     ingestFlags,
+    ingestReportFlags,
     unknownFields,
   };
 }

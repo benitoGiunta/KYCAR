@@ -31,8 +31,16 @@
  *      note de couverture le dit — plutôt qu'une fourchette décalée d'un à deux ans, sans drapeau.
  */
 
+import { MODEL_ID_UNRESOLVED } from '../../types/sentinels';
 import { PRICE_SENTINEL_ABSOLUTE_EUR } from '../../types/shared-rules';
-import type { MakeAggregate, MetricRange, ModelAggregate } from '../DataProvider';
+import { AD_TIER_VALUES } from '../../types/vocabularies';
+import type {
+  AdTierDistribution,
+  CoverageWarning,
+  MakeAggregate,
+  MetricRange,
+  ModelAggregate,
+} from '../DataProvider';
 import type { NormalizedListing } from './normalize';
 
 /** Métrique calculée — seul le prix porte une sentinelle absolue (EX-DATA-19(1)). */
@@ -132,6 +140,85 @@ function rangesOf(sample: readonly NormalizedListing[]): {
   };
 }
 
+/* ================================================================================================
+ * Phase 2.8 (D8-10) — diagnostic de représentativité publié PAR LE PROVIDER RÉEL
+ * ==============================================================================================
+ * Trois champs optionnels de `MakeAggregate`/`ModelAggregate` (D8-10) que SEUL un provider réel peut
+ * renseigner, parce qu'ils décrivent la SOURCE et non les données : `coverageWarning`,
+ * `samplingBias`, `adTierDistribution`.
+ *
+ * DÉNOMINATEUR DE `coverageWarning` — DÉCISION EXPLICITE. `EX-DATA-17` définit
+ * `priceCoverage = priceQuotedCount / listingCount`. Sur cette source, `listingCount` est le compte
+ * EXHAUSTIF de la facette (`totalResultCount`, ~5 220 pour Opel) alors que les compteurs de statut
+ * sont mesurés sur l'ÉCHANTILLON lu (30 annonces/page) : leur rapport ne mesurerait pas la
+ * représentativité du prix, mais la taille de l'échantillon — il vaudrait ~0,006 pour TOUTES les
+ * marques, et l'avertissement, toujours vrai, ne dirait plus rien. Le dénominateur retenu est donc
+ * l'EFFECTIF DE L'ÉCHANTILLON sur lequel les statistiques sont effectivement calculées, cohérent
+ * avec l'en-tête de ce fichier (« MetricRange.n porte le compte de l'échantillon utilisé, jamais
+ * listingCount »). La couverture d'échantillon, elle, reste publiée à part (`sampleCoverage`), et
+ * `coverageNote` du descripteur nomme les deux dénominateurs — `EX-DATA-61bis` interdit le mot
+ * « couverture » sans qualificatif, pas deux rapports nommés.
+ */
+
+/** Seuil d'`EX-DATA-17` : sous 80 % de couverture, l'agrégat porte l'avertissement. */
+const COVERAGE_WARNING_THRESHOLD = 0.8;
+
+/** Seuil d'`EX-DATA-43` : au-delà de 30 % d'annonces promues, l'échantillon est déclaré biaisé. */
+const SAMPLING_BIAS_THRESHOLD = 0.3;
+
+/**
+ * `EX-DATA-68` / `EX-DATA-71` (D8-10, FV-02) — modèles DISTINCTS présents dans l'échantillon, la
+ * clé réservée `modelId = 0` (« Modèle non identifié », `EX-DATA-72`) exclue. `null` quand
+ * l'échantillon est vide : l'écran affiche alors « — », JAMAIS `0` — c'est exactement le
+ * « 0 modèles » de FV-02 que ce champ supprime.
+ *
+ * PLANCHER ASSUMÉ : comme les trois `MetricRange`, ce compte est mesuré sur l'échantillon lu, pas
+ * sur la population exhaustive. Énumérer les modèles réellement présents exigerait un aller réseau
+ * PAR MODÈLE de la marque (jusqu'à ~60), ce que le budget d'ouverture de snapshot interdit.
+ */
+function distinctModelCount(sample: readonly NormalizedListing[]): number | null {
+  if (sample.length === 0) return null;
+  const models = new Set<number>();
+  for (const l of sample) {
+    if (l.modelId !== MODEL_ID_UNRESOLVED) models.add(l.modelId);
+  }
+  return models.size;
+}
+
+/** `EX-DATA-17` (prix) et `EX-DATA-61` (année, kilométrage) — trois avertissements de couverture. */
+function coverageWarningOf(
+  sample: readonly NormalizedListing[],
+  ranges: { price: MetricRange; mileage: MetricRange; year: MetricRange },
+): CoverageWarning {
+  const n = sample.length;
+  if (n === 0) return { price: true, year: true, mileage: true };
+  const quoted = sample.filter((l) => l.priceStatus === 'QUOTED').length;
+  return {
+    price: quoted / n < COVERAGE_WARNING_THRESHOLD,
+    year: ranges.year.n / n < COVERAGE_WARNING_THRESHOLD,
+    mileage: ranges.mileage.n / n < COVERAGE_WARNING_THRESHOLD,
+  };
+}
+
+/** `EX-DATA-68` — effectif par code de `KYCAR_AD_TIER` : les 5 codes, toujours, y compris à zéro. */
+function adTierDistributionOf(sample: readonly NormalizedListing[]): AdTierDistribution {
+  const dist: Record<string, number> = {};
+  for (const def of AD_TIER_VALUES) dist[def.code] = 0;
+  for (const l of sample) {
+    const code = l.adTier ?? 'NONE';
+    if (dist[code] === undefined) continue; // code hors vocabulaire : déjà signalé ENUM_UNKNOWN.
+    dist[code] = (dist[code] as number) + 1;
+  }
+  return dist;
+}
+
+/** `EX-DATA-43` — part d'annonces promues au-delà de 30 % : l'échantillon est déclaré biaisé. */
+function samplingBiasOf(sample: readonly NormalizedListing[]): boolean {
+  if (sample.length === 0) return false;
+  const promoted = sample.filter((l) => (l.adTier ?? 'NONE') !== 'NONE').length;
+  return promoted / sample.length > SAMPLING_BIAS_THRESHOLD;
+}
+
 /**
  * Construit la ligne `MakeAggregate` d'une marque à partir de son compte exhaustif et de son
  * échantillon. L'échantillon est restreint à la marque interrogée (DR-018) : `sampleCoverage` porte
@@ -143,13 +230,16 @@ export function buildMakeAggregate(
   sample: readonly NormalizedListing[],
 ): MakeAggregate {
   const own = sampleForMake(sample, makeId);
+  const ranges = rangesOf(own);
   return {
     makeId,
     listingCount,
-    ...rangesOf(own),
+    ...ranges,
     sampleCoverage: listingCount > 0 ? own.length / listingCount : null,
-    // D8-10 : `modelCount` obligatoire, valeur neutre `null` (fix-providers calculera).
-    modelCount: null,
+    modelCount: distinctModelCount(own),
+    coverageWarning: coverageWarningOf(own, ranges),
+    samplingBias: samplingBiasOf(own),
+    adTierDistribution: adTierDistributionOf(own),
   };
 }
 
@@ -161,12 +251,16 @@ export function buildModelAggregate(
   sample: readonly NormalizedListing[],
 ): ModelAggregate {
   const own = sampleForMake(sample, makeId, modelId);
+  const ranges = rangesOf(own);
   return {
     makeId,
     modelId,
     listingCount,
-    ...rangesOf(own),
+    ...ranges,
     sampleCoverage: listingCount > 0 ? own.length / listingCount : null,
+    coverageWarning: coverageWarningOf(own, ranges),
+    samplingBias: samplingBiasOf(own),
+    adTierDistribution: adTierDistributionOf(own),
   };
 }
 
