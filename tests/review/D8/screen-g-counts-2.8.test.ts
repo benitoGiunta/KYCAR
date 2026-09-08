@@ -100,7 +100,7 @@ describe('R-D8-2.8-08 — `DataController.baselineMakeCounts` (D8-34)', () => {
 
 describe('R-D8-2.8-09 — la coquille s’en sert en REPLI quand le marché n’est pas chargé', () => {
   const app = readFileSync(resolve(process.cwd(), 'src/app.tsx'), 'utf8');
-  const memo = app.match(/const screenGMakeCounts = useMemo[\s\S]*?\n  \}, \[[^\]]*\]\);/)?.[0] ?? '';
+  const memo = app.match(/const screenGMakeCounts = useMemo[\s\S]*?\n {2}\}, \[[^\]]*\]\);/)?.[0] ?? '';
 
   it('`screenGMakeCounts` retombe sur `controller.baselineMakeCounts`, et seulement en mode 2', () => {
     expect(memo, 'mémo screenGMakeCounts introuvable dans src/app.tsx').not.toBe('');

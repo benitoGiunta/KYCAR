@@ -530,10 +530,21 @@ export function App(props: AppProps): JSX.Element {
    */
   const screenGMakeCounts = useMemo<ReadonlyMap<number, number>>(() => {
     const out = new Map<number, number>();
-    if (marketPhase.phase !== 'loaded') return out;
+    if (marketPhase.phase !== 'loaded') {
+      // `D8-34` (`EX-SCR-216`, constat `fix-app-2` §7.3) — en MODE 2, l'écran A n'a jamais été
+      // monté : `marketPhase` n'est pas `loaded`, cette carte restait VIDE, et `screen-g-model.ts`
+      // rendait `—` sur CHAQUE entrée (`DR-060` : une carte fournie sans la clé demandée vaut `—`).
+      // Repli sur les effectifs de la BASELINE, déjà en mémoire dans le contrôleur : aucun aller
+      // provider, aucun second balayage, `EX-NFR-9` intact. Ce sont les effectifs du snapshot
+      // ENTIER, non filtrés — une valeur mesurée, jamais présentée comme le périmètre courant.
+      // Hors mode 2, rien ne change : sur l'écran A en cours de chargement, l'absence d'effectif
+      // reste `ET-CHARGE-INIT` plutôt qu'un chiffre non filtré affiché sous des filtres posés.
+      if (currentMode !== 'mode2') return out;
+      return controller.baselineMakeCounts ?? out;
+    }
     for (const agg of marketPhase.data.makeAggregates) out.set(agg.makeId, agg.listingCount);
     return out;
-  }, [marketPhase]);
+  }, [marketPhase, currentMode, controller, start]);
   const screenGModelCounts = useMemo<ReadonlyMap<string, number>>(() => {
     const out = new Map<string, number>();
     for (const [makeId, models] of modelsByMake) {

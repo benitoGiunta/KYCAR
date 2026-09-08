@@ -161,6 +161,13 @@ export class DataController {
   private lastMarketSelectionCount: number | null = null;
   /** `D8-05` / `FV-06` — dernières facettes calculées par le moteur, par `filterId` puis par code. */
   private lastFacets: ReadonlyMap<string, ReadonlyMap<string, number>> | null = null;
+  /**
+   * `D8-34` — mémo de `baselineMakeCounts`, indexé par l'IDENTITÉ de la baseline dont il dérive :
+   * la carte n'est reconstruite qu'au remplacement du snapshot (`start()`/`Rafraîchir`), jamais à
+   * chaque rendu de la coquille.
+   */
+  private baselineCountsMemo: { source: AggregateResult<MakeAggregate>; counts: ReadonlyMap<number, number> } | null =
+    null;
   /** `selectionHash` du recalcul auquel `lastFacets` se rapporte (facettes périmées ⇒ écartées). */
   private lastFacetsHash: string | null = null;
 
@@ -185,6 +192,32 @@ export class DataController {
   /** `D8-05`/`FV-23` — effectif de la sélection mode 1 réellement appliquée (`null` = inconnu). */
   get marketSelectionCount(): number | null {
     return this.lastMarketSelectionCount;
+  }
+
+  /**
+   * `EX-SCR-216` (`D8-34`) — effectifs d'offres PAR MARQUE de la baseline, telle qu'elle est DÉJÀ en
+   * mémoire après `start()` (ou après un repli sur cache). Aucun aller provider, aucun balayage :
+   * la carte est dérivée des agrégats précalculés que le contrôleur détient de toute façon, donc
+   * `EX-NFR-9` est intact — c'est la condition posée par `D8-34`, voie (a).
+   *
+   * `null` tant qu'aucun snapshot ni cache n'a été acquis, et jamais une carte VIDE : au sens de
+   * `DR-060`, une carte d'effectifs FOURNIE mais sans la clé demandée rend `—`, si bien qu'une carte
+   * vide se lirait « toutes les marques à — » — exactement le défaut que `D8-34` corrige.
+   *
+   * **Sémantique, à ne pas confondre avec `ScreenALoadedData.makeAggregates`** : ces effectifs sont
+   * ceux du SNAPSHOT ENTIER, non filtrés. Ils ne remplacent donc pas les agrégats d'un marché chargé
+   * sous filtres (qui, eux, portent le périmètre courant) ; ils sont le repli de l'écran `G` en
+   * mode 2, où `O17` interdit qu'un agrégat filtré existe et où l'alternative est `—`.
+   */
+  get baselineMakeCounts(): ReadonlyMap<number, number> | null {
+    const baseline = this.cachedBaseline;
+    if (baseline === null) return null;
+    if (this.baselineCountsMemo === null || this.baselineCountsMemo.source !== baseline) {
+      const counts = new Map<number, number>();
+      for (const row of baseline.rows) counts.set(row.makeId, row.listingCount);
+      this.baselineCountsMemo = { source: baseline, counts };
+    }
+    return this.baselineCountsMemo.counts;
   }
 
   /** `D8-05`/`FV-06` — facettes du dernier recalcul mode 2 (`null` = aucun recalcul disponible). */
