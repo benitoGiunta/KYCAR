@@ -28,6 +28,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // Plusieurs tests fonctionnels génèrent de gros datasets synthétiques (jusqu'à 100k) ; sous
+    // charge parallèle le défaut de 5 s déborde par famine CPU (temps CPU réel ~2 s). 30 s laisse
+    // la marge sans masquer un vrai blocage. Les bancs de perf lourds restent hors de cette suite.
+    testTimeout: 30_000,
     // Les bancs de perf (*.perf.test.ts) sont lourds (100k, ~100 s) et fausseraient le heartbeat
     // RPC de vitest en suite parallèle. Ils sont exclus du `npm test` par défaut et lancés à la
     // demande via `npm run test:perf` (vitest.perf.config.ts, mono-thread, gros timeout).
