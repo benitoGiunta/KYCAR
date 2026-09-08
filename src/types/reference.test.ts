@@ -69,10 +69,17 @@ describe('chargeur de référentiels', () => {
     expect(data.decodeEnum('KYCAR_FUEL_CATEGORY', 'T')).toBeNull(); // code moto exclu
   });
 
-  it('expose les 77 filtres retenus (filters-scope.json)', () => {
-    expect(data.filterScope.retained).toHaveLength(77);
-    expect(filtersScope.totalRetenus).toBe(77);
+  it('expose les 74 filtres retenus (filters-scope.json)', () => {
+    // 77 → 74 : `location` (param `zip`, E8), `lat` et `lon` (E11) sont EXCLUS avec le motif
+    // `R3_DONNEE_PERSONNELLE`, décision 2.6 D-14 / DR-026. Aucun filtre géographique fin en 2.6 ;
+    // le pays et la région NUTS-2 restent disponibles.
+    expect(data.filterScope.retained).toHaveLength(74);
+    expect(filtersScope.totalRetenus).toBe(74);
     expect(data.filterScope.retainedIds.has('bodyType')).toBe(true);
+    for (const id of ['location', 'lat', 'lon']) {
+      expect(data.filterScope.retainedIds.has(id)).toBe(false);
+      expect(data.filterScope.excluded.find((f) => f.id === id)?.exclusion).toBe('R3_DONNEE_PERSONNELLE');
+    }
   });
 
   it('résout un code postal belge en région NUTS-2 (§A.8)', () => {

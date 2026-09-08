@@ -103,7 +103,13 @@ export {
 export { sha256Hex } from './sha256';
 
 // Règles métier partagées (seuils, facteurs, clés, nettoyage) — étape 0 de la remédiation 2.6.
-export type { DuplicateConflictField } from './shared-rules';
+export type {
+  DuplicateConflictField,
+  CleanModelVersionOptions,
+  ParseModelVersionOptions,
+  ParsedModelVersion,
+  BadgePower,
+} from './shared-rules';
 export {
   PRICE_SENTINEL_ABSOLUTE_EUR,
   isPriceSentinelAbsolute,
@@ -112,7 +118,10 @@ export {
   listingKey,
   DUPLICATE_CONFLICT_FIELDS,
   MODEL_VERSION_CLEAN_MAX,
+  TRIM_TOKEN_MAX_LENGTH,
+  TRIM_TOKENS_MAX,
   cleanModelVersion,
+  parseModelVersion,
 } from './shared-rules';
 
 // Validation + garde R3.
@@ -157,6 +166,8 @@ export type {
   RawEnumEntry,
   RawFiltersScope,
   RawScopeEntry,
+  RawVersionStoplist,
+  RawVersionLexicon,
   FilterScope,
 } from './reference';
 export { buildReferenceData, modelKey } from './reference';

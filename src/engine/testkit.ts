@@ -14,6 +14,8 @@ import {
   type RawFiltersScope,
   type RawReferenceFile,
   type RawTaxonomy,
+  type RawVersionLexicon,
+  type RawVersionStoplist,
   type ReferenceData,
 } from '../types/reference';
 import { SyntheticDataProvider } from '../providers/synthetic/SyntheticDataProvider';
@@ -22,6 +24,8 @@ const taxonomyMod = import.meta.glob('../../data/reference/taxonomy.json', { eag
 const filtersMod = import.meta.glob('../../data/reference/filters.json', { eager: true, import: 'default' });
 const scopeMod = import.meta.glob('../../data/reference/filters-scope.json', { eager: true, import: 'default' });
 const refMods = import.meta.glob('../../data/reference/references/*.json', { eager: true, import: 'default' });
+const stoplistMod = import.meta.glob('../../data/reference/version-stoplist.json', { eager: true, import: 'default' });
+const lexiconMod = import.meta.glob('../../data/reference/version-lexicon.json', { eager: true, import: 'default' });
 
 /** Assemble les référentiels D2 à partir des fichiers du dépôt. */
 export function loadReferenceData(): ReferenceData {
@@ -34,7 +38,14 @@ export function loadReferenceData(): ReferenceData {
     const file = mod as RawReferenceFile;
     referenceFiles[file.referenceType] = file;
   }
-  return buildReferenceData({ taxonomy, referenceFiles, filters, filtersScope });
+  return buildReferenceData({
+    taxonomy,
+    referenceFiles,
+    filters,
+    filtersScope,
+    versionStoplist: Object.values(stoplistMod)[0] as RawVersionStoplist,
+    versionLexicon: Object.values(lexiconMod)[0] as RawVersionLexicon,
+  });
 }
 
 /** Ouvre un provider synthétique D3 déjà chargé (dataset généré, vérité terrain disponible). */
