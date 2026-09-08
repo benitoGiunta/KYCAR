@@ -14,19 +14,24 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('HistoryBurstGrouper — EX-NAV-12/13', () => {
-  it('un changement isolé produit un replaceState immédiat puis un pushState après 800 ms', () => {
+describe('HistoryBurstGrouper — EX-NAV-12/13 (DR-015)', () => {
+  it('un changement isolé produit un pushState immédiat, qui ouvre sa propre entrée d’historique', () => {
+    // `DR-015` : le PREMIER changement d'une rafale doit CRÉER l'entrée d'historique (`pushState`),
+    // jamais écraser par `replaceState` l'entrée qui précédait la rafale — sinon le bouton précédent
+    // ne défait plus le filtre (`R-D5-05`, tests/review/D5/interaction-history.test.ts).
     const replaceState = vi.fn();
     const pushState = vi.fn();
     const grouper = new HistoryBurstGrouper({ replaceState, pushState });
 
     grouper.onApplied('/marche?fuel=D');
-    expect(replaceState).toHaveBeenCalledTimes(1);
-    expect(pushState).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(800);
     expect(pushState).toHaveBeenCalledTimes(1);
     expect(pushState).toHaveBeenCalledWith('/marche?fuel=D');
+    expect(replaceState).not.toHaveBeenCalled();
+
+    // L'écoulement de la fenêtre de 800 ms ne produit PLUS rien : l'entrée existe déjà.
+    vi.advanceTimersByTime(800);
+    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(replaceState).not.toHaveBeenCalled();
   });
 
   it('une rafale de changements < 800 ms entre eux ne produit qu’UNE seule entrée pushState', () => {
@@ -42,14 +47,16 @@ describe('HistoryBurstGrouper — EX-NAV-12/13', () => {
     vi.advanceTimersByTime(200);
     grouper.onApplied('/marche?eq=1,2,3,4');
 
-    // Chaque changement intermédiaire réécrit l'URL par replaceState, jamais pushState.
-    expect(replaceState).toHaveBeenCalledTimes(4);
-    expect(pushState).not.toHaveBeenCalled();
+    // Le PREMIER changement de la rafale a ouvert l'entrée (`pushState`) ; les trois suivants la
+    // mettent à jour en place (`replaceState`).
+    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(pushState).toHaveBeenCalledWith('/marche?eq=1');
+    expect(replaceState).toHaveBeenCalledTimes(3);
+    expect(replaceState).toHaveBeenLastCalledWith('/marche?eq=1,2,3,4');
 
-    // Écoulement de la fenêtre d'inactivité de 800 ms depuis le DERNIER changement.
+    // Écoulement de la fenêtre d'inactivité de 800 ms depuis le DERNIER changement : rien de plus.
     vi.advanceTimersByTime(800);
     expect(pushState).toHaveBeenCalledTimes(1);
-    expect(pushState).toHaveBeenCalledWith('/marche?eq=1,2,3,4');
   });
 
   it('forcePush (EX-NAV-14) court-circuite le regroupement et pousse immédiatement', () => {
@@ -58,13 +65,16 @@ describe('HistoryBurstGrouper — EX-NAV-12/13', () => {
     const grouper = new HistoryBurstGrouper({ replaceState, pushState });
 
     grouper.onApplied('/marche?fuel=D');
-    grouper.forcePush('/marche/16-opel/1174-corsa');
+    // Le premier (et ici seul) changement de la rafale a déjà ouvert sa propre entrée.
     expect(pushState).toHaveBeenCalledTimes(1);
-    expect(pushState).toHaveBeenCalledWith('/marche/16-opel/1174-corsa');
 
-    // La rafale annulée par forcePush ne doit pas produire un second pushState plus tard.
+    grouper.forcePush('/marche/16-opel/1174-corsa');
+    expect(pushState).toHaveBeenCalledTimes(2);
+    expect(pushState).toHaveBeenLastCalledWith('/marche/16-opel/1174-corsa');
+
+    // La rafale annulée par forcePush ne doit pas produire un pushState supplémentaire plus tard.
     vi.advanceTimersByTime(2000);
-    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(pushState).toHaveBeenCalledTimes(2);
   });
 
   it('isGrouping reflète l’état de la fenêtre en cours', () => {
@@ -138,7 +148,7 @@ describe('InteractionController — composition débounce + historique + recalcu
   }
 
   it('un changement de filtre classe R, discret, s’applique à 0 ms et recalcule localement', () => {
-    const { controller, recomputeLocal, reload, replaceState } = makeController();
+    const { controller, recomputeLocal, reload, pushState } = makeController();
     controller.scheduleChange({
       filterId: 'fuelType',
       gesture: 'discrete-change',
@@ -146,7 +156,8 @@ describe('InteractionController — composition débounce + historique + recalcu
       cls: 'R',
       commit: () => '/marche?fuel=D',
     });
-    expect(replaceState).toHaveBeenCalledWith('/marche?fuel=D');
+    // `DR-015` : premier (et seul) changement de sa rafale — ouvre l'entrée par `pushState`.
+    expect(pushState).toHaveBeenCalledWith('/marche?fuel=D');
     expect(recomputeLocal).toHaveBeenCalledTimes(1);
     expect(reload).not.toHaveBeenCalled();
   });
@@ -198,9 +209,10 @@ describe('InteractionController — composition débounce + historique + recalcu
     // EX-SRCH-1bis : au plus un recalcul en attente à tout instant (jamais de file).
     expect(controller.hasPendingRecompute || recomputeLocal.mock.calls.length >= 2).toBe(true);
 
-    // EX-NAV-13 : la rafale entière (5 changements en 250 ms) tient sous 800 ms d'inactivité —
-    // aucune entrée d'historique définitive tant que la fenêtre n'est pas écoulée.
-    expect(pushState).not.toHaveBeenCalled();
+    // `DR-015` : le PREMIER des 5 changements a déjà ouvert l'entrée d'historique (`pushState`) ;
+    // EX-NAV-13 garantit qu'aucune entrée SUPPLÉMENTAIRE n'apparaît tant que la rafale (5
+    // changements en 250 ms) tient sous les 800 ms d'inactivité.
+    expect(pushState).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(800);
     expect(pushState).toHaveBeenCalledTimes(1);
 
