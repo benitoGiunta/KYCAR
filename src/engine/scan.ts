@@ -26,6 +26,37 @@ export interface ScanResult {
 }
 
 /**
+ * Fusionne des tranches d'index individuellement croissantes en UN tableau globalement croissant.
+ *
+ * `EX-DATA-116` exige que le chemin élagué et le balayage complet rendent les MÊMES chiffres. Le
+ * balayage complet visite les lignes `0..N-1` dans l'ordre ; une simple concaténation des tranches
+ * (marque par marque, modèle par modèle) visite les mêmes lignes dans un ORDRE différent. Les
+ * sommations flottantes du moteur (moyennes, régression M2) ne sont pas associatives : un écart
+ * d'un ulp sur `β̂` suffit à basculer l'arrondi à 9 chiffres de `deviationPct`
+ * (D-34 ; `reports/remediation/fix-foundation.md` §4). La fusion triée rend les deux chemins
+ * identiques octet à octet.
+ *
+ * Les tranches d'`IDX_MAKE`/`IDX_MODEL` sont déjà croissantes et le cas fréquent (une seule tranche,
+ * ou tranches déjà en ordre global) ne coûte qu'une comparaison par frontière.
+ */
+function mergeSortedSlices(chunks: readonly Int32Array[], total: number): Int32Array {
+  const rows = new Int32Array(total);
+  let cursor = 0;
+  let ordered = true;
+  for (const chunk of chunks) {
+    if (chunk.length === 0) continue;
+    if (cursor > 0 && (rows[cursor - 1] as number) > (chunk[0] as number)) ordered = false;
+    rows.set(chunk, cursor);
+    cursor += chunk.length;
+  }
+  // `Int32Array.prototype.sort()` sans comparateur trie NUMÉRIQUEMENT en ordre croissant : c'est
+  // exactement l'ordre de visite du balayage complet. Les indices de ligne sont deux à deux
+  // distincts (une ligne porte un seul couple marque/modèle), la fusion est donc sans ambiguïté.
+  if (!ordered) rows.sort();
+  return rows;
+}
+
+/**
  * Construit la liste des lignes candidates après élagage taxonomique (EX-DATA-116).
  * `rows === null` signifie « toutes les lignes » (pas d'élagage) ; le balayage part alors de `[0, N)`.
  * Exporté pour que le calcul de facettes (EX-DATA-110bis) partage exactement la même source.
@@ -44,13 +75,7 @@ export function candidateRows(indexes: DatasetIndexes, scope: TaxonomyScope | un
       chunks.push(slice);
       total += slice.length;
     }
-    const rows = new Int32Array(total);
-    let cursor = 0;
-    for (const chunk of chunks) {
-      rows.set(chunk, cursor);
-      cursor += chunk.length;
-    }
-    return { rows, pruned: true };
+    return { rows: mergeSortedSlices(chunks, total), pruned: true };
   }
   if (scope?.makeIds && scope.makeIds.length > 0) {
     const chunks: Int32Array[] = [];
@@ -62,13 +87,7 @@ export function candidateRows(indexes: DatasetIndexes, scope: TaxonomyScope | un
       chunks.push(slice);
       total += slice.length;
     }
-    const rows = new Int32Array(total);
-    let cursor = 0;
-    for (const chunk of chunks) {
-      rows.set(chunk, cursor);
-      cursor += chunk.length;
-    }
-    return { rows, pruned: true };
+    return { rows: mergeSortedSlices(chunks, total), pruned: true };
   }
   return { rows: null, pruned: false };
 }
