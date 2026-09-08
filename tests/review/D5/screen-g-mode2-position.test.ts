@@ -65,6 +65,29 @@ function findAll(node: unknown, predicate: (n: VNode) => boolean, acc: VNode[] =
   }
   return acc;
 }
+/**
+ * Déplie les composants FONCTION rencontrés : sans cela l'arbre s'arrête au VNode du composant,
+ * dont `props.children` ne contient pas son rendu. Le chemin qui nous intéresse
+ * (`PrimaryLine` → `FilterFieldRow` → `ControlRenderer` → `StructuredPickerButton`) n'utilise
+ * aucun hook ; d'autres contrôles de la MÊME ligne primaire en utilisent (`RangeControl` et son
+ * `useState`), et ne sont pas montables sans DOM — un composant qui lève est donc laissé replié
+ * plutôt que de faire échouer la traversée. Aucun de ceux-là n'est lu par cette sonde.
+ */
+function expand(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(expand);
+  if (isVNode(node) && typeof node.type === 'function') {
+    try {
+      return expand((node.type as (p: Record<string, unknown>) => unknown)(node.props));
+    } catch {
+      return node;
+    }
+  }
+  if (isVNode(node)) {
+    return { ...node, props: { ...node.props, children: expand(node.props.children) } };
+  }
+  return node;
+}
+
 function collectText(node: unknown): string {
   if (node === null || node === undefined || typeof node === 'boolean') return '';
   if (typeof node === 'string' || typeof node === 'number') return String(node);
@@ -126,7 +149,7 @@ describe('R-D5-2.8-08 — EX-SCR-103 : le contrôle `Marque / Modèle` affiche l
       screenGSummary: summary,
     });
     const picker = findAll(
-      vnode,
+      expand(vnode),
       (n) => n.type === 'div' && String(n.props.class ?? '').includes('kycar-control--structured-picker'),
     )[0];
     expect(picker).toBeDefined();

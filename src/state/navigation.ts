@@ -62,6 +62,27 @@ export function serializeMmmvBlock(block: MmmvBlock): string {
   return block.modelId === undefined ? String(block.makeId) : `${block.makeId}|${block.modelId}`;
 }
 
+/**
+ * `EX-SCR-103` (`D8-35`) — sélection vue par le contrôle taxonomique du bandeau. Sur l'écran B, le
+ * couple courant n'est PAS dans la sélection : `carryFiltersAcrossMode` l'absorbe dans la route à
+ * l'entrée en mode 2 (`EX-NAV-15`). Le contrôle `Marque / Modèle` doit néanmoins « afficher le
+ * couple courant et, au clic, ouvrir le sélecteur `G` positionné sur ce couple » : cette fonction
+ * réinjecte, POUR L'AFFICHAGE SEULEMENT, le bloc `mmmv` de la route.
+ *
+ * Retourne la sélection reçue TELLE QUELLE (même référence, donc aucune copie ni recalcul inutile)
+ * hors du seul cas qui l'exige — mode 2 avec un couple de route connu. Ne mute jamais son entrée,
+ * et n'est jamais utilisée pour sérialiser une URL : la route reste la seule porteuse du couple en
+ * mode 2 (`EX-NAV-15`), sans quoi `mmmv` réapparaîtrait en double dans la requête.
+ */
+export function withRouteTaxonomy(
+  selection: SelectionState,
+  mode: ScreenMode,
+  routePair: ModeCarryPair | undefined,
+): SelectionState {
+  if (mode !== 'mode2' || routePair === undefined) return selection;
+  return { ...selection, [MMMV_FILTER_ID]: serializeMmmvBlock(routePair) };
+}
+
 export interface MakeChangeInput {
   /** Mode de l'écran DEPUIS lequel le choix est fait. */
   readonly mode: ScreenMode;

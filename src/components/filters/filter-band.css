@@ -469,6 +469,12 @@
   flex-wrap: nowrap;
   min-height: 0;
 }
+/* `EX-SCR-97` : la feuille plein écran est enfermée dans le contexte d'empilement de
+   `.kycar-filter-band` (sticky, z-index 2) ; sans cela, l'en-tête collant de l'application
+   (`.kycar-header`, z-index 10) recouvre sa bande supérieure et avale le clic. */
+.kycar-filter-band--compact {
+  z-index: 20;
+}
 .kycar-compact-sheet {
   position: fixed;
   inset: 0;
