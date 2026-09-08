@@ -15,6 +15,7 @@ import { test, expect, type Browser, type Page } from '@playwright/test';
 
 import {
   P1_QUERY,
+  P2_EXPECTED,
   P2_PATH,
   SURFACES,
   applyFilterSheet,
@@ -103,6 +104,40 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     expect(reopenedSearch).toContain('sely=0.2-0.8');
     await expect(fresh.page).toHaveTitle('KYCAR — Distribution d’un modèle · Opel Corsa');
     await fresh.close();
+  });
+
+  /**
+   * `ACC-01` / `D8-41` (`EX-SCR-221`, `D-03` « jamais ignoré en silence », `D8-20`, `EX-NAV-18`).
+   * La recette 2.9b a constaté qu'en mode 2 le filtre Carrosserie n'était NI appliqué NI déclaré :
+   * l'effectif de la cellule entière (1 352) s'affichait sous un jeton « Carrosserie : Coupé »
+   * actif, sans le bandeau normatif. Le chiffre n'est pas faux — la carrosserie n'est pas résoluble
+   * au modèle tant que `Model.bodyTypes` est vide (`O15`) —, c'est la MENTION qui manquait. Ce test
+   * fixe les trois faits ensemble : jeton présent, effectif INCHANGÉ, écart NOMMÉ.
+   */
+  test('ACC-01 — en mode 2, un filtre Carrosserie d’URL est déclaré non appliqué, sans changer l’effectif', async ({
+    page,
+  }, testInfo) => {
+    await open(page, `${P2_PATH}?body=3`);
+    const withFilter = await readSelectionCount(page);
+
+    // (1) l'effectif est celui de la CELLULE ENTIÈRE : la vérité terrain de `tests/review/D8`.
+    expect(withFilter).toBe(P2_EXPECTED.corsaTotal);
+
+    // (2) le jeton de filtre est bien actif — l'utilisateur croit son critère posé…
+    await expect(page.locator('.kycar-active-tokens__list')).toContainText('Carrosserie');
+
+    // (3) …et l'application le lui dit, au mot près (`D8-20`).
+    const banner = page.locator('[data-banner-id="ET-FILTRE-NON-APPLIQUE-BODY"]');
+    await expect(banner).toBeVisible({ timeout: 20_000 });
+    const text = (await banner.innerText()).replace(/\s+/g, ' ');
+    mesure(testInfo, 'ACC-01 — bandeau de filtre non appliqué (mode 2)', `${withFilter} offres ; ${text}`);
+    expect(text).toContain('Filtre Carrosserie non appliqué à ce modèle (donnée indisponible)');
+    expect(text).toContain('l’effectif affiché est complet, mais il ne tient pas compte de ce critère');
+
+    // Le bandeau est propre au mode 2 : sans le filtre, rien n'est déclaré (pas de faux positif).
+    await open(page, P2_PATH);
+    expect(await readSelectionCount(page)).toBe(P2_EXPECTED.corsaTotal);
+    await expect(page.locator('[data-banner-id="ET-FILTRE-NON-APPLIQUE-BODY"]')).toHaveCount(0);
   });
 
   test('EX-NAV-11 — au-delà de 2 000 caractères, la modification de filtre est REFUSÉE avec son message', async ({
