@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:perf": "vitest run --config vitest.perf.config.ts",
-    "size": "node tools/check-bundle-size.mjs"
+    "size": "node tools/check-bundle-size.mjs",
+    "test:review": "tsc --noEmit -p tsconfig.review.json && vitest run --config vitest.review.config.ts"
   },
   "dependencies": {
     "preact": "^10.29.8"

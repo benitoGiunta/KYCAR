@@ -52,6 +52,7 @@ Décisions de cadrage structurantes :
 ## 3. État git
 
 - Branche de travail : **`phase-2.4-build`** — tout le développement 2.4 y est fusionné, VERTE.
+- Depuis le 2026-09-08 : phases 2.5/2.6 sur **`claude/kycar-project-ffcplk`**, créée depuis `phase-2.4-build`.
 - **Identité** : dépôt réglé sur le compte **perso** de l'utilisateur (`benitognt@gmail.com`), poussé
   sur `github.com/benitoGiunta/KYCAR.git` (perso). NB : la config git **globale** de la machine pointe
   par défaut sur l'email **pro** `benito.giunta@bstorm.be` — vérifier l'identité locale avant tout
@@ -149,7 +150,7 @@ Les phases de qualité du plan, **non lancées** :
 | # | Contrainte |
 |---|---|
 | E1 | Aucune création de compte / saisie de credential par les agents |
-| E2 | **Aucun modèle Fable**, sur aucune tâche |
+| E2 | ~~Aucun modèle Fable~~ **levée le 2026-09-08** — choix modèle/effort par rôle : `CLAUDE.md` § Organisation en agents |
 | E3 | Autonomie totale : aucune info supplémentaire de l'utilisateur |
 | E4 | Toute hypothèse non vérifiable écrite comme hypothèse, jamais comme un fait |
 | E5 | Requêtes `www.autoscout24.be` limitées aux 17 préfixes autorisés ; D9 ne fait aucun appel réseau live ; tout accès data respecte robots.txt/CGU/RGPD |
