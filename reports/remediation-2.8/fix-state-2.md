@@ -449,6 +449,110 @@ Deux **relevés** (ni dettes ni corrections, portés à la connaissance du fix-l
 
 ---
 
+## 9bis. Retouche `D8-35` (vague F3, phase de câblage)
+
+Reçue du coordinateur au titre de `D8-28` (fix-state-2 reste vivant sur `src/components/filters/`).
+Entrées : `reports/remediation-2.8/fix-app-2.md` §7.1 et §7.2, `FIX-LEAD-DECISIONS-2.8.md` §F
+`D8-35`. Le worktree a d'abord reçu `git merge claude/kycar-project-ffcplk` (HEAD `6422b3f`) :
+**fusion sans conflit**, 40 fichiers, mes trois commits déjà dedans.
+
+**Commits** : `e3e47e1` (sonde rouge) puis `55db246` (les deux corrections).
+
+### 9bis.1 `EX-SCR-103` — le contrôle `Marque / Modèle` sur l'écran B
+
+**Constat** (relevé en navigateur par `fix-app-2` §7.1 sur `/marche/54-opel/1918-corsa`) : le bouton
+portait `Marque / Modèle / Version Toutes les marques` et l'écran `G` s'ouvrait **non positionné**
+(`9ff`, `Abarth`, `AC`…), contre `EX-SCR-103` (« sur l'écran B affiche le couple courant et, au clic,
+ouvre le sélecteur `G` positionné sur ce couple »). **Cause** : `FilterBand.tsx` dérivait
+`screenGSummary` (l. 436) et `currentSelection` de `ScreenG` (l. 497-505) de `selection`, qui en
+mode 2 ne porte **jamais** `makesModelsVariants` — `carryFiltersAcrossMode` l'absorbe dans la route
+(`EX-NAV-15`), motif même pour lequel j'avais introduit `routePair`. Le défaut est donc un **angle
+mort de ma propre livraison** : `routePair` servait la navigation (`EX-SRCH-14`) mais pas l'affichage.
+
+**Correction** :
+
+- `src/state/navigation.ts` : `withRouteTaxonomy(selection, mode, routePair)`, dérivation **pure**
+  qui réinjecte le bloc `mmmv` de la route **pour l'affichage seulement**. Elle retourne la
+  sélection reçue **telle quelle** (même référence) hors du seul cas qui l'exige, ne mute jamais son
+  entrée, et n'est **jamais** utilisée pour sérialiser une URL — sans quoi `mmmv` réapparaîtrait en
+  double dans la requête d'un écran B (`EX-NAV-15`).
+- `FilterBand.tsx` : `taxonomySelection` calculée une fois, utilisée par `screenGSummary` **et** par
+  `ScreenG currentSelection` ; la feuille du régime compact dérive de même son résumé de
+  `draftSelection`. `mmmvSummary` est **exportée** (elle ne l'était pas) pour être sondable.
+
+**Sonde** `tests/review/D5/screen-g-mode2-position.test.ts` — **11 cas**, `R-D5-2.8-07/08/09` :
+**11 échecs sur 11** à `e3e47e1`, **11 passés** à `55db246`.
+
+*Portée de la sonde (E4, contrainte d'environnement et non un choix)* : `FilterBand` et `ScreenG`
+utilisent des hooks ; `vitest.review.config.ts` fixe `environment: 'node'` et le dépôt n'embarque
+aucune dépendance DOM (`jsdom`, `happy-dom`, `preact-render-to-string` absents de `package.json`).
+La sonde éprouve donc les **trois** maillons au plus haut niveau atteignable, sans en sauter aucun :
+la dérivation pure ; le **rendu** du contrôle (`PrimaryLine` → `FilterFieldRow` → `ControlRenderer`
+→ `StructuredPickerButton`, tous sans hook, appelés directement) qui porte bien « Opel Corsa » et
+jamais « Toutes les marques » ; et le **câblage** dans `FilterBand.tsx` par lecture du source —
+convention déjà établie par `tests/review/D8/shell-static.test.ts`, écrite pour la même raison. La
+preuve de bout en bout en navigateur reste l'E2E demandée par `fix-app-2` §7.1 point 2.
+
+*Correction d'outillage dans la sonde, entre le rouge et le vert (transparence `D-31`)* : la
+traversée `findAll` s'arrêtait au VNode du composant `FilterFieldRow` (Preact ne met pas le rendu
+d'un composant dans `props.children`), et l'expansion des composants fonction lève sur les contrôles
+de la même ligne primaire qui, eux, utilisent des hooks (`RangeControl`). J'ai ajouté un `expand()`
+qui déplie les composants fonction et **laisse replié** celui qui lève. **Aucune assertion n'a été
+modifiée** — la sonde est restée rouge après cette correction d'outillage (`expected undefined to be
+defined`) et n'est passée au vert que sous l'effet de la correction du code de production.
+
+### 9bis.2 `EX-SCR-97` — la feuille compacte piégée sous l'en-tête
+
+**Correction** posée mot pour mot comme demandée, dans `src/components/filters/filter-band.css`,
+avant `.kycar-compact-sheet` : `.kycar-filter-band--compact { z-index: 20 }` avec le commentaire
+proposé par `fix-app-2` (la feuille `position: fixed; z-index: 10` est enfermée dans le contexte
+d'empilement de `.kycar-filter-band`, `sticky; z-index: 2` — son `z-index` est relatif à ce
+contexte, pas à la page, et `.kycar-header` peint à 10 par-dessus).
+
+**Preuve E2E** — test `EX-SRCH-14` au projet `mobile`, **non modifié**, aucun `test.fail()` ajouté :
+
+| Build servi | Résultat |
+|---|---|
+| mon build **sans** les trois lignes (port 4182) | **1 failed** — `<header data-regime="compact" …> intercepts pointer events`, temporisation de 90 s |
+| mon build **avec** les trois lignes (ports 4181 puis 4183) | **1 passed en 2,8 s** — `[MESURE] EX-SRCH-14 — URL après changement de marque depuis l'écran B : /marche?mmmv=74&priceto=20000` |
+
+**Signalement au coordinateur — piège d'environnement rencontré, à relayer à `fix-verify`.** Ma
+première exécution sur le port **4180** a échoué **avec** les corrections en place, et le
+diagnostic a mis un moment : un `vite preview` **résiduel** lancé à 19:01 depuis l'**arbre principal**
+(`/proc/13098/cwd → /home/user/KYCAR`, session de `fix-app-2`) squattait le port, et
+`playwright.config.ts` porte `webServer.reuseExistingServer: true` — Playwright a donc **réutilisé
+en silence** ce serveur et recetté **le build d'un autre arbre**, sans le moindre avertissement.
+Je n'ai **pas** tué ce processus (il n'est pas dans mon périmètre) : j'ai utilisé la variable
+d'environnement prévue par la configuration, `KYCAR_E2E_PORT`, qui relance `npm run build && vite
+preview` dans **mon** worktree. C'est un piège d'environnement à ajouter à `docs/HANDOFF.md` §7 : tant
+qu'un serveur traîne sur 4180, **toute** recette lancée depuis un worktree mesure l'arbre principal.
+
+`reports/e2e/results.json` a été régénéré par chacune des exécutions et **restauré à chaque fois**
+par `git checkout -- reports/e2e/results.json` (`D8-33`) ; il n'apparaît dans aucun de mes commits
+(`git show --stat 55db246`). `test-results/` est ignoré par `.gitignore`.
+
+### 9bis.3 Portes rejouées après la retouche
+
+| Commande | Résultat |
+|---|---|
+| `npx tsc --noEmit -p tsconfig.json` | 0 erreur |
+| `npx tsc --noEmit -p tsconfig.review.json` | 0 erreur |
+| `npx eslint src/state src/components tests/review/D5` | vert |
+| `npx vitest run --no-file-parallelism src/state src/components` | **183 / 183** |
+| `npx vitest run --config vitest.review.config.ts --no-file-parallelism tests/review/D5` | **200 / 200** (les 11 cas neufs inclus) |
+| `npm run build` | vert — `index-D6CIQVcM.js 323,27 kB │ gzip: 105,26 kB`, `index-DWJLif2D.css 33,10 kB │ gzip: 5,79 kB` |
+| `npx playwright test --project=mobile -g "EX-SRCH-14"` (seul test autorisé) | **1 passed** |
+
+### 9bis.4 Ce que je n'ai pas fait
+
+`fix-app-2` §7.3 (`EX-SCR-216` en mode 2 : l'écran `G` ouvert depuis l'écran B affiche `—` au lieu
+des effectifs) **n'est pas dans cette retouche** : `D8-35` ne me l'attribue pas, et sa correction est
+dans `src/orchestration/` + `src/app.tsx` (exposer les agrégats de base du contrôleur), hors de mon
+périmètre. Je confirme seulement, de mon côté, que `ScreenG` **n'invente rien** : sans `counts`, il
+retombe sur `announcedCount`, absent, donc `—` — aucune valeur fausse n'est affichée.
+
+---
+
 ## 9. Disponibilité (`D8-28`)
 
 Conformément à `D8-28` (« en F3, `fix-state-2` reste vivant jusqu'à la fin de `fix-app-2` »), ce

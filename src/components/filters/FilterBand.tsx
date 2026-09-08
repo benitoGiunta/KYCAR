@@ -23,7 +23,7 @@ import { resolveFilterClass } from '../../state/filter-registry';
 import type { MutableSelectionState, ScreenMode, SelectionState } from '../../state/filter-types';
 import type { IneffectiveTaxonomy } from '../../state/ineffective-filters';
 import { InteractionController } from '../../state/interaction';
-import { parseMmmvBlock, resolveMakeChange } from '../../state/navigation';
+import { parseMmmvBlock, resolveMakeChange, withRouteTaxonomy } from '../../state/navigation';
 import type { ModeCarryPair } from '../../state/router';
 import {
   URL_BUDGET_EXCEEDED_MESSAGE,
@@ -147,7 +147,12 @@ function cascadeRemoveOrphans(state: MutableSelectionState): string[] {
   return removed;
 }
 
-function mmmvSummary(selection: SelectionState, referenceData: ScreenGReferenceData | undefined): string {
+/**
+ * Résumé du contrôle `Marque / Modèle` (`EX-SCR-72`/`EX-SCR-103`). Exporté depuis `D8-35` pour être
+ * sondable directement : `FilterBand` utilise des hooks et ne peut pas être monté sans DOM dans
+ * l'environnement des sondes de revue (`vitest.review.config.ts#environment: 'node'`).
+ */
+export function mmmvSummary(selection: SelectionState, referenceData: ScreenGReferenceData | undefined): string {
   const raw = selection['makesModelsVariants'];
   if (raw === undefined) return 'Toutes les marques';
   const blocks = (Array.isArray(raw) ? raw : [raw]).map(String);
@@ -433,7 +438,13 @@ export function FilterBand(props: FilterBandProps) {
   // divergents (bandeau replié vs ailleurs) pour la même sélection.
   const activeCount = useMemo(() => countActiveFilters(selection), [selection]);
 
-  const screenGSummary = mmmvSummary(selection, props.referenceData);
+  // `EX-SCR-103` (`D8-35`, demande de fix-app-2 §7.1) : sur l'écran B le couple courant n'est PAS
+  // dans `selection` — la route l'a absorbé (`EX-NAV-15`). Le contrôle `Marque / Modèle` et l'écran
+  // `G` le lisent donc sur `routePair`, réinjecté POUR L'AFFICHAGE par `withRouteTaxonomy` (pure,
+  // `src/state/navigation.ts`). Aucune sérialisation d'URL n'utilise cette valeur : la route reste
+  // la seule porteuse du couple en mode 2.
+  const taxonomySelection = withRouteTaxonomy(selection, props.mode, props.routePair);
+  const screenGSummary = mmmvSummary(taxonomySelection, props.referenceData);
   const regime: BandRegime = props.regime ?? 'large';
 
   const toggleGroup = (group: string): void =>
@@ -497,7 +508,7 @@ export function FilterBand(props: FilterBandProps) {
   const screenGNode = screenGOpen ? (
     <ScreenG
       referenceData={props.referenceData}
-      currentSelection={selection}
+      currentSelection={taxonomySelection}
       counts={props.screenGMakeCounts}
       modelCounts={props.screenGModelCounts}
       onCancel={() => setScreenGOpen(false)}
@@ -546,7 +557,7 @@ export function FilterBand(props: FilterBandProps) {
               compact
               onChange={handleDraftChange}
               onOpenScreenG={() => setScreenGOpen(true)}
-              screenGSummary={mmmvSummary(draftSelection, props.referenceData)}
+              screenGSummary={mmmvSummary(withRouteTaxonomy(draftSelection, props.mode, props.routePair), props.referenceData)}
             />
             {searchAndGroups(
               draftSelection,
