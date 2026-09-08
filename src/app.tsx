@@ -704,7 +704,7 @@ export function App(props: AppProps): JSX.Element {
    * dans la requête. Sans cela, ouvrir un modèle perdait silencieusement les filtres posés.
    */
   const goToModel = useCallback(
-    (makeId: number, modelId: number): void => {
+    (makeId: number, modelId: number, mode: 'push' | 'replace' = 'push'): void => {
       const make = referenceData.makeById.get(makeId);
       const model = referenceData.modelByKey.get(`${makeId}:${modelId}`);
       const path = buildPath({
@@ -715,7 +715,7 @@ export function App(props: AppProps): JSX.Element {
         modelSlug: model?.slug ?? String(modelId),
       });
       const carried = carryFiltersAcrossMode(selection, currentMode, 'mode2', { makeId, modelId });
-      navigate(assembleUrl(path, serializeQuery(carried, {}, { filterDefaults: FILTER_DEFAULTS })).url);
+      navigate(assembleUrl(path, serializeQuery(carried, {}, { filterDefaults: FILTER_DEFAULTS })).url, mode);
     },
     [navigate, referenceData, selection, currentMode],
   );
@@ -732,7 +732,10 @@ export function App(props: AppProps): JSX.Element {
     if (view.kind !== 'market') return;
     const pair = completeMmmvPair(selection);
     if (pair === null) return;
-    goToModel(pair.makeId, pair.modelId);
+    // `replace` : l'URL intermédiaire `/marche?mmmv=<make>|<model>` ne doit PAS rester dans
+    // l'historique, sinon un retour arrière y reviendrait et redirigerait aussitôt — l'utilisateur
+    // ne pourrait plus quitter l'écran B par `Précédent` (`EX-NAV-12`).
+    goToModel(pair.makeId, pair.modelId, 'replace');
   }, [view.kind, selection, goToModel]);
 
   const toggleCompare = useCallback((makeId: number, modelId: number, next: boolean): void => {
