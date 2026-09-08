@@ -36,7 +36,13 @@ const DESCRIPTOR: SnapshotHandle = {
 };
 
 function emptyMakeResult(): AggregateResult<MakeAggregate> {
-  return { snapshotId: DESCRIPTOR.descriptor.snapshotId, selection: 'FULL:EMPTY', selectionCount: 0, rows: [] };
+  return {
+    snapshotId: DESCRIPTOR.descriptor.snapshotId,
+    selection: 'FULL:EMPTY',
+    selectionCount: 0,
+    rows: [],
+    unsupportedFilterIds: [],
+  };
 }
 
 /** Base mode 1 commune aux deux mocks (méthodes obligatoires). */

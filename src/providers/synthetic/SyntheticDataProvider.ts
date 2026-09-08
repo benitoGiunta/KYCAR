@@ -129,6 +129,8 @@ export class SyntheticDataProvider implements DataProvider {
       selection: `${FULL}:EMPTY`,
       selectionCount: dataset.batch.rowCount,
       rows,
+      // Sélection vide : aucun filtre à appliquer, donc aucun filtre non appliqué (D-03).
+      unsupportedFilterIds: [],
     });
   }
 
@@ -152,6 +154,8 @@ export class SyntheticDataProvider implements DataProvider {
       selection,
       selectionCount: indices.length,
       rows,
+      // D-03 : les identifiants que `compileSelection` a ignorés faute de colonne ou de règle.
+      unsupportedFilterIds: compiled.unsupported,
     });
   }
 

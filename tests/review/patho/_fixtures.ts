@@ -291,6 +291,7 @@ export function batchProvider(batch: ListingColumnBatch, announced: number | nul
     selection: 'FULL:EMPTY',
     selectionCount: batch.rowCount,
     rows: [],
+    unsupportedFilterIds: [],
   });
   return {
     describe: (): ProviderCapabilities => ({

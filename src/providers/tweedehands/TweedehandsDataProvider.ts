@@ -231,7 +231,9 @@ export class TweedehandsDataProvider implements DataProvider {
     }
     rows.sort((a, b) => a.makeId - b.makeId);
 
-    return { snapshotId, selection, selectionCount, rows };
+    // D-03 : ce provider n'a pas encore de table de correspondance sélection → requête (fix-providers) ;
+    // il n'applique que le filtre `make`. La liste reste vide tant que la table n'est pas posée.
+    return { snapshotId, selection, selectionCount, rows, unsupportedFilterIds: [] };
   }
 
   private async computeModelAggregates(
@@ -241,7 +243,7 @@ export class TweedehandsDataProvider implements DataProvider {
   ): Promise<AggregateResult<ModelAggregate>> {
     const make = this.referenceData.makeById.get(makeScope);
     if (make === undefined) {
-      return { snapshotId, selection, selectionCount: 0, rows: [] };
+      return { snapshotId, selection, selectionCount: 0, rows: [], unsupportedFilterIds: [] };
     }
     const models = this.referenceData.modelsByMake.get(makeScope) ?? [];
 
@@ -255,7 +257,7 @@ export class TweedehandsDataProvider implements DataProvider {
     }
     rows.sort((a, b) => (a.modelId === MODEL_ID_UNRESOLVED ? 1 : 0) - (b.modelId === MODEL_ID_UNRESOLVED ? 1 : 0) || a.modelId - b.modelId);
 
-    return { snapshotId, selection, selectionCount, rows };
+    return { snapshotId, selection, selectionCount, rows, unsupportedFilterIds: [] };
   }
 }
 

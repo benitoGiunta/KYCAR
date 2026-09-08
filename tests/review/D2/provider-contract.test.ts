@@ -57,6 +57,7 @@ const vide = (): AggregateResult<MakeAggregate> => ({
   selection: 'FULL:EMPTY',
   selectionCount: 0,
   rows: [],
+  unsupportedFilterIds: [],
 });
 
 const mode1Base = {

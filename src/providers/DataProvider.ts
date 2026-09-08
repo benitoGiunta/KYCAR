@@ -241,6 +241,15 @@ export interface AggregateResult<T extends MakeAggregate | ModelAggregate> {
   /** Effectif total de la sélection (avant regroupement) — le `<n> offres` d'EX-SCR-46. */
   readonly selectionCount: number;
   readonly rows: readonly T[];
+  /**
+   * NORMATIF (D-03) — identifiants de filtre présents dans la sélection que le provider n'a PAS
+   * appliqués. Un consommateur ne doit JAMAIS présenter l'effectif comme filtré si cette liste est
+   * non vide : `selectionCount` et `rows` portent alors une sélection PARTIELLE. Le contrôleur
+   * passe dans l'état dégradé `ET-FILTRE-NON-APPLIQUE` en nommant les filtres de cette liste, et
+   * `hasUserFilters` ne reflète que les filtres effectivement appliqués. Liste vide = la sélection
+   * a été appliquée intégralement.
+   */
+  readonly unsupportedFilterIds: readonly string[];
 }
 
 /* ================================================================================================
@@ -372,6 +381,13 @@ export interface DataProvider {
    * Effectif d'annonces d'une sélection, sans les agrégats (EX-SRCH-21 : le compteur partage le cycle
    * de recalcul mais peut être demandé seul, ex. `effectifInitial` d'une recherche sauvegardée
    * EX-CRUD-1). Toujours relatif au jeu de données courant (EX-SRCH-9quater).
+   */
+  /*
+   * D-03 : `fetchSelectionCount` rend un NOMBRE et n'a donc pas de résultat structuré où loger
+   * `unsupportedFilterIds`. Le contrat de non-publication reste entier : un appelant qui a besoin
+   * de savoir si la sélection a été appliquée intégralement lit `unsupportedFilterIds` sur
+   * `fetchAggregates` (même sélection, même provider, même table de correspondance) avant de
+   * présenter un effectif comme filtré.
    */
   fetchSelectionCount(handle: SnapshotHandle, selection: SelectionQuery): Promise<number>;
 

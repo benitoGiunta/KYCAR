@@ -200,7 +200,7 @@ describe('IndexedDB indisponible (EX-NFR-22, mode privé)', () => {
   });
   const snapshot: CachedSnapshot = {
     descriptor: { snapshotId: 'x' } as unknown as CachedSnapshot['descriptor'],
-    baseline: { snapshotId: 'x', selection: 'FULL:EMPTY', selectionCount: 0, rows: [] },
+    baseline: { snapshotId: 'x', selection: 'FULL:EMPTY', selectionCount: 0, rows: [], unsupportedFilterIds: [] },
     storedAt: '2026-09-08T00:00:00Z',
   };
 
