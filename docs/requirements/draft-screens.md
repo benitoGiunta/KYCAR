@@ -714,6 +714,8 @@ Concerne : `emclass`, `ensticker`, `bot`, `prevownersid`, `zipr`, `ustate`,
 filtre est de classe R : `Essence (412)`. Sémantique **OU** affichée en tête du groupe :
 `Au moins une de ces valeurs`. Concerne : `offer`, `fuel`, `body`, `gear`, `dtrain`,
 `cylinders`, `bcol`, `icol`, `ptype`, `uph`, `cy`, `pe_category`, `sealor`.
+En **mode 1**, l'effectif entre parenthèses n'est pas affiché : voir la dette architecturale
+ratifiée `D8-29` sous `EX-SCR-90` (§4.8). [amendée 2.8 — D8-29]
 
 `EX-SCR-66` — **Énumération multi-valeurs, n > 14** → panneau dédié avec champ de recherche
 interne, liste virtualisée, effectif de sélection en tête (`3 équipements sélectionnés`) et
@@ -1096,6 +1098,21 @@ catalogue de filtres non auditable contre `REF-filters.md`.
 affichés que pour les filtres de **classe R**, et ils sont calculés « toutes contraintes
 appliquées sauf le filtre courant » (facette leave-one-out). Pour les filtres de classe T,
 aucune parenthèse n'est affichée — et non une parenthèse vide.
+
+**Dette architecturale ratifiée (`D8-29`, 2.8) — `EX-SCR-89`/`90` en mode 1.** `EX-SCR-65`
+(§4.4) et les deux exigences ci-dessus supposent un effectif de facette calculable pour chaque
+option — y compris l'effectif nul d'`EX-SCR-89`. Or `O17` (élagage réalisé **avant** chargement)
+fait qu'en **mode 1** (agrégats servis sans ligne, `AGGREGATE_SURFACE`) aucun jeu de lignes n'est
+chargé : le calcul de facette leave-one-out qu'exige `EX-SCR-90` n'a alors **rien** sur quoi
+porter. En mode 1, les effectifs de facette `(n)` — `EX-SCR-90` — et le marquage `(0)` d'une
+option sans résultat — `EX-SCR-89` — **ne sont pas affichés** : `CheckboxList` ne rend **aucune**
+parenthèse, jamais un `(0)` par défaut ni une valeur inventée. Cette dette est distincte d'une
+régression : elle tient tant qu'aucun jeu n'est chargé, et se referme d'elle-même dès le passage
+en **mode 2** (`FV-06` y est corrigé en entier, `D8-05`). Condition de levée en mode 1 : une
+décision produit (accepter un calcul de facette approché sur les seuls agrégats servis) ou un
+`DataProvider` de mode 1 exposant lui-même des facettes (`DataProvider.facets()`, v2 de
+l'interface). Hors dépôt tant que l'une des deux conditions n'est pas remplie, au même titre
+qu'`EX-SCR-9`. [amendée 2.8 — D8-29]
 
 `EX-SCR-91` — **Compteur du bandeau replié** : il affiche le nombre de filtres **posés par
 l'utilisateur à une valeur autre que leur défaut relevé**, et non le nombre de filtres
@@ -1795,6 +1812,16 @@ présence de la chaîne partout où un verdict est rendu.
   exacts. Brossage et zoom sont désactivés pour `n ≤ 3` (infobulle
   `Sélection inutile en dessous de 4 offres`).
 - Seuil de bascule des légendes continues vers les légendes discrètes : `n < 8`.
+
+**Version bornée livrée, ratifiée (`D8-32`, 2.8).** La correction livrée en 2.8 retient le seuil
+(`n < 4` pour le brossage/zoom désactivés, `n < 8` pour la bascule de légende) et **l'atténuation**
+visuelle de la légende continue (texte atténué, taille réduite, annexe B), mais **pas** la
+reconstruction en pastilles/valeurs littérales exactes décrite ci-dessus pour `n ≤ 3`, ni le
+recentrage à `n = 1` : la légende reste la même légende continue, seulement atténuée. Aucune
+divergence normative sur le seuil ou sur le brossage — la différence porte uniquement sur
+l'habillage visuel à très faible effectif. Le passage à la version complète (pastilles et valeurs
+littérales exactes, recentrage à `n = 1`) reste une **dette de présentation, non bloquante**,
+ouverte pour un lot ultérieur si le produit l'exige au-delà de cette version. [amendée 2.8 — D8-32]
 
 `EX-SCR-160` — **`G4` sans année exploitable.** Si aucune annonce du périmètre ne porte de date
 de première immatriculation, `G4a` conserve sa nuée mais la dimension couleur est remplacée par

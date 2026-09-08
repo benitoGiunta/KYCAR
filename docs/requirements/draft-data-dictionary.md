@@ -247,8 +247,20 @@ lecture qui ne mente sur aucun des deux chiffres.
 `priceQuotedCount`, `priceOnRequestCount`, `priceMissingCount` et
 `priceCoverage = priceQuotedCount / listingCount` arrondi à 4 décimales. Quand
 `priceCoverage < 0,80`, l'agrégat porte `coverageWarning.price = true`.
+**Précision (`D8-32`, 2.8) — dénominateur sur une source d'agrégats.** Quand l'agrégat provient
+d'une **source d'agrégats** (mode 1, `AGGREGATE_SURFACE` : aucune ligne servie, seuls des
+agrégats le sont), `listingCount` porte un effectif **exhaustif** de facette sans rapport avec
+l'échantillon réellement lu ; appliquer la formule à la lettre rendrait `coverageWarning.price`
+**toujours vrai**, donc muet. Sur une telle source, le dénominateur de `priceCoverage` — et donc
+le seuil de `coverageWarning.price` — est l'effectif de l'**échantillon** sur lequel la
+statistique a été effectivement calculée (le même effectif que celui publié par `MetricRange.n`
+au sens d'`EX-DATA-61`), et l'agrégat déclare cet effectif à part (`sampleCoverage`,
+`EX-DATA-61bis`) plutôt que de le confondre avec `listingCount`. Sur un jeu **chargé** (lignes
+servies), la règle d'origine — dénominateur `listingCount` — reste inchangée.
 **Justification** : un prix médian calculé sur 40 % d'une population n'est pas faux, il est non
-représentatif — le seuil rend cette réserve mesurable au lieu de l'abandonner à l'appréciation.
+représentatif — le seuil rend cette réserve mesurable au lieu de l'abandonner à l'appréciation ;
+sur une source d'agrégats, ce même seuil calculé contre un effectif de facette exhaustif ne
+mesurerait plus rien. [amendée 2.8 — D8-32]
 
 **EX-DATA-18.** `priceStatus = MISSING` (prix absent **sans** `onRequestOnly`) est un état
 distinct de `ON_REQUEST`, marqué `ingestFlags += PRICE_MISSING_UNDECLARED`, et compté séparément.
@@ -472,6 +484,17 @@ d'annonce `…WithFallback`, dont la norme n'est pas déclarée.
 **Justification** : agréger une consommation NEDC et une consommation WLTP dans une même moyenne
 produit un chiffre sans signification, l'écart systématique entre les deux normes étant de l'ordre
 de 20 % ; la colonne de provenance permet de segmenter au lieu de mélanger.
+
+**Dette d'interface gelée ratifiée (`D8-32`, 2.8).** L'interface `DataProvider` v1
+(`ListingColumnBatch`, `EX-DATA-119`) ne porte **aucune** colonne `co2Source` : la provenance de
+la mesure ne peut donc pas être portée ligne par ligne côté provider **synthétique**, qui n'a pas
+accès à un champ source pour la dériver. Ce provider publie `co2Source = UNKNOWN` pour la totalité
+de ses lignes et **le déclare** plutôt que de le laisser muet : `unknownCountByField.co2Source =
+listingCount` et `coverageNote` explicitent que la totalité de l'effectif est concernée. Côté
+provider **réel**, où la provenance vit dans `NormalizedListing`, la règle de dérivation ci-dessus
+s'applique en entier et `EX-DATA-35` est tenue à la lettre. Levée prévue en **v2 de l'interface**
+`DataProvider` (une colonne d'un octet supplémentaire dans `ListingColumnBatch`, sans effet mesuré
+sur `EX-NFR-3` à 100 000 lignes). [amendée 2.8 — D8-32]
 
 ## A.6 Dictionnaire principal — blocs Motorisation, Carburant, Écologie, État, Carrosserie, Équipements, Géographie, Vendeur, Métadonnées
 
@@ -916,6 +939,22 @@ des treize valeurs suivantes, sans exception ni variante.
 Sur la colonne « Arrondi de présentation » : cet arrondi est celui d'`EX-DATA-6` et **prime sur
 toute règle de format d'écran** ; l'export CSV applique le même arrondi que l'écran.
 Les libellés d'affichage de `p05` et `p95` sont `P5` et `P95` (`EX-SCR-12`).
+
+**Précision (`D8-32`, 2.8) — portée de `count`.** `count` (`N = |Σ|`) est **le même nombre** pour
+les trois métriques (`price`, `mileage`, `year`) d'une même sélection : il est porté par le
+**conteneur** de l'agrégat (`SelectionStats.selectionCount` d'un `RecalcResult`, ou
+`MakeAggregate.listingCount`), et non répété à l'identique dans chacun des trois blocs
+`MetricStats` — le dupliquer trois fois publierait trois copies d'une même valeur sans rien
+ajouter. Le bloc de treize valeurs ci-dessus reste la référence normative de ce que l'ensemble
+conteneur + `MetricStats` doit publier pour une métrique : `count` au niveau du conteneur, les
+douze autres valeurs (`n`, `coverage`, `min`, `max`, `p05`, `q1`, `median`, `q3`, `p95`, `mean`,
+`sd`, `iqr`) au niveau de `MetricStats`. HYPOTHÈSE (`fix-docs-2`) : cette note suppose que
+`D8-30` — le calcul de `iqr` et de `coverage` dans `MetricStats` (`iqr = q3 − q1`,
+`coverage = n_m / N`), aujourd'hui deux littéraux `null` dans `src/engine/quantiles.ts` — est
+livré par `fix-engine-2` dans la même vague F3 que ce lot documentaire ; si `D8-30` n'aboutit
+pas, `iqr` et `coverage` restent `null` et le bloc ne publie alors que dix des treize valeurs, la
+présente note ne portant que sur la **structure** (où vit `count`), jamais sur le fait que
+`iqr`/`coverage` soient effectivement calculés. [amendée 2.8 — D8-32]
 
 **EX-DATA-65.** L'écart-type est celui **d'échantillon**, dénominateur `n − 1` (correction de
 Bessel), et vaut **`null`** — jamais `0` — pour `n = 1`.
