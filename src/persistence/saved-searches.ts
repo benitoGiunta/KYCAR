@@ -61,7 +61,13 @@ export function validateName(raw: string): string {
 export class SavedSearchStore {
   private readonly col: CappedCollection<SavedSearch>;
   constructor(backend: KvBackend) {
-    this.col = new CappedCollection<SavedSearch>({ backend, key: SAVED_SEARCHES_KEY, cap: SAVED_SEARCHES_CAP });
+    this.col = new CappedCollection<SavedSearch>({
+      backend,
+      key: SAVED_SEARCHES_KEY,
+      cap: SAVED_SEARCHES_CAP,
+      // `D-16`/`DR-096` : une clé `localStorage` par entrée, identifiée par son `id` opaque.
+      idOf: (s) => s.id,
+    });
   }
 
   list(): LoadedRecord<SavedSearch>[] {

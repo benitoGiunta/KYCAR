@@ -64,7 +64,12 @@ export function subscribeCrossTab(key: string, onChange: () => void): () => void
     return () => undefined;
   }
   const handler = (e: StorageEvent): void => {
-    if (e.key === null || e.key === key) onChange();
+    // `D-16`/`DR-096` : la collection s'étale désormais sur `<clé>`, `<clé>#index` et une clé par
+    // entrée `<clé>/<id>` — les trois formes réconcilient le même écran. `e.key === null` = effacement
+    // global. Une autre collection (préfixe différent) ne déclenche jamais ce rafraîchissement.
+    if (e.key === null || e.key === key || e.key.startsWith(`${key}#`) || e.key.startsWith(`${key}/`)) {
+      onChange();
+    }
   };
   window.addEventListener('storage', handler);
   return () => window.removeEventListener('storage', handler);

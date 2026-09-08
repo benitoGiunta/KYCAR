@@ -15,6 +15,9 @@ import { SavedSearchStore, CapExceededError, deriveMode, SAVED_SEARCHES_CAP } fr
 import { FollowedModelStore, FOLLOWED_MODELS_CAP } from './followed-models';
 import { RecentHistoryStore, RECENT_HISTORY_CAP } from './recent-history';
 import { createMemorySnapshotCache } from './snapshot-cache';
+import { createMemoryBaselineCache } from './baseline-cache';
+import { SAVED_SEARCHES_KEY } from './saved-searches';
+import { INDEX_KEY_SUFFIX } from './crud-store';
 
 describe('schema / migration (EX-CRUD-18)', () => {
   it('laisse une entrée à la version courante telle quelle', () => {
@@ -149,5 +152,30 @@ describe('cache de snapshot mémoire (EX-NFR-22)', () => {
     };
     await cache.write(snap);
     expect(await cache.read()).toBe(snap);
+  });
+});
+
+describe('D-16 / DR-096 — une clé par entrée plus un index ordonné', () => {
+  it('écrit `kycar:saved-searches/<id>` et l’index, jamais la collection entière', () => {
+    const backend = memoryBackend();
+    const store = new SavedSearchStore(backend);
+    const created = store.create({ nom: 'a', url: '/marche', effectifInitial: 1, snapshotInitial: 's' });
+    expect(backend.get(`${SAVED_SEARCHES_KEY}/${created.id}`)).not.toBeNull();
+    expect(JSON.parse(backend.get(`${SAVED_SEARCHES_KEY}${INDEX_KEY_SUFFIX}`) ?? '[]')).toEqual([created.id]);
+    // La clé « collection entière » du format historique n'est jamais créée par une écriture neuve.
+    expect(backend.get(SAVED_SEARCHES_KEY)).toBeNull();
+    store.remove(created.id);
+    expect(backend.get(`${SAVED_SEARCHES_KEY}/${created.id}`)).toBeNull();
+    expect(store.list()).toHaveLength(0);
+  });
+});
+
+describe('D-29 — cache de baseline injectable (point d’injection `baselineCache`)', () => {
+  it('le cache mémoire rend ce qu’il a mémorisé et s’hydrate sans lever', async () => {
+    const cache = createMemoryBaselineCache<{ n: number }>();
+    expect(cache.get('k')).toBeUndefined();
+    cache.set('k', { n: 1 });
+    await cache.hydrate();
+    expect(cache.get('k')).toEqual({ n: 1 });
   });
 });

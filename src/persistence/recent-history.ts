@@ -20,10 +20,24 @@ export interface RecentEntry extends Versioned {
   readonly visiteLe: string;
 }
 
+/** Identité stable d'une visite (`D-16`) : empreinte courte de l'URL et de l'horodatage — deux
+ * visites successives de la même URL restent deux entrées distinctes. */
+function entryId(entry: RecentEntry): string {
+  const source = `${entry.url}|${entry.visiteLe}`;
+  let h = 5381;
+  for (let i = 0; i < source.length; i += 1) h = ((h * 33) ^ source.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
 export class RecentHistoryStore {
   private readonly col: CappedCollection<RecentEntry>;
   constructor(backend: KvBackend) {
-    this.col = new CappedCollection<RecentEntry>({ backend, key: RECENT_HISTORY_KEY, cap: RECENT_HISTORY_CAP });
+    this.col = new CappedCollection<RecentEntry>({
+      backend,
+      key: RECENT_HISTORY_KEY,
+      cap: RECENT_HISTORY_CAP,
+      idOf: entryId,
+    });
   }
 
   list(): LoadedRecord<RecentEntry>[] {
@@ -35,6 +49,18 @@ export class RecentHistoryStore {
    * (« jeu de filtres différent du précédent »). Insère en tête, tronque à 10 (FIFO, EX-CRUD-12).
    */
   visit(url: string): void {
+    // `DR-153` (`EX-CRUD-11`/`12`) : l'historique automatique est SILENCIEUX — un quota plein (ou
+    // tout autre refus d'écriture) ne doit jamais faire échouer un rendu de la coquille. L'échec est
+    // journalisé, jamais propagé (contrairement aux collections NOMMÉES, qui refusent bruyamment).
+    try {
+      this.visitOrThrow(url);
+    } catch (e) {
+      console.warn('KYCAR: historique récent non enregistré (écriture refusée)', e);
+    }
+  }
+
+  /** Cœur de `visit`, sans absorption d'erreur (testable). */
+  private visitOrThrow(url: string): void {
     this.col.mutate((current) => {
       const values = current.map((r) => r.value);
       if (values.length > 0 && values[0]!.url === url) return values; // identique au précédent

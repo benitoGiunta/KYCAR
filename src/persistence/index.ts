@@ -16,7 +16,7 @@ export type { SchemaStatus, Versioned, Migration } from './schema';
 export { memoryBackend, browserLocalStorageBackend, subscribeCrossTab } from './kv';
 export type { KvBackend } from './kv';
 
-export { CappedCollection, CapExceededError } from './crud-store';
+export { CappedCollection, CapExceededError, CorruptCollectionError } from './crud-store';
 export type { LoadedRecord } from './crud-store';
 
 export {
@@ -40,6 +40,9 @@ export { RecentHistoryStore, createRecentHistoryStore, RECENT_HISTORY_CAP } from
 export type { RecentEntry } from './recent-history';
 
 export { createMemorySnapshotCache, createIndexedDbSnapshotCache } from './snapshot-cache';
+
+export { createIndexedDbBaselineCache, createMemoryBaselineCache } from './baseline-cache';
+export type { SyncValueCache, HydratableCache } from './baseline-cache';
 
 export { PreferencesStore, createPreferencesStore, DEFAULT_PREFERENCES } from './preferences';
 export type { Preferences } from './preferences';

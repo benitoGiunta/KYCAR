@@ -28,7 +28,13 @@ function keyOf(makeId: number, modelId: number): string {
 export class FollowedModelStore {
   private readonly col: CappedCollection<FollowedModel>;
   constructor(backend: KvBackend) {
-    this.col = new CappedCollection<FollowedModel>({ backend, key: FOLLOWED_MODELS_KEY, cap: FOLLOWED_MODELS_CAP });
+    this.col = new CappedCollection<FollowedModel>({
+      backend,
+      key: FOLLOWED_MODELS_KEY,
+      cap: FOLLOWED_MODELS_CAP,
+      // `D-16`/`DR-096` : une clé par couple marque/modèle (identité naturelle de l'entité).
+      idOf: (m) => keyOf(m.makeId, m.modelId),
+    });
   }
 
   list(): LoadedRecord<FollowedModel>[] {
