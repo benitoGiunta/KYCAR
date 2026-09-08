@@ -57,7 +57,12 @@ Détails d'environnement, pièges (worktrees, node_modules, timeouts) et contrai
 Principe : **une session coordinatrice** (Fable 5.1, effort high) planifie, lance, fusionne et
 valide ; **des sous-agents** exécutent, chacun avec un modèle et un effort choisis pour la tâche.
 Le modèle et l'effort de chaque rôle sont **déclarés dans `.claude/agents/<rôle>.md`** (frontmatter
-`model:` / `effort:`), qui fait foi ; la table ci-dessous en est le résumé. Règles de choix :
+`model:` / `effort:`), qui fait foi ; la table ci-dessous en est le résumé.
+
+Mécanique de lancement (constatée le 2026-09-08) : les fiches de `.claude/agents/` ne sont chargées
+qu'au **démarrage** d'une session. Dans une session déjà ouverte, le coordinateur lance le type
+générique avec le paramètre `model` explicite et impose l'effort dans la mission (« lis ta fiche
+`.claude/agents/<rôle>.md`, effort <niveau> ») ; la fiche reste la référence du rôle. Règles de choix :
 
 | Nature de la tâche | Modèle | Effort |
 |---|---|---|
