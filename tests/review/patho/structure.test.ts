@@ -10,6 +10,18 @@
 import { describe, expect, it } from 'vitest';
 
 import { AggregationDataset } from '../../../src/engine/index';
+import { loadReferenceData, openSyntheticProvider } from '../../../src/engine/testkit';
+import { decodeListingId } from '../../../src/engine/uuid';
+import { servesMode2 } from '../../../src/providers/DataProvider';
+import { TweedehandsDataProvider } from '../../../src/providers/tweedehands/TweedehandsDataProvider';
+import type { TweedehandsFetcher } from '../../../src/providers/tweedehands/fetcher';
+import type { RawSearchResponse } from '../../../src/providers/tweedehands/nextData';
+import {
+  buildFixtureHtml,
+  loadRealReferenceData,
+  makeRawListing,
+} from '../../../src/providers/tweedehands/testFixtures';
+import { hasIngestFlag } from '../../../src/types/vocabularies';
 import { matchRoute, resolveTaxonomyRoute } from '../../../src/state/router';
 import type { ModelDistributionRoute } from '../../../src/state/router';
 import { buildListingRow, readListingString, STRING_FIELD } from '../../../src/screens/listings/listing-fields';
@@ -112,26 +124,95 @@ describe('patho — doublons (ADV-05 → ARB-54)', () => {
     ];
   }
 
-  it('R-PATHO-09 (moteur) — doublon exact : le moteur ne rattrape pas l’absence de déduplication', async () => {
-    // `EX-DATA-15` : « la PREMIÈRE occurrence d'un `listingId` dans cet ordre est conservée ; les
-    // suivantes sont écartées. » Aucun maillon de la chaîne provider → moteur ne déduplique.
+  /** Fetcher de fixture (aucun réseau, E5) : rejoue UNE réponse pour toute requête. */
+  function tweedehandsOn(listings: RawSearchResponse['listings']): TweedehandsDataProvider {
+    const html = buildFixtureHtml({ totalResultCount: 5220, listings });
+    const fetcher: TweedehandsFetcher = { fetchSearchPage: (): Promise<string> => Promise.resolve(html) };
+    return new TweedehandsDataProvider({
+      referenceData: loadRealReferenceData(),
+      marketplace: 'be',
+      fetcher,
+      makeUniverse: [{ makeId: 54, slug: 'opel' }],
+    });
+  }
+
+  const corsa = (itemId: string, priceCents: number): ReturnType<typeof makeRawListing> =>
+    makeRawListing({ itemId, brand: 'Opel', model: 'Corsa', priceCents, mileage: '60000 km', constructionYear: '2019' });
+
+  // Sondes REQUALIFIÉES (D-46, justification D-31). Elles exigeaient que le MOTEUR rattrape un lot
+  // porteur de doublons. Le fix-lead a tranché : la déduplication d'`EX-DATA-15` est une
+  // responsabilité d'INGESTION (DR-003/004, livrées par fix-providers) ; une seconde passe dans le
+  // moteur doublerait le coût du chemin synchrone sans qu'aucune exigence la demande. Ce qui doit
+  // être prouvé est donc l'autre moitié : le moteur ne reçoit JAMAIS de lot porteur de doublons,
+  // quel que soit le provider. Le constat « le moteur compte ce qu'on lui donne » reste mesuré ici,
+  // en tête, pour que la requalification ne masque rien.
+  it('R-PATHO-09 (moteur) — le moteur ne déduplique pas ; les DEUX providers ne lui livrent que des lots dédupliqués', async () => {
+    // 1. Constat assumé : sur un lot FABRIQUÉ porteur de deux fois le même `listingId`, le moteur
+    //    compte deux annonces. Aucune passe de déduplication n'existe dans `src/engine`.
     const recalc = await recalcOf(duplicate(12900, 12900));
-    expect(recalc.selectionStats.selectionCount).toBe(13);
-    expect(recalc.selectionStats.price.n).toBe(13);
+    expect(recalc.selectionStats.selectionCount).toBe(14);
+    expect(recalc.selectionStats.price.n).toBe(14);
+
+    // 2. Provider SYNTHÉTIQUE — le seul qui serve des lots colonnaires au moteur (mode 2) : le lot
+    //    livré ne porte aucun `listingId` en double, et le descripteur le MESURE (EX-DATA-15).
+    const synth = await openSyntheticProvider(loadReferenceData(), 5000, 7);
+    const handleS = await synth.openSnapshot();
+    expect(servesMode2(synth)).toBe(true);
+    const batchS = await synth.fetchListingColumns(handleS, 'FULL');
+    const seen = new Set<string>();
+    let collisions = 0;
+    for (let row = 0; row < batchS.rowCount; row += 1) {
+      const id = decodeListingId(batchS.listingId, row);
+      if (seen.has(id)) collisions += 1;
+      else seen.add(id);
+    }
+    expect(collisions).toBe(0);
+    expect(handleS.descriptor.duplicateListingCount).toBe(0);
+
+    // 3. Provider RÉEL (`AGGREGATE_SURFACE`) : il ne sert aucun lot au moteur (mode 2 indisponible),
+    //    et l'échantillon qui porte ses agrégats est dédupliqué — la seconde occurrence est écartée,
+    //    comptée, jamais servie.
+    const real = tweedehandsOn([corsa('dup-m1', 1290000), corsa('dup-m1', 1290000)]);
+    expect(servesMode2(real)).toBe(false);
+    const handleR = await real.openSnapshot();
+    const opel = (await real.fetchBaselineAggregates(handleR)).rows[0]!;
+    expect(opel.price.n).toBe(1);
+    expect(handleR.descriptor.listingCount).toBe(1);
+    expect(handleR.descriptor.duplicateListingCount).toBe(1);
   });
 
-  it('R-PATHO-10 (moteur) — doublon à prix divergents : deux prix pour un même listingId, aucun signal', async () => {
-    // `ARB-54` : l'occurrence conservée porte `DUPLICATE_VALUE_CONFLICT` et le snapshot incrémente
-    // `duplicateValueConflictCount` ; ici les deux prix entrent, et rien ne les distingue.
+  it('R-PATHO-10 (moteur) — doublon à prix divergents : le conflit est tranché ET signalé à l’ingestion, jamais deux prix pour un listingId', async () => {
+    // 1. Constat assumé, même lot fabriqué : le moteur laisse passer les deux prix.
     const recalc = await recalcOf(duplicate(12900, 10500));
-    expect(recalc.selectionStats.price.n).toBe(13);
-    expect(recalc.selectionStats.price.min).toBeGreaterThan(10500);
+    expect(recalc.selectionStats.price.n).toBe(14);
 
     const batch = buildBatch(duplicate(12900, 10500));
     const rowA = buildListingRow(batch, 12, new OutlierIndex([]));
     const rowB = buildListingRow(batch, 13, new OutlierIndex([]));
     expect(rowA.listingId).toBe(rowB.listingId); // même identifiant, deux prix
     expect(rowA.priceEur).not.toBe(rowB.priceEur);
+
+    // 2. Provider RÉEL : `ARB-54` appliqué — une seule occurrence conservée (la PREMIÈRE de l'ordre
+    //    total), porteuse de `DUPLICATE_VALUE_CONFLICT`, et le prix divergent n'entre dans aucun
+    //    agrégat servi.
+    const real = tweedehandsOn([corsa('dup-m2', 1290000), corsa('dup-m2', 1050000)]);
+    const handleR = await real.openSnapshot();
+    const opel = (await real.fetchBaselineAggregates(handleR)).rows[0]!;
+    expect(opel.price.n).toBe(1);
+    expect(opel.price.min).toBe(12900);
+    expect(handleR.descriptor.duplicateValueConflictCount).toBe(1);
+    expect(handleR.descriptor.ingestFlagCounts.DUPLICATE_VALUE_CONFLICT).toBe(1);
+
+    // 3. Provider SYNTHÉTIQUE : aucun conflit à signaler, parce qu'aucun doublon n'existe.
+    const synth = await openSyntheticProvider(loadReferenceData(), 5000, 7);
+    const handleS = await synth.openSnapshot();
+    expect(handleS.descriptor.duplicateValueConflictCount).toBe(0);
+    const batchS = await synth.fetchListingColumns(handleS, 'FULL');
+    let flagged = 0;
+    for (let row = 0; row < batchS.rowCount; row += 1) {
+      if (hasIngestFlag(batchS.ingestFlags[row] as number, 'DUPLICATE_VALUE_CONFLICT')) flagged += 1;
+    }
+    expect(flagged).toBe(0);
   });
 
   it('STR-DEUX-PAYS — la même annonce reçue sous deux pays reste comptée deux fois (même cause qu’ADV-05)', async () => {
