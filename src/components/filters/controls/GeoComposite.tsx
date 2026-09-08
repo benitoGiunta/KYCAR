@@ -41,7 +41,14 @@ export function GeoComposite({
         value={locationValue ?? ''}
         onInput={(e) => {
           const raw = (e.currentTarget as HTMLInputElement).value;
-          onChange({ filterId: locationDef.id, value: raw.length > 0 ? raw : undefined, gesture: 'keystroke' });
+          onChange({
+            filterId: locationDef.id,
+            value: raw.length > 0 ? raw : undefined,
+            gesture: 'keystroke',
+            // `EX-SRCH-6`/`DR-058` : la longueur courante gouverne le débounce (`resolveDebounceMs`) —
+            // aucun commit n'est planifié en dessous de `POSTAL_CODE_MIN_CHARS`.
+            valueLength: raw.length,
+          });
         }}
       />
       <select

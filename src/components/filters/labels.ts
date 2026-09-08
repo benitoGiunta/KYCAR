@@ -67,6 +67,15 @@ export function semanticsWarningTooltip(def: FilterDef): string | undefined {
  * Jetons de la ligne des filtres actifs (EX-SCR-75)
  * ============================================================================================== */
 
+/** Une cible de retrait UNITAIRE dans l'infobulle d'un jeton à cardinal (`EX-SCR-76` « en
+ * substance », `D-10`, `DR-062`) : chaque valeur de l'énumération porte sa propre croix. */
+export interface ActiveFilterRemovalTarget {
+  readonly label: string;
+  /** Codes que ce retrait unitaire précis enlève du filtre (toujours un sous-ensemble STRICT de
+   * `removesCodes` du jeton parent — jamais la totalité, sinon c'est la croix du jeton lui-même). */
+  readonly removesCodes: readonly string[];
+}
+
 export interface ActiveFilterToken {
   /** Identifiant stable du jeton (id du filtre, ou de la borne basse pour un intervalle). */
   readonly key: string;
@@ -76,6 +85,15 @@ export interface ActiveFilterToken {
   readonly text: string;
   /** Énumération complète, à afficher en infobulle uniquement au-delà de 2 valeurs. */
   readonly tooltip?: string;
+  /** Codes qu'un clic sur la croix PRINCIPALE du jeton retire — présent pour un jeton d'énumération
+   * (`D-10`, `DR-062`) ; absent pour un jeton d'un autre type (le retrait passe alors uniquement
+   * par `filterIds`, ex. intervalle, booléen, texte). */
+  readonly removesCodes?: readonly string[];
+  /** Au-delà de 2 valeurs (`EX-SCR-75`), une cible de retrait par valeur pour l'infobulle du jeton
+   * — le retrait unitaire d'`EX-SCR-76` est ainsi satisfait « en substance » sans multiplier les
+   * jetons de premier niveau (`D-10`). Absent pour un jeton à 1 ou 2 valeurs (déjà retirables
+   * séparément via `removesCodes`/`filterIds` sans infobulle). */
+  readonly removalTargets?: readonly ActiveFilterRemovalTarget[];
 }
 
 function toCodeArray(value: FilterValue): string[] {
@@ -87,14 +105,20 @@ function formatEnumToken(def: FilterDef, value: FilterValue): ActiveFilterToken 
   const codes = toCodeArray(value);
   if (codes.length === 0) return null;
   const labels = codes.map((c) => resolveOptionLabel(def, c));
+  // `ARB-12`/`DR-056` : le jeton porte TOUJOURS le libellé du filtre ET sa valeur — jamais la
+  // valeur seule, contre-mesure unique du lien tronqué (« Prix : à partir de 50 € », pas « Prix »).
   if (labels.length <= 2) {
-    return { key: def.id, filterIds: [def.id], text: labels.join(', ') };
+    return { key: def.id, filterIds: [def.id], text: `${def.label} : ${labels.join(', ')}`, removesCodes: codes };
   }
   return {
     key: def.id,
     filterIds: [def.id],
     text: `${def.label} : ${labels.length} valeurs`,
     tooltip: labels.join(', '),
+    removesCodes: codes,
+    // `D-10`/`DR-062` : un jeton UNIQUE portant le cardinal, l'infobulle liste chaque valeur avec
+    // sa propre cible de retrait — jamais un jeton de premier niveau par valeur.
+    removalTargets: codes.map((code, i) => ({ label: labels[i]!, removesCodes: [code] })),
   };
 }
 
@@ -102,6 +126,16 @@ function formatBooleanToken(def: FilterDef, value: FilterValue): ActiveFilterTok
   const code = Array.isArray(value) ? String(value[0] ?? '') : String(value);
   if (code.length === 0 || code !== (def.booleanTrueCode ?? '1')) return null;
   return { key: def.id, filterIds: [def.id], text: def.label };
+}
+
+/** Nom du CONCEPT porté par un couple d'intervalle, sans le suffixe directionnel du libellé de sa
+ * borne (« Prix de » / « Prix à » → « Prix », « Nombre de portes (min)/(max) » → « Nombre de
+ * portes ») — `ARB-12`/`DR-056` : le jeton d'un intervalle porte lui aussi son libellé, pas
+ * seulement sa valeur. */
+function intervalConceptLabel(fromDef: FilterDef): string {
+  return fromDef.label
+    .replace(/\s+(de|à)$/i, '')
+    .replace(/\s*\((min|max)\)$/i, '');
 }
 
 function formatIntervalToken(
@@ -115,17 +149,18 @@ function formatIntervalToken(
   const to = typeof toRaw === 'number' ? toRaw : undefined;
   if (from === undefined && to === undefined) return null;
   const unit = fromDef.unit ?? toDef.unit;
+  const label = intervalConceptLabel(fromDef);
   if (from !== undefined && to !== undefined) {
     return {
       key: fromDef.id,
       filterIds: [fromDef.id, toDef.id],
-      text: `${formatNumberFr(from, unit)} – ${formatNumberFr(to, unit)}`,
+      text: `${label} : ${formatNumberFr(from, unit)} – ${formatNumberFr(to, unit)}`,
     };
   }
   if (from !== undefined) {
-    return { key: fromDef.id, filterIds: [fromDef.id], text: `≥ ${formatNumberFr(from, unit)}` };
+    return { key: fromDef.id, filterIds: [fromDef.id], text: `${label} : ≥ ${formatNumberFr(from, unit)}` };
   }
-  return { key: toDef.id, filterIds: [toDef.id], text: `≤ ${formatNumberFr(to as number, unit)}` };
+  return { key: toDef.id, filterIds: [toDef.id], text: `${label} : ≤ ${formatNumberFr(to as number, unit)}` };
 }
 
 function formatTextToken(def: FilterDef, value: FilterValue): ActiveFilterToken | null {
@@ -175,13 +210,16 @@ export function buildActiveFilterTokens(selection: SelectionState): readonly Act
       case 'range_min':
       case 'range_max':
       case 'number': {
+        // Atteint seulement par une borne SANS jumeau (`leasingYearlyIncludedMileageFrom`, seul
+        // `range_min` du registre sans `pairedWith`) : les couples passent tous par
+        // `formatIntervalToken` ci-dessus.
         const n = typeof value === 'number' ? value : Array.isArray(value) ? Number(value[0]) : Number(value);
         if (Number.isFinite(n)) {
           const isMax = def.scopeType === 'range_max';
           token = {
             key: def.id,
             filterIds: [def.id],
-            text: `${isMax ? '≤' : '≥'} ${formatNumberFr(n, def.unit)}`,
+            text: `${intervalConceptLabel(def)} : ${isMax ? '≤' : '≥'} ${formatNumberFr(n, def.unit)}`,
           };
         }
         break;

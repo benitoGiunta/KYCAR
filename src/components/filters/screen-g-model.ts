@@ -28,6 +28,18 @@ export interface ModelRow {
   readonly count: number | null;
 }
 
+/**
+ * `DR-060` : quand une carte d'effectifs (`counts`) est fournie par l'appelant, une entrée ABSENTE
+ * de cette carte rend `null` (« — », `ET-CHAMP-MANQUANT`), jamais un repli sur `announcedCount` —
+ * qui n'est PAS relatif au périmètre filtré courant (`EX-SCR-216`). Quand `counts` lui-même est
+ * absent (aucune carte remontée du tout par l'appelant), le repli `announcedCount` reste la
+ * meilleure information disponible.
+ */
+function resolveCount<K>(key: K, counts: ReadonlyMap<K, number> | undefined, fallback: number | null): number | null {
+  if (counts === undefined) return fallback;
+  return counts.get(key) ?? null;
+}
+
 function sortRows<T extends { readonly count: number | null }>(rows: T[], label: (r: T) => string): T[] {
   return rows.slice().sort((a, b) => {
     const ac = a.count ?? -1;
@@ -45,7 +57,7 @@ export function searchMakes(
 ): readonly MakeRow[] {
   const q = norm(query.trim());
   const filtered = q.length === 0 ? reference.makes : reference.makes.filter((m) => norm(m.label).includes(q));
-  const rows = filtered.map((make) => ({ make, count: counts?.get(make.makeId) ?? make.announcedCount }));
+  const rows = filtered.map((make) => ({ make, count: resolveCount(make.makeId, counts, make.announcedCount) }));
   return sortRows(rows, (r) => r.make.label);
 }
 
@@ -63,7 +75,7 @@ export function searchModels(
   const filtered = q.length === 0 ? all : all.filter((m) => norm(m.label).includes(q));
   const rows = filtered.map((model) => ({
     model,
-    count: counts?.get(`${model.makeId}:${model.modelId}`) ?? model.announcedCount,
+    count: resolveCount(`${model.makeId}:${model.modelId}`, counts, model.announcedCount),
   }));
   return sortRows(rows, (r) => r.model.label);
 }
