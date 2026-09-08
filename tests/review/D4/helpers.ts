@@ -71,7 +71,7 @@ export function makeBatch(
   const mileageKm = new Int32Array(n);
   const firstRegistrationYearMonth = new Int32Array(n);
   const modelId = new Int32Array(n);
-  const makeId = new Int16Array(n);
+  const makeId = new Int32Array(n);
   const modelYear = new Int16Array(n);
   const powerKw = new Int16Array(n);
   const co2 = new Int16Array(n).fill(NUMERIC_UNKNOWN);

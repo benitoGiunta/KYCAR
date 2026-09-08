@@ -69,7 +69,7 @@ export const LISTING_COLUMNS: readonly ColumnDescriptor[] = [
   { name: 'mileageKm', physical: 'Int32Array', sentinel: NUM, vocabulary: null, scale: 1, hotPath: true },
   { name: 'firstRegistrationYearMonth', physical: 'Int32Array', sentinel: NUM, vocabulary: null, scale: 1, hotPath: true },
   { name: 'modelId', physical: 'Int32Array', sentinel: { kind: 'reserved-zero' }, vocabulary: null, scale: 1, hotPath: true },
-  { name: 'makeId', physical: 'Int16Array', sentinel: NONE, vocabulary: null, scale: 1, hotPath: true },
+  { name: 'makeId', physical: 'Int32Array', sentinel: NONE, vocabulary: null, scale: 1, hotPath: true },
   { name: 'modelYear', physical: 'Int16Array', sentinel: NUM, vocabulary: null, scale: 1, hotPath: true },
   { name: 'powerKw', physical: 'Int16Array', sentinel: NUM, vocabulary: null, scale: 1, hotPath: true },
   { name: 'co2EmissionsGPerKmX10', physical: 'Int16Array', sentinel: NUM, vocabulary: null, scale: 10, hotPath: true },

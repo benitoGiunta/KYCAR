@@ -261,7 +261,7 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
 
   const quotedRows: number[] = [];
   const quotedFair: number[] = [];
-  const makeIdByRow = new Int16Array(count);
+  const makeIdByRow = new Int32Array(count);
   const modelIdByRow = new Int32Array(count);
   const uuidBytes = new Uint8Array(count * 16);
 
@@ -536,7 +536,7 @@ function injectOutliers(
   batch: ListingColumnBatch,
   quotedRows: readonly number[],
   quotedFair: readonly number[],
-  makeIdByRow: Int16Array,
+  makeIdByRow: Int32Array,
   modelIdByRow: Int32Array,
   seed: number,
   rate: number,

@@ -114,7 +114,7 @@ export function buildBatch(specs: readonly RowSpec[], options: BuildBatchOptions
   const mileageKm = new Int32Array(n);
   const firstRegistrationYearMonth = new Int32Array(n);
   const modelId = new Int32Array(n);
-  const makeId = new Int16Array(n);
+  const makeId = new Int32Array(n);
   const modelYear = new Int16Array(n);
   const powerKw = new Int16Array(n);
   const co2EmissionsGPerKmX10 = new Int16Array(n);

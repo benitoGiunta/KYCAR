@@ -270,7 +270,7 @@ export interface ListingColumnBatch {
   readonly mileageKm: Int32Array;                   // sentinelle -1
   readonly firstRegistrationYearMonth: Int32Array;  // 12*année + (mois-1), sentinelle -1
   readonly modelId: Int32Array;                     // 0 = non résolu
-  readonly makeId: Int16Array;
+  readonly makeId: Int32Array;                      // ids AutoScout24 réels > 32 767 (D-02, DR-007)
   readonly modelYear: Int16Array;                   // sentinelle -1
   readonly powerKw: Int16Array;                     // sentinelle -1
   readonly co2EmissionsGPerKmX10: Int16Array;       // sentinelle -1

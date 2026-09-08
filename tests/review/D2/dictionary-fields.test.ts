@@ -26,8 +26,10 @@ describe('D2 — disposition physique (EX-DATA-119) : 8 champs échantillonnés'
     expect(col('mileageKm')?.sentinel).toEqual({ kind: 'numeric', value: -1 });
   });
 
-  it('# 16 makeId — Int16Array sans sentinelle (OBL) ; # 18 modelId — Int32Array, 0 réservé', () => {
-    expect(col('makeId')?.physical).toBe('Int16Array');
+  it('# 16 makeId — Int32Array sans sentinelle (OBL, D-02) ; # 18 modelId — Int32Array, 0 réservé', () => {
+    // D-02 / DR-007 : la colonne est élargie de Int16Array à Int32Array (max makeId observé 53 488
+    // dans data/reference/taxonomy.json, > 32 767). Amendement de l'interface gelée 2.3.
+    expect(col('makeId')?.physical).toBe('Int32Array');
     expect(col('makeId')?.sentinel.kind).toBe('none');
     expect(col('modelId')?.physical).toBe('Int32Array');
     expect(col('modelId')?.sentinel.kind).toBe('reserved-zero');

@@ -78,7 +78,7 @@ function batchVide(): ListingColumnBatch {
     mileageKm: new Int32Array(0),
     firstRegistrationYearMonth: new Int32Array(0),
     modelId: new Int32Array(0),
-    makeId: new Int16Array(0),
+    makeId: new Int32Array(0),
     modelYear: new Int16Array(0),
     powerKw: new Int16Array(0),
     co2EmissionsGPerKmX10: new Int16Array(0),

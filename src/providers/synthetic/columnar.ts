@@ -65,7 +65,7 @@ interface MutableColumns {
   mileageKm: Int32Array;
   firstRegistrationYearMonth: Int32Array;
   modelId: Int32Array;
-  makeId: Int16Array;
+  makeId: Int32Array;
   modelYear: Int16Array;
   powerKw: Int16Array;
   co2EmissionsGPerKmX10: Int16Array;
@@ -101,7 +101,7 @@ function allocColumns(rowCount: number): MutableColumns {
     mileageKm: new Int32Array(rowCount),
     firstRegistrationYearMonth: new Int32Array(rowCount),
     modelId: new Int32Array(rowCount),
-    makeId: new Int16Array(rowCount),
+    makeId: new Int32Array(rowCount),
     modelYear: new Int16Array(rowCount),
     powerKw: new Int16Array(rowCount),
     co2EmissionsGPerKmX10: new Int16Array(rowCount),
