@@ -30,6 +30,7 @@ import {
 import { compilePredicates } from '../engine/predicates';
 import { FILTER_DEFAULTS } from '../state/filter-registry';
 import type { SelectionState } from '../state/filter-types';
+import { resolveTaxonomyRoute } from '../state/router';
 import { partitionSelection, splitSelection } from '../state/tr-split';
 import type { ReferenceData } from '../types/reference';
 import { serializeSelection } from '../types/selection';
@@ -245,6 +246,21 @@ export class DataController {
    */
   async enterMode2(makeId: number, modelId: number, selection: SelectionState = {}): Promise<Mode2Payload> {
     if (this.handle === null) throw new Error('DataController.enterMode2: snapshot indisponible');
+
+    // `DR-099` (`EX-NAV-19`/`20`) : la route est VALIDÉE contre la taxonomie avant tout aller
+    // provider — une marque inconnue ou un modèle hors marque produit un écran d'erreur nommé, pas
+    // un écran B vide. `modelId = 0` reste une route valide (`ADV-14`/`EX-DATA-72`).
+    const resolved = resolveTaxonomyRoute(
+      { name: 'modelDistribution', makeId, makeSlug: '', modelId, modelSlug: '' },
+      this.ref,
+    );
+    if (!resolved.ok) {
+      throw new Error(
+        resolved.error.kind === 'unknownMake'
+          ? `DataController.enterMode2 : marque inconnue (${makeId})`
+          : `DataController.enterMode2 : ce modèle n’existe pas pour cette marque (${makeId}/${modelId})`,
+      );
+    }
 
     const provider = this.mode2Provider();
     const tSelection = `make=${makeId};model=${modelId}`;

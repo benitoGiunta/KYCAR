@@ -18,7 +18,7 @@ import type { SelectionState } from './state/filter-types';
 import { assembleUrl, serializeQuery } from './state/url-codec';
 import { loadQuery } from './state/corrections';
 import { FILTER_DEFAULTS } from './state/filter-registry';
-import { buildPath } from './state/router';
+import { buildPath, carryFiltersAcrossMode, resolveTaxonomyRoute, type TaxonomyRouteResult } from './state/router';
 import { FilterBand } from './components/filters/FilterBand';
 import {
   deriveScreenAState,
@@ -49,7 +49,7 @@ import {
 import { SavedSearchesScreen } from './screens/saved/index';
 import { FollowedScreen } from './screens/followed/index';
 import { MentionsPage } from './screens/mentions/index';
-import { resolveView, currentLocation, type AppView } from './app/navigation';
+import { resolveView, routeOfView, currentLocation, type AppView } from './app/navigation';
 import { CapExceededError } from './persistence/index';
 import type {
   SavedSearchStore,
@@ -119,6 +119,35 @@ export function App(props: AppProps): JSX.Element {
     [selection],
   );
 
+  // ---- Validation taxonomique et canonisation de la route (DR-099, EX-NAV-19/20, EX-SCR-140) ----
+  const taxonomyRoute = useMemo<TaxonomyRouteResult | null>(() => {
+    const route = routeOfView(view);
+    return route === null ? null : resolveTaxonomyRoute(route, referenceData);
+  }, [view, referenceData]);
+
+  /**
+   * `EX-SCR-140` (`DR-099`, `R-D8-15`/`R-D8-16`) — canonisation de la route par `replaceState` :
+   *  - route héritée `/` (`EX-SCR-49`) → `/marche` ;
+   *  - route héritée `/modele/:makeId/:modelId` (annexe C §A.1) et slug erroné → forme canonique
+   *    calculée par `resolveTaxonomyRoute` (les identifiants font foi, le slug est cosmétique).
+   * La requête (filtres + état d'interface) est conservée telle quelle : la canonisation ne change
+   * jamais la sélection, seulement le chemin.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (view.kind === 'market' && location.pathname !== '/marche') {
+      navigate(`/marche${location.search}`, 'replace');
+      return;
+    }
+    if (taxonomyRoute === null || !taxonomyRoute.ok) return;
+    const canonical = taxonomyRoute.route;
+    const received = routeOfView(view);
+    if (received === null) return;
+    if (received.makeSlug !== canonical.makeSlug || received.modelSlug !== canonical.modelSlug) {
+      navigate(`${buildPath(canonical)}${location.search}`, 'replace');
+    }
+  }, [view, taxonomyRoute, location.pathname, location.search, navigate]);
+
   // ---- Démarrage du contrôleur (acquisition du snapshot, EX-NFR-21/22) --------------------------
   const [start, setStart] = useState<StartResult | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
@@ -179,6 +208,9 @@ export function App(props: AppProps): JSX.Element {
   useEffect(() => {
     if (start === null) return;
     if (view.kind !== 'modelDistribution' && view.kind !== 'modelListings') return;
+    // `DR-099` : aucune entrée en mode 2 sur une route invalide — l'écran d'erreur EX-NAV-19/20 est
+    // rendu à la place, sans aller provider ni moteur.
+    if (taxonomyRoute !== null && !taxonomyRoute.ok) return;
     // `DR-006` : la clé d'entrée en mode 2 dépend du couple ET de la requête courante — un changement
     // de filtre du bandeau mode 2 doit RECALCULER, pas seulement réécrire l'URL.
     const key = `${view.makeId}:${view.modelId}:${currentQuery}:${mode2Attempt}`;
@@ -188,7 +220,7 @@ export function App(props: AppProps): JSX.Element {
       .enterMode2(view.makeId, view.modelId, selection)
       .then((payload) => setMode2({ key, status: 'ready', payload }))
       .catch((e) => setMode2({ key, status: 'error', errorCode: e instanceof Error ? e.message : String(e) }));
-  }, [start, view, currentQuery, mode2Attempt]);
+  }, [start, view, currentQuery, mode2Attempt, taxonomyRoute]);
 
   useEffect(() => {
     const unsubs = [stores.saved.subscribe(bumpCrud), stores.followed.subscribe(bumpCrud), stores.recent.subscribe(bumpCrud)];
@@ -331,6 +363,19 @@ export function App(props: AppProps): JSX.Element {
       }
     },
     [stores, bumpCrud],
+  );
+
+  /**
+   * `EX-NAV-17` (`D-09`, `DR-063`) — retour vers l'écran A : le couple ACTIF de la route quittée est
+   * RÉINJECTÉ dans `mmmv` par `carryFiltersAcrossMode`, les autres filtres partagés sont conservés.
+   * `pair` absent (ou route invalide) : les filtres partent tels quels, sans couple inventé.
+   */
+  const marketUrlFrom = useCallback(
+    (pair?: { readonly makeId: number; readonly modelId?: number }): string => {
+      const sel = pair === undefined ? selection : carryFiltersAcrossMode(selection, 'mode2', 'mode1', pair);
+      return assembleUrl('/marche', serializeQuery(sel, {}, { filterDefaults: FILTER_DEFAULTS })).url;
+    },
+    [selection],
   );
 
   /**
@@ -537,6 +582,37 @@ export function App(props: AppProps): JSX.Element {
     const { makeId, modelId } = view;
     const followed = stores.followed.isFollowed(makeId, modelId);
     const name = modelName(referenceData, makeId, modelId);
+
+    // `DR-099` — écrans d'erreur `EX-NAV-19` (marque inconnue) et `EX-NAV-20` (modèle hors marque) :
+    // message nommé, lien vers `/marche` AVEC les filtres courants conservés (jamais un écran vide).
+    if (taxonomyRoute !== null && !taxonomyRoute.ok) {
+      const error = taxonomyRoute.error;
+      const title =
+        error.kind === 'unknownMake'
+          ? 'Marque inconnue'
+          : 'Ce modèle n’existe pas pour cette marque';
+      const detail =
+        error.kind === 'unknownMake'
+          ? `La marque « ${error.makeId} » ne figure pas dans le référentiel du snapshot.`
+          : `Le modèle « ${error.modelId} » n’appartient pas à la marque « ${error.makeId} » dans le référentiel du snapshot.`;
+      return (
+        <section class="kycar-route-error" role="alert" aria-labelledby="kycar-route-error-title">
+          <h1 id="kycar-route-error-title">{title}</h1>
+          <p>{detail}</p>
+          <p>
+            <a
+              href={marketUrlFrom()}
+              onClick={(e: Event) => {
+                e.preventDefault();
+                navigate(marketUrlFrom());
+              }}
+            >
+              Revenir au marché (vos filtres sont conservés)
+            </a>
+          </p>
+        </section>
+      );
+    }
 
     if (mode2 === null || mode2.status === 'loading') {
       return <div class="kycar-mode2-loading" aria-busy="true">Chargement des distributions…</div>;

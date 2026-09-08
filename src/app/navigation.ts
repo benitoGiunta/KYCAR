@@ -6,9 +6,14 @@
  * `/mentions` (page statique, REQUIREMENTS.md l.158) — son test verrouille exactement six routes.
  * Plutôt que de modifier ce contrat D5 figé, la coquille reconnaît ces deux chemins additionnels
  * AVANT de déléguer à `matchRoute`. Divergence assumée et signalée dans le rapport de lot.
+ *
+ * `DR-099`/`DR-015` — les routes HÉRITÉES (`/`, `EX-SCR-49`, et `/modele/:makeId/:modelId`, annexe C
+ * §A.1 « conservée en lecture seule ») sont reconnues par `matchRoute` et résolvent vers l'écran B :
+ * la coquille les canonise ensuite par `replaceState` (`EX-SCR-140`), à partir de la route rendue par
+ * `resolveTaxonomyRoute` (`routeOfView` ci-dessous fournit l'entrée de cette validation).
  */
 
-import { matchRoute } from '../state/router';
+import { matchRoute, type ModelDistributionRoute, type ModelListingsRoute } from '../state/router';
 
 export type AppView =
   | { readonly kind: 'market' }
@@ -57,4 +62,20 @@ export function currentLocation(): { pathname: string; search: string } {
     return { pathname: '/marche', search: '' };
   }
   return { pathname: window.location.pathname, search: window.location.search };
+}
+
+/**
+ * Route D5 correspondant à une vue d'écran B/D — entrée de `resolveTaxonomyRoute` (`EX-NAV-19`/`20`,
+ * `EX-SCR-140`). Les autres vues n'ont rien à valider contre la taxonomie.
+ */
+export function routeOfView(
+  view: AppView,
+): ModelDistributionRoute | ModelListingsRoute | null {
+  if (view.kind === 'modelDistribution') {
+    return { name: 'modelDistribution', makeId: view.makeId, makeSlug: view.makeSlug, modelId: view.modelId, modelSlug: view.modelSlug };
+  }
+  if (view.kind === 'modelListings') {
+    return { name: 'modelListings', makeId: view.makeId, makeSlug: view.makeSlug, modelId: view.modelId, modelSlug: view.modelSlug };
+  }
+  return null;
 }
