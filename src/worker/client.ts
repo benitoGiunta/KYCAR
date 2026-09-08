@@ -3,8 +3,21 @@
  *
  * Thin wrapper so screen/state code (D5-D8) never touches `postMessage`/`onmessage` directly.
  * D1 exposed `ping()`, proving the round trip. D4 adds `loadDataset` / `recalculate` / `computeFacets`,
- * following the same request/response-by-id pattern. Le thread principal NE conserve PAS les colonnes
- * du batch : leurs buffers sont transmis en `Transferable` au worker lors de `loadDataset`.
+ * following the same request/response-by-id pattern.
+ *
+ * `D8-01` / `FV-01` / `E2E-01`..`10`, `13` (BLOQUANT, remédiation 2.8) — le lot colonnaire N'EST
+ * PLUS TRANSFÉRÉ. `loadDataset` transférait les `ArrayBuffer` de toutes les colonnes du
+ * `ListingColumnBatch` (liste de `Transferable`) : côté hôte, les vues typées restaient référencées
+ * mais leurs tampons étaient DÉTACHÉS. Toute lecture y rendait `undefined` et toute construction de
+ * vue levait `Cannot perform Construct on a detached ArrayBuffer` — ce qui mettait à terre l'écran D
+ * entier, le nuage G4, huit graphes additionnels, l'export CSV et la part de particuliers de
+ * l'écran B, sans qu'aucune sonde hors navigateur puisse le voir (elles pilotent le moteur
+ * in-process, sans `postMessage`, donc sans transfert).
+ *
+ * Le lot part désormais par COPIE STRUCTURÉE (`postMessage` sans liste de transfert) : le worker
+ * reçoit son propre exemplaire, l'hôte garde le sien intact. Coût mesuré : une copie unique par jeu
+ * de données (jamais par recalcul), voir `client.structured-copy.test.ts` et
+ * `reports/remediation-2.8/fix-app.md`. Le contrôleur ne dépend d'aucune identité d'objet.
  */
 
 import {
@@ -29,58 +42,6 @@ let nextRequestId = 1;
 interface PendingRequest {
   readonly resolve: (value: WorkerResponse) => void;
   readonly reject: (reason: Error) => void;
-}
-
-/** Collecte les `ArrayBuffer` transférables d'un batch colonnaire (toutes ses colonnes typées). */
-function batchTransferables(batch: ListingColumnBatch): ArrayBuffer[] {
-  const arrays: ArrayBufferView[] = [
-    batch.listingId,
-    batch.priceEur,
-    batch.mileageKm,
-    batch.firstRegistrationYearMonth,
-    batch.modelId,
-    batch.makeId,
-    batch.modelYear,
-    batch.powerKw,
-    batch.co2EmissionsGPerKmX10,
-    batch.consumptionCombinedL100KmX10,
-    batch.electricRangeKm,
-    batch.fuelCategory,
-    batch.bodyType,
-    batch.transmission,
-    batch.drivetrain,
-    batch.offerType,
-    batch.usageState,
-    batch.sellerType,
-    batch.regionCode,
-    batch.countryCode,
-    batch.priceStatus,
-    batch.priceEvaluationCategory,
-    batch.adTier,
-    batch.bodyColor,
-    batch.upholsteryType,
-    batch.euEmissionStandard,
-    batch.doorCount,
-    batch.seatCount,
-    batch.previousOwnerCount,
-    batch.imageCount,
-    batch.vatDeductible,
-    batch.booleanFlags,
-    batch.ingestFlags,
-    batch.stringBlob,
-    batch.stringOffsets,
-  ];
-  // Déduplique les buffers (plusieurs vues peuvent partager un buffer) avant transfert.
-  const seen = new Set<ArrayBuffer>();
-  const out: ArrayBuffer[] = [];
-  for (const view of arrays) {
-    const buffer = view.buffer as ArrayBuffer;
-    if (!seen.has(buffer)) {
-      seen.add(buffer);
-      out.push(buffer);
-    }
-  }
-  return out;
 }
 
 /** Client typé au-dessus du worker d'agrégation. */
@@ -112,11 +73,11 @@ export function createAggregationWorkerClient(): AggregationWorkerClient {
     request.resolve(response);
   });
 
-  function send(request: WorkerRequest, transfer?: Transferable[]): Promise<WorkerResponse> {
+  function send(request: WorkerRequest): Promise<WorkerResponse> {
     return new Promise<WorkerResponse>((resolve, reject) => {
       pending.set(request.id, { resolve, reject });
-      if (transfer && transfer.length > 0) worker.postMessage(request, transfer);
-      else worker.postMessage(request);
+      // `D8-01` : AUCUNE liste de transfert — `postMessage` clone structurellement le message.
+      worker.postMessage(request);
     });
   }
 
@@ -131,7 +92,7 @@ export function createAggregationWorkerClient(): AggregationWorkerClient {
     loadDataset(batch: ListingColumnBatch, models?: readonly Model[]): Promise<number> {
       const id = nextRequestId++;
       const request: LoadDatasetMessage = { id, kind: 'LOAD_DATASET', batch, models };
-      return send(request, batchTransferables(batch)).then((r) => {
+      return send(request).then((r) => {
         if (isDatasetLoadedMessage(r)) return r.rowCount;
         throw new Error(`réponse inattendue pour LOAD_DATASET : ${r.kind}`);
       });
