@@ -7,11 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  sampleScatter,
-  SCATTER_MAX_POINTS,
-  SCATTER_SAMPLING_SEED,
-} from './scatter-sample';
+import { sampleScatter, SCATTER_MAX_POINTS } from './scatter-sample';
 
 /** Fabrique des `listingId` (16 octets/ligne) déterministes mais non ordonnés par indice de ligne. */
 function makeListingIds(n: number, salt = 1): Uint8Array {
@@ -145,7 +141,8 @@ describe('sampleScatter — déterminisme et invariance à la permutation (EX-DA
     }
   });
 
-  it('graine constante 0x4B594341 (traçabilité EX-DATA-100bis / EX-DATA-103)', () => {
-    expect(SCATTER_SAMPLING_SEED).toBe(0x4b594341);
+  it('D-06 : aucune graine d’échantillonnage n’est exportée (EX-DATA-101 fait foi)', async () => {
+    const mod: Record<string, unknown> = await import('./scatter-sample');
+    expect('SCATTER_SAMPLING_SEED' in mod).toBe(false);
   });
 });

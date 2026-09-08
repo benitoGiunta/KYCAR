@@ -29,8 +29,7 @@
 
 import { compareListingId } from '../../engine/uuid';
 
-/** Graine constante nommée par EX-DATA-100bis (`0x4B594341` = « KYCA »). Conservée pour EX-DATA-103. */
-export const SCATTER_SAMPLING_SEED = 0x4b594341;
+// Graine `0x4B594341` retirée en 2.6 (D-06) : EX-DATA-101 (pas régulier) fait foi, aucune graine n'a d'objet.
 
 /** Plafond dur de points tracés (EX-DATA-100). Les 20 000 de l'annexe B sont code mort (§9.2). */
 export const SCATTER_MAX_POINTS = 5000;

@@ -16,11 +16,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { compareListingId, decodeListingId } from '../../../src/engine/uuid';
 import { computeEligibility } from '../../../src/screens/distribution/scatter-model';
-import {
-  sampleScatter,
-  SCATTER_MAX_POINTS,
-  SCATTER_SAMPLING_SEED,
-} from '../../../src/screens/distribution/scatter-sample';
+import { sampleScatter, SCATTER_MAX_POINTS } from '../../../src/screens/distribution/scatter-sample';
 import { fixture, listingIdSequence } from './_helpers';
 
 const DIST_DIR = join(process.cwd(), 'src', 'screens', 'distribution');
@@ -105,8 +101,11 @@ describe('D7 · G4 — plafond et échantillonnage (EX-DATA-100/100bis/101)', ()
     expect(r.outlierTruncated).toBe(false);
   });
 
-  it('EX-DATA-100bis (2e branche) : la graine 0x4B594341 est déclarée mais aucun mélange pseudo-aléatoire n’est implémenté', () => {
-    expect(SCATTER_SAMPLING_SEED).toBe(0x4b594341);
+  // D-06 (2.6, coordinateur) : la graine 0x4B594341 est retirée du code et des exigences ; la sonde
+  // vérifie désormais l'absence de tout mélange pseudo-aléatoire (EX-DATA-101 fait foi).
+  it('EX-DATA-100bis (2e branche, requalifiée D-06) : aucune graine exportée, aucun mélange pseudo-aléatoire implémenté', async () => {
+    const mod: Record<string, unknown> = await import('../../../src/screens/distribution/scatter-sample');
+    expect('SCATTER_SAMPLING_SEED' in mod).toBe(false);
     const code = readdirSync(DIST_DIR)
       .filter((n) => (n.endsWith('.ts') || n.endsWith('.tsx')) && !n.endsWith('.test.ts'))
       .map((n) => readFileSync(join(DIST_DIR, n), 'utf8'))

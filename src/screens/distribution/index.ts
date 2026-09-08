@@ -16,7 +16,7 @@ export type { ScatterCloudProps, ScatterSampleInfo } from './ScatterCloud';
 export { GraphFrame } from './GraphFrame';
 
 // Modèles purs.
-export { sampleScatter, SCATTER_MAX_POINTS, SCATTER_SAMPLING_SEED } from './scatter-sample';
+export { sampleScatter, SCATTER_MAX_POINTS } from './scatter-sample';
 export type { ScatterSampleInput, ScatterSampleResult } from './scatter-sample';
 export {
   computeEligibility,

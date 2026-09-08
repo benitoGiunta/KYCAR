@@ -10,12 +10,15 @@ import {
   buildPath,
   matchRoute,
   resolveTaxonomyRoute,
+  type TaxonomyEntry,
   type TaxonomyLookup,
 } from '../../../src/state/router';
 
+// Adaptation de type seule (D-31, coordinateur) : fix-state a typé `TaxonomyLookup` sur
+// `TaxonomyEntry` au lieu de `unknown` ; aucune assertion de comportement modifiée.
 const TAXONOMY: TaxonomyLookup = {
-  makeById: new Map<number, unknown>([[16, { label: 'Opel' }]]),
-  modelByKey: new Map<string, unknown>([['16:1174', { label: 'Corsa' }]]),
+  makeById: new Map<number, TaxonomyEntry>([[16, { label: 'Opel' }]]),
+  modelByKey: new Map<string, TaxonomyEntry>([['16:1174', { label: 'Corsa' }]]),
 };
 
 describe('D5 — routes adressables de l’annexe C', () => {
