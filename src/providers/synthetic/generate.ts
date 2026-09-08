@@ -32,7 +32,7 @@
  */
 
 import type { ReferenceData } from '../../types/reference';
-import { ENUM_UNKNOWN_BYTE, NUMERIC_UNKNOWN } from '../../types/sentinels';
+import { ENUM_UNKNOWN_BYTE, NUMERIC_UNKNOWN, encodeVatDeductible } from '../../types/sentinels';
 import { cleanModelVersion } from '../../types/shared-rules';
 import { isPriceSentinelAbsolute, PRICE_SENTINEL_ABSOLUTE_EUR } from '../../types/shared-rules';
 import { INGEST_FLAG_BIT, INGEST_FLAG_VALUES, setIngestFlag } from '../../types/vocabularies';
@@ -121,6 +121,8 @@ export interface GeneratedDataset {
    */
   readonly unknownCountByField: Readonly<Record<string, number>>;
   readonly ingestFlagCounts: Readonly<Record<string, number>>;
+  /** Rejets d'ingestion par motif (EX-DATA-46), publiés tels quels au `SnapshotDescriptor`. */
+  readonly rejectedByReason: Readonly<Record<string, number>>;
   /** Doublons MESURÉS dans l'ordre total d'ingestion d'ARB-54 (EX-DATA-15, DR-003/DR-004). */
   readonly duplicates: DuplicateAudit;
 }
@@ -231,6 +233,43 @@ const UNKNOWN_CUT_FIRST_REGISTRATION = UNKNOWN_CUT_POWER + UNKNOWN_RATE_FIRST_RE
 const SUSPECT_ZERO_MILEAGE_RATE = 0.002;
 /** Fraction d'annonces dont le modèle n'est pas identifié (`MODEL_ID_UNRESOLVED`, ADV-14/ARB-59). */
 const MODEL_UNRESOLVED_RATE = 0.005;
+
+/* ---- Phase 2.8 (D8-08, D8-16 / FV-20) : replis d'ingestion et colonne TVA ----------------------
+ *
+ * CONTRAINTE DE DÉTERMINISME, à respecter à la lettre. Les proportions ci-dessous sont tirées par
+ * un HACHAGE PUR de la graine et de l'indice de ligne (`hashToUnit(combineKeys(...))`), JAMAIS par
+ * un tirage du `Prng` du noyau. Consommer un tirage de plus dans la boucle de génération décalerait
+ * tout le flot pseudo-aléatoire aval : la vérité terrain des outliers, les effectifs de cellules
+ * (« Opel Corsa : 1 352 annonces »), les taux d'inconnus et les 47 prix sentinelles changeraient,
+ * et une dizaine de sondes vertes mesurant ces valeurs deviendraient fausses sans qu'aucun défaut
+ * ne les ait causées. Le hachage est déterministe à graine fixe, dépend de la graine (deux graines
+ * donnent deux jeux différents) et ne coûte aucun état.
+ */
+
+/** Part des annonces à kilométrage INCONNU dont l'inconnu vient d'une unité source non gérée. */
+const UNIT_UNSUPPORTED_SHARE_OF_UNKNOWN_MILEAGE = 0.25;
+/** Part des annonces dont la catégorie de carburant vient du repli création → recherche (EX-DATA-10). */
+const FUEL_FALLBACK_RATE = 0.004;
+/** Part des annonces hybrides rechargeables dont la catégorie reste INCONNUE (EX-DATA-11). */
+const HYBRID_UNRESOLVED_RATE = 0.002;
+/** Part des annonces SOURCE servies sans deeplink, rejetées à l'ingestion (EX-DATA-14). */
+const LISTING_URL_MISSING_RATE = 0.0015;
+/** Part des professionnels dont la déductibilité de TVA n'est pas renseignée par la source (D8-08). */
+const VAT_UNKNOWN_SHARE_OF_PROS = 0.04;
+/** Part des professionnels dont la TVA est déductible (D8-08) — véhicules d'entreprise et flottes. */
+const VAT_DEDUCTIBLE_SHARE_OF_PROS = 0.58;
+
+/** Constantes de dérivation des hachages purs : un domaine par usage, jamais deux fois la même. */
+const HASH_DOMAIN_UNIT = 0x554e4954;
+const HASH_DOMAIN_FUEL = 0x4655454c;
+const HASH_DOMAIN_HYBRID = 0x48594252;
+const HASH_DOMAIN_URL = 0x55524c30;
+const HASH_DOMAIN_VAT = 0x54564101;
+
+/** Tirage déterministe dans [0, 1) pour une ligne et un usage, SANS consommer le flot du noyau. */
+function pureDraw(seed: number, domain: number, row: number): number {
+  return hashToUnit(combineKeys((seed ^ domain) >>> 0, row));
+}
 /**
  * Fraction des annonces à prix affiché qui portent un PRIX SENTINELLE (< 250 €, ADV-04/ARB-15) :
  * le « 1 € » du stress-test, posé à l'ingestion avec `PRICE_SENTINEL_ABSOLUTE` (DR-001).
@@ -627,6 +666,8 @@ interface CoreDataset {
   presentationDone: boolean;
   readonly unknownCountByField: Record<string, number>;
   readonly ingestFlagCounts: Record<string, number>;
+  /** Rejets d'ingestion par motif (EX-DATA-46) — `LISTING_URL_MISSING` d'EX-DATA-14 (D8-16). */
+  readonly rejectedByReason: Record<string, number>;
   readonly duplicates: DuplicateAudit;
 }
 
@@ -662,6 +703,7 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
     rowCount: core.rowCount,
     unknownCountByField: core.unknownCountByField,
     ingestFlagCounts: core.ingestFlagCounts,
+    rejectedByReason: core.rejectedByReason,
     duplicates: core.duplicates,
   };
 }
@@ -915,6 +957,58 @@ function generateCore(options: GenerateOptions): CoreDataset {
     d,
   );
 
+  // ---- Phase 2.8 (D8-16 / FV-20) : replis d'ingestion du dictionnaire, exercés à faible taux ----
+  //
+  // Ces trois règles n'étaient exercées par AUCUN jeu de données (`grep UNIT_UNSUPPORTED` = 0,
+  // `grep HYBRID_CATEGORY_UNRESOLVED` = 0) : les branches correspondantes du dictionnaire étaient
+  // du code mort non prouvé. Elles sont posées ICI, après la boucle de génération, par hachage pur
+  // (voir la note de déterminisme ci-dessus) — aucune valeur déjà tirée n'est modifiée, sauf la
+  // catégorie de carburant des hybrides non résolus, qui DOIT devenir INCONNUE.
+  let fuelFallbackCount = 0;
+  let hybridUnresolvedCount = 0;
+  const colFuelCategory = cols.fuelCategory;
+  for (let i = 0; i < count; i += 1) {
+    // EX-DATA-5 — une part des kilométrages INCONNUS l'est parce que la source servait une unité
+    // non gérée (`mileageUnit = mi`) : la conversion est REFUSÉE, jamais devinée. La valeur est
+    // déjà INCONNUE (partition d'inconnus de la boucle) : seul le MOTIF manquait.
+    if (
+      (cols.mileageKm[i] as number) === NUMERIC_UNKNOWN &&
+      pureDraw(seed, HASH_DOMAIN_UNIT, i) < UNIT_UNSUPPORTED_SHARE_OF_UNKNOWN_MILEAGE
+    ) {
+      cols.ingestFlags[i] = setIngestFlag(cols.ingestFlags[i] as number, 'UNIT_UNSUPPORTED');
+      flagCounts[INGEST_FLAG_BIT.UNIT_UNSUPPORTED] =
+        (flagCounts[INGEST_FLAG_BIT.UNIT_UNSUPPORTED] as number) + 1;
+      continue;
+    }
+    // EX-DATA-11 — hybride rechargeable dont la source ne sert PAS la catégorie : elle reste
+    // INCONNUE (sentinelle 255), jamais rattachée à `B` ou `D`. Prioritaire sur le repli EX-DATA-10,
+    // qu'EX-DATA-11 rend justement inatteignable pour ce cas.
+    if (pureDraw(seed, HASH_DOMAIN_HYBRID, i) < HYBRID_UNRESOLVED_RATE) {
+      colFuelCategory[i] = ENUM_UNKNOWN_BYTE;
+      cols.ingestFlags[i] = setIngestFlag(cols.ingestFlags[i] as number, 'ENUM_UNKNOWN');
+      flagCounts[INGEST_FLAG_BIT.ENUM_UNKNOWN] = (flagCounts[INGEST_FLAG_BIT.ENUM_UNKNOWN] as number) + 1;
+      hybridUnresolvedCount += 1;
+      continue;
+    }
+    // EX-DATA-10 — catégorie absente de la source, RÉSOLUE par la table de repli création →
+    // recherche depuis `fuelTypePrimary`. La catégorie stockée est celle que le repli a produite ;
+    // le rapport d'ingestion dit qu'elle vient d'une table `[EXTRAPOLÉ]`, pas de la source.
+    if (pureDraw(seed, HASH_DOMAIN_FUEL, i) < FUEL_FALLBACK_RATE) {
+      cols.ingestFlags[i] = setIngestFlag(cols.ingestFlags[i] as number, 'ENUM_UNKNOWN');
+      flagCounts[INGEST_FLAG_BIT.ENUM_UNKNOWN] = (flagCounts[INGEST_FLAG_BIT.ENUM_UNKNOWN] as number) + 1;
+      fuelFallbackCount += 1;
+    }
+  }
+
+  // EX-DATA-14 (D8-16 / FV-20) — la source sert une part d'annonces SANS deeplink. `listingUrl` est
+  // obligatoire et son absence provoque le REJET : ces candidates n'entrent JAMAIS dans le lot
+  // colonnaire (aucune ligne du lot ne porte une URL vide) et sont comptées par motif. Elles sont
+  // dénombrées, non générées : les matérialiser puis les retirer décalerait les indices de toutes
+  // les lignes retenues, et donc la vérité terrain des outliers.
+  const rejectedByReason: Record<string, number> = {};
+  const urlRejected = countRejectedSourceCandidates(seed, count);
+  if (urlRejected > 0) rejectedByReason.LISTING_URL_MISSING = urlRejected;
+
   // EX-DATA-19(1) / EX-DATA-60 (DR-001) : le drapeau de sentinelle absolue est posé À L'INGESTION,
   // APRÈS l'injection des outliers — un `M1_LOW` à 150 € est exactement le cas visé par ARB-15.
   //
@@ -951,6 +1045,12 @@ function generateCore(options: GenerateOptions): CoreDataset {
     const n = flagCounts[b] as number;
     if (n > 0) ingestFlagCounts[def.code] = n;
   });
+  // EX-DATA-45 (dernier alinéa) : `FUEL_CATEGORY_FROM_FUEL_TYPE` et `HYBRID_CATEGORY_UNRESOLVED`
+  // sont des SOUS-QUALIFICATIONS d'`ENUM_UNKNOWN`, « comptées dans le rapport d'ingestion mais non
+  // dans le vocabulaire à 17 codes ». Elles rejoignent donc le rapport (EX-DATA-46) sans jamais
+  // occuper un bit d'`ingestFlags` ni élargir `KYCAR_INGEST_FLAG` par la bande.
+  if (fuelFallbackCount > 0) ingestFlagCounts.FUEL_CATEGORY_FROM_FUEL_TYPE = fuelFallbackCount;
+  if (hybridUnresolvedCount > 0) ingestFlagCounts.HYBRID_CATEGORY_UNRESOLVED = hybridUnresolvedCount;
 
   return {
     cols,
@@ -974,10 +1074,33 @@ function generateCore(options: GenerateOptions): CoreDataset {
       powerKw: unknownPowerKw,
       modelYear: unknownModelYear,
       firstRegistrationYearMonth: unknownFrym,
+      // EX-DATA-11 : catégorie de carburant laissée INCONNUE sur les hybrides non résolus.
+      fuelCategory: hybridUnresolvedCount,
+      // EX-DATA-35 : le lot colonnaire GELÉ (EX-DATA-119) n'a AUCUNE colonne `co2Source`. La
+      // provenance de la mesure ne peut donc pas être portée par ligne : elle vaut `UNKNOWN` sur
+      // 100 % du lot, et le rapport d'ingestion le DIT au lieu de laisser croire à une norme connue.
+      co2Source: count,
     },
     ingestFlagCounts,
+    rejectedByReason,
     duplicates,
   };
+}
+
+/**
+ * `EX-DATA-14` (D8-16 / FV-20) — nombre d'annonces que la source a servies SANS deeplink et que
+ * l'ingestion a rejetées. Le rejet est un ÉVÉNEMENT D'INGESTION : il porte sur des candidates de la
+ * source, en amont du lot colonnaire, et se compte donc sans matérialiser une ligne qui, par
+ * définition, n'existe pas dans le lot. Le compte est déterministe à graine fixe (hachage pur) et
+ * proportionnel à la taille du lot demandé.
+ */
+function countRejectedSourceCandidates(seed: number, keptCount: number): number {
+  let rejected = 0;
+  const candidates = Math.round(keptCount * LISTING_URL_MISSING_RATE * 4);
+  for (let k = 0; k < candidates; k += 1) {
+    if (pureDraw(seed, HASH_DOMAIN_URL, k) < 0.25) rejected += 1;
+  }
+  return rejected;
 }
 
 /* ---- Génération : phase 1bis (colonnes de présentation, hors chemin critique) ------------------ */
@@ -1126,6 +1249,23 @@ function materializePresentation(core: CoreDataset): void {
     cols.seatCount[i] = seatCount;
     cols.previousOwnerCount[i] = previousOwnerCount;
     cols.imageCount[i] = imageCount;
+    // D8-08 (EX-SCR-203 colonne « TVA », annexe A champ # 10 `isTaxDeductible`). Modèle de plausibilité :
+    //   - un PARTICULIER ne facture pas la TVA — la colonne vaut « non » (`VAT_DEDUCTIBLE.NO`),
+    //     jamais « oui », et jamais INCONNU (l'information est déductible du type de vendeur) ;
+    //   - un PROFESSIONNEL vend une part de véhicules à TVA déductible (flottes, utilitaires,
+    //     véhicules d'entreprise) et une part de véhicules « TVA marge » qui ne l'est pas ; une
+    //     petite part d'annonces ne renseigne pas le champ, et reste INCONNUE (code `0`).
+    // Tirage par HACHAGE PUR (note de déterminisme) : la passe de présentation garde son flot
+    // pseudo-aléatoire intact, donc toutes les colonnes déjà mesurées par les sondes sont inchangées.
+    if (sellerType === d.sellerPrivate) {
+      cols.vatDeductible[i] = encodeVatDeductible(false);
+    } else {
+      const draw = pureDraw(core.seed, HASH_DOMAIN_VAT, i);
+      cols.vatDeductible[i] =
+        draw < VAT_UNKNOWN_SHARE_OF_PROS
+          ? encodeVatDeductible(null)
+          : encodeVatDeductible(draw < VAT_UNKNOWN_SHARE_OF_PROS + VAT_DEDUCTIBLE_SHARE_OF_PROS);
+    }
     cols.co2EmissionsGPerKmX10[i] = co2X10;
     cols.consumptionCombinedL100KmX10[i] = consX10;
     cols.electricRangeKm[i] = electricRangeKm;
