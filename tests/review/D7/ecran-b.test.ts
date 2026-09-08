@@ -178,6 +178,35 @@ describe('D7 · écran B — notes d’exclusion sous G1–G3 (EX-SCR-178, FV-11
   });
 });
 
+describe('D7 · écran B — bandeau C3 et représentativité (EX-SCR-31/175, D8-06/FV-07)', () => {
+  it('absents quand `snapshotCoverage` n’est pas fourni (jamais une valeur inventée)', () => {
+    expect(norm(visibleTextOf(tree))).not.toContain('Statistiques calculées sur');
+    expect(norm(visibleTextOf(tree))).not.toContain('Représentativité de l’échantillon');
+  });
+
+  it('C3 rendu, ligne de représentativité affichée sous 100 % de couverture (échantillon incomplet)', () => {
+    const withCoverage = renderScreen({ snapshotCoverage: { listingCount: 3840, announcedListingCount: 120779, hasUserFilters: false } });
+    const t = norm(visibleTextOf(withCoverage));
+    expect(t).toMatch(/Statistiques calculées sur 3\s*840 annonces observées sur 120\s*779 annoncées/);
+    expect(t).toContain('Représentativité de l’échantillon non prouvée');
+    expect(t).toContain('Pourquoi ?');
+  });
+
+  it('couverture complète (100 %) : C3 rendu, mais PAS la ligne de représentativité', () => {
+    const full = renderScreen({ snapshotCoverage: { listingCount: 100, announcedListingCount: 100, hasUserFilters: false } });
+    const t = norm(visibleTextOf(full));
+    expect(t).toContain('Statistiques calculées sur');
+    expect(t).not.toContain('Représentativité de l’échantillon');
+  });
+
+  it('sous filtre utilisateur : C3 « non applicable », représentativité non prouvée (non mesurable)', () => {
+    const filtered = renderScreen({ snapshotCoverage: { listingCount: 300, announcedListingCount: 120779, hasUserFilters: true } });
+    const t = norm(visibleTextOf(filtered));
+    expect(t).toContain('Couverture d’échantillon non applicable sous filtre');
+    expect(t).toContain('Représentativité de l’échantillon non prouvée');
+  });
+});
+
 describe('D7 · écran B — mode « Modèle non identifié » (EX-SCR-113bis, D8-06/FV-08)', () => {
   const restricted = renderScreen({ modelId: 0 });
 

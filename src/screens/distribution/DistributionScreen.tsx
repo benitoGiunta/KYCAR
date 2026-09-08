@@ -16,6 +16,7 @@
  */
 
 import { useMemo, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 import type { ListingColumnBatch, SelectionInput } from '../../types/index';
 import { MODEL_ID_UNRESOLVED } from '../../types/index';
 import type { RecalcResult } from '../../engine/index';
@@ -35,6 +36,7 @@ import {
   intervalFiltersToSelectionInput,
   selectedCountsByBucket,
 } from './brush-model';
+import { buildC3Banner, representativityUnproven } from '../market/coverage';
 import {
   YearMedianChart,
   DepreciationChart,
@@ -91,6 +93,18 @@ export interface DistributionScreenProps {
   /** `EX-SCR-113bis` (D8-06/FV-08) — clé réservée `MODEL_ID_UNRESOLVED` (0) : mode « Modèle non
    * identifié ». Bandeau non refermable, `G5`/`G6`/`G8`/`G10`/`G14` hors DOM, `Comparer` désactivé. */
   readonly modelId?: number;
+  /** `EX-SCR-31`/`175` (D8-06/FV-07) — couverture de SNAPSHOT (`SnapshotDescriptor.listingCount`/
+   * `announcedListingCount`), pour le bandeau `C3` et la ligne de représentativité, tous deux
+   * obligatoires sur l'écran B. Absent : ni l'un ni l'autre n'est rendu (jamais une valeur inventée) —
+   * voir le rapport de lot, § « Câblage attendu de fix-app ». */
+  readonly snapshotCoverage?: {
+    readonly listingCount: number;
+    readonly announcedListingCount: number | null;
+    readonly hasUserFilters: boolean;
+  };
+  /** `EX-SCR-175` — ouvre `/mentions` (lien « Pourquoi ? ») en SPA plutôt qu'en rechargement complet.
+   * Absent : ancre `<a href="/mentions">` classique. */
+  readonly onOpenMentions?: () => void;
   /** Ouvre l'annonce d'origine (deeplink), fourni par D8. */
   readonly onOpenListing?: (row: number) => void;
 
@@ -182,6 +196,10 @@ export function DistributionScreen(props: DistributionScreenProps) {
 
   // `EX-SCR-113bis` (D8-06/FV-08) — mode « Modèle non identifié ».
   const isUnresolvedModel = props.modelId === MODEL_ID_UNRESOLVED;
+
+  // `EX-SCR-31`/`175` (D8-06/FV-07) — bandeau C3 + ligne de représentativité, obligatoires sur B.
+  const c3 = props.snapshotCoverage ? buildC3Banner(props.snapshotCoverage) : undefined;
+  const showRepresentativity = props.snapshotCoverage ? representativityUnproven(props.snapshotCoverage) : false;
 
   const variant: G4Variant = effectiveG4Variant(ui, selectionCount);
   const labels = props.labels ?? {};
@@ -358,6 +376,28 @@ export function DistributionScreen(props: DistributionScreenProps) {
           </span>
         </div>
       </header>
+
+      {/* `EX-SCR-31`/`175` (D8-06/FV-07) — bandeau C3 (même région d'impression `summary-bar-c3`
+          que l'écran A, `EX-NFR-31`/DR-154) + ligne de représentativité NON refermable tant que la
+          couverture n'est pas prouvée à 100 %. */}
+      {c3 ? (
+        <div class="kycar-market-banners">
+          <div class="kycar-market-banner-c3 summary-bar-c3">
+            <div class={`kycar-market-banner kycar-market-banner--${c3.tone}`}>{c3.text}</div>
+          </div>
+          {showRepresentativity ? (
+            <div class="kycar-market-banner kycar-market-banner--ambre" role="status">
+              Représentativité de l’échantillon non prouvée — lire{' '}
+              <a
+                href="/mentions"
+                onClick={props.onOpenMentions ? (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => { e.preventDefault(); props.onOpenMentions?.(); } : undefined}
+              >
+                Pourquoi ?
+              </a>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* `EX-SCR-113bis` (D8-06/FV-08) — bandeau NON refermable du mode « Modèle non identifié ». */}
       {isUnresolvedModel ? (
