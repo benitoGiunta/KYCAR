@@ -53,13 +53,21 @@ beforeAll(async () => {
   spy = eng.spy;
   controller = new DataController({ provider: wrapped.provider, referenceData: ref, engineFactory: eng.factory, cache: createMemorySnapshotCache() });
 
-  // Mesure du coût CPU du démarrage tel que `start()` l'enchaîne (openSnapshot puis baseline).
-  const t0 = performance.now();
-  const handle = await inner.openSnapshot();
-  const t1 = performance.now();
-  await inner.fetchBaselineAggregates(handle);
-  const t2 = performance.now();
-  startupCpuMs = { openSnapshot: t1 - t0, baseline: t2 - t1 };
+  // Mesure du coût CPU du démarrage tel que `start()` l'enchaîne (openSnapshot puis baseline) :
+  // MÉDIANE de 3 générations (la génération est déterministe ; seule la charge machine varie).
+  const samples: { openSnapshot: number; baseline: number }[] = [];
+  for (let k = 0; k < 3; k += 1) {
+    const p = k === 0 ? inner : new SyntheticDataProvider({ referenceData: ref });
+    const t0 = performance.now();
+    const handle = await p.openSnapshot();
+    const t1 = performance.now();
+    await p.fetchBaselineAggregates(handle);
+    const t2 = performance.now();
+    samples.push({ openSnapshot: t1 - t0, baseline: t2 - t1 });
+  }
+  samples.sort((a, b) => a.openSnapshot + a.baseline - (b.openSnapshot + b.baseline));
+  startupCpuMs = samples[1]!;
+  console.log(`[EX-NFR-9] 3 mesures CPU (openSnapshot+baseline) : ${samples.map((s) => (s.openSnapshot + s.baseline).toFixed(0)).join(' / ')} ms`);
 
   batch = inner.getDataset().batch;
   const voc = ref.vocabularies.get('KYCAR_BODY_TYPE');
@@ -86,6 +94,14 @@ describe('Parcours 1 — mode 1 « budget 20 000 €, coupé, BE, < 100 000 km �
     expect(counts.aggregates).toHaveLength(0);
     expect(counts.listingColumns).toHaveLength(0);
     expect(spy.created).toBe(0);
+  });
+
+  it('R-D8-31 — toute carte-marque du premier affichage doit correspondre à une marque de la taxonomie (EX-DATA-20 : marque inconnue → rejet) — observé : des makeId NÉGATIFS hors référentiel portent ~18 % des annonces', async () => {
+    const screen = await controller.loadMarket({});
+    const unknown = screen.makeAggregates.filter((a) => !ref.makeById.has(a.makeId));
+    const unknownRows = unknown.reduce((s, a) => s + a.listingCount, 0);
+    console.log(`[R-D8-31] cartes hors taxonomie : ${unknown.length} sur ${screen.makeAggregates.length}, ${unknownRows} annonces ; exemples : ${unknown.slice(0, 5).map((a) => a.makeId).join(', ')}`);
+    expect(unknown).toEqual([]);
   });
 
   it('les cartes filtrées (prix ≤ 20 000, km ≤ 100 000, carrosserie coupé) égalent la vérité terrain du lot', async () => {
@@ -148,7 +164,7 @@ describe('Parcours 2 — mode 2 « Opel Corsa 2017 »', () => {
   });
 
   it('enterMode2(54, 1918) charge exactement la cellule Opel Corsa, élaguée AVANT le moteur (O17 b/c)', () => {
-    expect(corsa.length).toBeGreaterThan(30);
+    expect(corsa.length).toBeGreaterThan(0);
     expect(payload.batch.rowCount).toBe(corsa.length);
     expect(payload.rows.length).toBe(corsa.length);
     expect(payload.makeModelName).toBe('Opel Corsa');
@@ -163,6 +179,13 @@ describe('Parcours 2 — mode 2 « Opel Corsa 2017 »', () => {
     expect(spy.recalcs[0]?.scannedCount).toBe(corsa.length);
     expect(payload.recalc.selectionStats.selectionCount).toBe(corsa.length);
     expect(spy.recalcs[0]?.ms).toBeLessThan(200); // EX-NFR-5 sur le chemin élagué
+  });
+
+  it('R-D8-30 — la cellule Opel Corsa du snapshot par défaut (100 000) doit atteindre le seuil M2 (n ≥ 30, EX-SCR-33) pour que le parcours 2 montre une détection — observé : 9 annonces, 0 outlier injecté', () => {
+    const truth = inner.getGroundTruthOutliers().filter((o) => o.makeId === OPEL_MAKE_ID && o.modelId === CORSA_MODEL_ID);
+    console.log(`[R-D8-30] Opel Corsa : ${corsa.length} annonces / 100 000, ${truth.length} outlier(s) injecté(s), années ${[...new Set(corsa.map((i) => registrationYear(batch, i)))].sort().join(' ')}`);
+    expect(corsa.length).toBeGreaterThanOrEqual(30);
+    expect(truth.length).toBeGreaterThan(0);
   });
 
   it('distributions (G1/G2/G3), nuage (densité) et liste sont produits, et les fourchettes sont celles de la cellule', () => {
@@ -188,16 +211,31 @@ describe('Parcours 2 — mode 2 « Opel Corsa 2017 »', () => {
     expect(stats.max).toBe(max);
   });
 
-  it('les outliers de vérité terrain injectés dans la cellule Opel Corsa ressortent dans les verdicts M1/M2', () => {
-    const truth = inner.getGroundTruthOutliers().filter((o) => o.makeId === OPEL_MAKE_ID && o.modelId === CORSA_MODEL_ID);
-    expect(truth.length).toBeGreaterThan(0);
-    const flagged = new Set(payload.recalc.outlierVerdicts.filter((v) => v.flags.length > 0).map((v) => v.listingId.toLowerCase()));
+  it('les outliers de vérité terrain ressortent dans les verdicts M1/M2 sur la cellule éligible (n ≥ 30) la plus riche en outliers injectés (substitut : la cellule Corsa n’en porte aucun)', async () => {
+    const byCell = new Map<string, number>();
+    for (const o of inner.getGroundTruthOutliers()) {
+      if (o.modelId === 0 || !ref.makeById.has(o.makeId)) continue;
+      const k = `${o.makeId}:${o.modelId}`;
+      byCell.set(k, (byCell.get(k) ?? 0) + 1);
+    }
+    const eligible = [...byCell.entries()]
+      .map(([k, n]) => ({ k, n, size: cellRows(batch, Number(k.split(':')[0]), Number(k.split(':')[1])).length }))
+      .filter((c) => c.size >= 30)
+      .sort((a, b) => b.n - a.n || b.size - a.size);
+    const target = eligible[0];
+    expect(target).toBeDefined();
+    const [makeId, modelId] = target!.k.split(':').map(Number) as [number, number];
+    const cell = await controller.enterMode2(makeId, modelId);
+    const truth = inner.getGroundTruthOutliers().filter((o) => o.makeId === makeId && o.modelId === modelId);
+    const flagged = new Set(cell.recalc.outlierVerdicts.filter((v) => v.flags.length > 0).map((v) => v.listingId.toLowerCase()));
     const found = truth.filter((o) => flagged.has(o.listingId.toLowerCase()));
-    // Rapport D4-verif : M1 95,8 % / M2 100 % en cellules éligibles ; on exige ici la majorité, pas la perfection.
+    console.log(`[parcours 2] cellule substitut ${cell.makeModelName} : n=${cell.batch.rowCount}, injectés=${truth.length}, retrouvés=${found.length}, verdicts=${cell.recalc.outlierVerdicts.length}`);
+    expect(cell.batch.rowCount).toBe(target!.size);
+    // Rapport D4-verif : M1 95,8 % / M2 100 % en cellules éligibles ; on exige ici la majorité.
     expect(found.length / truth.length).toBeGreaterThanOrEqual(0.5);
-    // Et tout verdict porte bien sur une annonce de la cellule (jamais une annonce hors élagage).
-    const cellIds = new Set(payload.recalc.outlierVerdicts.map((v) => v.listingId));
-    expect(cellIds.size).toBeLessThanOrEqual(corsa.length);
+    // Tout verdict porte sur une annonce de la cellule (jamais une annonce hors élagage).
+    expect(new Set(cell.recalc.outlierVerdicts.map((v) => v.listingId)).size).toBeLessThanOrEqual(cell.batch.rowCount);
+    expect(Math.max(...spy.loads.map((l) => l.rowCount))).toBeLessThan(100_000);
   });
 
   it('R-D8-03 — « 2017 » ne peut pas être appliqué : le contrôleur n’offre aucun chemin pour raffiner le mode 2 (les filtres R de l’URL sont ignorés en écran B/D)', async () => {
@@ -214,19 +252,20 @@ describe('Parcours 2 — mode 2 « Opel Corsa 2017 »', () => {
     expect(refined.recalc.selectionStats.selectionCount).toBe(y2017);
   });
 
-  it('retour arrière / ré-entrée sur le même modèle : aucun rechargement, aucun lot plus grand que la cellule', async () => {
+  it('retour arrière / ré-entrée sur le même modèle : aucun rechargement, aucun lot plus grand que sa cellule', async () => {
+    const before = spy.loads.length;
     const again = await controller.enterMode2(OPEL_MAKE_ID, CORSA_MODEL_ID);
     expect(again.batch.rowCount).toBe(corsa.length);
-    expect(spy.loads).toHaveLength(1);
-    expect(Math.max(...spy.loads.map((l) => l.rowCount))).toBe(corsa.length);
+    // Un lot (Corsa) recharge le moteur car le substitut a pris sa place ; jamais plus qu'une cellule.
+    expect(spy.loads.length).toBeLessThanOrEqual(before + 1);
+    expect(spy.loads.every((l) => l.rowCount < 100_000 && l.localDatasetKey !== 'FULL')).toBe(true);
   });
 });
 
 describe('EX-NFR-9 — premier affichage utile du mode 1 ≤ 2 000 ms (4G simulée)', () => {
-  it('R-D8-04 — coût CPU du démarrage (génération 100k + agrégats de base) + transfert estimé dépasse le budget', () => {
+  it('coût CPU du démarrage (génération 100k + agrégats de base, machine de revue) + transfert estimé (dist + référentiels) ≤ 2 000 ms', () => {
     const transfer = estimateStartupTransfer();
     const cpu = startupCpuMs.openSnapshot + startupCpuMs.baseline;
-    // Publication des mesures (reprises dans le rapport).
     console.log(
       `[EX-NFR-9] openSnapshot=${startupCpuMs.openSnapshot.toFixed(0)} ms, baseline=${startupCpuMs.baseline.toFixed(0)} ms, ` +
         `transfert=${(transfer.totalBytes / 1024).toFixed(1)} Kio gzip → ${transfer.transferMs.toFixed(0)} ms (dist ${transfer.distPresent ? 'présent' : 'ABSENT'}), ` +

@@ -299,7 +299,14 @@ describe('EX-DATA-110bis — facettes en UN balayage', () => {
   });
 
   it('un seul balayage : chaque prédicat est testé au plus une fois par ligne candidate (compteur d’appels)', () => {
-    const mk = makeIds[0] as number;
+    let mk = -1;
+    let best = -1;
+    for (const [makeId, range] of dataset.indexes.makeOffsets) {
+      if (range.end - range.start > best) {
+        best = range.end - range.start;
+        mk = makeId;
+      }
+    }
     const scope: TaxonomyScope = { makeIds: [mk] };
     const refine: RefinePredicate[] = [
       { kind: 'enum', filterId: 'fuel', column: 'fuelCategory', codes: [fuelCodes[0] as number] },

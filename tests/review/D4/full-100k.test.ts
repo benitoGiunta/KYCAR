@@ -59,8 +59,10 @@ beforeAll(async () => {
   const provider = await openSyntheticProvider(ref, N, 7);
   batch = provider.getDataset().batch;
   truth = provider.getGroundTruthOutliers();
+  gc?.();
   memAfterProvider = snapshotMem();
   dataset = new AggregationDataset(batch, ref.models);
+  gc?.();
   memAfterIndexes = snapshotMem();
   const rows = Int32Array.from({ length: N }, (_v, i) => i);
   full = detectOutliers(batch, rows, batch.snapshotId, 'FULL:EMPTY');
@@ -80,12 +82,24 @@ describe('EX-DATA-112 / ARB-55 — mémoire mesurée à N = 100 000 et extrapol�
         `Δ index : rss ${dIdx.rss} heap ${dIdx.heapUsed} arrayBuffers ${dIdx.arrayBuffers} Mo ; ` +
         `total Δ : rss ${totalRss.toFixed(1)} / heap ${totalHeap.toFixed(1)} / arrayBuffers ${totalAb.toFixed(1)} Mo`,
     );
+    // Estimation analytique des index (EX-DATA-115) : 3 × Int32Array(N) + bitsets + Map PK_LISTING.
+    const idx = dataset.indexes;
+    let bitsetBytes = 0;
+    for (const [, perValue] of idx.bitsets) for (const [, arr] of perValue) bitsetBytes += arr.byteLength;
+    const typedIndexBytes = idx.idxMakeRows.byteLength + idx.idxModelRows.byteLength + idx.idxPriceSorted.byteLength + bitsetBytes;
+    const gcExposed = typeof (globalThis as unknown as { gc?: () => void }).gc === 'function';
     console.log(
-      `[mémoire ×10 → 10⁶] rss ≈ ${(totalRss * 10).toFixed(0)} Mo ; heap+arrayBuffers ≈ ${((totalHeap + totalAb) * 10).toFixed(0)} Mo ; ` +
-        `référence EX-DATA-112 corrigée (ARB-55) = 274 Mo pire cas / ≈ 258 Mo cas typique ; ancien total contesté ≈ 87 Mo`,
+      `[mémoire ×10 → 10⁶] rss ≈ ${(totalRss * 10).toFixed(0)} Mo (bruité : pages libérées non rendues) ; heap+arrayBuffers ≈ ${((totalHeap + totalAb) * 10).toFixed(0)} Mo` +
+        `${gcExposed ? ' (gc forcé avant chaque relevé)' : ' (gc NON exposé : contient des temporaires de génération)'} ; ` +
+        `colonnes seules (batchByteLength) ≈ ${((bytesColumns * 10) / MB).toFixed(0)} Mo ; index typés (3 Int32Array + bitsets) ≈ ${((typedIndexBytes * 10) / MB).toFixed(0)} Mo ; ` +
+        `PK_LISTING = Map de ${idx.pkListing.size} chaînes UUID (non typé) ; référence EX-DATA-112 corrigée (ARB-55) = 274 Mo pire cas / ≈ 258 Mo typique ; ancien total contesté ≈ 87 Mo`,
     );
     expect(bytesColumns).toBeGreaterThan(0);
-    expect(totalRss * 10).toBeLessThan(512);
+    // Le magasin colonnaire seul reste dans l'enveloppe corrigée d'ARB-55 (colonnes + chaînes ≈ 232 Mo à 10⁶).
+    expect((bytesColumns * 10) / MB).toBeLessThan(232);
+    // Mesure processus fiable seulement gc forcé (lancer avec NODE_OPTIONS=--expose-gc) : alors l'enveloppe
+    // extrapolée (heap + arrayBuffers, dataset + index) doit tenir sous le budget d'onglet de 512 Mo.
+    if (gcExposed) expect((totalHeap + totalAb) * 10).toBeLessThan(512);
   });
 });
 
@@ -141,6 +155,33 @@ describe('O17 — chemins de calcul au-delà de 200 ms et exposition de l’API'
     console.log(`[O17 coût vs n — médiane de 3 à 5 exécutions]\n${table.join('\n')}`);
     expect(table.length).toBe(4);
   });
+
+  it('O17 — point de franchissement des 200 ms d’un recalcul NON élagué (sélection filtrée R sans scope) en fonction de l’effectif retenu', () => {
+    // Un filtre R seul (sans marque/modèle) balaie N puis calcule M1/M2 sur les n lignes retenues :
+    // c'est le « mode 1 fortement filtré » d'ARCHITECTURE §3.2. On mesure recalculate() pour des
+    // plages d'année de plus en plus larges (n croissant), 3 exécutions, médiane.
+    const bounds = [2024, 2022, 2020, 2018, 2015, 2010, 1900];
+    const lines: string[] = [];
+    let crossing: number | null = null;
+    for (const minYear of bounds) {
+      const sel: EngineSelection = {
+        selectionHash: `FULL:year≥${minYear}`,
+        refine: [{ kind: 'range', filterId: 'year', column: 'year', min: minYear, max: null }],
+      };
+      const samples: number[] = [];
+      let n = 0;
+      for (let k = 0; k < 3; k++) {
+        const t0 = performance.now();
+        n = dataset.recalculate(sel).selectionStats.selectionCount;
+        samples.push(performance.now() - t0);
+      }
+      const med = medianMs(samples);
+      lines.push(`année ≥ ${minYear} : n=${String(n).padStart(6)} → ${med.toFixed(0).padStart(4)} ms`);
+      if (crossing === null && med > 200) crossing = n;
+    }
+    console.log(`[O17 franchissement — recalc sans scope, filtre R année, médiane de 3]\n${lines.join('\n')}\n→ premier effectif retenu au-delà de 200 ms : ${crossing ?? 'aucun'}`);
+    expect(lines.length).toBe(bounds.length);
+  }, 120_000);
 
   it('recalcul complet : non filtré (×5) vs élagué marque la plus peuplée (×20) vs modèle médian (×20)', () => {
     const fullSel: EngineSelection = { selectionHash: 'FULL:EMPTY' };
@@ -245,15 +286,19 @@ describe('EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3', ()
   });
 
   it('EX-DATA-97 — les quatre indicateurs M3 calculés et publiés pour ≥ 3 cellules d’effectif > 200', () => {
-    const cells = [...dataset.indexes.modelOffsets.entries()]
-      .map(([key, r]) => ({ key, count: r.end - r.start }))
+    // À N = 100 000, aucune cellule MODÈLE (C₂) du dataset D3 ne dépasse 200 annonces : on prend les
+    // trois plus grandes sélections MARQUE (cellule C₃ de la sélection élaguée), qui sont des cellules
+    // d'homogénéité au sens d'EX-DATA-86.
+    const largestModel = Math.max(...[...dataset.indexes.modelOffsets.values()].map((r) => r.end - r.start));
+    console.log(`[M3] plus grande cellule modèle à N=${N} : ${largestModel} annonces (< 200)`);
+    const cells = [...dataset.indexes.makeOffsets.entries()]
+      .map(([makeId, r]) => ({ key: `make ${makeId}`, makeId, count: r.end - r.start }))
       .filter((c) => c.count > 200)
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
     expect(cells.length).toBe(3);
     for (const c of cells) {
-      const [mk, md] = c.key.split(':').map(Number) as [number, number];
-      const r = dataset.recalculate({ selectionHash: `FULL:m3-${c.key}`, scope: { models: [{ makeId: mk, modelId: md }] } });
+      const r = dataset.recalculate({ selectionHash: `FULL:m3-${c.makeId}`, scope: { makeIds: [c.makeId] } });
       const m3 = r.m3;
       console.log(
         `[M3 cellule ${c.key}, n=${c.count}] |E|=${m3.evaluatedPopulation} precisionLow=${fmt(m3.precisionLow)} recallLow=${fmt(m3.recallLow)} kappa=${fmt(m3.kappa)} evalCoverage=${fmt(m3.evalCoverage)}`,

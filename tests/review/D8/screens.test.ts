@@ -214,4 +214,3 @@ describe('page /mentions (REQUIREMENTS § 5 l.158, EX-SCR-47, EX-DATA-107, R3)',
     expect(textOf(MentionsPage({ sourceKind: 'REAL' }))).toMatch(/marché réel/);
   });
 });
-});

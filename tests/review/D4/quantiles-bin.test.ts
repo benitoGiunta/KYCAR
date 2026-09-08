@@ -185,7 +185,10 @@ describe('EX-DATA-75/76/77/78/79/80/81/83 — BIN : bornes, débordements, effec
   });
 
   it('valeurs hors domaine de l’écrêtage : débordements comptés, effectif total des bins = n (I4)', () => {
-    const values = [1, 250, 500, 12_000, 12_500, 13_000, 13_500, 14_000, 14_500, 15_000, 15_500, 16_000, 4_999_999, 5_000_000];
+    // 200 prix dans [12 000, 16 000] + trois extrêmes : l'écrêtage à [Q(0,01), Q(0,99)] les rejette dans
+    // les bins de débordement (avec n petit, Q(0,01)/Q(0,99) tendent vers min/max et rien ne déborde).
+    const values = [1, 250, 5_000_000];
+    for (let i = 0; i < 200; i++) values.push(12_000 + (i * 20) % 4_000);
     const r = bin(values, PRICE_BIN_PARAMS);
     const total = r.bins.reduce((acc, b) => acc + b.count, 0);
     expect(total).toBe(values.length);
