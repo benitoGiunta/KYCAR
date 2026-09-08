@@ -40,12 +40,18 @@ describe("ADV-06 — bornes n=10 et n=11 : le palier 'reduite' ([5,11]) ne prome
 });
 
 describe(
-  "R-D6-02 — EX-SCR-33 (n=5..11 → « percentiles P5/P95 ... désactivés ») n'est PAS appliqué à la " +
-    'fourchette centrale de la zone-modèle : `effectifTier` est exporté et testé (`thresholds.ts`) ' +
-    'mais jamais invoqué par `view-model.ts` (`priceCentralRange`/`yearCentralRange`/`mileageCentralRange` ' +
-    "ne regardent que `p05 !== null && p95 !== null`, jamais `agg.price.n`).",
+  "R-D6-02 — EX-SCR-33 (n=5..11 → « percentiles P5/P95 ... désactivés »), CORRIGÉ (D-04 : EX-SCR-33 " +
+    "prévaut sur EX-SCR-134) : `effectifTier` est désormais invoqué par `view-model.ts` dans les " +
+    'trois fourchettes de la zone-modèle (`priceCentralRange`/`yearCentralRange`/`mileageCentralRange`).',
   () => {
-    it("un modèle à n_price = 8 (palier 'reduite') affiche quand même un P5-P95 numérique sur l'écran A", () => {
+    // D-32 : cette sonde était VERTE en documentant le défaut (elle anticipait elle-même, en
+    // commentaire, l'inversion attendue « une fois l'arbitrage rendu »). D-04 ayant tranché en
+    // faveur d'EX-SCR-33, les deux assertions qui figeaient l'ANCIEN comportement (P5/P95 affiché
+    // sans condition, aucun jeton) sont remplacées par celles du comportement normatif : le
+    // protocole d'écriture d'abord rouge puis vert a été suivi (`npx vitest run` sur ce fichier avant
+    // la correction de `view-model.ts` → rouge ; après → vert, voir `reports/remediation/fix-
+    // screens.md`).
+    it("un modèle à n_price = 8 (palier 'reduite') masque désormais le P5-P95 numérique et porte le jeton ambre n = 8", () => {
       const agg = modelAgg({
         modelId: 50,
         listingCount: 8,
@@ -53,18 +59,14 @@ describe(
       });
       const zone = buildModelZoneViewModel(agg, CORSA, 8, false);
       expect(effectifTier(agg.price.n)).toBe('reduite');
-      // Comportement OBSERVÉ (documente le fait, ne le juge pas) : la fourchette reste "available".
-      // Si EX-SCR-33 doit s'appliquer ICI, cette assertion devrait être `false` — elle échouerait
-      // alors, ce qui est le constat attendu par le protocole de revue une fois l'arbitrage rendu.
-      expect(zone.price.available).toBe(true);
+      expect(zone.price.available).toBe(false);
+      expect(zone.price.lowSampleToken).toBe('n = 8');
     });
 
-    it("aucun jeton ambre « n = <n> » n'existe dans le modèle de vue pour le palier 'reduite' (EX-SCR-33 l'exige au titre de la statistique)", () => {
+    it("le jeton ambre « n = <n> » existe désormais dans le modèle de vue pour le palier 'reduite' (EX-SCR-33 l'exige au titre de la statistique)", () => {
       const agg = modelAgg({ modelId: 50, listingCount: 8, price: range({ p05: 9500, p95: 14500, n: 8 }) });
       const zone = buildModelZoneViewModel(agg, CORSA, 8, false);
-      // Recherche exhaustive de tout champ qui porterait un tel jeton : aucun n'existe sur le type.
-      const hasAmberTokenField = 'amberToken' in zone || 'lowSampleToken' in zone || 'nToken' in zone;
-      expect(hasAmberTokenField).toBe(false);
+      expect(zone.price.lowSampleToken).toBe('n = 8');
     });
   },
 );
