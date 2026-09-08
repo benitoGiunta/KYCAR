@@ -35,7 +35,7 @@ import {
   writeDistributionUiState,
   type DistributionUiState,
 } from './screens/distribution/index';
-import { ListingsScreen } from './screens/listings/index';
+import { ListingsScreen, readListingString, STRING_FIELD } from './screens/listings/index';
 import type { CsvMeta } from './screens/listings/index';
 import {
   CompareScreen,
@@ -333,6 +333,25 @@ export function App(props: AppProps): JSX.Element {
     [stores, bumpCrud],
   );
 
+  /**
+   * `DR-010` (`EX-SCR-201`/`164`) — SEUL lien SORTANT de l'application : l'annonce d'origine s'ouvre
+   * dans un nouvel onglet (`noopener`), JAMAIS par une navigation interne. Une URL absente est dite,
+   * jamais remplacée par un écran de l'application.
+   */
+  const openListing = useCallback(
+    (batch: Mode2Payload['batch'], row: number): void => {
+      const url = readListingString(batch, row, STRING_FIELD.listingUrl);
+      if (url === '') {
+        setBanner('Cette annonce ne porte pas d’URL d’origine exploitable.');
+        return;
+      }
+      if (typeof window !== 'undefined' && typeof window.open === 'function') {
+        window.open(url, '_blank', 'noopener');
+      }
+    },
+    [],
+  );
+
   // ---- Composition ------------------------------------------------------------------------------
   const degraded = start?.status === 'degraded-cache' || controller.isDegraded;
   const filterBandMode = view.kind === 'modelDistribution' || view.kind === 'modelListings' ? 'mode2' : 'mode1';
@@ -593,9 +612,10 @@ export function App(props: AppProps): JSX.Element {
             batch={payload.batch}
             recalc={payload.recalc}
             rows={payload.rows}
-            selectionCount={payload.batch.rowCount}
+            selectionCount={payload.rows.length}
             makeModelName={payload.makeModelName}
             csvMeta={csvMeta}
+            onOpenListing={(row) => openListing(payload.batch, row)}
           />
         </>
       );
@@ -619,15 +639,7 @@ export function App(props: AppProps): JSX.Element {
             const q = serializeQuery(selection, uiObj, { filterDefaults: FILTER_DEFAULTS });
             navigate(assembleUrl(location.pathname, q).url, 'replace');
           }}
-          onOpenListing={() => navigate(
-            buildPath({
-              name: 'modelListings',
-              makeId,
-              makeSlug: referenceData.makeById.get(makeId)?.slug ?? String(makeId),
-              modelId,
-              modelSlug: referenceData.modelByKey.get(`${makeId}:${modelId}`)?.slug ?? String(modelId),
-            }),
-          )}
+          onOpenListing={(row) => openListing(payload.batch, row)}
         />
       </>
     );
