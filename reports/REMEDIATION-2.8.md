@@ -1,21 +1,71 @@
-# REMEDIATION-2.8 — vérification finale de la phase 2.8 (**rev 2**)
+# REMEDIATION-2.8 — vérification finale de la phase 2.8 (**rev 3**)
 
 Agent `fix-verify` · modèle Opus · effort high · 2026-09-08 · branche `claude/kycar-project-ffcplk`
-· arbre principal `/home/user/KYCAR` · **commit vérifié `c8c791a`**
-(« Phase 2.8 (D8-35 follow-up): never reuse a stale preview server in the e2e harness »),
-arbre propre à l'arrivée (`git status --short` vide).
+· arbre principal `/home/user/KYCAR` · **commit vérifié `05ffaf2`**
+(« Phase 2.8: fix-lead decisions D8-36..D8-40 and annex annotations »), arbre propre à l'arrivée
+(`git status --short` vide). Rev 2 : `c8c791a` · rev 1 : `d94d0a2`.
 
 **Indépendance (R5).** Je n'ai corrigé aucun constat. **Ce fichier est mon seul livrable** ; aucun
 fichier de `src/`, `tests/`, `docs/` ni aucun autre rapport n'a été modifié par moi. Une seule
-exception, temporaire et exigée par ma mission (§5.4) : la contre-épreuve `D8-27` remplace
+exception, temporaire et exigée par ma mission de rev 2 (§5.4) : la contre-épreuve `D8-27` remplace
 `src/screens/distribution/DistributionScreen.tsx` par sa version de `3435456` le temps d'une
 exécution, puis le restaure par `git checkout --` (contrôle de propreté cité). Aucun commit, aucun
 push, aucun appel réseau vers `autoscout24` / `2dehands`, aucune installation (`playwright install`
 jamais lancé), aucune question posée (E3), toute hypothèse écrite comme telle (E4).
 
+**Portée de la rev 3.** Delta documentaire seul. **Contrôle préalable exécuté et concluant** :
+
+```
+$ git diff c8c791a..HEAD --name-only
+docs/requirements/REQUIREMENTS.md
+docs/requirements/draft-data-dictionary.md
+docs/requirements/draft-screens.md
+reports/REMEDIATION-2.8.md
+reports/e2e/results.json
+reports/remediation-2.8/FIX-LEAD-DECISIONS-2.8.md
+$ git diff c8c791a..HEAD --name-only | grep -E '^(src|tests)/'
+(aucune ligne)
+```
+
+**`src/` et `tests/` sont intacts, octet pour octet**, entre le commit vérifié en rev 2 et celui-ci.
+Les preuves d'exécution de la rev 2 (`npm test` 675 + 1 079, `npm run test:e2e` 255 tests,
+`npm run test:perf`, `npm run build`, `npm run size`) portent donc sur **exactement le même code** et
+restent opposables sans être rejouées — c'est la raison pour laquelle ma mission de rev 3 me demande
+de ne pas les relancer, et je la vérifie plutôt que de la supposer. J'ai rejoué ce que le delta peut
+casser : `npm run lint` et les **363 sondes qui lisent les annexes** (§1.3).
+
 ---
 
-## 0. Rev 2 — ce qui a changé depuis la rev 1
+## 0. Historique des révisions — rev 1 → rev 2 → rev 3
+
+| Rev | Commit vérifié | Verdict G7 | Ce qui restait ouvert |
+|---|---|---|---|
+| **1** | `d94d0a2` | **NON FRANCHIE** | 8 exigences `PARTIELLE` sans correction ni dette · 1 correction sans preuve (`onClearFilter`) · 1 renvoi non ratifié (`FV-06` mode 1) · 5 arbitrages en attente |
+| **2** | `c8c791a` | **NON FRANCHIE** | Les 4 postes de la rev 1 sont **soldés** ; 2 écarts **nouveaux** apparaissent, remontés par les correcteurs et sans décision : `EX-DATA-68`/`EX-DATA-61` (agrégats) et `EX-SCR-26` (écran A) · 3 réserves |
+| **3** | `05ffaf2` | **FRANCHIE** (§8) | **Rien.** `D8-36` et `D8-37` ferment les 2 écarts ; `D8-38` et `D8-39` tranchent les 3 réserves. Une réserve **de rédaction** subsiste (§7.2 n° 1), sans effet sur la porte |
+
+### 0.1 Rev 3 — ce qui a changé depuis la rev 2
+
+Aucune ligne de code. Le fix-lead a répondu à mes deux écarts et à mes trois réserves par
+`FIX-LEAD-DECISIONS-2.8.md` **§G (`D8-36`…`D8-40`)** et par les annotations d'annexe correspondantes
+(4 commits documentaires, `c8c791a..05ffaf2`).
+
+| Poste laissé ouvert en rev 2 | Décision | Texte vérifié par moi | État en rev 3 |
+|---|---|---|---|
+| rev 2 §7.1 n° 1 — `EX-DATA-68` / `EX-DATA-61` sur les agrégats (bloc 3 × 13 inexistant) | **`D8-36`** — dette d'**interface gelée**, levée en v2 de `DataProvider`, même famille que `D8-32(2)` | `draft-data-dictionary.md` l. 1006-1013, sous la table d'`EX-DATA-68`, `[amendée 2.8 — D8-36]` ; journal v1.3 | **FERMÉ — dette admise** (§6.5), avec une réserve de rédaction (§7.2 n° 1) |
+| rev 2 §7.1 n° 2 — `EX-SCR-26` sur l'écran A (`topRestrictiveFilters: []`) | **`D8-37`** — dette **architecturale**, extension de `D8-29` (`O17`) ; re-cotation `COUVERTE` mode 2 / `DETTE D8-37` mode 1 | `draft-screens.md` l. 241-246, dans le corps d'`EX-SCR-26`, `[amendée 2.8 — D8-37]` ; journal v1.3 | **FERMÉ — dette admise** (§6.6), re-cotation portée en §3.5 |
+| rev 2 §7.2 n° 1 — arrondi de `GroupStatEntry.coverage` | **`D8-38`** — sans effet : « 4 décimales » est dans la colonne **« Arrondi de présentation »** d'`EX-DATA-64`, le producteur n'y est pas tenu | Vérifié dans la table d'`EX-DATA-64` : la 4ᵉ colonne s'intitule bien « Arrondi de présentation », et la note sous la table dit que cet arrondi « prime sur toute règle de format d'écran » | **ACCEPTÉE** (§7.2 n° 2) |
+| rev 2 §7.2 n° 2 — `EX-DATA-23` sans appelant vivant | **`D8-39(a)`** — **constat, pas dette** : règle en place et prouvée pour tout provider futur | `FIX-LEAD-DECISIONS-2.8.md` §G | **ACCEPTÉE**, avec une charge pour 2.9b (§7.2 n° 3) |
+| rev 2 §7.2 n° 5 — sémantique « snapshot entier » des effectifs de G en mode 2 | **`D8-39(b)`** — **précision ratifiée** (aucun balayage, `EX-NFR-9`) | `draft-screens.md` l. 2480-2484, sous `EX-SCR-216`, `[amendée 2.8 — D8-39]` ; journal v1.3 | **ACCEPTÉE** (§7.2 n° 4) |
+| rev 2 §9 — `reports/e2e/results.json` | **`D8-40`** | Commité avec le rapport rev 2 (`D8-33`) — vérifié : l'arbre est propre à mon arrivée | **CLOS** |
+
+**Aucune exigence n'a été créée, supprimée ni renumérotée** par ce delta — contrôlé par moi :
+`draft-screens.md` **245** lignes d'exigence et `draft-data-dictionary.md` **140**, identiques à
+`c8c791a`. Les trois amendements sont des paragraphes **ajoutés**, aucun texte normatif n'est retiré.
+
+---
+
+### 0.2 Rev 2 — ce qui avait changé depuis la rev 1
 
 La **rev 1** (commit `d94d0a2`) concluait **G7 NON FRANCHIE** : S1 et S4 non atteints, sur **huit
 exigences `PARTIELLE` sans correction ni dette**, **une correction sans preuve** (`onClearFilter`),
@@ -35,15 +85,58 @@ fix-lead a répondu par `FIX-LEAD-DECISIONS-2.8.md` §E (`D8-27`…`D8-33`), une
 | — | `D8-34` | `EX-SCR-216` en mode 2 : `—` partout → effectifs réels (§3.3) |
 | — | `D8-35` | `EX-SCR-103` (couple de la route) et `EX-SCR-97` (feuille compacte sous l'en-tête) ; le **seul échec E2E inattendu** de fix-app-2 est **vert** dans ma recette (§2.1, §3.3) |
 
-**Ce qui reste, et qui décide de la porte.** Les écarts de la rev 1 sont soldés. Deux écarts
-**nouveaux**, remontés honnêtement par les correcteurs eux-mêmes et qu'**aucune décision `D8-xx`
-ne tranche**, prennent leur place (§7.1). Ils sont d'une autre nature que ceux de la rev 1 :
-**aucun code n'est en cause**, aucune valeur affichée n'est fausse, et deux lignes de décision
-écrite suffisent à les fermer. La porte G7 reste néanmoins **NON FRANCHIE** — motivation au §8.
+**Ce qui restait à la fin de la rev 2.** Les écarts de la rev 1 étaient soldés. Deux écarts
+**nouveaux**, remontés honnêtement par les correcteurs eux-mêmes et qu'aucune décision `D8-xx` ne
+tranchait alors, prenaient leur place (§7.1). Ils étaient d'une autre nature que ceux de la rev 1 :
+**aucun code n'était en cause**, aucune valeur affichée n'était fausse, et deux lignes de décision
+écrite suffisaient à les fermer. **`D8-36` et `D8-37` les ont écrites** (§0.1) : la porte est
+franchie en rev 3 (§8).
 
 ---
 
 ## 1. Commandes rejouées et leurs sorties
+
+### 1.1 Rev 3 — ce que j'ai rejoué sur `05ffaf2`
+
+```
+$ git log --oneline -1
+05ffaf2 Phase 2.8: fix-lead decisions D8-36..D8-40 and annex annotations
+$ git status --short
+(sortie vide)
+
+$ git diff c8c791a..HEAD --stat
+ docs/requirements/REQUIREMENTS.md                 |    3 +
+ docs/requirements/draft-data-dictionary.md        |    8 +
+ docs/requirements/draft-screens.md                |   11 +
+ reports/REMEDIATION-2.8.md                        | 1076 +++++++++--------
+ reports/e2e/results.json                          | 1289 +++++++++++----------
+ reports/remediation-2.8/FIX-LEAD-DECISIONS-2.8.md |   10 +
+   → aucun fichier de `src/` ni de `tests/`
+
+$ npm run lint
+(aucune sortie)   → exit 0
+
+$ npx vitest run --config vitest.review.config.ts --no-file-parallelism \
+      tests/review/D1 tests/review/D2 tests/review/D5
+  Test Files  35 passed (35)
+       Tests  363 passed (363)
+   → exit 0
+```
+
+Les trois lots rejoués sont ceux dont les sondes **lisent les annexes** : `D1` (contrats de
+document, budgets, contraste, points de rupture, impression), `D2` (chargeur de référentiels,
+dictionnaire, garde R3) et `D5` (registre des filtres contre `EX-SCR-82`/`83` et
+`filters-scope.json`). Un amendement d'annexe qui aurait faussé un décompte ou une classe de filtre
+les aurait fait tomber : **les 363 sont vertes**. Le décompte d'exigences est inchangé (245 · B,
+140 · A), vérifié entre les deux commits.
+
+**Non rejoués, sur instruction et à bon droit** : `npm test` complet, `npm run test:e2e`,
+`npm run test:perf`, `npm run build`, `npm run size` — leurs entrées (`src/`, `tests/`,
+`package.json`, les configurations) sont **identiques** à celles de la rev 2, ce que j'ai vérifié
+plutôt que supposé. Leurs résultats de rev 2, ci-dessous, restent donc les mesures opposables de
+cette phase.
+
+### 1.2 Rev 2 — les portes complètes, sur le même code (`c8c791a`)
 
 Séquentiellement, sur cet arbre, sans autre agent actif, port 4180 libre au départ
 (`ss -ltn` : aucun port 4180/4173/5173 occupé — le `vite preview` résiduel signalé par
@@ -166,8 +259,8 @@ verte après par le correcteur**, et le rejeu que **j'ai** fait (toutes ces sond
 
 | # | Exigence | Décision | Porteur | Correction | Preuve (rouge → verte) | Rejeu fix-verify | Statut |
 |---|---|---|---|---|---|---|---|
-| 1 | **`EX-DATA-61`** et **`EX-DATA-64`** — `MetricStats.iqr` / `coverage` publiés `null` (résidu `DR-122` que fix-engine et fix-providers s'étaient renvoyé) | `D8-30` | fix-engine-2 (`6c1b548`) | `src/engine/quantiles.ts` : `iqr = p75 − p25` et `coverage = round₄(n/N)` aux **trois** sites (`metricStatsFromCounts`, `emptyStats`, `exactStatsBySort`), paramètre `selectionCount` optionnel ; `src/engine/aggregate.ts` passe `\|Σ\|` | `R-D4-2.8-01…04`, **11 rouges sur 14** avant, 14 vertes après | `✓ tests/review/D4/metric-stats-iqr-coverage.test.ts (14 tests)` ; `grep -n 'iqr:' src/engine/quantiles.ts` → plus aucun littéral `null` sur les chemins à `n ≥ 1` | **CORRIGÉ** (voir la réserve §7.1 n° 1 sur les agrégats marque/modèle) |
-| 2 | **`EX-DATA-23`** — parsing de `firstRegistrationYearMonth`, `FIRST_REG_UNPARSEABLE` jamais posé | `D8-31` | fix-engine-2 (`426b32b`) | `src/types/shared-rules.ts` : `parseFirstRegistrationYearMonth` — deux motifs **ancrés** avec le mois **énuméré** (`00`, `13`, `5/2024`, `05/24`, espaces d'encadrement tous refusés), résultat portant **à la fois** la valeur et le drapeau, encodage colonnaire `12·y + (m−1)` | `R-D2-2.8-01…03`, **12 rouges sur 12** (`is not a function` : la règle n'existait dans **aucun** module), 12 vertes après | `✓ tests/review/D2/first-registration-parsing.test.ts (12 tests)` | **CORRIGÉ** (voir la réserve §7.1 n° 3 : aucun appelant vivant) |
+| 1 | **`EX-DATA-61`** et **`EX-DATA-64`** — `MetricStats.iqr` / `coverage` publiés `null` (résidu `DR-122` que fix-engine et fix-providers s'étaient renvoyé) | `D8-30` | fix-engine-2 (`6c1b548`) | `src/engine/quantiles.ts` : `iqr = p75 − p25` et `coverage = round₄(n/N)` aux **trois** sites (`metricStatsFromCounts`, `emptyStats`, `exactStatsBySort`), paramètre `selectionCount` optionnel ; `src/engine/aggregate.ts` passe `\|Σ\|` | `R-D4-2.8-01…04`, **11 rouges sur 14** avant, 14 vertes après | `✓ tests/review/D4/metric-stats-iqr-coverage.test.ts (14 tests)` ; `grep -n 'iqr:' src/engine/quantiles.ts` → plus aucun littéral `null` sur les chemins à `n ≥ 1` | **CORRIGÉ** (la part « agrégats marque/modèle » relève de la dette `D8-36`, §6.5) |
+| 2 | **`EX-DATA-23`** — parsing de `firstRegistrationYearMonth`, `FIRST_REG_UNPARSEABLE` jamais posé | `D8-31` | fix-engine-2 (`426b32b`) | `src/types/shared-rules.ts` : `parseFirstRegistrationYearMonth` — deux motifs **ancrés** avec le mois **énuméré** (`00`, `13`, `5/2024`, `05/24`, espaces d'encadrement tous refusés), résultat portant **à la fois** la valeur et le drapeau, encodage colonnaire `12·y + (m−1)` | `R-D2-2.8-01…03`, **12 rouges sur 12** (`is not a function` : la règle n'existait dans **aucun** module), 12 vertes après | `✓ tests/review/D2/first-registration-parsing.test.ts (12 tests)` | **CORRIGÉ** (branchement sans objet tant qu'aucune source ne sert le champ : constat `D8-39(a)`, §7.2 n° 3) |
 | 3 | **`EX-SCR-17`** — bascule d'échelle log de G7 absente | `D8-31` | fix-screens-2 (`d690d63`) | `G7` reçoit d'abord un **vrai axe des prix** (`priceBins` de la grille `BIN`, bins de débordement écrêtés `EX-SCR-18`), puis la bascule `log10` (plancher à 1 €), bouton `aria-pressed`, `data-price-scale`, paramètre `g7log` | `R-D7-2.8-02/03/04` rouges → vertes ; `R-D7-2.8-05/06/07` vertes d'emblée (exclusivité G4/G1, encodage de `g7log`) | `✓ tests/review/D7/echelle-log-prix-2.8.test.ts (6 tests)` ; `✓ tests/review/D5/graph-log-param.test.ts` ; E2E `EX-SCR-17 — bascule log de G7` vert ×3 | **CORRIGÉ** |
 | 4 | **`EX-SCR-101`** — filtre devenu invalide après changement de snapshot, ni conservé-marqué ni compté | `D8-31` | fix-state-2 (`a9a7bf2` → `d710bd3`) logique ; fix-app-2 (`9ac896f`) câblage | `src/state/ineffective-filters.ts` (module neuf, pur) ; jeton ambre `data-ineffective="true"` + infobulle `Cette marque est absente du snapshot du <date>` + `aria-describedby` (la couleur n'est jamais le seul signal, `EX-SCR-99`) ; compteur distinct `1 filtre sans effet` ; **jamais de retrait automatique** | `R-D5-2.8-01/02`, 14 cas rouges (module absent) → verts ; `R-D8-2.8-01` (câblage `snapshotDate` **sans** `?? null`) | `✓ tests/review/D5/ineffective-filters.test.ts (14 tests)` ; `✓ tests/review/D8/shell-wiring-f3.test.ts (19 tests)` ; E2E `EX-SCR-101 — marque absente du snapshot` vert ×3 | **CORRIGÉ** |
 | 5 | **`EX-SCR-153`** — G4a non aligné sur les bornes/buckets de G1 ; **aucun axe dessiné** | `D8-31` | fix-screens-2 (`f5da9c2`) | `scatter-model.ts` : `priceGridEdges`, `gridBucketIndex`, `januaryTicks`, `linearTicks` ; `ScatterCloud` prend `priceBuckets` — G4a **prend** les bornes de G1 et empile sur **ses** buckets ; calque SVG de graduations (`data-axis`, `data-scale`, `data-tick`) sur les deux axes | `R-D7-2.8-08…13`, **6 rouges → 6 vertes** ; `R-D7-2.8-09` compare les graduations **une à une** aux bornes de `recalc.priceHistogram` | `✓ tests/review/D7/g4-bornes-g1-2.8.test.ts (6 tests)` | **CORRIGÉ** |
@@ -206,14 +299,14 @@ suivant la suggestion est structurellement impossible. **Prouvé, pas seulement 
 Les 8 cas de câblage tournent sur un vrai lot du provider synthétique (20 000 annonces), les
 prédicats réels du moteur et le référentiel réel lu sur disque — pas des doublures.
 `✓ tests/review/D8/shell-wiring-f3.test.ts (19 tests)`. **Aucun gain annoncé n'est faux.**
-Une réserve subsiste, non sur l'exactitude mais sur la **portée** : l'écran A n'en bénéficie pas
-(§7.1 n° 2).
+Une réserve subsistait en rev 2, non sur l'exactitude mais sur la **portée** : l'écran A n'en
+bénéficie pas. Elle est **fermée** par la dette `D8-37` (§6.6) et la re-cotation du §3.5.
 
 ### 3.3 Points nouveaux de la vague F3
 
 | Point | Décision | Correction | Preuve rejouée | Statut |
 |---|---|---|---|---|
-| **`EX-SCR-216` en mode 2** — l'écran G ouvert depuis B affichait `—` par entrée | `D8-34` (voie a) | `DataController.baselineMakeCounts` : carte `makeId → listingCount` dérivée des agrégats **déjà en mémoire** après `start()`, mémoïsée sur l'**identité** de la baseline, `null` (jamais une carte vide, `DR-060`) ; repli dans `app.tsx` **borné au mode 2** | `R-D8-2.8-08` (4 cas, dont « cinq lectures ⇒ **zéro** appel provider supplémentaire », vérité terrain, somme = 20 000) et `R-D8-2.8-09` (borne `currentMode !== 'mode2'`), **5 rouges → 5 vertes** ; `✓ tests/review/D8/screen-g-counts-2.8.test.ts (5 tests)` ; E2E : `[MESURE] EX-SCR-216 — Volkswagen 9340 \| BMW 8243 \| Mercedes-Benz 7961 \| …` (avant : `Volkswagen — \| Abarth — \| AC —`) | **CORRIGÉ** — avec la réserve de sémantique §7.1 n° 5 (effectifs du snapshot, non filtrés) |
+| **`EX-SCR-216` en mode 2** — l'écran G ouvert depuis B affichait `—` par entrée | `D8-34` (voie a) | `DataController.baselineMakeCounts` : carte `makeId → listingCount` dérivée des agrégats **déjà en mémoire** après `start()`, mémoïsée sur l'**identité** de la baseline, `null` (jamais une carte vide, `DR-060`) ; repli dans `app.tsx` **borné au mode 2** | `R-D8-2.8-08` (4 cas, dont « cinq lectures ⇒ **zéro** appel provider supplémentaire », vérité terrain, somme = 20 000) et `R-D8-2.8-09` (borne `currentMode !== 'mode2'`), **5 rouges → 5 vertes** ; `✓ tests/review/D8/screen-g-counts-2.8.test.ts (5 tests)` ; E2E : `[MESURE] EX-SCR-216 — Volkswagen 9340 \| BMW 8243 \| Mercedes-Benz 7961 \| …` (avant : `Volkswagen — \| Abarth — \| AC —`) | **CORRIGÉ** — sémantique « snapshot entier, non filtré » **ratifiée** par `D8-39(b)` et annotée sous `EX-SCR-216` (§7.2 n° 4) |
 | **`EX-SCR-103`** — le contrôle `Marque / Modèle` de B affichait « Toutes les marques » et ouvrait G non positionné | `D8-35` (7.1) | `withRouteTaxonomy(selection, mode, routePair)` — dérivation **pure**, réinjecte le bloc `mmmv` de la route **pour l'affichage seulement**, retourne la même référence hors du cas visé, **jamais** utilisée pour sérialiser une URL (sinon `mmmv` réapparaîtrait en double, `EX-NAV-15`) ; `FilterBand` l'utilise pour `screenGSummary` **et** `ScreenG currentSelection` | `R-D5-2.8-07/08/09`, **11 rouges sur 11** → 11 vertes ; `✓ tests/review/D5/screen-g-mode2-position.test.ts (11 tests)` ; vérifié dans le code : `FilterBand.tsx` l. 446 `taxonomySelection`, l. 511 `currentSelection={taxonomySelection}` | **CORRIGÉ** — réserve de forme §7.2 n° 3 (un maillon prouvé par lecture de source) |
 | **`EX-SCR-97`** — la feuille compacte enfermée dans le contexte d'empilement du bandeau, l'en-tête collant avalait le clic | `D8-35` (7.2) | `.kycar-filter-band--compact { z-index: 20 }` (`filter-band.css` l. 475-476), avec le commentaire d'explication | **La preuve est mon propre rejeu** : `EX-SRCH-14` au projet **`mobile`**, le seul échec inattendu de la recette de `fix-app-2`, est **vert** chez moi (`✓ 221 [mobile]`), sans qu'aucun `test.fail()` ait été posé et sans que le test ait été modifié | **CORRIGÉ** |
 | **Formateur de date** — `NaN/NaN`, `00/-1`, `01/0`, et un **mois inventé** sur une année nue | signalement fix-engine-2 §6.4, relayé par le coordinateur | `formatMonthYear` exige un entier ≥ 0 d'année dans `[1900, 2100]` ; `formatFirstRegistrationMonthYear` exige `AAAA-MM` avec mois `01..12` explicite **et** date parsable ; repli sur le caractère normatif `—` (`EX-SCR-34`) | `R-D6-2.8-01/03/04` rouges → vertes, `R-D6-2.8-02` non-régression ; `✓ tests/review/D6/format-immatriculation-2.8.test.ts (4 tests)` | **CORRIGÉ** |
@@ -228,7 +321,23 @@ Une réserve subsiste, non sur l'exactitude mais sur la **portée** : l'écran A
 | Dettes 2.6 « levables en interne » (PLAN §2.8) | 9 | **9 levées** — les 8 de la rev 1, plus le résidu `DR-122` (`EX-DATA-61`/`64`) levé par `D8-30` |
 | Exigences `PARTIELLE` ouvertes au §7.1 de la rev 1 | 8 | **8 corrigées** (§3.1) |
 | Exigences « mesures au rendu » renvoyées à 2.9b (§3.2(b) de 2.7) | 15 | **DIFFÉRÉES 2.9b**, motivé par le plan ; la suite E2E les exerce |
-| Écarts **nouveaux**, sans décision | — | **2** (§7.1 n° 1 et 2) |
+| Écarts nouveaux, sans décision **en rev 2** | 2 | **0 en rev 3** — `D8-36` et `D8-37` les ont écrits (§0.1, §6.5, §6.6) |
+
+### 3.5 Re-cotations à porter dans la matrice de couverture (rev 3)
+
+Trois exigences changent de cote depuis la matrice de 2.7. Elles sont à reporter telles quelles par
+l'agent `acceptance` (2.9b) dans `reports/ACCEPTANCE.md` : la matrice 2.7 est figée, c'est la
+matrice d'acceptance qui la remplace.
+
+| Exigence | Cote 2.7 | **Cote après 2.8** | Fondement |
+|---|---|---|---|
+| **`EX-SCR-26`** | `COUVERTE` | **`COUVERTE` en mode 2** (écran B) · **`DETTE D8-37` en mode 1** (écran A) | `D8-37`. La cote 2.7 reposait sur des sondes D6 qui éprouvent la **fonction de modèle**, pas la donnée que la coquille lui passe. En mode 2, les trois suggestions sont calculées sur le lot élagué et le gain annoncé **est** l'effectif obtenu (§3.2, sondes `R-D8-2.8-04/05/07`, E2E « 1 352 offres de plus » → 1 352). En mode 1, `data-controller.ts` l. 582 publie `topRestrictiveFilters: []` : le bloc se rend **sans suggestion chiffrée**, avec `Réinitialiser tous les filtres` et `Enregistrer cette recherche` — comportement que j'ai vérifié dans `MarketScreen.tsx` (l. 250, 275, 282, 285) et qui est **exactement** celui que l'annotation `D8-37` décrit |
+| **`EX-DATA-68`** | `PARTIELLE` (dette `DR-122`) | **`PARTIELLE` — `DETTE D8-36`** (interface gelée) | Tous les champs que 2.7 citait (`modelCount`, `displayRange`, `rank`, `coverageWarning`, `adTierDistribution`) sont livrés (`D8-10`, `D8-23`) ; seule reste la clause « 3 × 13 valeurs », portée par la dette d'interface gelée |
+| **`EX-DATA-61`** | `PARTIELLE` (dette `DR-122`) | **`COUVERTE` sur la sélection** (`MetricStats`, `D8-30`) · **`DETTE D8-36` sur les agrégats** | `D8-30` publie `iqr` et `coverage` sur la sélection (sonde `R-D4-2.8-01…04`) ; les agrégats relèvent de `D8-36` |
+
+Pour mémoire, les quatre exigences de `FV-06` et de sa famille conservent la cote posée en rev 2 :
+`EX-SCR-65`, `89`, `90` = **`COUVERTE` en mode 2 · `DETTE D8-29` en mode 1** ; `EX-SCR-216` =
+**`COUVERTE`**, avec la précision de sémantique `D8-39(b)` (effectifs du snapshot entier en mode 2).
 
 ---
 
@@ -403,77 +512,99 @@ listingCount` avec une `coverageNote` qui en donne la raison, plutôt que de lai
 Le provider **réel** tient `EX-DATA-35` en entier. Texte vérifié : `draft-data-dictionary.md`
 l. 488-497, `[amendée 2.8 — D8-32]`, avec le coût chiffré d'une levée (21ᵉ colonne d'un octet).
 
-### 6.5 **Acceptation au titre de S4 — mon avis, demandé par la mission**
+### 6.5 Dette d'interface gelée ratifiée en rev 3 — `D8-36` (`EX-DATA-68`, `EX-DATA-61` agrégats)
 
-| Dette | Admise à S4 ? | Pourquoi |
-|---|---|---|
-| DR-104, DR-112, O15, `EX-SRCH-12`, `EX-SCR-9` | **OUI** | Source ou décision hors dépôt, nommées, condition de levée écrite, marqueur vivant quand une sonde peut exister |
-| **`D8-15` / `EX-SCR-95`** | **OUI** | `D8-18` l'admet nommément aux côtés des externes ; c'est une décision de produit écrite, datée, tracée dans l'annexe et **rendue visible par un échec attendu**. Une dette qui se signale à chaque exécution ne peut pas être oubliée |
-| **`D8-29` / `FV-06` mode 1** | **OUI** | La cause n'est pas un manque de travail : c'est une **contradiction entre deux exigences du dépôt** (`EX-SCR-89/90` × `O17`) qui ne se tranche qu'avec le commanditaire, et `E3` interdit de poser la question. La construction est **exactement celle d'`EX-SCR-9`**, que 2.6 et 2.7 admettent déjà. Elle est écrite, motivée, avec deux conditions de levée alternatives, et j'ai **vérifié moi-même** qu'aucune valeur n'est inventée en son absence (§6.2). Je l'accepte sans réserve |
-| **`D8-32(2)` / `co2Source`** | **OUI** | Même construction : la levée exige un amendement de l'**interface gelée** (v2), c'est-à-dire une décision d'architecture, pas une correction. Écrite, chiffrée, et l'écart est **dit à l'utilisateur** par le descripteur de snapshot plutôt que masqué. Le provider réel, lui, tient l'exigence entière |
+La clause « bloc statistique complet, **3 × 13 valeurs** » par agrégat de marque et de modèle n'est
+pas tenue : l'interface gelée publie un `MetricRange` de **six** champs (`min`, `max`, `p05`, `p50`,
+`p95`, `n`) — vérifié par moi dans `src/providers/DataProvider.ts`. `EX-DATA-61` est donc tenue sur
+la **sélection** (`MetricStats`, `D8-30`) et non sur les agrégats. Texte vérifié :
+`draft-data-dictionary.md` l. 1006-1013, sous la table d'`EX-DATA-68`, `[amendée 2.8 — D8-36]`,
+plus la ligne de journal v1.3. Condition de levée : **v2 de `DataProvider`**, même famille que
+`D8-32(2)`. **Aucune valeur n'est inventée** : les champs sont absents, jamais faux — vérifié.
+Une réserve **de rédaction** sur le motif est portée au §7.2 n° 1 ; elle ne touche pas la portée de
+la dette.
 
-**En revanche, ne sont admises ni l'une ni l'autre** : les deux dettes du §7.1, qui ne sont pas
-écrites du tout.
+### 6.6 Dette architecturale ratifiée en rev 3 — `D8-37` (`EX-SCR-26` écran A)
+
+En **mode 1**, la liste des trois filtres les plus restrictifs n'est pas calculée : le
+« leave-one-out » exigerait un balayage des annonces que le mode 1 n'a pas chargées (`O17`) ou un
+aller provider par filtre. En **mode 2**, elle l'est, et le gain annoncé **est** l'effectif obtenu
+(§3.2). Texte vérifié : `draft-screens.md` l. 241-246, **dans le corps même d'`EX-SCR-26`**,
+`[amendée 2.8 — D8-37]`, plus la ligne de journal v1.3. Extension explicite de `D8-29`, même cause.
+
+**Contrôle indépendant : l'annotation décrit exactement le code.** `MarketScreen.tsx` rend bien, à
+l'état vide-filtres, le titre `Aucune offre ne correspond` (l. 250), la boucle
+`state.topRestrictive.map(...)` (l. 275 — qui ne produit rien sur un tableau vide, sans jamais
+inventer de suggestion), `Réinitialiser tous les filtres` (l. 282) et `Enregistrer cette recherche`
+(l. 285). L'utilisateur n'est donc pas laissé sans issue : il lui manque les raccourcis chiffrés, pas
+les actions.
+
+### 6.7 **Acceptation au titre de S4 — mon avis, demandé par la mission**
+
+Dix dettes restent après la phase 2.8. Je les prends une par une.
+
+| # | Dette | Exigences | Catégorie | Admise à S4 ? |
+|---|---|---|---|---|
+| 1 | **DR-104** (`R-D9-21`) | `EX-DATA-107` | Externe — `AC-01` juridique non levée | **OUI** |
+| 2 | **DR-112** (`R-D2-16`) | `EX-DATA-53`, `54`, `126` | Externe — source Statbel/bpost, `E5` | **OUI** |
+| 3 | **O15** | `EX-DATA-115bis`, `EX-SCR-221` | Externe — donnée absente de tout référentiel ; mitigation `D8-20` livrée | **OUI** |
+| 4 | **`EX-SRCH-12`** | `EX-SRCH-12` | Externe — sémantique `eq` de la source, `O7` | **OUI** |
+| 5 | **`EX-SCR-9`** | `EX-SCR-9` | Décision — périmètre R3 (`D-14`) | **OUI** |
+| 6 | **`D8-15`** | `EX-SCR-95` | Décision **produit** du fix-lead | **OUI** — écrite, datée, tracée dans l'annexe, et **rendue visible par un échec attendu à chaque exécution** de la recette. Une dette qui se signale toute seule ne peut pas être oubliée |
+| 7 | **`D8-29`** | `EX-SCR-65`, `89`, `90` (mode 1) | Architecturale — `EX-SCR-89/90` × `O17` | **OUI** — la cause n'est pas un manque de travail : c'est une **contradiction entre deux exigences du dépôt** qui ne se tranche qu'avec le commanditaire, et `E3` interdit de poser la question. Construction **identique à celle d'`EX-SCR-9`**, déjà admise en 2.6 et 2.7. Deux conditions de levée écrites, et j'ai **vérifié moi-même** qu'aucune valeur n'est inventée en son absence (§6.2) |
+| 8 | **`D8-32(2)`** | `EX-DATA-35` (synthétique) | Interface gelée → v2 | **OUI** — la levée exige un amendement d'interface, c'est-à-dire une décision d'architecture, pas une correction. Écrite, chiffrée, et l'écart est **dit à l'utilisateur** par le descripteur de snapshot. Le provider réel tient l'exigence entière |
+| 9 | **`D8-36`** | `EX-DATA-68`, `EX-DATA-61` (agrégats) | Interface gelée → v2 | **OUI** — **exactement la même catégorie que la n° 8**, que j'ai acceptée en rev 2 : je ne peux pas l'accepter dans un cas et la refuser dans l'autre. Écrite, annotée dans l'annexe, avec sa condition de levée ; les champs sont absents, jamais faux. *Réserve de rédaction au §7.2 n° 1, sans effet sur la portée* |
+| 10 | **`D8-37`** | `EX-SCR-26` (mode 1) | Architecturale — extension de `D8-29` | **OUI** — **même cause et même catégorie que la n° 7**, que j'ai acceptée en rev 2. Écrite dans le corps de l'exigence, avec la re-cotation explicite mode 2 / mode 1 (§3.5) ; l'écran A conserve ses deux actions, aucune suggestion n'est inventée (§6.6) |
+
+**Les dix sont admissibles, et je les admets.** Aucune dette interne non ratifiée ne subsiste : les
+deux qui restaient en rev 2 sont désormais des décisions écrites, annotées dans les annexes et
+portées au journal v1.3. **C'est le point qui manquait à S1 et à S4, et il est comblé.**
+
+**Cohérence de mon propre jugement.** Les catégories « interface gelée » et « architecturale `O17` »
+ne sont pas des échappatoires que j'inventerais après coup pour laisser passer la phase : je les ai
+acceptées en **rev 2** pour `D8-32(2)` et `D8-29`, avant de savoir que `D8-36` et `D8-37` s'y
+rangeraient. Refuser aujourd'hui les deux nouvelles reviendrait à changer de règle en cours de
+partie ; les accepter est la seule position cohérente avec ce que j'ai déjà écrit.
 
 ---
 
 ## 7. Écarts, réserves et recommandations
 
-### 7.1 Écarts OUVERTS — deux, nouveaux, sans décision
+### 7.1 Écarts OUVERTS — **aucun**
 
-Tous deux ont été **remontés par les correcteurs eux-mêmes**, honnêtement, sous le titre « à
-remonter au coordinateur » ; **aucune décision `D8-xx` ne leur répond**.
+Les deux écarts que la rev 2 laissait ouverts sont **fermés par une décision écrite**, chacune
+annotée dans l'annexe concernée et portée au journal v1.3 (§0.1, §6.5, §6.6, §3.5). Je les ai
+vérifiées texte en main, et non sur la foi du tableau de décisions :
 
-**1. `EX-DATA-68` (et `EX-DATA-61` sur les agrégats) — le bloc de 13 valeurs n'existe pas par
-marque ni par modèle.** Remonté par `fix-engine-2` §6 point 1.
-
-`EX-DATA-68` exige, pour chaque agrégat de marque et de modèle : « `price`, `year`, `mileage` : bloc
-statistique complet (`EX-DATA-64`) — **3 × 13 valeurs** ». Or l'interface gelée publie un
-`MetricRange` de **6 champs** (`min`, `max`, `p05`, `p50`, `p95`, `n`) — vérifié par moi dans
-`src/providers/DataProvider.ts`. Il manque `mean`, `stdDev`, `p25`, `p75`, `iqr`, `coverage`, et
-**ces six ne sont pas dérivables au rendu** depuis les six publiés, contrairement à `rank`,
-`displayRange` et `makeName` que `D8-23` a explicitement ratifiés comme dérivés. `EX-DATA-61`
-(« toute statistique publiée est accompagnée de son effectif **et de sa couverture** ») est donc
-tenue sur la **sélection** depuis `D8-30`, mais **pas** sur les agrégats marque/modèle.
-
-- **Ce n'est pas une régression** : l'état date de D2 et a traversé 2.5, 2.6 et 2.7 sans être relevé
-  — la matrice 2.7 classait `EX-DATA-68` `PARTIELLE` en citant `modelCount`, `displayRange`, `rank`,
-  `coverageWarning`, `adTierDistribution`, **tous livrés depuis**, mais pas cette clause-ci.
-- **Aucune valeur affichée n'est fausse** : les champs n'existent pas, ils ne mentent pas.
-- **La cause est exactement celle de `D8-32(2)`** : un amendement de l'interface gelée (v2).
-- **Mon avis : dette à écrire par le fix-lead**, d'une ligne, dans la même famille que `D8-32(2)`,
-  plus une annotation `[amendée 2.8 — D8-xx]` sous `EX-DATA-68`. **Aucun code n'est à changer.**
-  En l'état, c'est une exigence `PARTIELLE` dont la dette résiduelle (`DR-122`) est **interne** et
-  n'a jamais été re-ratifiée — ce que S4 n'admet pas.
-
-**2. `EX-SCR-26` sur l'écran A — les suggestions de retrait ne sont jamais calculées.** Remonté par
-`fix-app-2` §9 (« dette **inchangée** de `data-controller.ts`, hors `D8-31`, même cause qu'`D8-29` »).
-
-`src/orchestration/data-controller.ts` l. 582 publie toujours `topRestrictiveFilters: []`. Sur
-l'écran A, l'état `ET-VIDE-FILTRES` se rend donc **sans** les suggestions « retirer « … » : `<k>`
-offres de plus » qu'`EX-SCR-26` exige — alors que l'écran B les a désormais (§3.2).
-
-- La matrice 2.7 classe `EX-SCR-26` **`COUVERTE`**, sur la foi de sondes D6 qui éprouvent la
-  **fonction de modèle**, pas la donnée que la coquille lui passe. L'écart est donc **invisible dans
-  la matrice** et ne sera pas rattrapé par 2.9b s'il n'est pas écrit maintenant.
-- **La cause est celle de `D8-29`** : le même calcul sur l'écran A exigerait un balayage des
-  100 000 annonces, ce qu'`O17` interdit — mot pour mot l'argument de la dette de facettes.
-- **Mon avis : dette à écrire par le fix-lead**, en élargissant `D8-29` à `EX-SCR-26` (écran A) —
-  ou, si le commanditaire la juge nécessaire, à corriger, mais alors **avant G7**. Le fait qu'une
-  exigence classée `COUVERTE` ne le soit pas en production est le genre d'écart que la porte existe
-  précisément pour attraper.
-
-### 7.2 Réserves — signalées, non bloquantes, avec mon avis
-
-| # | Réserve | Source | Mon avis |
+| Écart rev 2 | Décision | Où le texte se trouve, tel que je l'ai lu | Admissible S1/S4 ? |
 |---|---|---|---|
-| 1 | **`GroupStatEntry.coverage` n'est pas arrondie à 4 décimales** (`group-stats.ts` l. 285, `n / listingCount` brut) là où `MetricStats.coverage` l'est désormais, comme `DistributionBucket.share` et `evalCoverage` | fix-engine-2 §6 pt 2 | **Sans effet aujourd'hui** (dénominateurs différents : le groupe / la sélection), donc aucune incohérence d'affichage. Mais **trois taux publiés côte à côte ne devraient pas être arrondis de deux manières.** Une ligne et une sonde. `fix-engine-2` a eu raison de ne pas la changer sans sonde qui l'exige — c'est exactement le grief `D8-27`. **À traiter en 2.8bis ou à consigner** |
-| 2 | **`EX-DATA-23` n'a aucun appelant vivant** : la règle est posée, exportée et prouvée par 12 sondes, mais aucun chemin d'ingestion ne l'appelle — `tweedehands/normalize.ts` l. 353 pose `firstRegistrationYear = null` **inconditionnellement** (l'imputer depuis `modelYear` est interdit, `EX-DATA-25/27`, `DR-017`), et le générateur synthétique construit la colonne arithmétiquement | fix-engine-2 §6 pt 3 | **Correct, et honnête.** L'exigence porte sur la **façon de lire** une chaîne que les sources actuelles n'émettent pas : la règle est implémentée et gardée par une sonde, prête pour la première source qui servira le champ. **Statut à écrire dans la matrice** (« règle prouvée, branchement sans objet tant qu'aucune source ne sert le champ ») pour que 2.9b ne la relève pas comme un manque. **Sans effet, à documenter** |
-| 3 | **La sonde `EX-SCR-103` prouve son dernier maillon par lecture de source** (`vitest.review.config.ts` fixe `environment: 'node'` et le dépôt n'embarque aucune dépendance DOM) : dérivation pure + rendu des composants sans hook **exécutés**, câblage dans `FilterBand.tsx` **lu** | fix-state-2 §9bis.1 | **Acceptable** : c'est la convention déjà établie par `tests/review/D8/shell-static.test.ts`, écrite pour la même raison, et la contrainte est d'environnement, pas de complaisance. **La preuve de bout en bout existe par ailleurs** : `EX-SRCH-14` en navigateur ouvre ce contrôle et est vert sur les trois projets. **Réserve de forme** |
-| 4 | **`EX-SCR-159` livrée en version bornée** (légende continue atténuée au lieu des pastilles et valeurs littérales de `draft-screens.md` §6.4 à `n ≤ 3`) | rev 1 §7.2 n° 3 | **CLOS** — `D8-32(3)` la ratifie et fix-docs-2 l'annote (`draft-screens.md` l. 1816-1824, `[amendée 2.8 — D8-32]`, vérifié par `grep`) |
-| 5 | **`EX-SCR-216` en mode 2 : les effectifs sont ceux du snapshot entier**, non filtrés, alors que l'exigence dit « dans le périmètre filtré courant » | fix-app-2 §10.2 | **Accepté, et bien déclaré (E4)** : en mode 2, un effectif filtré pour une **autre** marque que celle de la route n'est pas calculable sans aller provider, ce que `D8-34` exclut et `O17` interdit. Le repli est une **valeur mesurée**, strictement préférable au `—` qu'il remplace, déclarée en commentaire aux deux endroits, et **bornée au mode 2 par une sonde** (`R-D8-2.8-09`) pour qu'un élargissement futur ne passe pas inaperçu. **Même famille que `D8-29`** : gagnerait à être rattachée à sa dette d'une ligne |
-| 6 | **Deux libellés fixés par hypothèse** (`aucun filtre actif` sur une recherche sans filtre ; hauteur **minimale** de 96 px au lieu d'une hauteur fixe) | fix-screens-2 §13 | **Sans effet.** Hypothèses écrites dans le code comme `E4` l'exige ; l'exigence ne fixe ni l'un ni l'autre |
-| 7 | **`EX-SRCH-14` ne couvre pas « autre marque **et** modèle »**, classé `goToModel` (`EX-NAV-15`) | fix-state-2 §8 pt 2 | **Lecture correcte** de l'exigence (« hors clic sur zone-modèle » : ce n'est pas un changement de marque). **Sans objet** |
+| `EX-DATA-68` / `EX-DATA-61` sur les agrégats | **`D8-36`** | `draft-data-dictionary.md`, paragraphe de 8 lignes **sous la table d'`EX-DATA-68`** : nomme la clause non tenue (3 × 13), le fait que `MetricRange` v1 publie 6 champs, la portée conservée d'`EX-DATA-61` sur la sélection, l'absence de valeur inventée, et la condition de levée (v2, famille `co2Source`). Marque `[amendée 2.8 — D8-36]` + ligne de journal v1.3 | **OUI** (§6.7 n° 9), avec une réserve **de rédaction** — §7.2 n° 1 |
+| `EX-SCR-26` sur l'écran A | **`D8-37`** | `draft-screens.md`, paragraphe de 6 lignes **dans le corps même d'`EX-SCR-26`** (et non en note de bas de section) : distingue mode 1 et mode 2, nomme la cause (`O17`), dit ce que le bloc rend malgré tout, et se déclare extension de `D8-29`. Marque `[amendée 2.8 — D8-37]` + ligne de journal v1.3 | **OUI** (§6.7 n° 10), re-cotation portée en §3.5 |
+
+**Ce que j'ai contrôlé au-delà de l'existence du texte.** Une dette écrite qui décrirait mal le
+produit serait pire qu'une dette absente : elle ferait croire le problème connu et borné.
+
+- **`D8-36`** — j'ai relu `src/providers/DataProvider.ts` : `MetricRange` publie bien exactement
+  `min`, `max`, `p05`, `p50`, `p95`, `n`, et `MakeAggregate` porte `listingCount`, `price`,
+  `mileage`, `year`, `sampleCoverage`, `modelCount` et les trois optionnels de `D8-10`. La clause
+  non tenue est donc réelle et sa portée est celle qu'annonce l'annotation.
+- **`D8-37`** — j'ai relu `MarketScreen.tsx` : l'état vide-filtres rend le titre normatif, la boucle
+  sur `topRestrictive` (vide, donc silencieuse — **aucune suggestion inventée**),
+  `Réinitialiser tous les filtres` et `Enregistrer cette recherche`. L'annotation décrit le
+  comportement **exact**, ni plus favorable ni moins.
+
+### 7.2 Réserves — état après les décisions `D8-38` et `D8-39`
+
+| # | Réserve | Décision | Mon avis en rev 3 |
+|---|---|---|---|
+| 1 | **Rédaction de `D8-36`** : l'annotation écrit que « `mean`, `stdDev`, `p25`, `p75`, `iqr` et **`coverage`** ne sont pas dérivables au rendu ». **C'est exact pour cinq de ces six valeurs, faux pour `coverage`** : `MakeAggregate` porte `listingCount` et `MetricRange` porte `n`, donc `coverage = n / listingCount` est dérivable au rendu — exactement la construction que `D8-23` a ratifiée pour `rank` et `displayRange` | — (**nouvelle**, relevée par moi en rev 3) | **N'affecte pas la portée de la dette** : `EX-DATA-61` sur les agrégats n'est pas *publiée*, qu'elle soit dérivable ou non, et `D8-36` la couvre nommément. Mais le motif fait paraître **impossible** ce qui est à une dérivation d'affichage près, et pousserait à attendre la v2 de l'interface pour une valeur livrable tout de suite. **Avis : réserve de rédaction, non bloquante.** Deux issues, au choix du fix-lead — retirer `coverage` de l'énumération des non-dérivables (une correction de mot), **ou** dériver `coverage` au rendu et ne laisser en dette que les cinq autres. Je recommande la seconde : elle rend `EX-DATA-61` tenue partout |
+| 2 | **`GroupStatEntry.coverage` non arrondie à 4 décimales** là où `MetricStats.coverage` l'est | **`D8-38`** | **ACCEPTÉE, sans réserve.** J'ai vérifié la table d'`EX-DATA-64` : sa quatrième colonne s'intitule bien **« Arrondi de présentation »**, `coverage` y porte « 4 décimales », et la note sous la table précise que cet arrondi « prime sur toute règle de format d'écran ». Le producteur n'y est donc **pas** tenu — ma réserve de rev 2 lisait une obligation de présentation comme une obligation de calcul, et `D8-38` a raison de me corriger. L'arrondi que `fix-engine-2` a posé dans `MetricStats` reste acceptable (idempotent à la présentation), et aucun consommateur ne recalcule à partir de `coverage`. Harmoniser les producteurs est une tâche de v2, **pas une dette d'exigence** |
+| 3 | **`EX-DATA-23` n'a aucun appelant vivant** : règle posée, exportée, prouvée par 12 sondes, mais aucun chemin d'ingestion ne l'appelle — aucune source ne sert la date sous forme textuelle | **`D8-39(a)`** — constat, pas dette | **ACCEPTÉE.** C'est exactement mon avis de rev 2 (« sans effet, à documenter ») : l'exigence porte sur la **façon de lire** une chaîne que les sources actuelles n'émettent pas ; la règle est en place et gardée. **Une charge subsiste, que je nomme** : le constat vit dans `FIX-LEAD-DECISIONS-2.8.md` §G, pas dans une annexe. **L'agent `acceptance` doit le porter dans sa matrice** sous la forme « règle prouvée, branchement sans objet tant qu'aucune source ne sert le champ », faute de quoi 2.9b la relèvera comme un manque et rouvrira un point clos |
+| 4 | **`EX-SCR-216` en mode 2 : effectifs du snapshot entier**, non filtrés | **`D8-39(b)`** — précision ratifiée | **ACCEPTÉE.** Texte vérifié sous `EX-SCR-216` (`draft-screens.md`, `[amendée 2.8 — D8-39]`) : il dit la sémantique réelle, la borne (`O17`, `EX-NFR-9`, aucun balayage), et que le « périmètre filtré courant » n'est disponible qu'en mode 1. C'est le rattachement d'une ligne que je demandais en rev 2. La borne mode 2 reste verrouillée par la sonde `R-D8-2.8-09` |
+| 5 | **La sonde `EX-SCR-103` prouve son dernier maillon par lecture de source** (`environment: 'node'`, aucune dépendance DOM au dépôt) | — | **Inchangée, acceptable.** Convention déjà établie par `tests/review/D8/shell-static.test.ts`, contrainte d'environnement et non de complaisance ; la preuve de bout en bout existe par ailleurs (`EX-SRCH-14` en navigateur, vert sur les trois projets). **Réserve de forme** |
+| 6 | **`EX-SCR-159` livrée en version bornée** | `D8-32(3)` | **CLOSE** en rev 2 (texte vérifié) |
+| 7 | **Deux libellés fixés par hypothèse** (`aucun filtre actif` ; hauteur **minimale** de 96 px) | — | **Sans effet.** Hypothèses écrites dans le code comme `E4` l'exige ; l'exigence ne fixe ni l'un ni l'autre |
+| 8 | **`EX-SRCH-14` ne couvre pas « autre marque **et** modèle »**, classé `goToModel` (`EX-NAV-15`) | — | **Lecture correcte** de l'exigence. **Sans objet** |
 
 ### 7.3 Les cinq arbitrages du §7.2 de la rev 1 — clos, textes vérifiés
 
@@ -502,12 +633,14 @@ Les deux corrections sont de nouveau vertes dans ma recette (`E2E-19` sur les tr
 
 ### 7.5 Recommandations pour 2.9b (`acceptance`, Fable/max)
 
-1. **Écrire les deux dettes du §7.1 avant d'ouvrir 2.9b**, ou les corriger. Ce sont deux lignes de
-   décision ; leur absence est la seule chose qui sépare cette phase de sa porte.
-2. **Statuer les 15 exigences « mesures au rendu »** de `FINAL-VERIFICATION` §3.2(b) : la suite E2E
+1. **Porter les trois re-cotations du §3.5** dans `reports/ACCEPTANCE.md` : `EX-SCR-26`
+   (`COUVERTE` mode 2 / `DETTE D8-37` mode 1), `EX-DATA-68` (`DETTE D8-36`), `EX-DATA-61`
+   (`COUVERTE` sur la sélection / `DETTE D8-36` sur les agrégats). La matrice 2.7 est figée : si
+   ces cotes ne sont pas reprises, `EX-SCR-26` restera `COUVERTE` à tort dans le document final.
+2. **Porter aussi le constat `D8-39(a)` sur `EX-DATA-23`** (§7.2 n° 3) : il vit dans le registre de
+   décisions, pas dans une annexe, et sera relevé comme un manque s'il n'est pas cité.
+3. **Statuer les 15 exigences « mesures au rendu »** de `FINAL-VERIFICATION` §3.2(b) : la suite E2E
    les exerce désormais toutes, aucune n'a plus de raison de rester `PARTIELLE`.
-3. **Re-juger `EX-SCR-26`** dans la matrice : 2.7 l'a classée `COUVERTE` sur des sondes de modèle,
-   l'écran B la tient maintenant réellement, l'écran A non (§7.1 n° 2).
 4. **Prononcer le verdict axe-core sur la surface D** — possible depuis la correction de `E2E-01`.
 5. **Republier la série complète d'`EX-NFR-9`** (§2.2), pas la seule médiane : la marge est de
    ~490 ms et la dispersion est le vrai indicateur.
@@ -518,122 +651,128 @@ Les deux corrections sont de nouveau vertes dans ma recette (`E2E-19` sur les tr
    recetter un build étranger — le piège coûteux qu'a rencontré `fix-state-2` (§9bis.2). À verser à
    `docs/HANDOFF.md` §7.
 
+8. **Trancher la réserve de rédaction du §7.2 n° 1** — `coverage` est dérivable au rendu sur les
+   agrégats ; soit le mot est retiré de l'énumération de `D8-36`, soit la valeur est dérivée et
+   `EX-DATA-61` devient tenue partout. Ce n'est pas une condition de G7, c'est une occasion à ne pas
+   perdre de vue.
+
 ---
 
 ## 8. Verdict des critères S1–S4 et de la porte G7
 
 | Critère | Énoncé (PLAN-2 §2.8) | Verdict | Preuve |
 |---|---|---|---|
-| **S1** | zéro exigence `NON COUVERTE` et zéro `PARTIELLE` sans dette motivée par une décision | **NON ATTEINT** | Les 28 `NON COUVERTE` de 2.7 sont toutes soldées ; les **huit** `PARTIELLE` que la rev 1 laissait ouvertes sont **corrigées avec preuve** (§3.1) ; `FV-06` mode 1 a désormais sa décision écrite (`D8-29`). Mais **deux exigences restent `PARTIELLE` sans aucune décision** : `EX-DATA-68` / `EX-DATA-61` sur les agrégats (bloc de 13 valeurs inexistant et non dérivable — `DataProvider.ts`, `MetricRange` à 6 champs) et `EX-SCR-26` sur l'écran A (`data-controller.ts` l. 582 : `topRestrictiveFilters: []`). Les deux ont été remontées par les correcteurs sous « à remonter au coordinateur » ; aucune ligne `D8-xx` n'y répond |
-| **S2** | chaque correction prouvée par exécution (sonde ou test E2E) | **ATTEINT** | 8/8 des écarts de la rev 1, les 4 points nouveaux de F3, `D8-34` et les deux volets de `D8-35` portent chacun une preuve rouge → verte que **j'ai rejouée** (§3, §5.4). La seule exception de la rev 1 — le câblage `onClearFilter` — est close : `R-D7-2.8-01` rouge sur `3435456`, verte sur `c8c791a`, **contre-épreuve faite par moi**. Le seul échec inattendu de `fix-app-2` (`EX-SRCH-14` mobile) est vert dans ma recette |
-| **S3** | aucune régression : `npm test`, `npm run test:e2e`, budgets | **ATTEINT** | `build` 0/0 · `lint` vert · `npm test` **675 + 1 079, 0 échec, 0 saut, 0 todo** · `test:perf` **7/7** · `size` **116,34 / 300 Kio** · `test:e2e` **255 tests, 243 verts, 3 échecs attendus, 9 sautés, 0 échec inattendu, exit 0**. Tous les budgets tenus (§2.2), `EX-NFR-9` sous 2 000 ms sur les trois projets et les deux scénarios |
-| **S4** | les dettes restantes sont exclusivement externes (décision ou source hors dépôt), nommées | **NON ATTEINT** | Les **huit** dettes écrites sont toutes admissibles et je les accepte une par une, motifs à l'appui (§6.5) : cinq externes (`D8-18`), une dette produit décidée (`D8-15`), une dette architecturale `O17` × `EX-SCR-89/90` (`D8-29`), une dette d'interface gelée (`D8-32(2)`). Mais les **deux écarts du §7.1 ne sont pas des dettes** : ils ne sont écrits nulle part. Le résidu de `DR-122` sur `EX-DATA-68` est en outre une dette **interne** jamais re-ratifiée |
+| **S1** | zéro exigence `NON COUVERTE` et zéro `PARTIELLE` sans dette motivée par une décision | **ATTEINT** | Les 28 `NON COUVERTE` de 2.7 sont soldées. Les **huit** `PARTIELLE` que la rev 1 laissait ouvertes sont **corrigées avec preuve** (§3.1). Les deux écarts que la rev 2 laissait sans décision sont **fermés par une décision écrite et annotée dans l'annexe** : `D8-36` sous `EX-DATA-68`, `D8-37` dans le corps d'`EX-SCR-26` — textes lus et vérifiés par moi, marques `[amendée 2.8 — D8-xx]` et lignes de journal v1.3 présentes (§0.1, §7.1). Les re-cotations correspondantes sont posées au §3.5. **Aucune exigence ne reste `PARTIELLE` sans une décision qui la porte** |
+| **S2** | chaque correction prouvée par exécution (sonde ou test E2E) | **ATTEINT** | Inchangé depuis la rev 2, sur le même code : 8/8 des écarts de la rev 1, les 4 points nouveaux de F3, `D8-34` et les deux volets de `D8-35` portent chacun une preuve rouge → verte **que j'ai rejouée** (§3, §5.4), dont la contre-épreuve `D8-27` sur les deux commits. Le delta de la rev 3 est **documentaire** et n'introduit aucune correction à prouver — je l'ai vérifié plutôt que supposé (`git diff` sans aucun fichier de `src/` ni `tests/`, §1.1) |
+| **S3** | aucune régression : `npm test`, `npm run test:e2e`, budgets | **ATTEINT** | Portes complètes de la rev 2, sur un code **identique octet pour octet** : `build` 0/0 · `lint` vert · `npm test` **675 + 1 079**, 0 échec / 0 saut / 0 todo · `test:perf` **7/7** · `size` **116,34 / 300 Kio** · `test:e2e` **255 tests, 243 verts, 3 échecs attendus, 9 sautés, 0 échec inattendu, exit 0**. Tous les budgets tenus (§2.2), `EX-NFR-9` sous 2 000 ms sur les trois projets et les deux scénarios. **Rejoué en rev 3 sur le delta documentaire** : `npm run lint` vert et les **363 sondes qui lisent les annexes** (D1, D2, D5) vertes, décompte d'exigences inchangé (245 · B, 140 · A) — le delta ne casse rien |
+| **S4** | les dettes restantes sont exclusivement externes (décision ou source hors dépôt), nommées | **ATTEINT** | **Dix dettes**, toutes écrites et nommées, examinées une par une au §6.7 : cinq **externes** (`DR-104`, `DR-112`, O15, `EX-SRCH-12`, `EX-SCR-9`), une **décision produit** (`D8-15`), deux **architecturales `O17`** (`D8-29`, `D8-37`), deux **d'interface gelée** (`D8-32(2)`, `D8-36`). Les quatre dernières catégories relèvent d'une **décision hors dépôt** au sens de S4 — un arbitrage produit, ou un amendement d'interface v2 — et non d'un travail de correction non fait. **Aucune dette interne non ratifiée ne subsiste** |
 
-### **PORTE G7 : NON FRANCHIE.**
+### **PORTE G7 : FRANCHIE.**
 
-**Ce qui a changé depuis la rev 1, et qu'il faut dire.** La vague F3 a fait exactement ce qui lui
-était demandé, et bien. Les huit exigences que je laissais ouvertes sont corrigées — pas
-contournées : chacune par une sonde écrite **rouge d'abord**, dont deux lots l'ont prouvé par un
-commit de sondes séparé et antérieur (`a9a7bf2`, `0f73c6e`, `b71185a`, `e3e47e1`). La correction
-sans preuve est prouvée, et je l'ai rejouée moi-même sur les deux commits. Les cinq arbitrages en
-attente sont tranchés et **écrits dans les annexes**, textes vérifiés au `grep`. Le renvoi non
-ratifié est devenu une dette motivée que **j'accepte**. Deux défauts que personne n'avait vus
-(`EX-SCR-216` en mode 2, `EX-SCR-103`) ont été trouvés, rouverts par le fix-lead et corrigés. Le
-seul échec inattendu de la recette précédente est vert. Aucune sonde n'a été affaiblie : les deux
-seules modifications d'assertion en F3 **durcissent** les sondes, et l'unique adaptation E2E
-(`persistance.spec.ts`) suit un contrôle que l'exigence a déplacé, sans toucher une assertion.
-Sur la substance, **cette phase a fait son travail.**
+**Ce qui a été jugé, révision après révision.** En rev 1 j'ai refusé la porte sur huit exigences
+sans correction ni dette, une correction sans preuve et cinq arbitrages en suspens. En rev 2 j'ai
+constaté que la vague F3 avait tout soldé — sondes écrites rouges d'abord, contre-épreuve
+`onClearFilter` rejouée par moi sur les deux commits, arbitrages écrits dans les annexes — mais j'ai
+refusé la porte une seconde fois, sur deux écarts que les correcteurs avaient eux-mêmes remontés et
+qu'aucune décision ne tranchait. En rev 3, ces deux écarts portent chacun une décision écrite,
+motivée, annotée **à l'endroit de l'exigence** et versée au journal de version. Le motif de mes deux
+refus a disparu ; **je n'en ai pas d'autre à opposer.**
 
-**Pourquoi la porte ne s'ouvre pas malgré cela.** G7 ne mesure pas l'effort ni la qualité du
-travail : elle mesure l'**absence d'écart non décidé**. C'est le critère que j'ai appliqué en rev 1,
-et je ne peux pas l'assouplir maintenant que les écarts restants sont plus petits — la sévérité
-d'une porte ne se négocie pas à la taille de ce qui reste. Or deux exigences traversent la phase
-sans correction **et** sans décision :
+**Pourquoi j'accepte les quatre dettes qui ne sont pas « externes » au sens strict.** S4 dit
+« décision **ou** source hors dépôt ». Une exigence que seul un amendement de l'interface gelée peut
+tenir (`D8-32(2)`, `D8-36`), ou qu'une contradiction entre deux exigences du dépôt rend indécidable
+sans le commanditaire (`D8-29`, `D8-37`, `EX-SCR-9`), n'est pas une correction non faite : c'est une
+**décision qui n'appartient pas à cette phase**. J'ai admis cette lecture en rev 2 pour `D8-29` et
+`D8-32(2)`, **avant** de savoir que `D8-36` et `D8-37` s'y rangeraient ; la refuser maintenant
+reviendrait à changer de règle une fois la partie jouée. Les quatre sont écrites, chacune avec sa
+condition de levée, et pour chacune j'ai vérifié moi-même le fait qu'elle décrit : aucune valeur
+inventée dans `CheckboxList` sans facette (§6.2), les six champs réels de `MetricRange` (§6.5), les
+deux actions bien rendues par l'écran A (§6.6), l'écart `co2Source` dit par le descripteur (§6.4).
 
-- **`EX-DATA-68` / `EX-DATA-61` sur les agrégats** — `PARTIELLE` dans la matrice 2.7, dont la part
-  encore manquante (le bloc de 13 valeurs, non dérivable) n'est couverte que par `DR-122`, une
-  dette **interne** que rien n'a re-ratifiée. S4 exige des dettes exclusivement externes ;
-- **`EX-SCR-26` sur l'écran A** — pire au regard de la porte, parce que la matrice 2.7 la classe
-  `COUVERTE` : l'écart est invisible et disparaîtrait silencieusement si 2.9b se fiait à la matrice.
+**Ce que cette porte franchie ne dit pas.** Elle ne vaut **pas** recette. G7 statue sur la couverture
+des exigences et sur la nature des dettes ; c'est `G8`, après la recette 2.9b, qui statuera sur le
+produit servi à l'utilisateur. Quatre choses restent à faire, aucune n'étant une condition de G7 :
 
-Aucun des deux ne fausse une valeur affichée, aucun n'est une régression de F3, et **aucun ne
-demande de code** : le premier est une dette d'interface gelée de la même famille que `D8-32(2)`,
-que le fix-lead a déjà ratifiée une fois ; le second est une dette `O17` de la même famille que
-`D8-29`, qu'il a également déjà ratifiée. **Deux lignes de décision et deux annotations d'annexe
-ferment la porte** — c'est la distance exacte qui reste, et elle est d'une autre nature que les huit
-corrections de la rev 1.
+1. **porter les trois re-cotations du §3.5** dans `reports/ACCEPTANCE.md` — sans quoi `EX-SCR-26`
+   restera `COUVERTE` à tort dans le document final, ce qui est précisément l'erreur que la rev 2 a
+   dû débusquer ;
+2. **citer le constat `D8-39(a)`** (`EX-DATA-23`), qui vit dans le registre de décisions et non dans
+   une annexe ;
+3. **trancher la réserve de rédaction du §7.2 n° 1** : `coverage` est dérivable au rendu sur les
+   agrégats, contrairement à ce qu'énonce le motif de `D8-36` — soit le mot est retiré, soit la
+   valeur est dérivée et `EX-DATA-61` devient tenue partout ;
+4. **statuer les 15 exigences « mesures au rendu »** que 2.7 a renvoyées à la recette navigateur.
 
-**Ce qu'il faut, précisément, pour franchir G7 :**
-
-1. Écrire la dette `EX-DATA-68` / `EX-DATA-61` (agrégats marque/modèle : 6 valeurs sur 13, non
-   dérivables ; levée = v2 de `DataProvider`) — une ligne `D8-xx` + `[amendée 2.8 — D8-xx]` sous
-   `EX-DATA-68` ;
-2. écrire la dette `EX-SCR-26` écran A, en élargissant `D8-29` (même cause `O17`) — **ou** la
-   corriger, si le commanditaire juge la suggestion nécessaire sur l'écran A ;
-3. re-statuer `EX-SCR-26` dans la matrice de couverture (elle y est `COUVERTE` à tort).
-
-Rien d'autre. Une fois ces trois points faits, **et sous réserve que 2.9b confirme les mesures
-navigateur**, la porte G7 sera franchissable avec, pour seules dettes, les cinq dettes **externes**
-de `D8-18`, la dette **produit** `D8-15`, la dette **architecturale** `D8-29` et la dette
-**d'interface gelée** `D8-32(2)` — quatre catégories que S4 admet, et que j'accepte une par une.
+Aucune de ces quatre n'est un écart non décidé : trois sont des reports d'écriture vers la matrice
+d'acceptance, la quatrième est une amélioration facultative que je signale pour qu'elle ne se perde
+pas. **La porte G7 est franchie ; la phase 2.8 est close.**
 
 ---
 
 ## 9. Effet de ma vérification sur l'arbre
 
-`reports/e2e/results.json` est **suivi par git** et **régénéré** par `npm run test:e2e`. **Il a
-changé** : `md5` avant `257b420d8545cc22fafbbc5073475666` (celui de la recette de `fix-app-2`,
-commit `834260f`), après **`21d90e4bccdd539fbfa67110d0046924`** ; `git status --short` affiche
-`M reports/e2e/results.json`. C'est **normal et attendu** — ma recette est plus complète que celle
-de `fix-app-2` (255 tests contre 255, mais **0 échec inattendu** contre 1, `EX-SRCH-14` mobile étant
-passé au vert avec `D8-35`). Conformément à `D8-33`, il est l'artefact de preuve **de ce rapport** :
-je ne l'ai ni restauré ni commité, la décision revient au coordinateur — **mon avis : le commiter
-avec ce rapport**, puisque c'est la première recette qui reflète l'état `c8c791a` complet.
+**En rev 3 : `reports/e2e/results.json` n'a PAS changé.** Je n'ai relancé ni `npm run test:e2e` ni
+`npm test`, sur instruction et parce que `src/` et `tests/` sont intacts depuis `c8c791a` (§1.1).
+Le fichier reste celui que le coordinateur a commité avec la rev 2 conformément à `D8-40` : la
+recette de `c8c791a`, 255 tests, **0 échec inattendu**. Il décrit donc exactement le code de
+`05ffaf2`, puisque c'est le même.
 
-Le second fichier non suivi est ce rapport lui-même. `src/screens/distribution/DistributionScreen.tsx`
-a été restauré après la contre-épreuve `D8-27` (§5.4, contrôle de propreté cité). Aucun autre
-fichier de `src/`, `tests/`, `docs/` ni aucun autre rapport n'a été modifié ; `dist/` (non suivi) a
-été régénéré par `npm run build`.
+**Le seul fichier que ma rev 3 modifie est ce rapport.** `npm run lint` et les 363 sondes d'annexe
+ne produisent aucun artefact ; `dist/` n'a pas été régénéré (aucun `npm run build` en rev 3).
+`git status --short` à ma sortie ne doit afficher que `M reports/REMEDIATION-2.8.md`.
+
+*Pour mémoire, en rev 2* : `reports/e2e/results.json` avait changé
+(`257b4208…` → `21d90e4b…`), ma recette étant la première sans échec inattendu sur `c8c791a` ;
+le coordinateur l'a commité avec le rapport, ce que `D8-40` enregistre et ce que mon avis
+recommandait. `src/screens/distribution/DistributionScreen.tsx` avait été restauré après la
+contre-épreuve `D8-27` (§5.4).
 
 ---
 
 ## 10. Résumé (12 lignes)
 
-1. **Porte G7 : NON FRANCHIE.** S1 **non atteint**, S2 **ATTEINT** (c'était la réserve de la rev 1),
-   S3 **atteint**, S4 **non atteint**.
-2. Portes rejouées à `c8c791a`, toutes vertes : `build` 0/0 · `lint` vert · `size`
-   **116,34 / 300 Kio** · `npm test` **675 + 1 079** (58 + 100 fichiers, 0 échec, 0 saut, 0 todo) ·
-   `test:perf` **7/7** · `test:e2e` **255 tests, 243 verts, 3 échecs attendus, 9 sautés,
-   0 échec inattendu, exit 0** (9,9 min).
-3. Budgets : `EX-NFR-5` p95 **181,1 ms** (élagué 92,4) · `EX-NFR-7` 2,98 ms (22 ms au navigateur) ·
+1. **Porte G7 : FRANCHIE.** **S1, S2, S3, S4 : les quatre ATTEINTS.** Rev 1 et rev 2 refusaient la
+   porte ; le motif des deux refus a disparu et je n'en ai pas d'autre à opposer.
+2. **Rev 3, delta documentaire seul.** Contrôle exécuté avant toute chose :
+   `git diff c8c791a..HEAD` ne touche **aucun fichier de `src/` ni de `tests/`** — les preuves
+   complètes de la rev 2 portent donc sur le même code et restent opposables sans être rejouées.
+3. **Rejoué en rev 3** : `npm run lint` vert · **363 sondes d'annexe vertes** (D1 + D2 + D5,
+   35 fichiers) · décompte d'exigences inchangé (**245** · B, **140** · A) — les trois amendements
+   sont des paragraphes ajoutés, aucun texte normatif retiré, aucune exigence renumérotée.
+4. **Portes complètes (rev 2, même code)** : `build` 0/0 · `size` **116,34 / 300 Kio** ·
+   `npm test` **675 + 1 079** (0 échec, 0 saut, 0 todo) · `test:perf` **7/7** · `test:e2e`
+   **255 tests, 243 verts, 3 échecs attendus, 9 sautés, 0 échec inattendu, exit 0**.
+5. **Budgets** : `EX-NFR-5` p95 **181,1 ms** (élagué 92,4) · `EX-NFR-7` 2,98 ms (22 ms navigateur) ·
    `EX-NFR-8` 100 % · `EX-NFR-6` 141 ms · `EX-NFR-9` médianes **1 510 / 1 504 / 1 486 ms**
    (URL filtrée 1 608 / 1 620 / 1 612), aucune mesure au-dessus de 2 000 ms.
-4. **Les 8 écarts de ma rev 1 sont CORRIGÉS avec preuve** : `EX-DATA-61/64` (D8-30, 11/14 rouges),
-   `EX-DATA-23` (12/12), `EX-SCR-17`, `EX-SCR-153` (6/6), `EX-SCR-174`, `EX-SCR-212/213`,
-   `EX-SCR-101`, `EX-SRCH-14` — 13 fichiers de sondes neufs, **+126 sondes**, tous verts chez moi.
-5. **`D8-27` rejoué par moi** : `R-D7-2.8-01` **rouge sur `3435456`**, **verte sur `c8c791a`**,
-   arbre restauré — la correction sans preuve de la rev 1 est soldée, S2 devient ATTEINT.
-6. **`D8-34`** : `EX-SCR-216` en mode 2 passe de `—` partout à `Volkswagen 9340 | BMW 8243 | …`,
-   sans aucun aller provider (sondé). **`D8-35`** : `EX-SCR-103` positionne l'écran G, et
-   `EX-SCR-97` rend **vert sur les 3 projets** l'`EX-SRCH-14` mobile que fix-app-2 laissait rouge.
-7. **`EX-SCR-26`** : aucun gain annoncé n'est faux — le module rejoue les prédicats réels du moteur,
-   et l'E2E vérifie qu'une suggestion à « 1 352 offres de plus », **une fois suivie**, en donne 1 352.
-8. **Bijection tenue** : 2 `it.fails` = DR-104 + DR-112 (externes) ; **1** `test.fail()` = D8-15
-   (3 échecs, un par projet) ; **0 `skip`** dans `tests/review/`, 7 skips de plate-forme inchangés
-   en E2E.
-9. **Sondes modifiées** : 18 fichiers, **+2 242 / −5**, un seul avec suppressions
-   (`persistance.spec.ts`, 4 désignations suivant le contrôle déplacé par `EX-SCR-212`, assertions
-   intactes, justifiées dans le fichier **et** dans le rapport). Les deux autres modifications
-   **durcissent** les sondes. **Aucune assertion affaiblie.**
-10. **§7.2 clos** (5/5 arbitrages ratifiés par `D8-32`, textes d'annexe vérifiés au `grep`, v1.3) ;
-    **§7.3 clos** (`D8-28` ratifie les deux corrections hors périmètre, conformément à mon avis) ;
-    **`D8-29` et `D8-32(2)` acceptées au titre de S4**, motifs au §6.5.
-11. **Deux écarts OUVERTS, nouveaux, sans décision** : `EX-DATA-68`/`EX-DATA-61` sur les agrégats
-    (bloc de 13 valeurs inexistant et non dérivable, `MetricRange` = 6 champs) et `EX-SCR-26` sur
-    l'écran A (`topRestrictiveFilters: []`, classée `COUVERTE` à tort par 2.7). **Aucun code à
-    changer : deux lignes de décision écrite ferment la porte.** Réserves : arrondi de
-    `GroupStatEntry.coverage`, `EX-DATA-23` sans appelant vivant, sémantique de `EX-SCR-216` mode 2.
-12. Rapport : `reports/REMEDIATION-2.8.md` **rev 2** — seul fichier écrit ; aucun commit, aucun push.
-    **`reports/e2e/results.json` (suivi par git) a changé** (`257b4208…` → `21d90e4b…`) : c'est la
-    preuve de cette recette, laissée telle quelle pour arbitrage — mon avis : la commiter avec ce
-    rapport.
+6. **Mes deux écarts de rev 2 sont FERMÉS par une décision écrite**, textes lus et vérifiés à
+   l'endroit de l'exigence : **`D8-36`** sous la table d'`EX-DATA-68` (dette d'interface gelée,
+   levée en v2) et **`D8-37`** dans le corps d'`EX-SCR-26` (dette architecturale `O17`, extension de
+   `D8-29`) — marques `[amendée 2.8 — D8-xx]` et lignes de journal v1.3 présentes.
+7. **Mes trois réserves sont tranchées et je les accepte toutes les trois.** `D8-38` me **corrige à
+   raison** : « 4 décimales » est dans la colonne « **Arrondi de présentation** » d'`EX-DATA-64`, le
+   producteur n'y est pas tenu — j'avais lu une obligation d'affichage comme une obligation de
+   calcul. `D8-39(a)` : `EX-DATA-23` = constat, pas dette. `D8-39(b)` : sémantique d'`EX-SCR-216`
+   mode 2 annotée sous l'exigence.
+8. **Re-cotations portées au §3.5**, à reprendre par l'acceptance : `EX-SCR-26` = **`COUVERTE`
+   mode 2 / `DETTE D8-37` mode 1** (vérifié dans `MarketScreen.tsx` : les deux actions sont rendues,
+   aucune suggestion inventée) ; `EX-DATA-68` = `DETTE D8-36` ; `EX-DATA-61` = `COUVERTE` sur la
+   sélection / `DETTE D8-36` sur les agrégats.
+9. **Dix dettes admises au titre de S4**, examinées une par une (§6.7) : cinq externes (`DR-104`,
+   `DR-112`, O15, `EX-SRCH-12`, `EX-SCR-9`), une décision produit (`D8-15`), deux architecturales
+   `O17` (`D8-29`, `D8-37`), deux d'interface gelée (`D8-32(2)`, `D8-36`). **Aucune dette interne
+   non ratifiée ne subsiste.** J'accepte les quatre dernières par cohérence : j'avais admis leurs
+   catégories en rev 2 avant de savoir que les nouvelles s'y rangeraient.
+10. **Bijection inchangée** : 2 `it.fails` (DR-104, DR-112) · **1** `test.fail()` = `D8-15`
+    (3 échecs attendus, un par projet) · **0 `skip`** dans `tests/review/`. Aucune assertion
+    affaiblie en 2.8 ; les seules modifications d'assertion **durcissent** les sondes.
+11. **Une réserve nouvelle, de rédaction, non bloquante** (§7.2 n° 1) : le motif de `D8-36` range
+    `coverage` parmi les valeurs « non dérivables au rendu », or `MakeAggregate.listingCount` et
+    `MetricRange.n` la rendent dérivable — comme `rank`/`displayRange` sous `D8-23`. La portée de la
+    dette n'en dépend pas ; mais soit le mot est retiré, soit `coverage` est dérivée et `EX-DATA-61`
+    devient tenue partout. À trancher, hors condition de G7.
+12. **G7 ne vaut pas recette** : trois reports d'écriture restent à faire par 2.9b (les re-cotations
+    du §3.5, le constat `D8-39(a)`, les 15 « mesures au rendu »). Rapport :
+    `reports/REMEDIATION-2.8.md` **rev 3** — **seul fichier que j'ai écrit** ;
+    **`reports/e2e/results.json` n'a PAS changé en rev 3** (aucune recette relancée) ; aucun commit,
+    aucun push.
