@@ -1085,6 +1085,12 @@ Niveaux de preuve : `RELEVÉ` = paramètre, type et domaine lus dans une source 
 - **Dépendances** : `zip`
 - **Domaine de valeurs** : `10`, `20`, `50`, `100`, `150`, `200`, `250`, `300`, `400`
 - **Remarque** : N'a de sens qu'avec zip (ou lat/lon). filters.defaultRadius100=false sur BE/.com.
+- **Statut KYCAR (`D8-32`, 2.8, cf. `draft-screens.md` `EX-SCR-82` #66-67)** : `zip` (#66) est
+  `EXCLU` du périmètre retenu (règle R3, `D-14`) alors que `zipr` (#67) reste **`RETENU`** — la
+  dépendance à `zip` devient résiduelle et sans effet (`zipr` n'a de toute façon aucun champ
+  local, classe `T` : la géolocalisation exacte n'est ni collectée ni recalculée par KYCAR).
+  Ratifié par le fix-lead : le maintien de `zipr` en `RETENU` n'est pas remis en cause par
+  l'exclusion de sa dépendance, faute d'effet d'exécution (aucune valeur ni filtre n'en dépend).
 
 #### `lat` — Latitude
 
