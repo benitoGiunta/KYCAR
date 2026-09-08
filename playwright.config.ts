@@ -48,7 +48,11 @@ export default defineConfig({
   webServer: {
     command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
     port: PORT,
-    reuseExistingServer: true,
+    // Jamais de réutilisation silencieuse : un serveur résiduel sur le port (autre arbre, autre build)
+    // ferait recetter un build étranger sans le dire (piège relevé par fix-state-2, D8-35). Avec
+    // --strictPort, un port occupé fait échouer le lancement, bruyamment : libérer le port ou
+    // changer KYCAR_E2E_PORT.
+    reuseExistingServer: false,
     timeout: 180_000,
   },
   projects: [
