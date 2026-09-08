@@ -27,13 +27,26 @@ describe('D7 · G1–G3 — somme des barres et sentinelles (EX-SCR-143, EX-DATA
   const f = fixture(4000, 0xa1);
 
   it('la somme des barres de G1 égale le nombre de lignes à prix valide (sentinelles exclues)', () => {
-    let validPrice = 0;
+    // Sonde AMENDÉE (D-31, justification D-44). `V_price` d'EX-DATA-60 écarte les DEUX sentinelles
+    // d'EX-DATA-19 : l'absolue (drapeau d'ingestion) et la RELATIVE à la cellule
+    // (`prix < 0,10 × médianeRéf(C₃ = Σ)`, posée à l'analyse). Le recomptage indépendant refait les
+    // deux passes du moteur ; sans la seconde il comparait la somme des barres à un échantillon
+    // plus large que celui que le moteur bine, et le titre de la sonde (« sentinelles exclues »)
+    // n'était tenu qu'à moitié.
+    const valides: number[] = [];
     let sentinels = 0;
     for (let r = 0; r < f.batch.rowCount; r++) {
       const p = f.batch.priceEur[r] as number;
       if (p === NUMERIC_UNKNOWN) sentinels++;
-      if (isPriceValid(p, f.batch.priceStatus[r] as number, f.batch.ingestFlags[r] as number)) validPrice++;
+      if (isPriceValid(p, f.batch.priceStatus[r] as number, f.batch.ingestFlags[r] as number)) valides.push(p);
     }
+    const tri = Float64Array.from(valides).sort();
+    const mediane =
+      tri.length === 0 ? null
+      : tri.length % 2 === 1 ? (tri[(tri.length - 1) / 2] as number)
+      : ((tri[tri.length / 2 - 1] as number) + (tri[tri.length / 2] as number)) / 2;
+    const seuil = mediane !== null && tri.length >= 12 ? 0.1 * mediane : null;
+    const validPrice = seuil === null ? valides.length : valides.filter((p) => p >= seuil).length;
     const model = buildHistogram('price', f.recalc.priceHistogram);
     const sumBars = model.bars.reduce((s, b) => s + b.count, 0);
     expect(sentinels).toBeGreaterThan(0); // la fixture porte bien des sentinelles

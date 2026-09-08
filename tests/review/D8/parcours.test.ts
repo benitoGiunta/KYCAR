@@ -197,17 +197,29 @@ describe('Parcours 2 — mode 2 « Opel Corsa 2017 »', () => {
     const bucketTotal = payload.recalc.priceHistogram.reduce((s, b) => s + b.count, 0);
     const quoted = countRows(payload.batch, (i) => (payload.batch.priceEur[i] as number) > 0);
     expect(bucketTotal).toBeLessThanOrEqual(quoted);
-    // Vérité terrain min/max prix de la cellule sur l'ÉCHANTILLON VALIDE d'EX-DATA-60 : prix affiché
-    // ET hors sentinelle absolue de 250 € (EX-DATA-19(1), ARB-15) — l'annonce sentinelle compte dans
-    // l'effectif mais n'entre ni dans la médiane ni dans les bornes, ce que le moteur applique déjà.
-    let min = Number.POSITIVE_INFINITY;
-    let max = 0;
+    // Vérité terrain min/max prix de la cellule sur l'ÉCHANTILLON VALIDE d'EX-DATA-60 : prix affiché,
+    // hors sentinelle ABSOLUE de 250 € (EX-DATA-19(1), ARB-15) ET hors sentinelle RELATIVE à la
+    // cellule (`prix < 0,10 × médianeRéf`, EX-DATA-19(2)) — l'annonce sentinelle compte dans
+    // l'effectif mais n'entre ni dans la médiane ni dans les bornes. Sonde AMENDÉE sur sa seule
+    // FORMULE de vérité terrain (D-31, justification D-44) : la seconde sentinelle a été ajoutée à
+    // `V_price` par la lecture littérale d'EX-DATA-60, comme la première l'avait été par DR-001.
+    const valides: number[] = [];
     for (const i of corsa) {
       const p = batch.priceEur[i] as number;
-      if (p > 0 && !isPriceSentinelAbsolute(p)) {
-        min = Math.min(min, p);
-        max = Math.max(max, p);
-      }
+      if (p > 0 && !isPriceSentinelAbsolute(p)) valides.push(p);
+    }
+    const tri = Float64Array.from(valides).sort();
+    const mediane =
+      tri.length === 0 ? null
+      : tri.length % 2 === 1 ? (tri[(tri.length - 1) / 2] as number)
+      : ((tri[tri.length / 2 - 1] as number) + (tri[tri.length / 2] as number)) / 2;
+    const seuil = mediane !== null && tri.length >= 12 ? 0.1 * mediane : null;
+    let min = Number.POSITIVE_INFINITY;
+    let max = 0;
+    for (const p of valides) {
+      if (seuil !== null && p < seuil) continue;
+      min = Math.min(min, p);
+      max = Math.max(max, p);
     }
     const stats = payload.recalc.selectionStats.price;
     expect(stats.min).toBe(min);
