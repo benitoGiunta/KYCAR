@@ -192,6 +192,18 @@ worktrees, sonde d'échec d'abord, `fix-verify` indépendant → `reports/REMEDI
 matrice 2.7 (`PARTIELLE`/`NON COUVERTE`), constats de la recette 2.9a, dettes 2.6 levables en interne.
 Une sonde `it.fails` dont la dette est levée redevient `it`.
 
+### 4.5bis Leçons de 2.8 (vagues F2/F3)
+
+- **Un correcteur reste vivant sur chaque répertoire jusqu'à la fin de la vague de câblage** (D8-28) :
+  fix-app a dû corriger `src/components/filters/` hors périmètre parce que fix-state était déjà fermé ;
+  en F3, fix-state-2 est resté joignable et a reçu deux retouches (D8-35) par message.
+- **Un écart remonté « au coordinateur » par un correcteur est une décision due avant la porte** : la
+  rev 1 puis la rev 2 de fix-verify ont échoué sur des points que les correcteurs avaient écrits mais
+  que personne n'avait tranchés (D8-30, D8-31, D8-36, D8-37). Lire les sections « hors périmètre » de
+  chaque rapport et écrire une ligne D8-nn pour chacun, avant de lancer la vérification.
+- **Le vérificateur est relancé par message sur le même agent** (rev 1 → 2 → 3) : il garde son contexte
+  et ne rejoue que le delta quand le code n'a pas changé (`git diff <rev précédente>..HEAD -- src tests`).
+
 ### 4.6 Phase 2.9 — recette navigateur (PLAN-2 §2.9, extension du 2026-09-08)
 
 Playwright + Chromium préinstallé, sur le build de production (`playwright.config.ts`, `tests/e2e/`,
@@ -208,11 +220,12 @@ depuis `src/`. Le navigateur se lance par `executablePath` (détection dans la c
 ```bash
 npm run build         # tsc app + worker + vite build ; doit être 0 erreur / 0 warning
 npm run lint          # eslint . ; vert
-npm test              # suite unitaire (615) PUIS sondes de revue promues (798) ; tout doit être vert
+npm test              # suite unitaire (675) PUIS sondes de revue promues (1079) ; tout doit être vert
 npm run test:unit     # suite unitaire seule
-npm run test:review   # sondes de revue seules (8 dettes consignées en it.fails annoté, jamais skip)
+npm run test:review   # sondes de revue seules (2 dettes externes en it.fails annoté : R-D9-21, R-D2-16 ; jamais skip)
 npm run size          # bundle initial < 300 Ko gzip
-npm run test:e2e      # recette navigateur (build de prod + Chromium préinstallé), 3 projets
+npm run test:e2e      # recette navigateur (build de prod + Chromium préinstallé), 3 projets ; 3 test.fail() attendus = dette D8-15
+                      # port 4180 : reuseExistingServer=false, un serveur résiduel fait échouer (le tuer, ou KYCAR_E2E_PORT)
 ```
 
 Pièges d'environnement (worktrees, `node_modules`, timeouts) et contraintes E1, E3–E5 : voir

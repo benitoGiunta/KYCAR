@@ -6,12 +6,13 @@ KYCAR montre la **structure statistique de l'offre** — et les anomalies qui s'
 ## État du dépôt
 
 Le code existe et s'exécute (`src/`, lots D1 à D9 de la phase 2.4). Les phases **2.4 (build),
-2.5 (revue), 2.6 (remédiation) et 2.7 (vérification finale) sont closes** : `reports/DEV-REVIEW.md`
-consolide la revue par lot, `reports/REMEDIATION.md` la remédiation 2.6, et
+2.5 (revue), 2.6 (remédiation), 2.7 (vérification finale) et 2.8 (remédiation post-vérification)
+sont closes** : `reports/DEV-REVIEW.md` porte la revue, `reports/REMEDIATION.md` la remédiation 2.6,
 `reports/FINAL-VERIFICATION.md` la vérification finale 2.7 (matrice de couverture chiffrée sur les
-485 exigences, deux constats bloquants FV-01/FV-02). Les phases **2.8 (remédiation post-vérification)
-et 2.9 (harnais E2E / acceptance) sont en cours** : les décisions et rapports par agent sont suivis
-dans `reports/remediation-2.8/`, la matrice de bout en bout dans `tests/e2e/`.
+485 exigences), `reports/REMEDIATION-2.8.md` (rev 3) la remédiation post-vérification et la porte G7
+(dix dettes admises, toutes écrites). La phase **2.9 (recette navigateur)** a son harnais livré
+(`tests/e2e/`, 2.9a) ; la recette finale 2.9b produit `reports/ACCEPTANCE.md`. Les décisions et
+rapports par agent de 2.8 sont dans `reports/remediation-2.8/`.
 
 ## Documentation
 
@@ -24,6 +25,8 @@ dans `reports/remediation-2.8/`, la matrice de bout en bout dans `tests/e2e/`.
 | [DEV.md](DEV.md) | Guide de développement de l'application (`src/`) |
 | [DEV-REVIEW.md](reports/DEV-REVIEW.md) | Revue de la phase 2.4 par lot, table des constats consolidés (phase 2.5) |
 | [FINAL-VERIFICATION.md](reports/FINAL-VERIFICATION.md) | Vérification finale (phase 2.7) : matrice de couverture, constats FV-01…FV-24 |
+| [REMEDIATION-2.8.md](reports/REMEDIATION-2.8.md) | Remédiation post-vérification (phase 2.8, rev 3) : constat → correction → preuve, dix dettes admises, porte G7 |
+| [ACCEPTANCE.md](reports/ACCEPTANCE.md) | Recette finale navigateur (phase 2.9b) : matrice exigence → test E2E → résultat → capture, porte G8 |
 
 ## Arborescence
 

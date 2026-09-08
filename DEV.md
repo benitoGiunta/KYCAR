@@ -2,8 +2,8 @@
 
 Ce fichier documente l'application (`src/`), pas le cadrage (`docs/`). Il est ecrit et tenu a jour
 par les lots de la phase 2.4 (D1-D9), voir `docs/plans/ARCHITECTURE.md` S:7.1 pour le decoupage
-normatif. Les phases 2.4 a 2.7 (build, revue, remediation, verification finale) sont closes ;
-les phases 2.8 (remediation post-verification) et 2.9 (harnais E2E / acceptance) sont en cours.
+normatif. Les phases 2.4 a 2.8 (build, revue, remediation, verification finale, remediation
+post-verification) sont closes ; la phase 2.9 (harnais E2E livre, acceptance finale) est en cours.
 
 ## Arborescence de `src/`
 

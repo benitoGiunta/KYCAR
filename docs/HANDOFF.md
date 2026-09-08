@@ -1,6 +1,6 @@
 # HANDOFF — reprise du projet KYCAR par un nouvel agent
 
-**Mis à jour le 2026-09-08 (clôture 2.6) par l'agent coordinateur.** Ce fichier suffit à reprendre le travail sans
+**Mis à jour le 2026-09-08 (clôture 2.8, recette 2.9b en cours) par l'agent coordinateur.** Ce fichier suffit à reprendre le travail sans
 aucun contexte conversationnel. Lis-le en entier, puis lis `docs/EXECUTION-LOG.md` (source de vérité
 de l'avancement).
 
@@ -10,21 +10,25 @@ de l'avancement).
 
 - **Chantier 1** (comment charger les données) : **CLOS.** Rapport : `docs/research/DATA-ACQUISITION-REPORT.md`.
 - **Chantier 2** (l'application) :
-  - Exigences **v1.1** (v1.0 gelée + 32 amendements 2.6 tracés `[amendée 2.6 — D-xx]`), architecture
-    figée et amendée (`makeId` Int32, `ingestFlags` Uint32, `unsupportedFilterIds`).
-  - **Phase 2.4 (développement D1–D9) : COMPLÈTE.**
-  - **Phase 2.5 (revue de développement) : VALIDÉE** — 10 revues, 190 constats → 160 consolidés
-    (18 BLOQUANT, 86 MAJEUR, 56 MINEUR), 783 sondes exécutables (`reports/DEV-REVIEW.md`).
-  - **Phase 2.6 (remédiation) : VALIDÉE** — 51 décisions du fix-lead
-    (`reports/remediation/FIX-LEAD-DECISIONS.md`), 8 correcteurs, 148 constats corrigés, 11 dettes
-    consignées (8 portées par une sonde `it.fails`), vérification indépendante `reports/REMEDIATION.md`.
-  - **Build 0/0 · lint 0 · `npm test` = 615 tests unitaires + 798 sondes de revue, tous verts ·
-    bundle < 300 Ko gzip (chunk worker compris) · recalcul p95 < 200 ms même non élagué.**
-- **Reste : la phase 2.7 (vérification finale, `final-check` Fable/max), NON lancée — feu vert
-  du commanditaire requis.** Puis, hors plan : levée d'AC-01 (juridique 2dehands) avant tout câblage
-  du provider réel (DR-104, dette D-18).
-
----
+  - Exigences **v1.3** (v1.0 gelée + amendements tracés `[amendée 2.6 — D-xx]` et `[amendée 2.8 — D8-xx]`),
+    architecture figée et amendée (`makeId` Int32, `ingestFlags` Uint32, `unsupportedFilterIds`,
+    `vatDeductible`, `modelCount`, `iqr`/`coverage`, verdicts 8 codes) — sans changement de signature.
+  - **2.4 (développement D1–D9) : COMPLÈTE. 2.5 (revue) : VALIDÉE** (160 constats). **2.6 (remédiation) :
+    VALIDÉE** (D-01…D-51, `reports/REMEDIATION.md`, porte G5).
+  - **2.7 (vérification finale, Fable/max) : VALIDÉE** — `reports/FINAL-VERIFICATION.md`, 485 exigences
+    cotées, FV-01…FV-24 (2 BLOQUANT), porte G6.
+  - **2.8 (remédiation post-vérification) : VALIDÉE — porte G7 franchie** (`reports/REMEDIATION-2.8.md`
+    rev 3, décisions D8-01…D8-40 dans `reports/remediation-2.8/FIX-LEAD-DECISIONS-2.8.md`) : 24/24 FV
+    traités, 26/26 constats E2E levés, 8 dettes 2.6 sur 9 levées, **dix dettes admises, toutes écrites**
+    (5 externes, 1 produit, 2 architecturales O17 mode 1, 2 d'interface gelée).
+  - **2.9a (harnais Playwright) : VALIDÉE** — `tests/e2e/`, 3 projets, Chromium préinstallé.
+    **2.9b (recette finale `acceptance`, Fable/max) : EN COURS** → `reports/ACCEPTANCE.md`, porte G8.
+  - **Build 0/0 · lint 0 · `npm test` = 675 tests unitaires + 1 079 sondes de revue, tous verts ·
+    E2E 255 tests, 0 échec inattendu, 3 `test.fail()` attendus (dette D8-15) · bundle 116 Kio gzip
+    (< 300, chunk worker compris) · recalcul p95 181 ms (< 200) · chargement 4G ≈ 1,5 s (< 2 s).**
+- **Reste : le verdict G8 de 2.9b, puis la clôture (ce fichier, `EXECUTION-LOG`).** Ensuite, hors plan
+  et sur décision explicite du commanditaire uniquement : fusion de `claude/kycar-project-ffcplk` dans
+  `main`, tag `v0.1.0` ; levée d'AC-01 (juridique 2dehands) avant tout câblage du provider réel.
 
 ## 1. Ce qu'est le projet
 
@@ -60,16 +64,18 @@ Décisions de cadrage structurantes :
 ## 3. État git
 
 - Branche de travail courante : **`claude/kycar-project-ffcplk`** (créée depuis `phase-2.4-build` le
-  2026-09-08) — porte les phases 2.5 et 2.6 complètes, VERTE, poussée.
-- `phase-2.4-build` : état à la fin de 2.4 (historique). `main` : historique antérieur. Aucune fusion
-  vers `main`, aucune PR (non demandées).
+  2026-09-08) — porte les phases 2.5, 2.6, 2.7, 2.8 et 2.9a complètes, VERTE, poussée. Branches
+  `fix28/*` : branches de worktrees déjà fusionnées `--no-ff` (historique), worktrees supprimés.
+- `phase-2.4-build` : état à la fin de 2.4 (historique). `main` : historique antérieur. **Aucune fusion
+  vers `main`, aucun tag, aucune PR** (non demandés : `CLAUDE.md` §1.3).
 - **Identité** : dépôt réglé sur le compte **perso** de l'utilisateur (`benitognt@gmail.com`), poussé
   sur `github.com/benitoGiunta/KYCAR.git` (perso). NB : la config git **globale** de la machine pointe
   par défaut sur l'email **pro** `benito.giunta@bstorm.be` — vérifier l'identité locale avant tout
-  commit sur un projet perso. `gh` a les deux comptes en keyring (`benitoGiunta` perso, `benitoGiunta86` pro).
-- `main` : historique antérieur. La fusion de 2.4 dans `main` / la PR ne sont PAS faites (non demandées).
-
----
+  commit. `gh` a les deux comptes en keyring (`benitoGiunta` perso, `benitoGiunta86` pro). En session
+  distante, le hook de fin de tour peut réclamer un committer `noreply@anthropic.com` : le dépôt impose
+  l'identité perso, le conflit a été signalé au commanditaire, l'identité perso est conservée.
+- `reports/e2e/results.json` est **suivi par git** et régénéré à chaque `npm run test:e2e` : il n'est
+  commité qu'avec le rapport qui l'a produit (D8-33) ; sinon `git checkout -- reports/e2e/results.json`.
 
 ## 4. Ce qui est FAIT — phase 2.4 (9/9 lots)
 
@@ -114,30 +120,34 @@ garde de bundle sur des manifestes factices, pas un échec.
 
 ---
 
-## 6. Ce qui RESTE (feu vert utilisateur requis)
+## 6. Ce qui RESTE
 
-- **2.7 — Vérification finale** (`reports/FINAL-VERIFICATION.md`) : un agent `final-check`
-  **Fable/max**, indépendant, reprend `REQUIREMENTS.md` v1.1 exigence par exigence, lance l'app et
-  exerce les deux parcours cibles. Non lancée.
+- **2.9b — recette finale** : verdict G8 dans `reports/ACCEPTANCE.md` (S1 E2E vert 3 projets ; S2 zéro
+  violation axe A/AA sur 8 surfaces ; S3 EX-NFR-9 ≤ 2 s en 4G, EX-NFR-7/8 au rAF ; S4 parcours P1/P2
+  journalisés avec captures dans `reports/acceptance/`). Puis mise à jour de ce fichier et du journal.
+- **Livraison (hors plan, décision du commanditaire)** : fusion dans `main` + tag `v0.1.0`. Ne rien faire
+  sans accord explicite.
 
-**Dettes consignées à la clôture de 2.6** (détail : `reports/REMEDIATION.md` §4, décisions
-`FIX-LEAD-DECISIONS.md`) — chacune porte une sonde `it.fails` annotée qui se signalera d'elle-même
-quand la dette sera levée :
+**Dettes admises à la clôture de 2.8** (`reports/REMEDIATION-2.8.md` §6.7 ; décisions dans
+`FIX-LEAD-DECISIONS-2.8.md`) — chacune est écrite, et visible dans les tests quand une sonde peut la
+porter :
 
-| Dette | Nature | Décision |
-|---|---|---|
-| DR-034 (MAJEUR) | `GROUPSTAT`/`NTILE`/paliers/`R²` calculés par D7 sur le thread principal, pas dans le worker (`EX-DATA-83bis` non tenue) | D-17 |
-| DR-104 (MAJEUR) | provider réel `TweedehandsDataProvider` non câblé tant qu'AC-01 (validation juridique 2dehands) n'est pas levée ; source par défaut `SYNTHETIC`, dit dans `/mentions` | D-18 |
-| DR-114 | verdicts `INSUFFICIENT_DATA`/`INSUFFICIENT_SPREAD` par annonce (vocabulaire gelé 6 → 8 codes) | D-45 |
-| DR-082 (MAJEUR, colonne « TVA » seule) | aucun champ `taxDeductible` dans l'interface gelée ; Conso. et CO₂ sont livrées | D-38 |
-| DR-105, DR-112, DR-132, DR-134, DR-147, DR-143 | RGPD E15–E17 hors R3, `postal-regions-be.json` (source externe interdite par E5), libellés `zipr`, suggestions Levenshtein, mention des graphes A-08, grille compacte 4 lignes | §6.5 DEV-REVIEW, D-40, D-49 |
+| Dette | Nature | Décision | Marqueur |
+|---|---|---|---|
+| DR-104 / AC-01 | provider réel `TweedehandsDataProvider` non câblé tant que la validation juridique 2dehands n'est pas levée ; source par défaut `SYNTHETIC`, dit dans `/mentions` | D-18, D8-18 | `it.fails` R-D9-21 |
+| DR-112 | `postal-regions-be.json` (Statbel/bpost) : source externe interdite par E5 en session — à fournir hors session | D8-18 | `it.fails` R-D2-16 |
+| O15 `bodyTypes` | donnée « carrosseries par modèle » absente de tout référentiel ; bandeau « Carrosserie non appliquée » (D8-20) | D8-18 | — |
+| EX-SRCH-12 | sémantique `eq` de la source non tranchable sans requête live (O7) | D8-18 | — |
+| EX-SCR-9 | `NNxx` non affichable : périmètre R3 (D-14) | D8-18 | — |
+| EX-SCR-95 (produit) | panneau « Assainissement KYCAR » sans effet sur une valeur affichée, hors budget | D8-15 | `test.fail()` ×3 (`responsive.spec.ts`) |
+| Facettes mode 1 (architecture) | `(n)` et `(0)` des facettes exigent un jeu chargé, ce qu'O17 interdit en mode 1 ; tenues en mode 2 | D8-29 | — |
+| EX-SCR-26 écran A (architecture) | suggestions « leave-one-out » non calculables en mode 1 (O17) ; tenues sur l'écran B | D8-37 | — |
+| `co2Source` (interface gelée) | pas de colonne dans `DataProvider` v1 ; `UNKNOWN` déclaré | D8-32 | — |
+| EX-DATA-68 (interface gelée) | bloc 3 × 13 valeurs par agrégat marque/modèle : `MetricRange` v1 = 6 champs | D8-36 | — |
 
-**Points à instruire en 2.7** : `resultCount`/`resultCountLoading` de `<FilterBand>` non alimentés par la coquille (gap antérieur à 2.6, relevé par fix-verify `REMEDIATION.md` §7.1) ; D-51 (seuil d'implausibilité de Σ ≠ seuils par cellule d'analyse :
-`outlierEvaluatedCount` majoré par l'échantillon purgé des seules sentinelles absolues) ; O15
-(`Model.bodyTypes` toujours vide, donnée à fournir) ; `EX-NFR-16`/`EX-NFR-6` (axe-core et rendu réel,
-non exécutables en environnement node sans dépendance interdite).
-
----
+**Dettes 2.6 levées en 2.8** : DR-034 (stats dans le worker), DR-082 (colonne TVA `vatDeductible`),
+DR-114 (`INSUFFICIENT_*`), DR-105 (E15–E17 dans le garde R3), DR-132, DR-134, DR-143, DR-147,
+`resultCount` du bandeau. Les sondes `it.fails` correspondantes sont redevenues `it` sans modification.
 
 ## 7. Leçons opérationnelles (ne pas les réapprendre)
 
@@ -167,6 +177,16 @@ non exécutables en environnement node sans dépendance interdite).
 10. **Sondes de revue = contrat de remédiation** : une sonde rouge est un constat, la correction la fait
     passer sans la modifier ; toute modification de sonde est justifiée par écrit (D-31) et contrôlée par
     un vérificateur indépendant. Une dette consignée devient `it.fails` annoté, jamais `skip` (D-49).
+11. **Recette E2E : jamais de serveur réutilisé en silence.** Un `vite preview` résiduel d'un autre arbre
+    sur le port 4180 a été réutilisé par Playwright (`reuseExistingServer: true`), qui a recetté un build
+    étranger sans le dire. Désormais `reuseExistingServer: false` + `--strictPort` : un port occupé fait
+    échouer bruyamment — tuer le processus (`ss -ltnp | grep 4180`) ou changer `KYCAR_E2E_PORT`.
+12. **Un seul agent à la fois lance la suite E2E** (port unique, 4 cœurs) ; un correcteur n'a droit qu'aux
+    tests qu'il a touchés (`npx playwright test -g "<motif>"`), sur autorisation explicite.
+13. **Garder un correcteur ouvert par répertoire jusqu'à la fin de la vague de câblage** (D8-28) et
+    **trancher chaque point « hors périmètre » des rapports avant de lancer le vérificateur** (D8-30/31/36/37) ;
+    relancer le vérificateur par message sur le même agent pour les révisions (delta seulement si le
+    code n'a pas changé).
 
 ---
 
@@ -185,13 +205,18 @@ exact) dans le schéma ni le stockage. `sellerType` (particulier/pro) et `region
 
 ---
 
-## 9. Definition of Done — phases 2.4, 2.5, 2.6 ATTEINTES
+## 9. Definition of Done — phases 2.4 à 2.8 et 2.9a ATTEINTES
 
 - ✅ 2.4 : D1–D9 fusionnés, critères vérifiés par exécution.
 - ✅ 2.5 : S1–S4 de PLAN-2 §2.5 atteints (`reports/DEV-REVIEW.md` §7) ; 783 sondes, 116 critères jugés.
-- ✅ 2.6 : S1–S4 de PLAN-2 §2.6 atteints (`reports/REMEDIATION.md` §6) ; porte G5 : zéro BLOQUANT/MAJEUR
-  ouvert — trois MAJEUR en dette **motivée et consignée** (DR-034, DR-082 colonne TVA, DR-104).
-- ✅ build 0/0, lint vert, `npm test` vert (615 + 798), bundle < 300 Ko gzip, perf p95 < 200 ms.
+- ✅ 2.6 : S1–S4 de PLAN-2 §2.6 atteints (`reports/REMEDIATION.md` §6) ; porte G5.
+- ✅ 2.7 : `reports/FINAL-VERIFICATION.md`, 485 exigences cotées, porte G6 (juge sans corriger).
+- ✅ 2.8 : S1–S4 de PLAN-2 §2.8 atteints (`reports/REMEDIATION-2.8.md` rev 3 §8) ; **porte G7 franchie** :
+  zéro NON COUVERTE, zéro PARTIELLE sans décision écrite, dix dettes admises nommées.
+- ✅ 2.9a : harnais Playwright livré, 26 constats E2E tous levés en 2.8.
+- ✅ build 0/0, lint vert, `npm test` vert (675 + 1 079), E2E 255 tests / 0 échec inattendu, bundle 116 Kio
+  gzip, recalcul p95 181 ms, 4G ≈ 1,5 s.
 - ✅ `docs/EXECUTION-LOG.md`, `CLAUDE.md`, ce handoff à jour ; tout commité et poussé sur
   `claude/kycar-project-ffcplk` (dépôt perso `benitoGiunta/KYCAR`).
-- ⏸️ Arrêt. Prochaine action = **phase 2.7**, sur feu vert de l'utilisateur uniquement.
+- ⏳ 2.9b : `reports/ACCEPTANCE.md` et porte G8 (en cours). Ensuite arrêt : fusion `main` + tag `v0.1.0`
+  sur décision explicite du commanditaire uniquement.
