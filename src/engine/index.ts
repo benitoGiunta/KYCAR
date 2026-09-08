@@ -18,6 +18,22 @@ export { createAggregationWorkerClient, type AggregationWorkerClient } from '../
 export { AggregationDataset } from './kernel';
 export type { EngineSelection, RecalcResult, FacetResult } from './kernel';
 
+// Statistiques publiées par le protocole worker (D8-07, dette D-17 levée) — types seulement.
+export type {
+  GroupStatKey,
+  GroupStatEntry,
+  GroupStatSet,
+  NtileSlice,
+  NtileResult,
+  PowerTierEntry,
+  PowerTierResult,
+  DepreciationEntry,
+  DepreciationIndexResult,
+  CellLevel,
+  CellStat,
+  ScatterSampleSummary,
+} from './stats-protocol';
+
 // Contrat de sélection : taxonomie (T, élagage) et raffinement (R, en mémoire).
 export type {
   RefinePredicate,

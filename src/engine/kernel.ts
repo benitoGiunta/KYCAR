@@ -30,6 +30,14 @@ import { compilePredicates, type RefinePredicate, type TaxonomyScope } from './p
 import { PRICE_STATUS_MISSING, PRICE_STATUS_ON_REQUEST, PRICE_STATUS_QUOTED } from './flags';
 import { computeFacets, type FacetCount, type FacetFilterSpec } from './facets';
 import { scanSelection } from './scan';
+import type {
+  CellStat,
+  DepreciationIndexResult,
+  GroupStatSet,
+  NtileResult,
+  PowerTierResult,
+  ScatterSampleSummary,
+} from './stats-protocol';
 
 /**
  * Motif typé d'omission de la détection d'outliers (EX-NFR-5, EX-NFR-4bis, O17).
@@ -96,6 +104,26 @@ export interface RecalcResult {
   readonly implausibleThreshold: number | null;
   /** Annonces écartées de `V_price(Σ)` par ce seuil (D-44, EX-DATA-19(2)). */
   readonly implausibleInCellExcluded: number;
+
+  /* ---- D8-07 : statistiques calculées DANS le worker (dette D-17 levée) ----------------------
+   * Les six champs ci-dessous sont OPTIONNELS à l'étape 0 de la remédiation 2.8 : la FORME est
+   * figée pour que fix-engine (calcul) et fix-screens (consommation) avancent en parallèle, mais
+   * le moteur ne les remplit pas encore et rien ne casse tant qu'il ne le fait pas. Ils sont la
+   * SOURCE UNIQUE de ces chiffres : quand ils sont remplis, D7 supprime son recalcul du thread
+   * principal (`group-stat.ts`, `scatter-sample.ts`). Types : `./stats-protocol`. */
+
+  /** `GROUPSTAT(Σ, g, m)` par clé admise (EX-DATA-83bis) — G5/G6/G9/G12/G13/G14/G15. */
+  readonly groupStats?: readonly GroupStatSet[];
+  /** `NTILE(V_mileage(Σ), 5)` — tranches de rang de G10 (EX-DATA-83ter). */
+  readonly ntiles?: NtileResult;
+  /** Paliers de puissance de 20 kW (EX-DATA-83quater). */
+  readonly powerTiers?: PowerTierResult;
+  /** Indice de dépréciation base `y_max` publiée (EX-DATA-83quinquies). */
+  readonly depreciationIndex?: DepreciationIndexResult;
+  /** Statistiques par cellule d'homogénéité, dont `R²` et son avertissement (EX-DATA-86/87/93bis). */
+  readonly cellStats?: readonly CellStat[];
+  /** Échantillon déterministe du nuage G4 et ses compteurs (EX-DATA-99..103). */
+  readonly sample?: ScatterSampleSummary;
 }
 
 /** Résultat du calcul de facettes (différé). */
