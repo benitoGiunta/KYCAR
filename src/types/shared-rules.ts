@@ -17,6 +17,7 @@
  * | `listingKey`                                             | EX-DATA-15, ARB-54 | DR-003 |
  * | `DUPLICATE_CONFLICT_FIELDS`                              | ARB-54, EX-DATA-45 | DR-004 |
  * | `MODEL_VERSION_CLEAN_MAX`, `cleanModelVersion`           | EX-DATA-29 étape 6, ARB-61/ADV-17, ARB-24 | DR-025 |
+ * | `parseFirstRegistrationYearMonth`                        | EX-DATA-22, EX-DATA-23 | FV §3.2(d), D8-31 |
  *
  * `MODEL_UNRESOLVED_ID` n'est PAS redéfini ici : la couche l'exporte déjà, sous le nom
  * `MODEL_ID_UNRESOLVED` (`sentinels.ts`, valeur `0`, EX-DATA-72). Un deuxième nom pour la même
@@ -25,6 +26,7 @@
 
 import type { SnapshotId } from '../providers/DataProvider';
 import { NUMERIC_UNKNOWN } from './sentinels';
+import { setIngestFlag } from './vocabularies';
 
 /* ================================================================================================
  * 1. SENTINELLE DE PRIX ABSOLUE (EX-DATA-19(1), EX-DATA-60 — DR-001)
@@ -339,4 +341,100 @@ export function parseModelVersion(
   }
 
   return { clean, trimTokens, badgeDisplacementL, badgePower, driveBadges };
+}
+
+/* ================================================================================================
+ * 6. PREMIÈRE IMMATRICULATION (EX-DATA-22, EX-DATA-23 — D8-31)
+ * ============================================================================================== */
+
+/**
+ * Les DEUX seules formes admises par `EX-DATA-23`, dans l'ordre d'essai normatif :
+ * `YYYY-MM` (vocabulaire de CRÉATION, `format: year-month` de l'OpenAPI) puis `MM/YYYY`
+ * (vocabulaire de RECHERCHE, la forme observée). Les motifs sont ANCRÉS et le mois y est énuméré
+ * (`0[1-9]|1[0-2]`) : ni `00`, ni `13`, ni un mois sur un chiffre, ni une année sur deux chiffres
+ * ne peuvent traverser. C'est l'« aucune tolérance » du dictionnaire, écrit dans l'expression et
+ * non laissé à une vérification ultérieure qu'un appelant pourrait oublier.
+ */
+const FIRST_REG_CREATION_FORM = /^(\d{4})-(0[1-9]|1[0-2])$/u;
+const FIRST_REG_SEARCH_FORM = /^(0[1-9]|1[0-2])\/(\d{4})$/u;
+
+/**
+ * Résultat du parsing d'`EX-DATA-23`. Il porte À LA FOIS la valeur et le drapeau : c'est la seule
+ * façon de garantir qu'aucun chemin d'ingestion ne pose la valeur `INCONNU` en oubliant
+ * `FIRST_REG_UNPARSEABLE` — l'écart relevé en 2.7 (le drapeau n'était posé nulle part).
+ */
+export interface ParsedFirstRegistration {
+  /**
+   * La valeur stockée par KYCAR : une chaîne de 7 caractères `YYYY-MM` (`EX-DATA-22`, annexe A
+   * champ 30), ou `null` = `INCONNU`. Jamais une date journalière : la source ne connaît pas le jour.
+   */
+  readonly yearMonth: string | null;
+  /** Année sur 4 chiffres, ou `null`. Le contrôle de bornes est celui de l'annexe A (champ 31). */
+  readonly year: number | null;
+  /** Mois dans `1..12`, ou `null`. */
+  readonly month: number | null;
+  /**
+   * Forme COLONNAIRE de la valeur : `12·année + (mois − 1)`, l'encodage `Int32` de la colonne
+   * `firstRegistrationYearMonth` (`columns.ts`), ou la sentinelle `NUMERIC_UNKNOWN` (`EX-DATA-120`).
+   */
+  readonly encoded: number;
+  /**
+   * Vrai si la valeur était PRÉSENTE et illisible. Un champ ABSENT (`null` / `undefined`) vaut
+   * `INCONNU` sans drapeau : l'annexe A (champ 30, colonne « Si absent ») ne réclame un drapeau que
+   * pour une valeur servie et non interprétable, et `EX-DATA-23` ne parle que des FORMES reçues.
+   * HYPOTHÈSE (E4) : une chaîne VIDE est traitée comme une valeur servie illisible, donc drapeautée
+   * — la source a bien émis le champ.
+   */
+  readonly unparseable: boolean;
+  /** Le masque `ingestFlags` reçu, augmenté de `FIRST_REG_UNPARSEABLE` le cas échéant. */
+  readonly ingestFlags: number;
+}
+
+/**
+ * `EX-DATA-23` — parsing de `firstRegistrationYearMonth`.
+ *
+ * Essaie `YYYY-MM` puis `MM/YYYY` ; toute autre forme donne `INCONNU` **et**
+ * `ingestFlags += FIRST_REG_UNPARSEABLE`. Aucune tolérance : ni mois `00`/`13`, ni année à
+ * 2 chiffres, ni espaces d'encadrement (les motifs sont ancrés — un `trim` silencieux
+ * transformerait « aucune tolérance » en « une tolérance non écrite »).
+ *
+ * Ce module ne fait PAS le contrôle de bornes de l'annexe A (`1900-01 ≤ v ≤ (observedAt.year+1)-12`,
+ * drapeau `FIRST_REG_OUT_OF_RANGE`) : c'est une validation d'annexe A, portée par `validation.ts` et
+ * les adaptateurs, sur une valeur déjà LUE. Les deux étages restent distincts, comme leurs deux
+ * drapeaux.
+ *
+ * @param raw valeur servie par la source (`condition.firstRegistrationDate`), `null`/`undefined` si
+ *   le champ est absent.
+ * @param ingestFlags masque `ingestFlags` de l'annonce en cours (défaut `0`) — retourné augmenté,
+ *   jamais muté.
+ */
+export function parseFirstRegistrationYearMonth(
+  raw: string | null | undefined,
+  ingestFlags = 0,
+): ParsedFirstRegistration {
+  const absent: ParsedFirstRegistration = {
+    yearMonth: null,
+    year: null,
+    month: null,
+    encoded: NUMERIC_UNKNOWN,
+    unparseable: false,
+    ingestFlags,
+  };
+  if (raw === null || raw === undefined) return absent;
+
+  const creation = FIRST_REG_CREATION_FORM.exec(raw);
+  const search = creation === null ? FIRST_REG_SEARCH_FORM.exec(raw) : null;
+  const year = creation !== null ? Number(creation[1]) : search !== null ? Number(search[2]) : null;
+  const month = creation !== null ? Number(creation[2]) : search !== null ? Number(search[1]) : null;
+  if (year === null || month === null) {
+    return { ...absent, unparseable: true, ingestFlags: setIngestFlag(ingestFlags, 'FIRST_REG_UNPARSEABLE') };
+  }
+  return {
+    yearMonth: `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`,
+    year,
+    month,
+    encoded: 12 * year + (month - 1),
+    unparseable: false,
+    ingestFlags,
+  };
 }
