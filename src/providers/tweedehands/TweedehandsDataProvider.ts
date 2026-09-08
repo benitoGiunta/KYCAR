@@ -228,6 +228,7 @@ export class TweedehandsDataProvider implements DataProvider {
       modelId: undefined,
       residual: [],
       unsupported: [],
+      blocking: [],
       isEmpty: true,
       exhaustive: true,
     });
@@ -241,7 +242,7 @@ export class TweedehandsDataProvider implements DataProvider {
     level: AggregateLevel,
     makeScope?: number,
   ): Promise<AggregateResult<MakeAggregate | ModelAggregate>> {
-    const compiled = compileSourceSelection(selection);
+    const compiled = compileSourceSelection(selection, this.referenceData.bodyTypeIndexAvailable);
     if (level === 'MODEL') {
       const scope = makeScope ?? compiled.makeId;
       if (scope === undefined) {
@@ -260,7 +261,7 @@ export class TweedehandsDataProvider implements DataProvider {
    * l'échantillon retenu — jamais l'effectif NON filtré (DR-016).
    */
   async fetchSelectionCount(_handle: SnapshotHandle, selection: SelectionQuery): Promise<number> {
-    const compiled = compileSourceSelection(selection);
+    const compiled = compileSourceSelection(selection, this.referenceData.bodyTypeIndexAvailable);
     const scope = this.scopeOf(compiled);
     const result = await this.queryOne(_handle.descriptor.snapshotId, scope);
     if (compiled.exhaustive) return result.listingCount;
@@ -337,6 +338,16 @@ export class TweedehandsDataProvider implements DataProvider {
         reject('LISTING_ID_MISSING');
         continue;
       }
+      if (listing.listingUrl === '') {
+        // EX-DATA-14 (D8-16 / FV-20) : « `listingUrl` est obligatoire et son absence provoque le
+        // REJET de l'annonce ». L'architecture est fondée sur le deeplink vers l'annonce d'origine
+        // plutôt que sur la copie de son contenu : une annonce sans deeplink est invérifiable par
+        // l'utilisateur, donc sans valeur pour la détection d'opportunité. Elle était CONSERVÉE et
+        // signalée dans `unknownFields` ; elle est désormais rejetée et comptée par motif — ce qui
+        // couvre aussi le deeplink de PROFIL VENDEUR écarté par `normalize.ts` (DR-127).
+        reject('LISTING_URL_MISSING');
+        continue;
+      }
       normalized.push(listing);
     }
     if (response.announcedCountRejected === true) reject('ANNOUNCED_COUNT_OUT_OF_RANGE');
@@ -358,6 +369,13 @@ export class TweedehandsDataProvider implements DataProvider {
         unknownCountByField[field] = (unknownCountByField[field] ?? 0) + 1;
       }
       for (const flag of listing.ingestFlags) {
+        ingestFlagCounts[flag] = (ingestFlagCounts[flag] ?? 0) + 1;
+      }
+      // EX-DATA-45 (dernier alinéa) : les SOUS-QUALIFICATIONS d'`ENUM_UNKNOWN`
+      // (`HYBRID_CATEGORY_UNRESOLVED`, `FUEL_CATEGORY_FROM_FUEL_TYPE`) sont « comptées dans le
+      // rapport d'ingestion mais non dans le vocabulaire à 17 codes » : elles rejoignent
+      // `ingestFlagCounts` sans jamais entrer dans `KYCAR_INGEST_FLAG` ni dans un bit d'`ingestFlags`.
+      for (const flag of listing.ingestReportFlags) {
         ingestFlagCounts[flag] = (ingestFlagCounts[flag] ?? 0) + 1;
       }
       if (listing.modelVersionRaw !== null) {

@@ -398,3 +398,153 @@ export function mapCountryCode(rawValue: string | undefined): string | null {
 export function mapRegionCode(): null {
   return null;
 }
+
+/* ================================================================================================
+ * Phase 2.8 — D8-08, D8-16 : TVA déductible, unités source, repli carburant, palier publicitaire
+ * ============================================================================================== */
+
+/**
+ * **D8-08 / `EX-SCR-203`, annexe A champ # 10 `isTaxDeductible`.** Sur la surface autorisée, la
+ * déductibilité de la TVA est portée par un attribut BOOLÉEN TEXTUEL, servi en néerlandais sur
+ * 2dehands.be (`btwVerrekenbaar`, littéralement « TVA récupérable ») et en français sur les pages
+ * francophones (`tvaDeductible`). Les deux clés sont lues, dans cet ordre, par
+ * `readVatDeductibleAttribute` — CHEMIN DOCUMENTÉ pour la revue :
+ *
+ * ```
+ * __NEXT_DATA__.props.pageProps.searchRequestAndResponse.listings[]
+ *   .attributes[]         { key: "btwVerrekenbaar" | "tvaDeductible", value: "Ja" | "Nee" }
+ *   .extendedAttributes[] (même forme — `getAttr` balaye les deux réservoirs, dans cet ordre)
+ * ```
+ *
+ * Trois états, jamais deux : `Ja`/`Oui`/`true` ⇒ `true` ; `Nee`/`Non`/`false` ⇒ `false` ; attribut
+ * ABSENT ⇒ `null` (INCONNU), qui devient le code `0` de la colonne tri-état `vatDeductible`. Une
+ * valeur PRÉSENTE mais non traduisible reste `null` et l'appelant lève `ENUM_UNKNOWN` : c'est une
+ * dérive de la source, pas un « non déductible ».
+ */
+const VAT_ATTRIBUTE_KEYS: readonly string[] = ['btwVerrekenbaar', 'tvaDeductible', 'btw', 'tva'];
+
+const VAT_TRUE_TOKENS: readonly string[] = ['ja', 'oui', 'true', 'yes', 'btwverrekenbaar', 'tvadeductible'];
+const VAT_FALSE_TOKENS: readonly string[] = ['nee', 'non', 'false', 'no', 'geenbtw', 'sanstva'];
+
+/** Lit l'attribut BTW/TVA d'une annonce brute (première clé servie parmi `VAT_ATTRIBUTE_KEYS`). */
+export function readVatDeductibleAttribute(listing: RawListing): string | undefined {
+  for (const key of VAT_ATTRIBUTE_KEYS) {
+    const value = getAttr(listing, key);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+/** Traduit la valeur BTW/TVA de la source en booléen tri-état (`null` = INCONNU). */
+export function mapVatDeductible(rawValue: string | undefined): boolean | null {
+  if (rawValue === undefined) return null;
+  const folded = foldToken(rawValue);
+  if (folded.length === 0) return null;
+  if (VAT_TRUE_TOKENS.includes(folded)) return true;
+  if (VAT_FALSE_TOKENS.includes(folded)) return false;
+  return null;
+}
+
+/**
+ * `EX-DATA-4` — unités CANONIQUES du dictionnaire KYCAR, par champ. `EX-DATA-5` : « toute conversion
+ * d'unité à l'ingestion est REFUSÉE si le champ `*Unit` correspondant est présent et vaut une unité
+ * non gérée ». Ces tables énumèrent donc les seules formes ACCEPTÉES ; tout le reste (`mi`, `hp`,
+ * `g/mi`…) refuse la conversion, met le champ à INCONNU et lève `UNIT_UNSUPPORTED`. Aucune
+ * conversion n'est devinée — pas même `mi → km`, dont le facteur est pourtant connu : la règle
+ * interdit de deviner, et une source qui change d'unité sans préavis doit se voir, pas se convertir.
+ */
+const CANONICAL_UNITS: Readonly<Record<string, readonly string[]>> = {
+  mileageUnit: ['km', 'kilometer', 'kilometers', 'kilometre', 'kilometres'],
+  powerUnit: ['kw', 'kilowatt', 'kilowatts'],
+  co2EmissionsUnit: ['gkm', 'ggkm', 'grkm', 'gramkm', 'grammekm', 'gramperkm'],
+  combinedUnit: ['l100km', 'liter100km', 'litre100km'],
+};
+
+/** Attribut `*Unit` de la source associé à chaque champ numérique soumis à `EX-DATA-5`. */
+export const UNIT_ATTRIBUTE_BY_FIELD: Readonly<Record<string, keyof typeof CANONICAL_UNITS>> = {
+  mileageKm: 'mileageUnit',
+  powerKw: 'powerUnit',
+  co2EmissionsGPerKm: 'co2EmissionsUnit',
+};
+
+/**
+ * `EX-DATA-5` — vrai si l'unité SERVIE par la source est celle du dictionnaire KYCAR. Une unité
+ * absente (`undefined`) n'est PAS une unité non gérée : la source ne déclare rien, la valeur est
+ * donc lue dans l'unité canonique documentée par l'attribut lui-même (`enginePowerKW`, `mileage` en
+ * km) — c'est le cas nominal de cette surface.
+ */
+export function isCanonicalUnit(unitAttribute: string, rawValue: string | undefined): boolean {
+  if (rawValue === undefined) return true;
+  const accepted = CANONICAL_UNITS[unitAttribute];
+  if (accepted === undefined) return true;
+  return accepted.includes(foldToken(rawValue));
+}
+
+/**
+ * **`EX-DATA-10`** — table de correspondance `KYCAR_FUEL_TYPE` (échelle de CRÉATION, 16 codes) →
+ * `KYCAR_FUEL_CATEGORY` (échelle de RECHERCHE), *many-to-one*, marquée `[EXTRAPOLÉ]` par l'annexe A.
+ * Elle n'est utilisée **qu'en repli** : `fuelCategory` absent ET `fuelTypePrimary` présent. Copie
+ * fidèle de la table normative, ligne à ligne.
+ *
+ * **`EX-DATA-11`** — aucun code ne projette sur `2` (Électrique/Essence) ni `3` (Électrique/Diesel) :
+ * la catégorie hybride est INATTEIGNABLE par ce repli, et c'est voulu. Un hybride rechargeable sans
+ * catégorie servie reste INCONNU (`HYBRID_CATEGORY_UNRESOLVED`), jamais rattaché à `B` ou `D`.
+ */
+const FUEL_TYPE_TO_CATEGORY: ReadonlyMap<string, string> = new Map([
+  ['1', 'B'], // Essence 91
+  ['2', 'B'], // Super 95
+  ['3', 'B'], // Super Plus 98
+  ['4', 'B'], // E10 91
+  ['5', 'B'], // Super E10 95
+  ['6', 'B'], // Super Plus E10 98
+  ['7', 'D'], // Diesel
+  ['8', 'D'], // Diesel écologique
+  ['9', 'L'], // GPL
+  ['10', 'C'], // Gaz naturel H
+  ['11', 'C'], // Gaz naturel L
+  ['12', 'E'], // Électrique
+  ['13', 'H'], // Hydrogène
+  ['14', 'O'], // Vegetable oil
+  ['15', 'O'], // Biogas
+  ['16', 'M'], // Ethanol
+]);
+
+/** Repli `EX-DATA-10` : code `KYCAR_FUEL_TYPE` → code `KYCAR_FUEL_CATEGORY`, ou `null` hors table. */
+export function mapFuelCategoryFromFuelType(rawValue: string | undefined): string | null {
+  if (rawValue === undefined) return null;
+  return FUEL_TYPE_TO_CATEGORY.get(rawValue.trim()) ?? null;
+}
+
+/** Jetons booléens de la source (NL/FR/anglais) — `undefined` et forme inconnue rendent `false`. */
+export function parseSourceBoolean(rawValue: string | undefined): boolean {
+  if (rawValue === undefined) return false;
+  return VAT_TRUE_TOKENS.includes(foldToken(rawValue));
+}
+
+/**
+ * **`EX-DATA-43`** — palier publicitaire (`adTier`, `KYCAR_AD_TIER` : `NONE`, `T20`, `T30`, `T40`,
+ * `T50`). 2dehands nomme ses produits de mise en avant (`priorityProduct`) : `DAGTOPPER` (annonce du
+ * jour, le plus visible) et `TOPADVERTENTIE` (annonce en tête de liste). La projection vers les
+ * paliers `T*` d'AutoScout24 est `[EXTRAPOLÉ]` — les deux échelles ne sont pas publiées l'une en
+ * fonction de l'autre — mais elle est ORDINALE et explicite : le produit le plus visible reçoit le
+ * palier le plus élevé. Un produit ABSENT vaut `NONE` (défaut de l'annexe A champ 79), une valeur
+ * présente mais hors table reste non reconnue et l'appelant lève `ENUM_UNKNOWN`.
+ */
+const AD_TIER_TOKENS: ReadonlyMap<string, string> = new Map([
+  ['dagtopper', 'T50'],
+  ['topadvertentie', 'T30'],
+  ['topannonce', 'T30'],
+  ['blikvanger', 'T20'],
+  ['urgent', 'T20'],
+]);
+
+/** `priorityProduct` (2dehands) → code `KYCAR_AD_TIER`. Absent ⇒ `NONE` (annexe A champ 79). */
+export function mapAdTier(rawValue: string | undefined): string {
+  if (rawValue === undefined) return 'NONE';
+  return matchToken(rawValue, AD_TIER_TOKENS) ?? 'NONE';
+}
+
+/** Vrai si le produit de mise en avant SERVI est reconnu (et non replié en silence sur `NONE`). */
+export function isAdTierRecognised(rawValue: string | undefined): boolean {
+  return rawValue !== undefined && matchToken(rawValue, AD_TIER_TOKENS) !== null;
+}

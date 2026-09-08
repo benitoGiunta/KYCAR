@@ -76,6 +76,22 @@ export function makeRawListing(overrides: {
   readonly co2emission?: string;
   readonly numberOfSeatsBE?: string;
   readonly aantaldeurenBE?: string;
+  /* --- Attributs exercés par la phase 2.8 (D8-08, D8-16 / FV-20) ------------------------------ */
+  /** `EX-DATA-5` — unités déclarées par la source ; hors unité canonique, la conversion est refusée. */
+  readonly mileageUnit?: string;
+  readonly powerUnit?: string;
+  readonly co2EmissionsUnit?: string;
+  /** `EX-DATA-10` — code `KYCAR_FUEL_TYPE` (échelle de création), repli quand `fuel` est absent. */
+  readonly fuelTypePrimary?: string;
+  /** `EX-DATA-11` — hybride rechargeable déclaré : la catégorie reste INCONNUE sans `fuel`. */
+  readonly isPluginHybrid?: string;
+  /** `EX-DATA-35` — CO₂ par norme NOMMÉE ; `co2emission` reste le champ à repli, norme non déclarée. */
+  readonly co2emissionWLTP?: string;
+  readonly co2emissionNEDC?: string;
+  /** `EX-SCR-203` / annexe A # 10 — champ BTW/TVA de la source (`Ja`/`Nee`, `Oui`/`Non`). */
+  readonly btwVerrekenbaar?: string;
+  /** `EX-DATA-43` — produit de mise en avant 2dehands (`DAGTOPPER`, `TOPADVERTENTIE`…). */
+  readonly priorityProduct?: string;
   /** Champs additionnels non déclarés par `RawListing` mais plausibles dans une charge réelle — pour
    *  prouver que `normalize.ts` ne les recopie jamais (test R3). */
   readonly extraForbidden?: Record<string, unknown>;
@@ -99,6 +115,22 @@ export function makeRawListing(overrides: {
   if (overrides.co2emission !== undefined) extendedAttributes.push({ key: 'co2emission', value: overrides.co2emission });
   if (overrides.numberOfSeatsBE !== undefined) extendedAttributes.push({ key: 'numberOfSeatsBE', value: overrides.numberOfSeatsBE });
   if (overrides.aantaldeurenBE !== undefined) extendedAttributes.push({ key: 'aantaldeurenBE', value: overrides.aantaldeurenBE });
+  // Phase 2.8 — les attributs d'unité, de repli carburant, de norme CO₂, de TVA et de produit de
+  // mise en avant vivent dans `extendedAttributes`, comme les autres champs techniques relevés.
+  for (const key of [
+    'mileageUnit',
+    'powerUnit',
+    'co2EmissionsUnit',
+    'fuelTypePrimary',
+    'isPluginHybrid',
+    'co2emissionWLTP',
+    'co2emissionNEDC',
+    'btwVerrekenbaar',
+    'priorityProduct',
+  ] as const) {
+    const value = overrides[key];
+    if (value !== undefined) extendedAttributes.push({ key, value });
+  }
 
   return {
     itemId: overrides.itemId,

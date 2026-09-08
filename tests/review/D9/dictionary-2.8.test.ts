@@ -219,17 +219,35 @@ describe('D9 §2.8 — D8-16 : drapeaux et replis d’ingestion', () => {
  * ============================================================================================== */
 
 describe('D9 §2.8 — D8-20 : le filtre Carrosserie en mode 2', () => {
-  it('R-D9-31 — les agrégats de MODÈLE déclarent `bodyType` non appliqué (O15)', async () => {
+  it('R-D9-31 — sélection pinçant un modèle : `bodyType` est DÉCLARÉ non appliqué et l’effectif reste exhaustif', async () => {
     const p = providerOn([
       makeRawListing({ itemId: 'm1', brand: 'Opel', model: 'Corsa', priceCents: 1000000, priceType: 'FIXED', body: 'Hatchback' }),
     ]);
     const handle = await p.openSnapshot();
-    const result = (await p.fetchAggregates(handle, 'make=54;bodyType=1', 'MODEL', 54)) as {
+    expect(referenceData.bodyTypeIndexAvailable).toBe(false);
+    const pinned = 'makesModelsVariants=54|1918';
+    const result = (await p.fetchAggregates(handle, `${pinned};bodyType=1`, 'MODEL', 54)) as {
       readonly rows: readonly ModelAggregate[];
       readonly unsupportedFilterIds: readonly string[];
+      readonly selectionCount: number;
     };
-    expect(referenceData.bodyTypeIndexAvailable).toBe(false);
     expect(result.unsupportedFilterIds).toContain('bodyType');
+    // Déclaré n'est pas bloquant (D8-20) : l'effectif publié reste celui de la sélection SANS
+    // carrosserie, jamais le plancher à 0 réservé aux filtres qu'on ne sait pas évaluer.
+    expect(result.selectionCount).toBeGreaterThan(0);
+    const withoutBody = await p.fetchSelectionCount(handle, pinned);
+    expect(await p.fetchSelectionCount(handle, `${pinned};bodyType=1`)).toBe(withoutBody);
+  });
+
+  it('R-D9-31b — hors mode 2 (aucun modèle pincé), `bodyType` est APPLIQUÉ à l’échantillon', async () => {
+    const p = providerOn([
+      makeRawListing({ itemId: 'm1', brand: 'Opel', model: 'Corsa', priceCents: 1000000, priceType: 'FIXED', body: 'Hatchback' }),
+    ]);
+    const handle = await p.openSnapshot();
+    const result = await p.fetchAggregates(handle, 'make=54;bodyType=9', 'MAKE');
+    expect(result.unsupportedFilterIds).not.toContain('bodyType');
+    // `9` (Autres) ne correspond à aucune annonce de l'échantillon : le filtre a bien mordu.
+    expect(result.selectionCount).toBe(0);
   });
 });
 
