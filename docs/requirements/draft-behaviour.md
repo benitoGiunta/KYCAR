@@ -402,6 +402,13 @@ exigences d'équipement pour restreindre une recherche). **Ce choix doit être r
 phase 2.2 (stress-test, agent `st-ambiguity`)** avant le gel v1.0 ; il ne doit pas être considéré
 comme acquis avant cette revue.
 
+**Dette externe maintenue (`D8-18`, `O7`)** : trancher la sémantique exigerait de comparer les
+effectifs retournés par AutoScout24 pour `eq=5`, `eq=23` et `eq=5,23` sur des requêtes live, ce que
+la règle `E5` interdit. Faute de champ d'équipement relevé sur la source, `eq` n'est de toute façon
+**pas applicable localement** (classe T, aucun champ local, `EX-SCR-82`) : `unsupportedFilterIds`
+(`D-03`) le déclare non appliqué. Le point reste ouvert (`EXECUTION-LOG.md`, `O7`), reporté aux
+`ACTIONS-COMMANDITAIRE`. [amendée 2.8 — D8-18]
+
 **EX-SRCH-13** — Même réserve, de moindre ampleur, pour `sealor` (hors périmètre KYCAR de toute
 façon, §A.2.2) et `pe_category` (hors périmètre v1).
 
@@ -698,8 +705,11 @@ froid exclu**, et la campagne publie `n`, la médiane et le `p95`.
 | EX-NFR-5 | Application d'un filtre (du recalcul déclenché à l'affichage mis à jour, hors delai de debounce lui-même) | ≤ 200 ms | p95 |
 | EX-NFR-6 | Rendu d'un histogramme (prix, kilométrage ou année) jusqu'à 100 000 annonces en entrée | ≤ 300 ms | p95 |
 | EX-NFR-7 | Rendu initial du nuage tri-dimensionnel (prix × année × kilométrage) jusqu'à 5 000 points (taille attendue d'une distribution par modèle) | ≤ 500 ms | p95 |
-| EX-NFR-8 | Interaction (rotation, zoom) sur le nuage tri-dimensionnel une fois rendu | **aucune fenêtre glissante de 1 s ne descend sous 30 images/seconde dans au moins 95 % des fenêtres** d'une rotation continue de 10 s ; la mesure publie le nombre de fenêtres, le nombre de fenêtres en défaut et le débit minimal observé (`ARB-38`) | `EX-NFR-4bis` |
+| EX-NFR-8 | Interaction continue (pan/zoom) sur les deux projections 2D commutables de `G4` (nuée empilée, nuage prix × année ; `EX-SCR-151`…`156`) une fois rendues — aucune rotation d'une scène 3D, qui n'existe pas dans la disposition normative (`ARCHITECTURE.md` §9.1, `D-07`) | **aucune fenêtre glissante de 1 s ne descend sous 30 images/seconde dans au moins 95 % des fenêtres** d'un pan/zoom continu de 10 s ; la mesure publie le nombre de fenêtres, le nombre de fenêtres en défaut et le débit minimal observé (`ARB-38`) | `EX-NFR-4bis` |
 | EX-NFR-9 | Chargement initial de l'application (premier affichage utile de l'écran de mode 1) sur une connexion simulée 4G (≈ 4 Mb/s, latence 150 ms) | ≤ 2000 ms | p95 |
+
+`EX-NFR-8` ne mesure ni ne suppose de rotation d'une scène 3D : la lecture retenue par `D-07`
+(pan/zoom continu sur les projections 2D de `G4`) est la seule normative. [amendée 2.8 — D8-13]
 
 ### D.3 Taille du bundle et budget de chargement
 

@@ -29,8 +29,9 @@ de stress-test et par la matrice de traçabilité.
 
 **Traçabilité de la source normative des filtres** : le périmètre des filtres n'est pas tenu en
 prose. Il est **généré** dans `data/reference/filters-scope.json` par `scripts/build-filter-scope.mjs`,
-qui échoue si la partition ne tombe pas juste — **77 retenus + 24 exclus = 101**. Aucune liste
-écrite à la main ne fait foi contre ce fichier.
+qui échoue si la partition ne tombe pas juste — **74 retenus + 27 exclus = 101** (`D-14` retire
+`zip`, `lat`, `lon` du périmètre retenu). Aucune liste écrite à la main ne fait foi contre ce
+fichier. [amendée 2.8 — D8-13]
 
 **Pourquoi un index et non un document unique.** Recopier ici 3 907 lignes d'annexes produirait deux
 versions de chaque exigence, qui divergeraient au premier correctif de la phase 2.6. Un document
@@ -164,18 +165,23 @@ interdit les champs vendeur. Le deeplink vers l'annonce d'origine suffit. C'est 
 
 ## 6. Bandeau de filtres → **Annexe B** pour la forme, **Annexe C** pour l'encodage
 
-**Périmètre : 77 filtres retenus sur 101** (arbitrage A-01). 24 exclus, et eux seuls : `cid`
-(règle R3), les 16 filtres non-voiture, 5 paramètres de télémétrie AutoScout24, 2 doublons stricts.
+**Périmètre : 74 filtres retenus sur 101** (arbitrage A-01). 27 exclus, et eux seuls : `cid`,
+`zip`, `lat`, `lon` (règle R3, `D-14`), les 16 filtres non-voiture, 5 paramètres de télémétrie
+AutoScout24, 2 doublons stricts. [amendée 2.8 — D8-13]
 
-Hiérarchie à trois niveaux — 9 contrôles primaires toujours visibles couvrant 13 paramètres,
-secondaires repliés par groupe, recherche de filtre. Le choix des primaires est justifié en annexe B
-par quatre critères mesurables, avec une dérogation documentée pour `gear` (arbitrage A-08).
+Hiérarchie à trois niveaux — 8 contrôles primaires toujours visibles couvrant 12 paramètres
+(`cy` retiré du primaire, `D-15` : c'est une valeur injectée par le `DataProvider` selon le
+marketplace du snapshot, pas un filtre utilisateur), secondaires repliés par groupe, recherche de
+filtre. Le choix des primaires est justifié en annexe B par quatre critères mesurables, avec une
+dérogation documentée pour `gear` (arbitrage A-08). [amendée 2.8 — D8-13]
 
 Trois termes, définis sans synonymie par la révision `R-A01` : **`RETENU`** = implémenté,
-applicable au dataset, encodable dans l'URL et couvert par un test (**77**, énumérés dans
+applicable au dataset, encodable dans l'URL et couvert par un test (**74**, énumérés dans
 `data/reference/filters-scope.json`) · **`EXPOSÉ`** = doté d'un contrôle atteignable par
-l'utilisateur (**76**, plus `atype` comme unique écart déclaré, fixé à `C` par conception) ·
-**`PRIMAIRE`** = visible sans déplier de groupe (9 contrôles, 13 paramètres).
+l'utilisateur (**68**, plus six écarts déclarés — `atype`, `powertype`, `ustate`, `cy`, `page`,
+`size` — valeurs injectées par le `DataProvider` ou paramètres d'état d'interface de l'écran D,
+jamais un filtre utilisateur) · **`PRIMAIRE`** = visible sans déplier de groupe (8 contrôles,
+12 paramètres). [amendée 2.8 — D8-13]
 
 Le badge de comptage du bandeau compte les filtres **actifs** — posés à une valeur non défaut —
 et jamais les filtres disponibles : un badge qui compte les possibilités n'informe sur rien.
@@ -184,7 +190,7 @@ Chaque filtre retenu porte sa classification `R` / `T` / `D` selon le coût de s
 `R` recalculable localement en 150 ms ou moins, `T` exigeant un rechargement via `DataProvider`,
 `D` en dette faute de champ dans la source. La classe `X` a été supprimée : elle mélangeait les
 filtres exclus dans une classification qui ne porte que sur les retenus, ce qui produisait un
-bilan de 101 là où la section ne parle que des 77 (constat `T-02`).
+bilan de 101 là où la section ne parle que des 74 (constat `T-02`).
 
 ---
 
@@ -284,9 +290,9 @@ Ces deux parcours sont **exercés de bout en bout** en phase 2.7, journal d'exé
 
 ### 11.3 — Couverture des filtres relevés
 
-Les 101 filtres de `REF-filters.md` reçoivent chacun un statut : 77 retenus et spécifiés, 24 exclus
-avec motif nommé (arbitrage A-01). **Aucun filtre du catalogue n'est laissé sans statut** — critère
-de succès S4 de la phase 2.1.
+Les 101 filtres de `REF-filters.md` reçoivent chacun un statut : 74 retenus et spécifiés, 27 exclus
+avec motif nommé (arbitrage A-01, `D-14`). **Aucun filtre du catalogue n'est laissé sans statut** —
+critère de succès S4 de la phase 2.1. [amendée 2.8 — D8-13]
 
 ### 11.4 — Couverture des champs
 
@@ -320,6 +326,7 @@ Ils sont énumérés ici pour que la phase 2.2 ne les découvre pas comme des tr
 | 0.9 | 2026-09-06 | Assemblage des 3 annexes, 447 exigences, 9 arbitrages du coordinateur. Soumis au stress-test |
 | **1.0** | **2026-09-06** | **GELÉ. 485 exigences.** Voir le détail ci-dessous |
 | **1.1** | **2026-09-08** | **Remédiation 2.6, `fix-docs`.** Aucune exigence créée ni supprimée, aucun identifiant renuméroté. 30 exigences amendées (annexes A, B, C) contre les décisions de `reports/remediation/FIX-LEAD-DECISIONS.md` et les tensions §5.2/§5.3/§6.5 de `reports/DEV-REVIEW.md`. Détail ci-dessous |
+| **1.2** | **2026-09-08** | **Remédiation 2.8, `fix-docs`.** Aucune exigence créée ni supprimée, aucun identifiant renuméroté. Amendements contre `reports/remediation-2.8/FIX-LEAD-DECISIONS-2.8.md` (constats `FV-xx` de `reports/FINAL-VERIFICATION.md` §7) : décomptes de filtres et de primaires corrigés (`D8-13`), vocabulaire d'outliers porté à 8 codes (`D8-09`), garde R3 étendue (`D8-11`), colonne TVA de l'interface physique (`D8-08`), agrégats `modelCount`/`iqr`/`coverage`/champs optionnels (`D8-10`, `D8-23`), dette `D-17` levée (`D8-07`), dettes produit et externes consignées (`D8-15`, `D8-18`, `D8-20`). Détail ci-dessous |
 
 ### Journal des amendements 2.6 (v1.0 → v1.1)
 
@@ -361,6 +368,34 @@ Aucune formule ni disposition n'est réécrite au-delà de ce que la décision c
 | `EX-SCR-177` | B | `G4` sorti du périmètre d'`ET-TROP-RESULTATS` (§6.7) | `D-08` |
 | `EX-SCR-194` | B | Format de `m` corrigé en `<makeId>-<modelId>` | `D-13` |
 | `EX-SCR-208` | B | Rendu virtualisé remplacé par la pagination client de 50 lignes | `D-27` |
+
+### Journal des amendements 2.8 (v1.1 → v1.2)
+
+Chaque exigence amendée porte la marque `[amendée 2.8 — D8-xx]` en fin de texte. Aucune formule ni
+disposition n'est réécrite au-delà de ce que la décision citée impose ; une divergence avec une
+exigence non citée par le fix-lead est consignée en § Conflits résiduels de
+`reports/remediation-2.8/fix-docs.md`, non tranchée ici.
+
+| Identifiant | Annexe | Nature de l'amendement | Décision |
+|---|---|---|---|
+| `EX-NFR-8` | C | « rotation continue de 10 s » remplacée par « interaction continue (pan/zoom) », alignée sur `D-07`/ARCHITECTURE §9.1 ; aucune scène 3D | `D8-13` |
+| `EX-SCR-59` | B | Huit contrôles primaires (au lieu de neuf) couvrant onze paramètres (au lieu de douze) : `Pays` (`cy`) retiré, valeur injectée par le `DataProvider` selon `EX-SRCH-18bis` | `D8-13` |
+| `EX-SCR-82` | B | Exception `NON_EXPOSE` étendue de un à six filtres retenus (`atype`, `powertype`, `ustate`, `cy`, `page`, `size`) ; `zip`/`lat`/`lon` passés `EXCLU` (`D-14`) | `D8-13` |
+| `EX-SCR-83` | B | Bilan corrigé : 74 `RETENU` (68 `EXPOSÉ` = 12 primaires + 53 secondaires + 3 désactivés, 6 `NON_EXPOSE`) + 27 `EXCLU` = 101 | `D8-13` |
+| `EX-SCR-9` | B | Retrait de la mention d'un usage interne de `lat`/`lon` pour un calcul de rayon, jamais construit ; dette externe `D-14` documentée | `D8-18` |
+| REQUIREMENTS §0, §6, §11.3 | — | Décomptes corrigés : 74 retenus + 27 exclus (au lieu de 77 + 24) ; 8 contrôles primaires / 12 paramètres (au lieu de 9 / 13) | `D8-13` |
+| Annexe A §C.5 | A | Décompte corrigé : 140 exigences `EX-DATA-*` (au lieu de 139) | `D8-13` |
+| `EX-DATA-85` | A | 8 codes (au lieu de 6), nommage aligné sur le vocabulaire gelé du code : `M1_LOW`/`M1_HIGH`/`M2_LOW`/`M2_HIGH` (au lieu de `LOW_PRICE_IQR`/`HIGH_PRICE_IQR`/`LOW_PRICE_MODEL`/`HIGH_PRICE_MODEL`), ajout de `M1_M2_AGREE_LOW`/`M1_M2_AGREE_HIGH` | `D8-09` |
+| § A.1 (table des vocabulaires, `KYCAR_OUTLIER_FLAG`) | A | Décompte corrigé : 6 → 8 codes | `D8-09` |
+| `EX-DATA-96`, `EX-DATA-101` | A | Renvois harmonisés vers le nommage `M1_LOW`/`M1_HIGH`/`M2_LOW`/`M2_HIGH` | `D8-09` |
+| `EX-DATA-49` | A | Garde étendue de E1–E14 à E1–E17 (RGPD `vin`/`licencePlate`/`belgianCarpassMileageUrl`, variantes de noms normalisées) | `D8-11` |
+| `EX-DATA-119` (§ C.3, table physique) | A | Colonne `vatDeductible` (`Uint8Array`, sentinelle `0`) ajoutée : 20 colonnes énumérées sur un octet (au lieu de 19), ≈ 76 colonnes numériques et énumérées, +1 octet/ligne | `D8-08` |
+| `EX-DATA-68` | A | Précision : `modelCount` obligatoire (`null` si non calculé, jamais `0`) ; `coverageWarning`/`samplingBias`/`adTierDistribution` optionnels ; `rank`/`displayRange`/`makeName` dérivés au rendu, non portés par l'entité | `D8-10`, `D8-23` |
+| `EX-DATA-83bis` | A | Dette `D-17` levée : `GROUPSTAT`/`NTILE` calculées dans le worker, source unique, recalcul du thread principal retiré | `D8-07` |
+| `EX-SCR-95` | B | Dette produit consignée : réglages « Assainissement KYCAR » non implémentés, hors budget 2.8 | `D8-15` |
+| `EX-DATA-53` | A | Dette externe ratifiée : confrontation au fichier officiel Statbel/bpost hors contrôle du projet | `D8-18` |
+| `EX-SRCH-12` | C | Dette externe ratifiée : sémantique `eq` non tranchable localement (E5 interdit les requêtes live), point ouvert `O7` | `D8-18` |
+| `EX-SCR-221` | B | Dette externe (`O15`) et mitigation documentées : bandeau « Filtre Carrosserie non appliqué à ce modèle » en mode 2 | `D8-18`, `D8-20` |
 
 ### Ce qui s'est passé entre 0.9 et 1.0
 

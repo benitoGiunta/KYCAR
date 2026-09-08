@@ -2,7 +2,8 @@
 
 Ce fichier documente l'application (`src/`), pas le cadrage (`docs/`). Il est ecrit et tenu a jour
 par les lots de la phase 2.4 (D1-D9), voir `docs/plans/ARCHITECTURE.md` S:7.1 pour le decoupage
-normatif.
+normatif. Les phases 2.4 a 2.7 (build, revue, remediation, verification finale) sont closes ;
+les phases 2.8 (remediation post-verification) et 2.9 (harnais E2E / acceptance) sont en cours.
 
 ## Arborescence de `src/`
 
@@ -27,7 +28,11 @@ lot qui l'ouvre en premier.
 | `npm run dev` | serveur de developpement Vite |
 | `npm run build` | `tsc --noEmit` (app, DOM lib) + `tsc --noEmit` (worker, WebWorker lib) + `vite build` -> 0 erreur/0 avertissement TypeScript exige |
 | `npm run lint` | ESLint (config plate `eslint.config.js`, `@eslint/js` + `typescript-eslint` recommended) |
-| `npm test` | Vitest, un run |
+| `npm test` | Vitest, un run (suite unitaire puis sondes de revue promues) |
+| `npm run test:unit` | Vitest, suite unitaire seule |
+| `npm run test:review` | Vitest, sondes de revue seules (`tests/review/`, config `vitest.review.config.ts`) |
+| `npm run test:e2e` | Playwright, harnais de bout en bout (`tests/e2e/`) |
+| `npm run test:e2e:report` | ouvre le dernier rapport Playwright |
 | `npm run size` | garde de budget bundle (`tools/check-bundle-size.mjs`), a lancer apres `npm run build` |
 
 ## Lancer l'application (lot D8)

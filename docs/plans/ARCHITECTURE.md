@@ -156,6 +156,16 @@ identiques octet à octet après ces amendements. [amendée 2.6 — D-01, D-02]
 énumérations sur un octet, **jamais `0` ni `null`** — car `0` est une valeur légitime de `mileageKm`,
 `co2` et `previousOwnerCount`.
 
+**Amendement 2.8 à l'interface gelée** (`fix-foundation`, étape 0, `D8-08`, dette `D-38` levée) :
+`ListingColumnBatch` porte une colonne `vatDeductible: Uint8Array` supplémentaire — tri-état
+`UNKNOWN`/`NO`/`YES` (`0`/`1`/`2`), politique de sentinelle `tristate-zero`. C'est la **seule**
+colonne dont l'inconnu vaut `0` et non `255` : ne jamais lui appliquer `readEnumByte`/
+`encodeEnumByte`, utiliser `readVatDeductible`/`encodeVatDeductible` (`src/types/sentinels.ts`).
+Total : **20** colonnes énumérées sur un octet (19 à sentinelle `255` + `vatDeductible` à
+sentinelle `0`), **≈ 76** colonnes numériques et énumérées, +1 octet par ligne sur ≈ 252. Les
+deux copies de l'interface restent identiques octet à octet après cet amendement.
+[amendée 2.8 — D8-08]
+
 ### 2.3 Chargement progressif — la clé du budget de premier affichage (EX-NFR-9)
 
 `EX-NFR-9` impose un premier affichage utile du mode 1 **≤ 2 000 ms en 4G** (≈ 500 Ko/s). Or un
@@ -389,6 +399,17 @@ filtre du registre que l'implémentation n'a pas pu appliquer sur cette sélecti
 publie jamais un effectif présenté comme filtré quand cette liste est non vide : état dégradé
 `ET-FILTRE-NON-APPLIQUE` nommant les filtres écartés, `hasUserFilters` ne reflétant que les
 filtres effectivement appliqués. [amendée 2.6 — D-03]
+
+**Amendement 2.8 — agrégats et bloc statistique** (`D8-10`, `fix-foundation` étape 0, résidu
+DR-122) : `MakeAggregate.modelCount` devient un champ **obligatoire** de type `number | null` —
+`null` tant qu'il n'est pas calculé, l'écran affiche alors « — », **jamais `0`** par défaut
+(`FV-02`). `MetricStats` (bloc `price`/`year`/`mileage`) publie en outre `iqr` et `coverage`
+(`number | null`). `MakeAggregate`/`ModelAggregate` gagnent trois champs **optionnels** —
+`coverageWarning`, `samplingBias`, `adTierDistribution` — renseignés seulement par un provider
+réel, absents chez `SyntheticDataProvider`. **Aucun ajout d'interface** pour `rank`,
+`displayRange` ou `makeName` : ils sont dérivés au rendu (position dans l'ordre de tri, écrêtage
+`[p05, p95]`, résolution par la taxonomie), le résidu de DR-122 restant partiel par ce choix
+(`D8-23`). [amendée 2.8 — D8-10, D8-23]
 
 ### 6.2 Séparation mode 1 / mode 2 — le pivot (critère S2)
 
