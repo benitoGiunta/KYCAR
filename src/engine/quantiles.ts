@@ -23,6 +23,33 @@ const P75 = 0.75;
 const P95 = 0.95;
 
 /**
+ * `coverage = n_m / N` arrondie à **4 décimales** (EX-DATA-61, EX-DATA-64), la seule des treize
+ * valeurs du bloc dont l'arrondi soit porté par la DÉFINITION et non par la présentation : le
+ * dictionnaire l'énonce « couverture `coverage_m = n_m / N` arrondie à 4 décimales » (EX-DATA-61) et
+ * la table d'EX-DATA-64 la donne « définie si `N ≥ 1` ». Même arrondi, même expression que
+ * `DistributionBucket.share` (`bin.ts`) et que l'`evalCoverage` d'`outliers.ts` : trois taux
+ * publiés côte à côte ne peuvent pas être arrondis de trois façons.
+ * @param n effectif de la métrique `n_m` (0 admis).
+ * @param selectionCount `N = |Σ|` — effectif de la SÉLECTION, ou `null`/omis quand l'appelant ne le
+ *   connaît pas : le bloc publie alors `null` (« non calculé »), jamais un chiffre inventé.
+ */
+function coverageOf(n: number, selectionCount: number | null | undefined): number | null {
+  if (selectionCount === null || selectionCount === undefined || selectionCount < 1) return null;
+  return Math.round((n / selectionCount) * 1e4) / 1e4;
+}
+
+/**
+ * Bloc ENTIÈREMENT nul (EX-DATA-64 à `n = 0`), sauf `coverage` : à `N ≥ 1`, `0 / N` vaut `0` — une
+ * valeur parfaitement définie, qu'un `null` transformerait en second inconnu.
+ */
+function emptyStats(selectionCount: number | null | undefined): MetricStats {
+  return {
+    n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null,
+    stdDev: null, iqr: null, coverage: coverageOf(0, selectionCount),
+  };
+}
+
+/**
  * Quantile de type 7 (EX-DATA-62) à partir d'un accès aux statistiques d'ordre 1-indexées.
  * @param orderStat fonction `i → x_i` (1 ≤ i ≤ n), la i-ᵉ plus petite valeur.
  * @param n effectif (≥ 1).
@@ -94,6 +121,9 @@ export function orderStatsFromCounts(
  * @param n effectif valide (Σ counts). `0` → toutes les statistiques nulles.
  * @param mean moyenne pré-calculée (Welford), ou `null`.
  * @param stdDev écart-type pré-calculé (Welford, Bessel), ou `null`.
+ * @param selectionCount `N = |Σ|` de la sélection à laquelle ce bloc se rapporte (D8-30), pour la
+ *   couverture métrique d'EX-DATA-61. OMIS quand l'appelant ne connaît pas `N` : `coverage` vaut
+ *   alors `null`. Ce n'est JAMAIS l'effectif du snapshot, toujours celui de la sélection courante.
  */
 export function metricStatsFromCounts(
   counts: Int32Array | Uint32Array,
@@ -101,10 +131,9 @@ export function metricStatsFromCounts(
   n: number,
   mean: number | null,
   stdDev: number | null,
+  selectionCount?: number | null,
 ): MetricStats {
-  if (n <= 0) {
-    return { n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null, iqr: null, coverage: null };
-  }
+  if (n <= 0) return emptyStats(selectionCount);
   const ranks = [
     1,
     n,
@@ -120,22 +149,24 @@ export function metricStatsFromCounts(
     if (v === undefined) throw new Error(`metricStatsFromCounts: statistique d'ordre ${i} manquante`);
     return v;
   };
+  const p25 = quantileType7(orderStat, n, P25);
+  const p75 = quantileType7(orderStat, n, P75);
   return {
     n,
     min: orderStat(1),
     max: orderStat(n),
     mean,
     p05: quantileType7(orderStat, n, P05),
-    p25: quantileType7(orderStat, n, P25),
+    p25,
     p50: quantileType7(orderStat, n, P50),
-    p75: quantileType7(orderStat, n, P75),
+    p75,
     p95: quantileType7(orderStat, n, P95),
     stdDev,
-    // D8-10 / DR-122 : les deux valeurs manquantes du bloc d'EX-DATA-64 sont désormais PUBLIÉES par
-    // le type. Étape 0 : valeur NEUTRE `null` (« non calculé ») — le calcul est du ressort de
-    // fix-engine (`iqr = p75 − p25`) et de fix-providers (`coverage = n_m / N`, qui exige `N`).
-    iqr: null,
-    coverage: null,
+    // D8-30 (résidu DR-122 / D8-10) : les deux dernières valeurs du bloc d'EX-DATA-64 sont
+    // CALCULÉES. `iqr = q3 − q1` sur les MÊMES quantiles de type 7 que ceux publiés (jamais un
+    // second calcul qui pourrait diverger) ; `coverage = n_m / N` d'EX-DATA-61.
+    iqr: p75 - p25,
+    coverage: coverageOf(n, selectionCount),
   };
 }
 
@@ -175,11 +206,6 @@ export class WelfordAccumulator {
   }
 }
 
-const EMPTY_STATS: MetricStats = {
-  n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null,
-  iqr: null, coverage: null,
-};
-
 /**
  * Bloc statistique EXACT d'une liste de valeurs entières valides (EX-DATA-111 : jamais d'histogramme,
  * de t-digest ni d'échantillonnage — l'ordre statistique complet est réalisé).
@@ -197,10 +223,15 @@ const EMPTY_STATS: MetricStats = {
  * (année, kilométrage groupés) où il reste le plus rapide.
  *
  * @param values valeurs entières valides (ordre indifférent).
+ * @param selectionCount `N = |Σ|` de la sélection dont ces valeurs sont l'échantillon valide
+ *   (D8-30, EX-DATA-61). Omis : `coverage` vaut `null`.
  */
-export function exactMetricStats(values: Int32Array | readonly number[]): MetricStats {
+export function exactMetricStats(
+  values: Int32Array | readonly number[],
+  selectionCount?: number | null,
+): MetricStats {
   const n = values.length;
-  if (n === 0) return EMPTY_STATS;
+  if (n === 0) return emptyStats(selectionCount);
   let lo = values[0] as number;
   let hi = lo;
   for (let k = 1; k < n; k++) {
@@ -209,7 +240,7 @@ export function exactMetricStats(values: Int32Array | readonly number[]): Metric
     else if (v > hi) hi = v;
   }
   const domain = hi - lo + 1;
-  if (domain > 4 * n) return exactStatsBySort(values, n);
+  if (domain > 4 * n) return exactStatsBySort(values, n, selectionCount);
 
   const counts = new Int32Array(domain);
   for (let k = 0; k < n; k++) {
@@ -221,7 +252,7 @@ export function exactMetricStats(values: Int32Array | readonly number[]): Metric
     const c = counts[j] as number;
     if (c > 0) welford.addRepeated(lo + j, c);
   }
-  return metricStatsFromCounts(counts, lo, n, welford.meanOrNull(), welford.sampleStdDev());
+  return metricStatsFromCounts(counts, lo, n, welford.meanOrNull(), welford.sampleStdDev(), selectionCount);
 }
 
 /**
@@ -229,7 +260,11 @@ export function exactMetricStats(values: Int32Array | readonly number[]): Metric
  * (tri numérique natif), puis lit min/max, les cinq quantiles type 7 sur le tableau trié, et la
  * moyenne / l'écart-type d'échantillon par un passage de Welford. Résultats identiques au comptage.
  */
-function exactStatsBySort(values: Int32Array | readonly number[], n: number): MetricStats {
+function exactStatsBySort(
+  values: Int32Array | readonly number[],
+  n: number,
+  selectionCount?: number | null,
+): MetricStats {
   const sorted = values instanceof Int32Array ? values.slice() : Int32Array.from(values);
   sorted.sort();
   let mean = 0;
@@ -240,19 +275,22 @@ function exactStatsBySort(values: Int32Array | readonly number[], n: number): Me
     mean += delta / (k + 1);
     m2 += delta * (x - mean);
   }
+  const p25 = quantileFromSorted(sorted, P25);
+  const p75 = quantileFromSorted(sorted, P75);
   return {
     n,
     min: sorted[0] as number,
     max: sorted[n - 1] as number,
     mean,
     p05: quantileFromSorted(sorted, P05),
-    p25: quantileFromSorted(sorted, P25),
+    p25,
     p50: quantileFromSorted(sorted, P50),
-    p75: quantileFromSorted(sorted, P75),
+    p75,
     p95: quantileFromSorted(sorted, P95),
     stdDev: n < 2 ? null : Math.sqrt(m2 / (n - 1)),
-    // D8-10 : valeurs neutres, voir `metricStatsFromCounts`.
-    iqr: null,
-    coverage: null,
+    // D8-30 : mêmes deux expressions que sur le chemin par comptage — les deux réalisations du
+    // même tri doivent rendre le MÊME bloc de treize valeurs, `iqr` et `coverage` compris.
+    iqr: p75 - p25,
+    coverage: coverageOf(n, selectionCount),
   };
 }

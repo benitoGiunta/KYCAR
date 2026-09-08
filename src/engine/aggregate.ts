@@ -60,7 +60,14 @@ function toMetricRange(stats: MetricStats): MetricRange {
   return { min: stats.min, max: stats.max, p05: stats.p05, p50: stats.p50, p95: stats.p95, n: stats.n };
 }
 
-/** `MetricRange` exacte d'une liste de valeurs entières valides. */
+/**
+ * `MetricRange` exacte d'une liste de valeurs entières valides.
+ *
+ * D8-30 : aucun `selectionCount` n'est passé, et c'est SANS effet observable — `toMetricRange`
+ * ne retient que `min`/`max`/`p05`/`p50`/`p95`/`n`, l'entité GELÉE `MetricRange` ne portant ni
+ * `iqr` ni `coverage`. Publier la couverture d'un agrégat marque/modèle exigerait d'amender
+ * `DataProvider.ts` (interdit) : c'est consigné, pas contourné.
+ */
 export function metricRangeFromValues(values: readonly number[]): MetricRange {
   return toMetricRange(exactMetricStats(values));
 }
@@ -236,9 +243,12 @@ export function aggregate(
     return a.modelId - b.modelId;
   });
 
-  const priceStats = exactMetricStats(selPrice);
-  const yearStats = exactMetricStats(selYear);
-  const mileageStats = exactMetricStats(selMileage);
+  // D8-30 : `N` de la couverture métrique (EX-DATA-61, EX-DATA-64) est `|Σ|` — l'effectif de la
+  // SÉLECTION balayée, celui-là même que publie `SelectionStats.selectionCount`, jamais le total du
+  // snapshot ni `priceQuotedCount`. Les trois métriques partagent donc le même dénominateur.
+  const priceStats = exactMetricStats(selPrice, n);
+  const yearStats = exactMetricStats(selYear, n);
+  const mileageStats = exactMetricStats(selMileage, n);
 
   const priceHistogram = histogramFor(selPrice, PRICE_BIN_PARAMS, snapshotId, selectionHash, 'price');
   const yearHistogram = histogramFor(selYear, YEAR_BIN_PARAMS, snapshotId, selectionHash, 'year');

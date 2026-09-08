@@ -47,7 +47,20 @@ describe('EX-DATA-62/111 — quantiles exacts type 7 contre valeurs connues', ()
     // D8-10 / DR-122 : `MetricStats` publie désormais les deux valeurs manquantes du bloc
     // d'EX-DATA-64 (`iqr`, `coverage`). L'assertion normative — à n = 0 le bloc est ENTIÈREMENT
     // nul — est conservée telle quelle ; seule la liste des champs suit l'amendement d'entité.
+    //
+    // D8-30 (fix-engine-2) : cette forme du `toEqual` reste JUSTE après le calcul d'`iqr` et de
+    // `coverage`, mais elle ne dit rien de plus que « à n = 0 et N INCONNU tout est nul » — elle
+    // aurait laissé passer les quatre littéraux `null` de `quantiles.ts` pour tout n ≥ 1. Elle est
+    // conservée SANS aucune assertion affaiblie, et complétée juste en dessous par le cas où `N`
+    // est connu, qui la rendait insuffisante : `coverage` y vaut `0`, pas `null`.
     expect(s).toEqual({ n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null, stdDev: null, iqr: null, coverage: null });
+  });
+
+  it('n = 0 avec N = 25 connu : `coverage` vaut 0 — 0/25 est défini, `iqr` reste null (D8-30)', () => {
+    expect(exactMetricStats([], 25)).toEqual({
+      n: 0, min: null, max: null, mean: null, p05: null, p25: null, p50: null, p75: null, p95: null,
+      stdDev: null, iqr: null, coverage: 0,
+    });
   });
 
   it('n = 1 : Q(V, p) = x₁ pour tout p ; sd = null (EX-DATA-65)', () => {
