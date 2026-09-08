@@ -3,7 +3,8 @@
  * =================================================================================================
  * Lot D2. Deux responsabilités :
  *
- *  1. GARDE R3 (P-1, EX-DATA-47/49) : aucun champ vendeur identifiant de la liste E1..E14 (§A.7)
+ *  1. GARDE R3 (P-1, EX-DATA-47/49) : aucun champ vendeur identifiant de la liste E1..E14 (§A.7),
+ *     ÉTENDUE À E15..E17 par D8-11 (`vin`, `licencePlate`, `belgianCarpassMileageUrl` — RGPD),
  *     ne doit avoir de place dans une structure de données KYCAR. `scanForbiddenFields` parcourt un
  *     enregistrement (objet arbitraire, y compris brut source) et REJETTE dès qu'un nom de propriété
  *     interdit apparaît, à n'importe quelle profondeur. C'est la traduction exécutable du critère S5.
@@ -32,7 +33,7 @@ export interface ValidationResult {
 }
 
 /**
- * Noms de propriété INTERDITS partout (R3, E1..E14). Comparaison insensible à la casse. La liste
+ * Noms de propriété INTERDITS partout (R3, E1..E17). Comparaison insensible à la casse. La liste
  * couvre les noms source ET les noms canoniques par lesquels un champ vendeur identifiant pourrait
  * se glisser dans une structure — y compris les formes APLATIES (`sellerName`, `dealerName`,
  * `contactPhone`…, DR-012), qui échappaient à la seule règle d'ancêtre `seller`.
@@ -122,6 +123,29 @@ export const R3_FORBIDDEN_FIELD_NAMES: ReadonlySet<string> = new Set(
     'sellerpostalcode',
     'sellerzip',
     'sellercity',
+
+    // ---- E15..E17 — RGPD, extension de EX-DATA-49 par D8-11 / DR-105 -------------------------
+    // EX-DATA-47 proscrit ces trois champs au même titre que E1..E14 (« n'existent dans aucune
+    // table, aucun type, aucune colonne ») ; seul EX-DATA-49, qui arme le test, s'arrêtait à E14.
+    // Le garde est ÉLARGI, jamais relâché. Les clés sont comparées NORMALISÉES (`normalizeKey`
+    // replie la casse et retire `_`, `-` et l'espace) : une seule entrée couvre donc à la fois la
+    // forme imbriquée, la forme aplatie et les variantes `licence_plate` / `licence-plate` /
+    // `licencePlate`.
+    // E15 `vin`
+    'vin',
+    'vehicleidentificationnumber',
+    'chassisnumber',
+    // E16 `licencePlate` (et ses orthographes)
+    'licenceplate',
+    'licenseplate',
+    'numberplate',
+    'registrationplate',
+    'plate',
+    'kenteken',
+    // E17 `belgianCarpassMileageUrl`
+    'belgiancarpassmileageurl',
+    'carpassmileageurl',
+    'carpassurl',
   ].map((s) => s.toLowerCase()),
 );
 

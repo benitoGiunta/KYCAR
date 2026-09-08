@@ -55,16 +55,24 @@ describe('D2 — garde R3 : variantes de portage d’un champ interdit', () => {
     expect(scanForbiddenFields({ seller: { id: 'dealer-42' } })).toHaveLength(1);
   });
 
-  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
-  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
-  // DETTE DR-105 / D-49 : E15..E17 relèvent du RGPD, pas de R3 (EX-DATA-49 cite E1..E14) ; aucun de ces champs n existe dans le schéma.
-  it.fails('R-D2-02 — rejette les champs RGPD E15..E17 (vin, licencePlate, belgianCarpassMileageUrl)', () => {
+  // Dette DR-105 levée en 2.8 par D8-11 : EX-DATA-49 est étendue à E15..E17 et le garde les porte.
+  // La sonde repasse de it.fails à it dans le commit de la correction (D8-19), sans être modifiée
+  // dans son intention ni dans ses assertions.
+  it('R-D2-02 — rejette les champs RGPD E15..E17 (vin, licencePlate, belgianCarpassMileageUrl)', () => {
     // EX-DATA-47 : « ces champs n'existent dans aucune table, aucun type, aucune colonne ».
-    // EX-DATA-49 ne cite que E1..E14 ; le garde s'arrête donc avant E15..E17, qui restent
-    // pourtant proscrits par EX-DATA-47 (RGPD).
     expect(scanForbiddenFields({ vin: 'WVWZZZ1KZ8W000001' }).length).toBeGreaterThan(0);
     expect(scanForbiddenFields({ licencePlate: '1-ABC-123' }).length).toBeGreaterThan(0);
     expect(scanForbiddenFields({ belgianCarpassMileageUrl: 'https://x' }).length).toBeGreaterThan(0);
+  });
+
+  it('R-D2-02 (formes imbriquées et aplaties) — même rejet quelle que soit l’écriture de la clé', () => {
+    // `normalizeKey` replie la casse et retire `_`, `-`, espace : une entrée couvre les variantes.
+    expect(scanForbiddenFields({ vehicle: { vin: 'WVWZZZ1KZ8W000001' } }).length).toBeGreaterThan(0);
+    expect(scanForbiddenFields({ licence_plate: '1-ABC-123' }).length).toBeGreaterThan(0);
+    expect(scanForbiddenFields({ 'licence-plate': '1-ABC-123' }).length).toBeGreaterThan(0);
+    expect(scanForbiddenFields({ listing: { belgian_carpass_mileage_url: 'https://x' } }).length).toBeGreaterThan(0);
+    // Les attributs autorisés d'EX-DATA-42 restent autorisés (le garde est élargi, pas relâché).
+    expect(scanForbiddenFields({ sellerType: 1, regionCode: 0, postalCodePrefix2: '10' })).toHaveLength(0);
   });
 
   it('n’interdit pas les attributs vendeur autorisés (EX-DATA-42)', () => {
