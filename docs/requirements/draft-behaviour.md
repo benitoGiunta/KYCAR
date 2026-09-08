@@ -74,7 +74,7 @@ La liste normative des filtres, leur périmètre et leur exposition sont portés
 
 #### A.2.3 Sérialisation multi-valeurs
 
-**EX-NAV-6** — Toute valeur multiple (`fuel`, `body`, `gear`, `eq`, `cy`, `make`, …) est sérialisée en
+**EX-NAV-6** — Toute valeur multiple (`fuel`, `body`, `gear`, `eq`, `cy`, `mmmv`, …) est sérialisée en
 **une seule occurrence du paramètre, valeurs jointes par une virgule** (`fuel=B,D`), à l'identique de
 la règle relevée sur AutoScout24 (`REF-filters.md`, table de sérialisation, module `56702`). Aucun
 paramètre répété, aucun séparateur `|` ou `;`. Raison : une seule implémentation de sérialisation
@@ -339,7 +339,7 @@ d'`EX-DATA-107` s'affiche en plus et n'est pas refermable.
 | EX-SRCH-5 | Champ texte libre | `kwd` | Différée après la dernière frappe | 400 ms |
 | EX-SRCH-6 | Champ code postal | `zip` | Différée, déclenche la résolution géographique une fois un format plausible atteint (4 chiffres BE) | 500 ms, et non déclenché avant 4 caractères saisis |
 | EX-SRCH-7 | Sélecteur dépendant activé seulement après son parent | `zipr` (dépend de `zip`) | Immédiate au changement, contrôle désactivé tant que `zip` n'est pas valide | 0 ms |
-| EX-SRCH-8 | Sélection marque (mode 1) / clic zone-modèle (navigation mode 2) | `make`, changement de route | Immédiate | 0 ms |
+| EX-SRCH-8 | Sélection marque (mode 1) / clic zone-modèle (navigation mode 2) | `mmmv`, changement de route | Immédiate | 0 ms |
 | EX-SRCH-9 | Bouton de réinitialisation (§B.4) | tout groupe ou la totalité | Immédiate | 0 ms |
 
 Aucun contrôle du bandeau n'exige de validation explicite (pas de bouton « Rechercher ») : la
@@ -367,7 +367,7 @@ cohérente avec la nature de contraintes de marché indépendantes (00-CONTEXT.m
 carrosserie Y, pays Z » sont des contraintes cumulatives par construction).
 
 **EX-SRCH-11 — À l'intérieur d'un filtre multi-valeurs « attribut unique du véhicule » : OU.** Pour
-`fuel`, `body`, `gear`, `offer`, `cy`, `make`, `prevownersid` : une annonce porte **exactement un**
+`fuel`, `body`, `gear`, `offer`, `cy`, `mmmv`, `prevownersid` : une annonce porte **exactement un**
 code de cet attribut à la fois, y compris quand ce code est une catégorie hybride — c'est la
 structure du vocabulaire, non une propriété du véhicule, qui fonde le OU intra-filtre (`ARB-35`) —,
 donc `fuel=B,D` signifie nécessairement « essence OU diesel ». Repris tel quel de `REF-filters.md`
@@ -446,7 +446,7 @@ agrégats.
 
 | ID | Filtre parent | Filtre enfant | Comportement au changement du parent |
 |---|---|---|---|
-| EX-SRCH-14 | Marque (`make` en mode 1, ou route en mode 2) | Modèle (route mode 2 uniquement) | Changer de marque en mode 2 (via un sélecteur, hors clic sur zone-modèle) **vide** le modèle : il n'existe aucune garantie qu'un `modelId` reste valide pour une nouvelle marque. L'utilisateur revient à un état « marque choisie, modèle à choisir », concrètement une redirection vers `/` avec `make` posé à la nouvelle marque. |
+| EX-SRCH-14 | Marque (`mmmv` en mode 1, ou route en mode 2) | Modèle (route mode 2 uniquement) | Changer de marque en mode 2 (via un sélecteur, hors clic sur zone-modèle) **vide** le modèle : il n'existe aucune garantie qu'un `modelId` reste valide pour une nouvelle marque. L'utilisateur revient à un état « marque choisie, modèle à choisir », concrètement une redirection vers `/marche` avec `mmmv=<makeId>\|\|\|` posé à la nouvelle marque. |
 | EX-SRCH-15 | `zip` | `zipr` | Si `zip` est **vidé**, `zipr` est vidé aussi (un rayon sans centre n'a pas de sens). Si `zip` change vers un **autre code postal valide**, `zipr` est **conservé** : le rayon est un réglage indépendant de la valeur précise du centre. |
 | EX-SRCH-16 | `powertype` | `powerfrom`/`powerto` | Changer d'unité (kW ↔ ch) **convertit** les bornes déjà saisies plutôt que de les vider — l'intention de l'utilisateur (une plage de puissance) est indépendante de l'unité d'affichage. La conversion applique la constante unique d'`EX-DATA-36` (`1 kW = 1/0,7355 ch`) ; aucune autre valeur de facteur n'apparaît dans le corpus (`ARB-33`). |
 | EX-SRCH-17 | `fuel` | `bot`, `erfrom`, `erto` | Hors périmètre v1 (§A.2.2) : aucun comportement à spécifier. Mentionné pour mémoire si ces filtres sont réintroduits en v2. |

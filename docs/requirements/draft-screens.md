@@ -473,7 +473,7 @@ un menu contenant les segments masqués.
 | Route | Segments | Comportement du dernier lien actif |
 |---|---|---|
 | `/marche` | `Marché` | — |
-| `/marche/:makeId-:makeSlug/:modelId-:modelSlug` | `Marché > <marque> > <modèle>` | `<marque>` ramène à `/marche` avec `make` posé et les autres filtres conservés |
+| `/marche/:makeId-:makeSlug/:modelId-:modelSlug` | `Marché > <marque> > <modèle>` | `<marque>` ramène à `/marche` avec `mmmv` posé (segment modèle vide, `EX-NAV-16`) et les autres filtres conservés |
 | `…/annonces` | `Marché > <marque> > <modèle> > Annonces` | `<modèle>` ramène à l'écran B, **filtres conservés** ; c'est le chemin de retour nommé de l'écran D |
 | `/comparer` | `Marché > Comparaison` | `Marché` ramène à `/marche`, filtres conservés |
 | `/recherches` | `Marché > Recherches enregistrées` | idem |

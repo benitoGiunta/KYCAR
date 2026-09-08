@@ -1736,7 +1736,7 @@ simultanément pendant le balayage de sélection, par la technique du « masque 
 un » ; il est **interdit** de relancer un balayage par filtre ou par valeur.
 Deux hachages dérivés sont définis et calculés dans ce même balayage :
 • `selectionHashWithoutTaxonomy` — la sélection privée de tous les prédicats de taxonomie
-(`make`, `mmmv`, `cat`, `mcat`, et la contrainte de route de l'écran B). C'est **la** sélection du
+(`mmmv`, `cat`, `mcat`, et la contrainte de route de l'écran B). C'est **la** sélection du
 compteur `<n> offres` d'`EX-SCR-46`, et de lui seul.
 • `selectionHashWithoutFilter(filterId)` — la sélection privée d'un filtre, base des `FacetCount`.
 **Budget** : `EX-DATA-110` est complété d'un poste `facettes et sélections dérivées : 90 ms`, et le
