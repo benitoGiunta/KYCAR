@@ -99,10 +99,11 @@ describe('D5 — registre vs filters-scope.json (EX-NAV-5, §A.2.2)', () => {
 
   it('EX-SCR-82 — la classe T/R/D de chaque filtre retenu correspond à la table normative', () => {
     const table = ex82Classes();
-    // 76 des 77 lignes RETENU sont extraites côté document (inchangé) ; `zip` portait « R
-    // (dégradé) » et était vérifié à part — retiré du registre par `D-14`, il n'y a plus de
-    // vérification directe à faire (la boucle `drift` ci-dessous l'ignore déjà : `def === undefined`).
-    expect(table.size).toBe(76);
+    // 2.8 (D8-13, coordinateur) : la table normative d'EX-SCR-82 a été amendée par fix-docs — `zip`,
+    // `lat`, `lon` passent en EXCLU (D-14) : 74 lignes RETENU côté document, alignées sur
+    // `filters-scope.json` (74 retenus + 27 exclus). Adaptation de compte seule, aucune assertion de
+    // classe relâchée (la boucle `drift` ci-dessous compare chaque ligne).
+    expect(table.size).toBe(74);
     expect(FILTER_BY_PARAM.get('zip')).toBeUndefined();
     // `D-12`/`DR-066` (`R-D7-20`) : `page`/`size` sont désormais « hors classes T/R » (paramètres
     // d'état d'interface) — la table `EX-SCR-82` du document, elle, les classait encore `T` avant
