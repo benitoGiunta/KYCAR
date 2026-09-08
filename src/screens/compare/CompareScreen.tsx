@@ -10,6 +10,14 @@ import type { JSX } from 'preact';
 
 import type { MetricRange } from '../../providers/DataProvider';
 import { effectifTier } from '../market/thresholds';
+import { formatYearRange } from '../market/format';
+import './compare.css';
+
+export const COMPARE_MAX_MODELS = 4;
+
+/** `EX-SCR-198` (D8-06/FV-15) — cible de redirection quand la comparaison passe sous 2 modèles :
+ * `'market'` (0 modèle restant, écran A) ou `'model'` (1 modèle restant, écran B de ce modèle). */
+export type CompareRedirectTarget = { readonly kind: 'market' } | { readonly kind: 'model'; readonly makeId: number; readonly modelId: number };
 
 /** Bin minimal (sous-ensemble de `DistributionBucket`) — assez pour un tracé G1/G3 miniature. */
 export interface CompareBucket {
@@ -45,6 +53,14 @@ export interface CompareScreenProps {
   /** `EX-SCR-200`/DR-087 : l'écran attend encore le résultat de `enterMode2` pour au moins un
    * modèle — distinct de « aucun modèle sélectionné » (rows vide sans chargement en cours). */
   readonly loading?: boolean;
+  /** `EX-SCR-197` (D8-06/FV-15) — ouvre le sélecteur `G` depuis une colonne vide « + Ajouter un
+   * modèle ». Absent : le contrôle reste rendu (désactivé s'il faut) mais inerte. */
+  readonly onAddModel?: () => void;
+  /** `EX-SCR-198` (D8-06/FV-15) — la comparaison vient de passer SOUS 2 modèles (0 ou 1 restant) :
+   * fix-app navigue vers l'écran A (0 restant) ou B du modèle restant (1). `CompareScreen` reste SANS
+   * hook (contrainte de `structure.test.ts`, appel direct hors cycle de rendu) : l'appel se fait
+   * directement dans le corps de la fonction plutôt que dans un effet, idempotent côté hôte. */
+  readonly onRedirect?: (target: CompareRedirectTarget) => void;
 }
 
 function fmtRange(r: MetricRange, unit: string): string {
@@ -59,10 +75,18 @@ function nToken(n: number): string | null {
   return tier === 'trop-faible' || tier === 'reduite' ? `n = ${n}` : null;
 }
 
+/** `EX-SCR-6` (D8-06/FV-14) — année SANS séparateur de milliers : `fmtRange` (générique) en
+ * posait un via `Intl.NumberFormat('fr-BE')`, d'où « 2 008 – 2 026 ». `formatYearRange` (déjà
+ * partagé avec l'écran A) formate l'année correctement. */
+function fmtYearRange(r: MetricRange): string {
+  if (r.p05 === null || r.p95 === null) return '—';
+  return formatYearRange(r.p05, r.p95);
+}
+
 const METRIC_ROWS: ReadonlyArray<{ readonly label: string; readonly render: (r: CompareModelRow) => string }> = [
   { label: 'Nombre d’offres', render: (r) => new Intl.NumberFormat('fr-BE').format(r.listingCount) },
   { label: 'Prix (P05–P95)', render: (r) => fmtRange(r.price, '€') },
-  { label: 'Année (P05–P95)', render: (r) => fmtRange(r.year, '') },
+  { label: 'Année (P05–P95)', render: (r) => fmtYearRange(r.year) },
   { label: 'Kilométrage (P05–P95)', render: (r) => fmtRange(r.mileage, 'km') },
 ];
 
@@ -106,8 +130,14 @@ function MiniHistogram(props: { readonly title: string; readonly buckets: readon
 function OverlaidPriceChart(props: { readonly rows: readonly CompareModelRow[] }): JSX.Element {
   const W = 320;
   const H = 64;
+  // `EX-SCR-196`/`FV-15` (D8-06) : un bucket ouvert (premier/dernier) porte une borne infinie —
+  // `Infinity − Infinity` produit `NaN` dans le calcul du centre si DEUX buckets ouverts de sens
+  // opposés participent au même min/max. On ne retient les BORNES DE L'ÉCHELLE et le POINT CENTRAL
+  // que parmi les valeurs FINIES ; un bucket ouvert reste tracé (son centre est déjà fini côté
+  // opposé), seule l'échelle ignore l'infini.
   const withBuckets = props.rows.filter((r) => r.priceBuckets && r.priceBuckets.length > 0);
-  if (withBuckets.length === 0) {
+  const finiteBounds = withBuckets.flatMap((r) => r.priceBuckets!.flatMap((b) => [b.lowerBound, b.upperBound])).filter((v) => Number.isFinite(v));
+  if (withBuckets.length === 0 || finiteBounds.length === 0) {
     return (
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Prix superposés, échelle commune : données indisponibles">
         <text x={W / 2} y={H / 2} text-anchor="middle" font-size="10">
@@ -116,11 +146,18 @@ function OverlaidPriceChart(props: { readonly rows: readonly CompareModelRow[] }
       </svg>
     );
   }
-  const lo = Math.min(...withBuckets.flatMap((r) => r.priceBuckets!.map((b) => b.lowerBound)));
-  const hi = Math.max(...withBuckets.flatMap((r) => r.priceBuckets!.map((b) => b.upperBound)));
+  const lo = Math.min(...finiteBounds);
+  const hi = Math.max(...finiteBounds);
   const maxCount = Math.max(1, ...withBuckets.flatMap((r) => r.priceBuckets!.map((b) => b.count)));
   const span = hi - lo || 1;
   const colors = ['var(--color-primary)', 'var(--color-secondary, #b3261e)', '#2e7d32', '#f9a825'];
+  /** Centre du bucket, écrêté aux bornes finies de l'échelle si l'une des deux extrémités est
+   * infinie (bucket ouvert) — jamais `NaN`, jamais hors de la zone de tracé. */
+  const centerOf = (b: CompareBucket): number => {
+    if (Number.isFinite(b.lowerBound) && Number.isFinite(b.upperBound)) return (b.lowerBound + b.upperBound) / 2;
+    if (!Number.isFinite(b.lowerBound)) return lo; // premier bucket, ouvert vers le bas
+    return hi; // dernier bucket, ouvert vers le haut
+  };
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Prix superposés sur une échelle commune">
       {withBuckets.map((r, ri) => (
@@ -131,7 +168,7 @@ function OverlaidPriceChart(props: { readonly rows: readonly CompareModelRow[] }
           stroke-width="1.5"
           points={r
             .priceBuckets!.map((b) => {
-              const x = (((b.lowerBound + b.upperBound) / 2 - lo) / span) * W;
+              const x = ((centerOf(b) - lo) / span) * W;
               const y = H - (b.count / maxCount) * H;
               return `${x},${y}`;
             })
@@ -143,6 +180,17 @@ function OverlaidPriceChart(props: { readonly rows: readonly CompareModelRow[] }
 }
 
 export function CompareScreen(props: CompareScreenProps): JSX.Element {
+  // `EX-SCR-198` (D8-06/FV-15) : sous 2 modèles, la coquille doit rediriger. `CompareScreen` reste
+  // SANS hook (contrainte de test) : l'appel se fait ici, dans le corps de la fonction — l'hôte est
+  // responsable de l'idempotence de sa propre navigation (naviguer deux fois vers la même URL est
+  // un no-op courant côté routeur).
+  if (props.rows.length === 0 && props.loading !== true) {
+    props.onRedirect?.({ kind: 'market' });
+  } else if (props.rows.length === 1) {
+    const only = props.rows[0]!;
+    props.onRedirect?.({ kind: 'model', makeId: only.makeId, modelId: only.modelId });
+  }
+
   if (props.rows.length === 0) {
     return (
       <section class="kycar-compare" aria-labelledby="kycar-compare-title">
@@ -160,6 +208,11 @@ export function CompareScreen(props: CompareScreenProps): JSX.Element {
   }
 
   const allEmpty = props.rows.every((r) => r.listingCount === 0);
+  // `EX-SCR-197` (D8-06/FV-15) : les colonnes non pourvues (jusqu'à 4) portent chacune un bloc
+  // « + Ajouter un modèle », désactivé au plafond.
+  const emptySlots = Math.max(0, COMPARE_MAX_MODELS - props.rows.length);
+  const addLabel = '+ Ajouter un modèle';
+  const addTitle = props.atCapacity ? '4 modèles au maximum — retirez-en un pour en ajouter un autre' : undefined;
 
   return (
     <section class="kycar-compare" aria-labelledby="kycar-compare-title">
@@ -202,6 +255,14 @@ export function CompareScreen(props: CompareScreenProps): JSX.Element {
                   </span>
                 </th>
               ))}
+              {/* `EX-SCR-197` (D8-06/FV-15) : colonne non pourvue, bloc « + Ajouter un modèle ». */}
+              {Array.from({ length: emptySlots }, (_, i) => (
+                <th scope="col" key={`empty-${i}`} class="kycar-compare-empty-col">
+                  <button type="button" class="no-print" onClick={props.onAddModel} disabled={props.atCapacity} title={addTitle}>
+                    {addLabel}
+                  </button>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -217,6 +278,9 @@ export function CompareScreen(props: CompareScreenProps): JSX.Element {
                   {MiniHistogram({ title: `Prix — ${r.name}`, buckets: r.priceBuckets, listingCount: r.listingCount })}
                 </td>
               ))}
+              {Array.from({ length: emptySlots }, (_, i) => (
+                <td key={`empty-${i}`} class="kycar-compare-empty-col" aria-hidden="true" />
+              ))}
             </tr>
             {/* G3 — distribution d'année par colonne. */}
             <tr>
@@ -226,11 +290,14 @@ export function CompareScreen(props: CompareScreenProps): JSX.Element {
                   {MiniHistogram({ title: `Année — ${r.name}`, buckets: r.yearBuckets, listingCount: r.listingCount })}
                 </td>
               ))}
+              {Array.from({ length: emptySlots }, (_, i) => (
+                <td key={`empty-${i}`} class="kycar-compare-empty-col" aria-hidden="true" />
+              ))}
             </tr>
             {/* G5 — prix superposés, échelle commune. */}
             <tr>
               <th scope="row">Prix superposés (G5, échelle commune)</th>
-              <td colSpan={props.rows.length}>{OverlaidPriceChart({ rows: props.rows })}</td>
+              <td colSpan={props.rows.length + emptySlots}>{OverlaidPriceChart({ rows: props.rows })}</td>
             </tr>
             {/* Synthèse — les agrégats bruts, une ligne par métrique. */}
             {METRIC_ROWS.map((mr) => (
@@ -247,6 +314,9 @@ export function CompareScreen(props: CompareScreenProps): JSX.Element {
                     </td>
                   );
                 })}
+                {Array.from({ length: emptySlots }, (_, i) => (
+                  <td key={`empty-${i}`} class="kycar-compare-empty-col" aria-hidden="true" />
+                ))}
               </tr>
             ))}
           </tbody>

@@ -1,0 +1,16 @@
+/**
+ * KYCAR — Styles complémentaires de l'écran C (D8-06/FV-15). Les règles historiques de ce composant
+ * vivent dans src/app/app.css (hors périmètre fix-screens) ; ce fichier ne porte QUE ce que cette
+ * correction ajoute — la colonne non pourvue d'EX-SCR-197.
+ */
+
+.kycar-compare-empty-col {
+  border: 1px dashed var(--color-border);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.kycar-compare-empty-col button {
+  min-height: 44px;
+  min-width: 44px;
+}
