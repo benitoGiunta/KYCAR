@@ -269,7 +269,6 @@ describe('D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17)', 
     samples.sort((a, b) => a - b);
     const p50 = samples[2] as number;
     const worst = samples[samples.length - 1] as number;
-    // eslint-disable-next-line no-console
     console.log(`[EX-SCR-189] n=20000 modèles des 14 graphes : p50=${p50.toFixed(1)} ms, pire=${worst.toFixed(1)} ms`);
     expect(worst).toBeLessThanOrEqual(300);
   });

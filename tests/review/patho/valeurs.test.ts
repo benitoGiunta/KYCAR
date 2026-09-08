@@ -24,7 +24,6 @@ import { AggregationDataset } from '../../../src/engine/index';
 import { buildModelZoneViewModel } from '../../../src/screens/market/view-model';
 import { effectifTier } from '../../../src/screens/market/thresholds';
 import {
-  allRows,
   buildBatch,
   cell,
   checkInvariants,

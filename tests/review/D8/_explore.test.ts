@@ -1,56 +1,33 @@
-/** Exploration temporaire (supprimée après usage) : géométrie du dataset synthétique par défaut. */
+/** Exploration temporaire (supprimée après usage) : identifiants hors taxonomie dans le dataset. */
 import { it } from 'vitest';
 
 import { loadReferenceDataFromDisk } from '../../../src/orchestration/reference-fs';
 import { SyntheticDataProvider } from '../../../src/providers/synthetic/index';
-import { CORSA_MODEL_ID, OPEL_MAKE_ID, registrationYear } from './_helpers';
 
-it('explore', async () => {
+it('explore-2', async () => {
   const ref = loadReferenceDataFromDisk();
-  const p = new SyntheticDataProvider({ referenceData: ref });
-  const t0 = performance.now();
+  const p = new SyntheticDataProvider({ referenceData: ref, listingCount: 20000 });
   const h = await p.openSnapshot();
-  const t1 = performance.now();
-  await p.fetchBaselineAggregates(h);
-  const t2 = performance.now();
   const batch = p.getDataset().batch;
-  const cells = new Map<string, number>();
+  const unknownMakes = new Map<number, number>();
+  const unknownModels = new Map<string, number>();
   for (let i = 0; i < batch.rowCount; i += 1) {
-    const k = `${batch.makeId[i]}:${batch.modelId[i]}`;
-    cells.set(k, (cells.get(k) ?? 0) + 1);
+    const m = batch.makeId[i] as number;
+    const mo = batch.modelId[i] as number;
+    if (!ref.makeById.has(m)) unknownMakes.set(m, (unknownMakes.get(m) ?? 0) + 1);
+    else if (mo !== 0 && !ref.modelByKey.has(`${m}:${mo}`)) unknownModels.set(`${m}:${mo}`, (unknownModels.get(`${m}:${mo}`) ?? 0) + 1);
   }
-  const top = [...cells.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const gt = p.getGroundTruthOutliers();
-  const gtByCell = new Map<string, number>();
-  for (const o of gt) {
-    const k = `${o.makeId}:${o.modelId}`;
-    gtByCell.set(k, (gtByCell.get(k) ?? 0) + 1);
-  }
-  const topGt = [...gtByCell.entries()].filter(([k]) => (cells.get(k) ?? 0) >= 30 && !k.endsWith(':0')).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const corsa = `${OPEL_MAKE_ID}:${CORSA_MODEL_ID}`;
-  const years = new Map<number, number>();
-  for (let i = 0; i < batch.rowCount; i += 1) {
-    if (batch.makeId[i] === OPEL_MAKE_ID && batch.modelId[i] === CORSA_MODEL_ID) {
-      const y = registrationYear(batch, i);
-      years.set(y, (years.get(y) ?? 0) + 1);
-    }
-  }
-  const opelCells = [...cells.entries()].filter(([k]) => k.startsWith(`${OPEL_MAKE_ID}:`)).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const name = (k: string): string => {
-    const [m, mo] = k.split(':').map(Number);
-    return `${ref.makeById.get(m as number)?.label} ${ref.modelByKey.get(k)?.label ?? mo}`;
-  };
+  const base = await p.fetchBaselineAggregates(h);
+  const unknownAgg = base.rows.filter((r) => !ref.makeById.has(r.makeId)).map((r) => [r.makeId, r.listingCount]);
   console.log(JSON.stringify({
-    openSnapshotMs: Math.round(t1 - t0),
-    baselineMs: Math.round(t2 - t1),
-    cells: cells.size,
-    corsa: cells.get(corsa),
-    corsaYears: [...years.entries()].sort(),
-    corsaGt: gtByCell.get(corsa) ?? 0,
-    top: top.map(([k, n]) => [name(k), n]),
-    opel: opelCells.map(([k, n]) => [name(k), n]),
-    topGt: topGt.map(([k, n]) => [name(k), n, cells.get(k)]),
-    gtTotal: gt.length,
-    announcedCorsa: ref.modelByKey.get(corsa)?.announcedCount,
-  }, null, 1));
+    rows: batch.rowCount,
+    unknownMakeIds: [...unknownMakes.entries()].slice(0, 10),
+    unknownMakeRows: [...unknownMakes.values()].reduce((a, b) => a + b, 0),
+    unknownModelKeys: [...unknownModels.entries()].slice(0, 10),
+    unknownModelRows: [...unknownModels.values()].reduce((a, b) => a + b, 0),
+    unknownAgg: unknownAgg.slice(0, 10),
+    makeCount: ref.makes.length,
+    modelCount: ref.models.length,
+    sampleModel: ref.models.find((m) => m.modelId === 77474 || m.modelId === 75188),
+  }));
 });
