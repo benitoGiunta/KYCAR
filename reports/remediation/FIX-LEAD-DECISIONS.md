@@ -80,3 +80,11 @@ Coordinateur : porte G5, promotion des sondes dans la suite par défaut, journal
 Dépendances honorées : DR-013 avant tout drapeau (étape 0) ; DR-025 (`cleanModelVersion`) avant
 DR-126 (étape 0) ; DR-064–067 livrés ensemble par fix-state avant que fix-screens ne soit fusionné
 (ordre de fusion) ; DR-038 avant toute re-mesure M1/M2 (fix-providers, en interne) ; DR-104 jamais.
+
+## D. Amendements après l'étape 0 (fix-foundation, 2026-09-08)
+
+| # | Sujet | Décision |
+|---|---|---|
+| D-33 | `unsupportedFilterIds` et `fetchSelectionCount` | Le champ est porté par `AggregateResult` seulement (retour de `fetchAggregates`) ; `fetchSelectionCount` garde `Promise<number>`. Le contrôleur (fix-app) détermine l'état `ET-FILTRE-NON-APPLIQUE` à partir de `fetchAggregates` ; fix-providers garantit que `fetchSelectionCount` applique exactement le même `compileSelection` (même liste `unsupported`), prouvé par un test qui compare les deux chemins. |
+| D-34 | Sonde `tests/review/D4/pruning-facets-density.test.ts › EX-DATA-116` passée au rouge après DR-007 | Non-régression de valeur, mais dépendance à l'ordre de sommation dans `src/engine/scan.ts` (concaténation de tranches d'index sans fusion triée, écart de 1 ulp sur `deviationPct`). Remise à **fix-engine** : rendre le balayage élagué et le balayage complet identiques octet à octet (fusion triée des tranches ou sommation en ordre canonique), sonde à faire passer sans la modifier. |
+| D-35 | Nom du symbole « modèle non identifié » | `MODEL_ID_UNRESOLVED` (déjà exporté) ; aucun alias `MODEL_UNRESOLVED_ID` n'est créé. |
