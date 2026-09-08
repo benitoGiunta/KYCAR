@@ -93,6 +93,8 @@ export {
   EMPTY,
   DEFAULT_TAXONOMY_T_FILTERS,
   compareCode,
+  escapeFilterValue,
+  unescapeFilterValue,
   serializeSelection,
   computeSelectionHash,
   localDatasetKey,

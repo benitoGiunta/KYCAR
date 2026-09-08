@@ -7,6 +7,8 @@ import {
   FULL,
   EMPTY,
   compareCode,
+  escapeFilterValue,
+  unescapeFilterValue,
   type SelectionInput,
 } from './selection';
 
@@ -75,5 +77,34 @@ describe('codec de sélection', () => {
     expect(compareCode('10', 'B')).toBeLessThan(0);
     const s = serializeSelection({ x: ['10', '2', 'B', 'A'] });
     expect(s).toBe('x=2,10,A,B');
+  });
+});
+
+/**
+ * DR-019 / DR-106 — EX-DATA-108 : les trois séparateurs réservés sont échappés dans les VALEURS, et
+ * le tri des filtres porte sur l'identifiant, pas sur la paire sérialisée.
+ */
+describe('codec de sélection — séparateurs réservés et ordre des identifiants', () => {
+  it('deux sélections sémantiquement différentes ne partagent jamais une chaîne canonique', () => {
+    expect(serializeSelection({ keyword: 'break', page: '2' })).not.toBe(
+      serializeSelection({ keyword: 'break;page=2' }),
+    );
+    expect(selectionHash({ keyword: 'break', page: '2' })).not.toBe(selectionHash({ keyword: 'break;page=2' }));
+  });
+
+  it('une liste de deux valeurs se distingue d’une valeur unique portant une virgule', () => {
+    expect(serializeSelection({ keyword: ['break', 'gps'] })).not.toBe(serializeSelection({ keyword: 'break,gps' }));
+  });
+
+  it('l’échappement est réversible, et le pour cent est échappé en premier', () => {
+    for (const raw of ['break', 'a,b', 'a;b', 'a=b', '100%', '%2C', 'a%3Bb;c']) {
+      expect(unescapeFilterValue(escapeFilterValue(raw))).toBe(raw);
+    }
+    expect(escapeFilterValue('%2C')).toBe('%252C');
+  });
+
+  it('les filtres sont triés par identifiant croissant, pas par paire sérialisée', () => {
+    expect(serializeSelection({ a1: 'z', a: 'y' })).toBe('a=y;a1=z');
+    expect(serializeSelection({ a: 'y', a1: 'z' })).toBe('a=y;a1=z');
   });
 });

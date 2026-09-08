@@ -27,6 +27,40 @@
 
 import { sha256Hex } from './sha256';
 
+/**
+ * Séparateurs RÉSERVÉS de la sérialisation canonique (EX-DATA-108) : `;` entre paires, `=` entre
+ * identifiant et valeur, `,` entre valeurs d'une liste. Une valeur de filtre est du texte libre
+ * (`keyword`, filtre de type `text` du périmètre retenu) : sans échappement,
+ * `{keyword:'break', page:'2'}` et `{keyword:'break;page=2'}` rendent la MÊME chaîne canonique, donc
+ * le même `selectionHash`, la même entrée de cache et la même clé d'entité (DR-019).
+ *
+ * L'échappement est un pourcentage : `%` d'abord (sinon il ne serait plus réversible), puis les
+ * trois séparateurs. Il est appliqué AVANT le tri et le hachage, et il est injectif : deux valeurs
+ * distinctes rendent deux formes distinctes.
+ */
+const RESERVED_ESCAPES: readonly (readonly [RegExp, string])[] = [
+  [/%/g, '%25'],
+  [/,/g, '%2C'],
+  [/;/g, '%3B'],
+  [/=/g, '%3D'],
+];
+
+/** Échappe les séparateurs réservés d'une valeur de filtre (EX-DATA-108). */
+export function escapeFilterValue(raw: string): string {
+  let out = raw;
+  for (const [pattern, replacement] of RESERVED_ESCAPES) out = out.replace(pattern, replacement);
+  return out;
+}
+
+/** Chemin inverse d'`escapeFilterValue` (les trois séparateurs, puis `%`). */
+export function unescapeFilterValue(escaped: string): string {
+  return escaped
+    .replace(/%2C/g, ',')
+    .replace(/%3B/g, ';')
+    .replace(/%3D/g, '=')
+    .replace(/%25/g, '%');
+}
+
 /** Valeur d'un filtre : un scalaire ou une liste (multi-valeurs). Les nombres sont normalisés. */
 export type FilterValue = string | number | readonly (string | number)[];
 
@@ -94,13 +128,16 @@ export function compareCode(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** Normalise une valeur de filtre en liste de codes triés, dédupliqués (ordre croissant de code). */
+/**
+ * Normalise une valeur de filtre en liste de codes ÉCHAPPÉS, dédupliqués, triés (ordre croissant de
+ * code). L'échappement précède la déduplication, le tri et le hachage (EX-DATA-108, DR-019).
+ */
 function toCanonicalValueList(value: FilterValue): string[] {
   const raw = Array.isArray(value) ? value : [value as string | number];
   const seen = new Set<string>();
   for (const v of raw) {
     const s = typeof v === 'number' ? String(v) : v;
-    if (s.length > 0) seen.add(s);
+    if (s.length > 0) seen.add(escapeFilterValue(s));
   }
   return [...seen].sort(compareCode);
 }
@@ -125,15 +162,18 @@ function equalsDefault(value: FilterValue, defaultValue: FilterValue | undefined
  * retrait des valeurs par défaut, le tri des valeurs, puis le tri des filtres par identifiant.
  */
 function canonicalize(selection: SelectionInput, ids: readonly string[], defaults?: SelectionInput): string {
+  // EX-DATA-108 : « filtres triés par identifiant KYCAR croissant ». Trier les PAIRES `id=valeur`
+  // en tant que chaînes n'est pas la même chose : `=` (0x3D) est inférieur aux chiffres, donc
+  // `{a1:'z', a:'y'}` rendait `a1=z;a=y`. Le tri porte sur l'identifiant seul (DR-106).
+  const sortedIds = [...ids].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
   const pairs: string[] = [];
-  for (const id of ids) {
+  for (const id of sortedIds) {
     const value = selection[id];
     if (value === undefined) continue;
     if (defaults && equalsDefault(value, defaults[id])) continue;
     const pair = serializeFilter(id, value);
     if (pair !== null) pairs.push(pair);
   }
-  pairs.sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
   return pairs.join(';');
 }
 
