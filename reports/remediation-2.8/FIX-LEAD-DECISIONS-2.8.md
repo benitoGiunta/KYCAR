@@ -108,3 +108,10 @@ fix-app-2 Opus/high (SÉQUENTIEL, arbre principal) : câblage listé par screens
         v
 fix-verify rev 2 → REMEDIATION-2.8.md rev 2, porte G7
 ```
+
+## F. Arbitrages après fix-app-2 (vague F3, câblage)
+
+| # | Sujet | Décision |
+|---|---|---|
+| D8-34 | `EX-SCR-216` en mode 2 : l'écran G ouvert depuis B affiche `—` par entrée (`screenGMakeCounts` dérivé de `marketPhase`, jamais chargé en mode 2) — fix-app-2 §7.3 | **Rouvert**, voie (a) : `DataController` expose un accesseur sur les agrégats de base **déjà en mémoire** après `start()` (aucun aller provider, aucun second balayage, `EX-NFR-9` intact) ; `app.tsx` s'en sert en repli quand `marketPhase` n'est pas chargé. Porteur : fix-app-2 (arbre principal). Preuve : sonde D8 rouge d'abord + assertion E2E sur un effectif non vide dans G depuis `/marche/<make>/<model>`. |
+| D8-35 | Deux demandes de fix-app-2 à fix-state-2 : (7.1) `EX-SCR-103` le contrôle `Marque / Modèle` de B lit `selection` au lieu de `routePair` (« Toutes les marques », G non positionné) ; (7.2) `EX-SCR-97` la feuille compacte est enfermée dans le contexte d'empilement de `.kycar-filter-band` (z-index 2) et l'en-tête collant avale le clic — seul échec E2E inattendu (`EX-SRCH-14` mobile) | **Attribuées à fix-state-2** (D8-28 : il est resté vivant sur `src/components/filters/`), dans son worktree après y avoir fusionné la branche de session. (7.1) : dérivation depuis `routePair` via `serializeMmmvBlock`, sonde D5 rouge d'abord. (7.2) : `.kycar-filter-band--compact { z-index: 20 }` avec le commentaire proposé, prouvé par le test E2E `EX-SRCH-14` projet mobile (autorisé à lancer ce seul test) ; le test reste tel quel, sans `test.fail()`. |
