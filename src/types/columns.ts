@@ -86,7 +86,11 @@ export const LISTING_COLUMNS: readonly ColumnDescriptor[] = [
   { name: 'usageState', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: 'KYCAR_USAGE_STATE', scale: 1, hotPath: true },
   { name: 'sellerType', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: 'KYCAR_SELLER_TYPE', scale: 1, hotPath: true },
   { name: 'regionCode', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: 'KYCAR_REGION', scale: 1, hotPath: true },
-  { name: 'countryCode', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: 'KYCAR_MARKETPLACE', scale: 1, hotPath: true },
+  // Champ # 74 : ISO-3166-1 alpha-2, colonne « Énum. » VIDE. EX-DATA-40 avertit que la liste de
+  // recherche et la liste ISO se recouvrent par ACCIDENT (`L` = Luxembourg en recherche, Liberia en
+  // ISO) : rattacher la colonne à `KYCAR_MARKETPLACE` produisait un libellé de pays potentiellement
+  // faux (DR-023). Le décodage se fait contre `references/Country.json`, hors vocabulaire nommé.
+  { name: 'countryCode', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: null, scale: 1, hotPath: true },
   { name: 'priceStatus', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: 'KYCAR_PRICE_STATUS', scale: 1, hotPath: true },
   { name: 'priceEvaluationCategory', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: 'KYCAR_PRICE_EVALUATION', scale: 1, hotPath: true },
   { name: 'adTier', physical: 'Uint8Array', sentinel: ENUMB, vocabulary: 'KYCAR_AD_TIER', scale: 1, hotPath: true },

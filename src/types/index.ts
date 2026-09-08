@@ -116,11 +116,18 @@ export {
 } from './shared-rules';
 
 // Validation + garde R3.
-export type { ValidationIssue, ValidationResult } from './validation';
+export type { ValidationIssue, ValidationResult, ValidateListingOptions } from './validation';
 export {
   R3_FORBIDDEN_FIELD_NAMES,
+  R3_IDENTIFIER_VALUE_KEYS,
   LISTING_NUMERIC_BOUNDS,
+  LISTING_STRING_BOUNDS,
+  LISTING_TRIM_TOKENS_MAX,
+  LISTING_ID_PATTERN,
+  LISTING_MANDATORY_FIELDS,
+  defaultModelYearMax,
   scanForbiddenFields,
+  scanForbiddenIdentifiers,
   validateListingRecord,
 } from './validation';
 
