@@ -499,16 +499,31 @@ describe('D3 — contrat DataProvider et garde-fous EX-NFR-9 (ARCHITECTURE §9.3
     // §9.3 : le budget EX-NFR-9 (2 000 ms en 4G) est consommé à ~1 800 ms par le transfert
     // (taxonomie + agrégats + bundle) ; la marge de calcul local est d'environ 200 ms.
     // Ici `openSnapshot()` GÉNÈRE les 100 000 annonces (matière du mode 2) avant de servir le mode 1.
-    // `ds.openMs` est la durée mesurée de la génération n° 1 (aucune génération supplémentaire ici).
-    const handle = await ds.provider.openSnapshot();
-    const t1 = performance.now();
-    await ds.provider.fetchBaselineAggregates(handle);
-    const baselineMs = performance.now() - t1;
-    const firstDisplayMs = ds.openMs + baselineMs;
+    //
+    // SONDE ADAPTÉE EN 2.8 (D8-22, justification D-31) — LE FAIT MESURÉ ET LE BUDGET SONT INCHANGÉS.
+    // Cette sonde compare un TEMPS MURAL à un budget dont la marge réelle est d'environ 10 % : une
+    // mesure UNIQUE en fait un détecteur de charge machine autant que de régression. Elle est
+    // passée à 175/190/178 ms isolée et a échoué à 234, 252 et 359 ms pendant les exécutions où les
+    // quatre cœurs étaient partagés avec d'autres agents (fix-lead, D8-22 : « sonde sensible à la
+    // charge »). La correction retenue est celle qu'ordonne D8-22 : la MÉDIANE de 5 exécutions
+    // remplace l'échantillon unique. Le seuil reste 200 ms — on ne relâche pas le budget, on retire
+    // le bruit : la médiane est insensible à deux exécutions aberrantes sur cinq, ce qu'une moyenne
+    // ne serait pas. Une VRAIE régression déplace les cinq mesures et reste détectée.
+    const samples: number[] = [];
+    for (let k = 0; k < 5; k += 1) {
+      const provider = new SyntheticDataProvider({ referenceData: reference(), listingCount: 100_000 });
+      const t0 = performance.now();
+      const handle = await provider.openSnapshot();
+      const openMs = performance.now() - t0;
+      const t1 = performance.now();
+      await provider.fetchBaselineAggregates(handle);
+      samples.push(openMs + (performance.now() - t1));
+    }
+    const sorted = [...samples].sort((a, b) => a - b);
+    const firstDisplayMs = sorted[2] as number;
     console.log(
-      `[rev-D3] chemin de 1er affichage : openSnapshot = ${ds.openMs.toFixed(0)} ms, ` +
-        `fetchBaselineAggregates = ${baselineMs.toFixed(0)} ms, total = ${firstDisplayMs.toFixed(0)} ms ` +
-        `(marge locale EX-NFR-9 ≈ 200 ms)`,
+      `[rev-D3] chemin de 1er affichage (5 exécutions) : ${samples.map((m) => m.toFixed(0)).join(' / ')} ms ` +
+        `→ médiane = ${firstDisplayMs.toFixed(0)} ms (marge locale EX-NFR-9 ≈ 200 ms)`,
     );
     expect(firstDisplayMs).toBeLessThanOrEqual(200);
   }, 180_000);
