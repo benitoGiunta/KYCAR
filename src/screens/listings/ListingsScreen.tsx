@@ -31,6 +31,8 @@ import {
   formatMonthYear,
   formatPower,
   formatYear,
+  formatConsumption,
+  formatCo2,
 } from '../distribution/format';
 import './listings.css';
 
@@ -145,10 +147,15 @@ export function ListingsScreen(props: ListingsScreenProps) {
               <SortableTh label="Année-mod." col="modelYear" sort={sort} onSort={onSort} />
               <SortableTh label="Puissance" col="power" sort={sort} onSort={onSort} />
               <SortableTh label="Carburant" col="fuel" sort={sort} onSort={onSort} />
+              <SortableTh label="Conso." col="consumption" sort={sort} onSort={onSort} />
+              <SortableTh label="CO₂" col="co2" sort={sort} onSort={onSort} />
               <SortableTh label="Propr." col="owners" sort={sort} onSort={onSort} />
               <SortableTh label="Éval. AS24" col="evaluation" sort={sort} onSort={onSort} />
               <SortableTh label="Vendeur" col="seller" sort={sort} onSort={onSort} />
               <SortableTh label="Pays" col="country" sort={sort} onSort={onSort} />
+              {/* `TVA` (EX-SCR-203, `prices.public.taxDeductible`) : NON FAIT — aucune colonne
+                  `ListingColumnBatch` ne porte cette donnée (interface gelée 2.3, `src/providers/
+                  DataProvider.ts`, hors périmètre fix-screens) ; voir le rapport de lot. */}
               <th scope="col">Lien</th>
             </tr>
           </thead>
@@ -161,7 +168,21 @@ export function ListingsScreen(props: ListingsScreenProps) {
                   : undefined;
               return (
                 <tr key={r.listingId} class={highlighted ? 'kycar-row-highlight' : undefined} title={highlighted ? baseLabel : undefined}>
-                  <td>{r.modelVersion.slice(0, 40)}</td>
+                  <td>
+                    {/* EX-DATA-15/EX-SCR-203 (DR-150) : jeton du drapeau d'ingestion
+                        DUPLICATE_VALUE_CONFLICT (`r.duplicateValueConflict`, dérivé par
+                        `listing-fields.ts::buildListingRow` via `hasIngestFlag`), infobulle exacte
+                        de l'annexe B. */}
+                    {r.duplicateValueConflict ? (
+                      <span
+                        class="kycar-duplicate-conflict"
+                        title="deux versions de cette annonce ont été reçues dans ce snapshot avec des valeurs différentes"
+                      >
+                        !
+                      </span>
+                    ) : null}
+                    {r.modelVersion.slice(0, 40)}
+                  </td>
                   <td>{r.priceEur != null ? formatPrice(r.priceEur) : ''}</td>
                   <td title={baseLabel}>{r.deviationPct != null ? formatSignedPct(r.deviationPct) : ''}</td>
                   <td>{r.mileageKm != null ? formatKm(r.mileageKm) : ''}</td>
@@ -169,6 +190,8 @@ export function ListingsScreen(props: ListingsScreenProps) {
                   <td>{r.modelYear != null ? `mod. ${formatYear(r.modelYear)}` : ''}</td>
                   <td>{r.powerKw != null ? formatPower(r.powerKw) : ''}</td>
                   <td>{label(props.labels?.fuel, r.fuelCategory)}</td>
+                  <td>{r.consumptionX10 != null ? formatConsumption(r.consumptionX10) : ''}</td>
+                  <td>{r.co2X10 != null ? formatCo2(r.co2X10) : ''}</td>
                   <td>{r.previousOwnerCount ?? ''}</td>
                   <td>{label(props.labels?.evaluation, r.priceEvaluationCategory)}</td>
                   <td>{label(props.labels?.sellerType, r.sellerType)}</td>
