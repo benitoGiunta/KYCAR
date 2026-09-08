@@ -190,7 +190,7 @@ Un seul agent `final-check`, **Fable/max**, indépendant des phases précédente
 ```bash
 npm run build         # tsc app + worker + vite build ; doit être 0 erreur / 0 warning
 npm run lint          # eslint . ; vert
-npm test              # suite unitaire (615) PUIS sondes de revue promues (784) ; tout doit être vert
+npm test              # suite unitaire (615) PUIS sondes de revue promues (798) ; tout doit être vert
 npm run test:unit     # suite unitaire seule
 npm run test:review   # sondes de revue seules (8 dettes consignées en it.fails annoté, jamais skip)
 npm run size          # bundle initial < 300 Ko gzip

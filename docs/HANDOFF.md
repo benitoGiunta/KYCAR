@@ -16,9 +16,9 @@ de l'avancement).
   - **Phase 2.5 (revue de développement) : VALIDÉE** — 10 revues, 190 constats → 160 consolidés
     (18 BLOQUANT, 86 MAJEUR, 56 MINEUR), 783 sondes exécutables (`reports/DEV-REVIEW.md`).
   - **Phase 2.6 (remédiation) : VALIDÉE** — 51 décisions du fix-lead
-    (`reports/remediation/FIX-LEAD-DECISIONS.md`), 8 correcteurs, 152 constats corrigés, 8 dettes
-    consignées, vérification indépendante `reports/REMEDIATION.md`.
-  - **Build 0/0 · lint 0 · `npm test` = 615 tests unitaires + 784 sondes de revue, tous verts ·
+    (`reports/remediation/FIX-LEAD-DECISIONS.md`), 8 correcteurs, 148 constats corrigés, 11 dettes
+    consignées (8 portées par une sonde `it.fails`), vérification indépendante `reports/REMEDIATION.md`.
+  - **Build 0/0 · lint 0 · `npm test` = 615 tests unitaires + 798 sondes de revue, tous verts ·
     bundle < 300 Ko gzip (chunk worker compris) · recalcul p95 < 200 ms même non élagué.**
 - **Reste : la phase 2.7 (vérification finale, `final-check` Fable/max), NON lancée — feu vert
   du commanditaire requis.** Puis, hors plan : levée d'AC-01 (juridique 2dehands) avant tout câblage
@@ -103,7 +103,7 @@ npm ci               # SEULEMENT si tsc/eslint "introuvables" (piège worktree, 
 npm run dev          # sert l'app sur http://localhost:5173
 npm run build        # tsc app + worker + vite build ; doit être 0/0
 npm run lint         # eslint . ; vert
-npm test             # suite unitaire (615) PUIS sondes de revue promues (784) — tout vert
+npm test             # suite unitaire (615) PUIS sondes de revue promues (798) — tout vert
 npm run test:unit    # suite unitaire seule
 npm run test:review  # sondes de revue seules (tsc review + vitest.review.config.ts)
 npm run test:perf    # bancs de perf lourds (100k), à la demande
@@ -129,7 +129,7 @@ quand la dette sera levée :
 | DR-034 (MAJEUR) | `GROUPSTAT`/`NTILE`/paliers/`R²` calculés par D7 sur le thread principal, pas dans le worker (`EX-DATA-83bis` non tenue) | D-17 |
 | DR-104 (MAJEUR) | provider réel `TweedehandsDataProvider` non câblé tant qu'AC-01 (validation juridique 2dehands) n'est pas levée ; source par défaut `SYNTHETIC`, dit dans `/mentions` | D-18 |
 | DR-114 | verdicts `INSUFFICIENT_DATA`/`INSUFFICIENT_SPREAD` par annonce (vocabulaire gelé 6 → 8 codes) | D-45 |
-| D-38 | colonne « TVA » de l'écran D (aucun champ `taxDeductible` dans l'interface) | D-38 |
+| DR-082 (MAJEUR, colonne « TVA » seule) | aucun champ `taxDeductible` dans l'interface gelée ; Conso. et CO₂ sont livrées | D-38 |
 | DR-105, DR-112, DR-132, DR-134, DR-147, DR-143 | RGPD E15–E17 hors R3, `postal-regions-be.json` (source externe interdite par E5), libellés `zipr`, suggestions Levenshtein, mention des graphes A-08, grille compacte 4 lignes | §6.5 DEV-REVIEW, D-40, D-49 |
 
 **Points à instruire en 2.7** : D-51 (seuil d'implausibilité de Σ ≠ seuils par cellule d'analyse :
@@ -190,8 +190,8 @@ exact) dans le schéma ni le stockage. `sellerType` (particulier/pro) et `region
 - ✅ 2.4 : D1–D9 fusionnés, critères vérifiés par exécution.
 - ✅ 2.5 : S1–S4 de PLAN-2 §2.5 atteints (`reports/DEV-REVIEW.md` §7) ; 783 sondes, 116 critères jugés.
 - ✅ 2.6 : S1–S4 de PLAN-2 §2.6 atteints (`reports/REMEDIATION.md` §6) ; porte G5 : zéro BLOQUANT/MAJEUR
-  ouvert — deux MAJEUR en dette **motivée et consignée** (DR-034, DR-104).
-- ✅ build 0/0, lint vert, `npm test` vert (615 + 784), bundle < 300 Ko gzip, perf p95 < 200 ms.
+  ouvert — trois MAJEUR en dette **motivée et consignée** (DR-034, DR-082 colonne TVA, DR-104).
+- ✅ build 0/0, lint vert, `npm test` vert (615 + 798), bundle < 300 Ko gzip, perf p95 < 200 ms.
 - ✅ `docs/EXECUTION-LOG.md`, `CLAUDE.md`, ce handoff à jour ; tout commité et poussé sur
   `claude/kycar-project-ffcplk` (dépôt perso `benitoGiunta/KYCAR`).
 - ⏸️ Arrêt. Prochaine action = **phase 2.7**, sur feu vert de l'utilisateur uniquement.
