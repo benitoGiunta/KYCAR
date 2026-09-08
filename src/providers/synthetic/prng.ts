@@ -88,10 +88,9 @@ export class Prng {
       return v;
     }
     let u = 0;
-    let v = 0;
     // Évite ln(0).
     while (u <= 1e-12) u = this.nextFloat();
-    v = this.nextFloat();
+    const v = this.nextFloat();
     const mag = Math.sqrt(-2 * Math.log(u));
     this.gaussSpare = mag * Math.sin(2 * Math.PI * v);
     return mag * Math.cos(2 * Math.PI * v);
