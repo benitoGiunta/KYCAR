@@ -1,29 +1,45 @@
 /**
- * KYCAR - aggregation Web Worker (scaffolding only, lot D1).
+ * KYCAR - aggregation Web Worker (lot D4 : le moteur y est exécuté).
  *
- * `docs/plans/ARCHITECTURE.md` S:1.1/1.3 requires the columnar scan, bucketing, quantiles and
- * outlier detection to run off the main thread so a <=200ms recalculation (EX-NFR-5) never steals
- * frames from a chart interaction that must hold >=30fps (EX-NFR-8). Lot D4 owns that engine and
- * lands it in this file (or files this one imports) as new cases in the switch below - it does
- * not need a new worker file or a new channel: the request/response envelope is already typed in
- * `./messages.ts`.
+ * `docs/plans/ARCHITECTURE.md` S:1.1/1.3 exige que le balayage colonnaire, le binning, les quantiles
+ * et la détection d'outliers tournent HORS du thread principal, pour qu'un recalcul ≤ 200 ms
+ * (EX-NFR-5) ne vole jamais d'image à une interaction de graphe (≥ 30 fps, EX-NFR-8). Lot D4 ajoute
+ * ici les cas du switch qui délèguent au noyau `AggregationDataset` (`src/engine/kernel.ts`) : il ne
+ * crée ni un second worker ni un second canal — l'enveloppe requête/réponse est celle de
+ * `./messages.ts`, étendue par D4.
  *
- * D1 only proves the channel: the worker answers a PING with a PONG. No aggregation logic lives
- * here yet.
+ * D1 prouvait le canal (PING → PONG) ; ce comportement est conservé.
  */
 
 import type { WorkerRequest, WorkerResponse } from './messages';
+import { AggregationDataset } from '../engine/kernel';
+
+/** Un seul snapshot actif (EX-NAV-23). Remplacé à chaque `LOAD_DATASET`. */
+let dataset: AggregationDataset | null = null;
+
+function requireDataset(): AggregationDataset {
+  if (dataset === null) {
+    throw new Error('aggregation worker: aucun jeu de données chargé (LOAD_DATASET requis)');
+  }
+  return dataset;
+}
 
 function handleRequest(request: WorkerRequest): WorkerResponse {
   switch (request.kind) {
     case 'PING':
+      return { id: request.id, kind: 'PONG', sentAt: request.sentAt, receivedAt: Date.now() };
+    case 'LOAD_DATASET': {
+      dataset = new AggregationDataset(request.batch, request.models);
+      return { id: request.id, kind: 'DATASET_LOADED', rowCount: dataset.rowCount };
+    }
+    case 'RECALCULATE':
+      return { id: request.id, kind: 'RECALCULATED', result: requireDataset().recalculate(request.selection) };
+    case 'FACETS':
       return {
         id: request.id,
-        kind: 'PONG',
-        sentAt: request.sentAt,
-        receivedAt: Date.now(),
+        kind: 'FACETS_READY',
+        result: requireDataset().computeFacets(request.selection, request.facetFilters),
       };
-    // D4: add aggregation request kinds here (scan, buckets, quantiles, outliers, facets...).
   }
 }
 
