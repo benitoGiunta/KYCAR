@@ -259,6 +259,46 @@ describe('D7 · écran D — export CSV (EX-CRUD-16, EX-DATA-123bis, R3)', () =>
   });
 });
 
+describe('D7 · écran D — responsive (EX-SCR-209, D8-15)', () => {
+  it('régime `compact` : liste de cartes (pas de tableau), version/prix/écart/km/immat./carburant/vendeur/Ouvrir présents', () => {
+    const tree = deepRender(ListingsScreen({ batch: f.batch, recalc: f.recalc, rows: f.rows, csvMeta: META, regime: 'compact' } as never));
+    expect(findAll(tree, byType('table'))).toHaveLength(0);
+    const cards = findAll(tree, (n) => n.type === 'li');
+    expect(cards.length).toBeGreaterThan(0);
+    const firstCardText = norm(visibleTextOf(cards[0]!));
+    expect(firstCardText.length).toBeGreaterThan(0);
+    const openButtons = findAll(tree, byType('button')).filter((b) => norm(visibleTextOf(b)).startsWith('Ouvrir'));
+    expect(openButtons.length).toBeGreaterThan(0);
+    // L'en-tête de tri devient un bouton « Trier par … ».
+    const sortButtons = findAll(tree, byType('button')).filter((b) => norm(visibleTextOf(b)).startsWith('Trier par'));
+    expect(sortButtons.length).toBe(1);
+  });
+
+  it('régime `intermédiaire` : Année-mod./Conso./CO₂/TVA masquées derrière un chevron, colonnes restantes triables intactes', () => {
+    const tree = deepRender(ListingsScreen({ batch: f.batch, recalc: f.recalc, rows: f.rows, csvMeta: META, regime: 'intermediate' } as never));
+    const headers = findAll(tree, byType('th')).map((n) => norm(visibleTextOf(n)));
+    expect(headers.join(' | ')).not.toContain('Année-mod.');
+    expect(headers.join(' | ')).not.toContain('Conso.');
+    expect(headers.join(' | ')).not.toMatch(/\bCO₂\b/);
+    expect(headers.join(' | ')).not.toContain('TVA');
+    // Le reste des colonnes reste présent.
+    expect(headers.join(' | ')).toContain('Prix');
+    expect(headers.join(' | ')).toContain('Km');
+    // Chevron de dépliement présent, un par ligne.
+    const toggles = findAll(tree, byType('button')).filter((b) => b.props['class'] === 'kycar-listings-expand-toggle');
+    expect(toggles.length).toBeGreaterThan(0);
+  });
+
+  it('régime `large` (défaut) : les 4 colonnes restent visibles sans chevron (non-régression)', () => {
+    const tree = deepRender(ListingsScreen({ batch: f.batch, recalc: f.recalc, rows: f.rows, csvMeta: META, regime: 'large' } as never));
+    const headers = findAll(tree, byType('th')).map((n) => norm(visibleTextOf(n)));
+    expect(headers.join(' | ')).toContain('Année-mod.');
+    expect(headers.join(' | ')).toContain('Conso.');
+    const toggles = findAll(tree, byType('button')).filter((b) => b.props['class'] === 'kycar-listings-expand-toggle');
+    expect(toggles).toHaveLength(0);
+  });
+});
+
 describe('D7 ↔ D8 · câblage du seul lien sortant de l’application (EX-SCR-158/201)', () => {
   it('R-D7-24 — le bouton « Ouvrir ↗ » existe mais l’intégration ne fournit aucun `onOpenListing` : le lien est inerte', () => {
     const tree = deepRender(ListingsScreen({ batch: f.batch, recalc: f.recalc, rows: f.rows, csvMeta: META } as never));
