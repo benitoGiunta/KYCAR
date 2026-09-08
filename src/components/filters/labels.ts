@@ -16,8 +16,26 @@
 
 import type { FilterDef, FilterValue, SelectionState, SemanticsWarning } from '../../state/filter-types';
 import { FILTER_BY_ID } from '../../state/filter-registry';
+import { modelKey, type ReferenceData } from '../../types/reference';
+
+/** Sous-ensemble de `ReferenceData` (D2) requis pour résoudre les libellés taxonomiques d'un jeton
+ * `mmmv` (`D8-04d`) — ce module n'a besoin ni des vocabulaires ni des régions du référentiel
+ * complet, seulement des deux index marque/modèle déjà construits par `buildReferenceData`. */
+export type TokenTaxonomyReference = Pick<ReferenceData, 'makeById' | 'modelByKey'>;
 
 const NUMBER_FORMAT = new Intl.NumberFormat('fr-BE');
+/** Formateur d'année DÉDIÉ (`FV-14`, `EX-SCR-6`/`75` : « Première immatriculation : 2015 », jamais
+ * « 2 015 ») : `useGrouping: false` retire l'espace fine insécable de séparation des milliers que
+ * `NUMBER_FORMAT` applique par défaut en fr-BE dès 1000 — correct pour un prix ou un kilométrage,
+ * faux pour une année. `formatNumberFr` route ici dès que `unit === 'année'`. */
+const YEAR_FORMAT = new Intl.NumberFormat('fr-BE', { useGrouping: false });
+
+/** Formate une année SANS séparateur de milliers (`FV-14`) — utilisé par `formatNumberFr` pour
+ * tout filtre à `unit: 'année'` (`dateOfRegistrationFrom/To`, `dateOfModelYearFrom/To`), et
+ * réexporté pour un formatage direct hors jeton (ex. `CompareScreen.tsx`, fix-screens). */
+export function formatYear(n: number): string {
+  return YEAR_FORMAT.format(n);
+}
 
 /** Suffixe d'unité affiché après un nombre formaté (`EX-SRCH-11bis`). Vide = aucun suffixe (ex. une
  * année ne porte pas d'unité). Jamais un code brut : ce sont des mots français fixes. */
@@ -32,6 +50,7 @@ const UNIT_SUFFIX: Readonly<Record<string, string>> = {
 };
 
 export function formatNumberFr(n: number, unit?: string): string {
+  if (unit === 'année') return formatYear(n); // FV-14 : jamais de séparateur de milliers sur une année
   const suffix = unit !== undefined ? (UNIT_SUFFIX[unit] ?? ` ${unit}`) : '';
   return `${NUMBER_FORMAT.format(n)}${suffix}`;
 }
@@ -94,6 +113,13 @@ export interface ActiveFilterToken {
    * jetons de premier niveau (`D-10`). Absent pour un jeton à 1 ou 2 valeurs (déjà retirables
    * séparément via `removesCodes`/`filterIds` sans infobulle). */
   readonly removalTargets?: readonly ActiveFilterRemovalTarget[];
+  /** `D8-04d` (`EX-SCR-75`/`76`, taxonomie) : présent UNIQUEMENT sur le jeton de niveau « modèle »
+   * de `mmmv` — un clic sur sa croix ne retire pas le filtre entier (la marque resterait alors
+   * indisponible), il le RESTREINT à cette valeur plus étroite (`serializeMmmv(makeId, undefined)`,
+   * `make\|\|\|` au sens de `D-09`). Absent partout ailleurs : le retrait standard
+   * (`filterIds`/`removesCodes`) s'applique. Retirer le jeton de niveau « marque » (parent) reste
+   * un retrait TOTAL — il emporte son descendant, conformément à `EX-SCR-76`. */
+  readonly narrowsTo?: { readonly filterId: string; readonly value: FilterValue };
 }
 
 function toCodeArray(value: FilterValue): string[] {
@@ -169,13 +195,70 @@ function formatTextToken(def: FilterDef, value: FilterValue): ActiveFilterToken 
   return { key: def.id, filterIds: [def.id], text: `${def.label} : ${text}` };
 }
 
+const MMMV_FILTER_ID = 'makesModelsVariants';
+
+/**
+ * `D8-04d` (`EX-SCR-75` « taxonomie → un jeton par niveau, `Opel ×` et `Corsa ×`,
+ * indépendamment retirables ») : `mmmv` ne produit PAS un jeton unique portant le bloc brut
+ * (`74|2084`, `EX-NFR-30` : jamais un code affiché), mais un jeton PAR NIVEAU, chacun résolu
+ * contre le référentiel taxonomique (`ReferenceData`, D2) — jamais le code numérique lui-même.
+ *
+ * Un bloc unique `makeId` ou `makeId|modelId` (le seul format produit par l'écran G actuel,
+ * `screen-g-model.ts#serializeMmmv`) donne 1 ou 2 jetons : la marque (retrait TOTAL, emporte le
+ * modèle, `EX-SCR-76`) et, s'il est présent, le modèle (retrait qui NE fait que restreindre à la
+ * marque seule — `narrowsTo`, pas une suppression). Une sélection multi-blocs (plusieurs paires
+ * marque/modèle) n'est produite par aucun sélecteur actuel : repli sur un jeton unique au
+ * cardinal, cohérent avec `mmmvSummary` (`FilterBand.tsx`) — le détail par niveau ne s'applique
+ * qu'à UNE sélection active à la fois.
+ *
+ * `referenceData` absent (référentiel pas encore chargé) : repli sur un espace réservé numéroté
+ * (`Marque nº <id>`), jamais le code nu — cohérent avec `EX-NFR-30`, en attendant le chargement.
+ */
+function formatMmmvTokens(value: FilterValue, referenceData: TokenTaxonomyReference | undefined): ActiveFilterToken[] {
+  const blocks = toCodeArray(value);
+  if (blocks.length === 0) return [];
+  if (blocks.length > 1) {
+    return [
+      {
+        key: MMMV_FILTER_ID,
+        filterIds: [MMMV_FILTER_ID],
+        text: `Marque / Modèle / Version : ${blocks.length} sélections`,
+        removesCodes: blocks,
+      },
+    ];
+  }
+  const block = blocks[0]!;
+  const [makeIdStr, modelIdStr] = block.split('|');
+  const makeId = Number(makeIdStr);
+  const make = referenceData?.makeById.get(makeId);
+  const makeLabel = make !== undefined ? make.label : `Marque nº ${makeIdStr}`;
+  const tokens: ActiveFilterToken[] = [
+    { key: `${MMMV_FILTER_ID}:make`, filterIds: [MMMV_FILTER_ID], text: makeLabel },
+  ];
+  if (modelIdStr !== undefined && modelIdStr.length > 0) {
+    const modelIdNum = Number(modelIdStr);
+    const model = referenceData?.modelByKey.get(modelKey(makeId, modelIdNum));
+    const modelLabel = model !== undefined ? model.label : `Modèle nº ${modelIdStr}`;
+    tokens.push({
+      key: `${MMMV_FILTER_ID}:model`,
+      filterIds: [MMMV_FILTER_ID],
+      text: modelLabel,
+      narrowsTo: { filterId: MMMV_FILTER_ID, value: String(makeId) },
+    });
+  }
+  return tokens;
+}
+
 /**
  * Construit les jetons de la ligne des filtres actifs (`EX-SCR-75`), un par filtre posé (ou par
  * couple d'intervalle). L'ordre suit l'ordre de déclaration du registre (`FILTER_DEFS`), stable.
  * Les valeurs par défaut « non-absence » (`defaultValue`) sont traitées comme non posées, cohérent
  * avec `EX-NAV-8`/`EX-SCR-91` : un filtre à son défaut n'est jamais un jeton actif.
  */
-export function buildActiveFilterTokens(selection: SelectionState): readonly ActiveFilterToken[] {
+export function buildActiveFilterTokens(
+  selection: SelectionState,
+  referenceData?: TokenTaxonomyReference,
+): readonly ActiveFilterToken[] {
   const tokens: ActiveFilterToken[] = [];
   const consumed = new Set<string>();
 
@@ -184,6 +267,12 @@ export function buildActiveFilterTokens(selection: SelectionState): readonly Act
     const def = FILTER_BY_ID.get(id);
     if (def === undefined || def.cls === 'D' || def.nonExposed) continue;
     if (def.defaultValue !== undefined && sameCanonical(value, def.defaultValue)) continue;
+
+    if (id === MMMV_FILTER_ID) {
+      consumed.add(id);
+      tokens.push(...formatMmmvTokens(value, referenceData));
+      continue;
+    }
 
     if ((def.scopeType === 'range_min' || def.scopeType === 'range_max') && def.pairedWith !== undefined) {
       const pairDef = FILTER_BY_ID.get(def.pairedWith);
@@ -233,9 +322,32 @@ export function buildActiveFilterTokens(selection: SelectionState): readonly Act
     if (token !== null) tokens.push(token);
   }
 
-  // Ordre stable = ordre du registre (FILTER_DEFS), pas l'ordre d'insertion de `selection`.
+  // Ordre stable = ordre du registre (FILTER_DEFS), pas l'ordre d'insertion de `selection`. Trié
+  // par `filterIds[0]` (pas `key`) : les deux jetons de `mmmv` (`makesModelsVariants:make`/`:model`)
+  // partagent le même filtre et doivent rester dans leur ordre de production (marque avant
+  // modèle) — garanti par la stabilité du tri (ES2019+), puisqu'ils obtiennent alors la même clé.
   const order = new Map(Array.from(FILTER_BY_ID.keys()).map((id, i) => [id, i]));
-  return tokens.slice().sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
+  return tokens
+    .slice()
+    .sort((a, b) => (order.get(a.filterIds[0] ?? '') ?? 0) - (order.get(b.filterIds[0] ?? '') ?? 0));
+}
+
+/** Longueur maximale du nom prérempli d'`EX-SCR-94` (« limité à 60 caractères »). */
+export const SAVE_SEARCH_NAME_MAX_LENGTH = 60;
+
+/**
+ * `D8-14`/`D8-19` (`EX-SCR-94`, résidu `DR-139`) : description générée depuis les jetons de
+ * filtres actifs (`Opel Corsa · ≤ 20 000 € · Belgique`) — préremplit le champ de nom du formulaire
+ * « Enregistrer la recherche », tronquée à `SAVE_SEARCH_NAME_MAX_LENGTH`. Aucune sélection active
+ * ⇒ un nom neutre horodaté (même convention que l'ancien nom généré `src/app.tsx`), pour ne
+ * jamais préremplir un champ vide.
+ */
+export function buildSearchDescription(tokens: readonly ActiveFilterToken[], now: Date = new Date()): string {
+  if (tokens.length === 0) {
+    return `Recherche du ${now.toLocaleDateString('fr-BE')}`;
+  }
+  const full = tokens.map((t) => t.text).join(' · ');
+  return full.length > SAVE_SEARCH_NAME_MAX_LENGTH ? `${full.slice(0, SAVE_SEARCH_NAME_MAX_LENGTH - 1)}…` : full;
 }
 
 function sameCanonical(a: FilterValue, b: FilterValue): boolean {

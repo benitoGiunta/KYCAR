@@ -1,0 +1,156 @@
+/**
+ * KYCAR — Écran G, sélecteur marque/modèle (`docs/requirements/draft-screens.md` §7.4,
+ * `EX-SCR-215`/`216`), lot D5 (finition 2.8, `E2E-21`).
+ * =================================================================================================
+ * Lit `var(--color-*, --space-*, --radius-*)` de `src/styles/tokens.css`. Importé en effet de bord
+ * par `ScreenG.tsx`. Deux panneaux fenêtrés (`computeRowWindow`, `screen-g-model.ts`) : la hauteur
+ * FIXE des deux `<ul role="listbox">` est nécessaire pour que la fenêtre de lignes montées
+ * corresponde à `SCREEN_G_ROW_HEIGHT_PX`/`SCREEN_G_VISIBLE_ROWS` — un panneau qui grandirait avec
+ * son contenu romprait le calcul de fenêtrage.
+ */
+
+.kycar-screen-g {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  max-width: 720px;
+  max-height: 80vh;
+  margin: auto;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 25%);
+  overflow: hidden;
+}
+
+.kycar-screen-g > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.kycar-screen-g > header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.kycar-screen-g > header button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+
+.kycar-screen-g__panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  flex: 1;
+  min-height: 0;
+}
+
+.kycar-screen-g__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+.kycar-screen-g__panel input[type='text'] {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.kycar-screen-g__panel ul[role='listbox'] {
+  flex: 1;
+  min-height: 0;
+  height: 320px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* Une option (`EX-SCR-216`) — `role="option"`, sans élément interactif imbriqué (`E2E-12`) : le
+   `<li>` lui-même porte l'affordance visuelle de clic et l'état `aria-selected`. */
+.kycar-screen-g__option {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-surface);
+}
+.kycar-screen-g__option:hover {
+  background: var(--color-surface);
+}
+.kycar-screen-g__option[aria-selected='true'] {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  font-weight: 600;
+}
+
+.kycar-screen-g__empty {
+  margin: var(--space-1) 0;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+.kycar-screen-g__clear-search {
+  display: block;
+  margin-top: var(--space-1);
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.kycar-screen-g > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+.kycar-screen-g > footer span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+.kycar-screen-g > footer button {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  cursor: pointer;
+}
+.kycar-screen-g > footer button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Régime compact (< 768 px, `src/styles/breakpoints.ts`) : les deux panneaux s'empilent plutôt
+   que de se partager la largeur, la modale occupe tout l'écran. */
+@media (max-width: 767px) {
+  .kycar-screen-g {
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+  }
+  .kycar-screen-g__panels {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+  .kycar-screen-g__panel ul[role='listbox'] {
+    height: 180px;
+  }
+}

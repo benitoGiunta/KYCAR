@@ -156,6 +156,29 @@ export function computeRowWindow<T>(
   };
 }
 
+/**
+ * `E2E-12`/`D8-14` : la navigation clavier au sein d'un panneau (`ArrowUp`/`ArrowDown`) déplace la
+ * sélection (motif `aria-activedescendant`, APG listbox à sélection unique — la sélection SUIT le
+ * focus) — l'option ciblée doit alors être RENDUE (dans la fenêtre montée, `computeRowWindow`),
+ * sinon `aria-activedescendant` pointerait vers un id absent du DOM. Fonction pure : calcule le
+ * nouveau `scrollTop` minimal qui ramène `index` dans la zone visible, sans changer `scrollTop` si
+ * la ligne y est déjà (pas de sursaut de défilement à chaque frappe).
+ */
+export function computeScrollTopToReveal(
+  index: number,
+  currentScrollTop: number,
+  rowHeightPx: number = SCREEN_G_ROW_HEIGHT_PX,
+  visibleRows: number = SCREEN_G_VISIBLE_ROWS,
+): number {
+  const rowTop = index * rowHeightPx;
+  const rowBottom = rowTop + rowHeightPx;
+  const viewTop = currentScrollTop;
+  const viewBottom = currentScrollTop + visibleRows * rowHeightPx;
+  if (rowTop < viewTop) return rowTop;
+  if (rowBottom > viewBottom) return rowBottom - visibleRows * rowHeightPx;
+  return currentScrollTop;
+}
+
 /* ================================================================================================
  * `ET-VIDE-FILTRES` et « Effacer la recherche » (résidu `DR-060`/`EX-SCR-216`)
  * ============================================================================================== */

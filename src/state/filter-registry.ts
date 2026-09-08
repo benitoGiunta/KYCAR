@@ -425,8 +425,14 @@ const COUNTRY_TYPE_OPTS = opts([
   // pas cohabiter avec la règle EX-NAV-8 (jamais de code vide sérialisé) sans ambiguïté.
 ]);
 
+/**
+ * `EX-NFR-29` règle (3) (`DR-132`, `D8-12`) : le domaine source de `zipr` est une liste de nombres
+ * nus, sans `label_fr` — ces libellés « <n> km » sont FORGÉS par le registre (rendu d'unité, pas
+ * une traduction relevée), donc marqués `[EXTRAPOLÉ]` comme les autres libellés forgés du registre
+ * (`NUMBER_OF_OWNERS_OPTS` ci-dessous, `R-D5-09`). Sonde : `labels-fr.test.ts › R-D5-10`.
+ */
 const RADIUS_KM: readonly number[] = [10, 20, 50, 100, 150, 200, 250, 300, 400];
-const RADIUS_OPTS = opts(RADIUS_KM.map((km) => [km, `${km} km`] as const));
+const RADIUS_OPTS = opts(RADIUS_KM.map((km) => [km, `${km} km [EXTRAPOLÉ]`] as const));
 
 const OCS_LISTING_OPTS = opts([
   ['ocs-only', 'Uniquement achat en ligne'],

@@ -1,0 +1,457 @@
+/**
+ * KYCAR — Bandeau de filtres `C1` (lot D5, finition 2.8, `E2E-21`).
+ * =================================================================================================
+ * Lit `var(--color-*, --space-*, --radius-*)` de `src/styles/tokens.css` (import en lecture seule —
+ * ce fichier n'y écrit rien) ; les seuils de régime reprennent `src/styles/breakpoints.ts`
+ * (768 px / 1280 px, valeurs recopiées ici car une media query ne peut pas importer une constante
+ * JS — le régime RÉEL du composant vient de la prop `regime`/`data-regime`, calculée par
+ * l'appelant avec les MÊMES seuils ; les media queries ci-dessous ne sont qu'un repli visuel si
+ * `regime` n'est pas encore câblé). Importé en effet de bord par `FilterBand.tsx` (même
+ * convention que `market.css`/`MarketScreen.tsx`) — aucun câblage `src/app.tsx` requis.
+ *
+ * Anatomie normative (`docs/requirements/draft-screens.md` §4.1, `EX-SCR-55/56`) : quatre zones
+ * verticales (ligne primaire, recherche, groupes secondaires, filtres actifs), 96 px repliée en
+ * régime `large`, 320 px dépliée au maximum (zone (3) défilante). Régimes `EX-SCR-96` (intermédiaire,
+ * 132 px replié, ligne primaire sur deux lignes) et `EX-SCR-97`/`98` (compact, barre 56 px + feuille
+ * plein écran) sont posés par `[data-regime]`, écrit par `FilterBand.tsx`.
+ */
+
+.kycar-filter-band {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Zone (1) — ligne primaire, EX-SCR-59 : neuf contrôles + kwd, jamais repliée. */
+.kycar-primary-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* Régime intermédiaire (768–1279 px, EX-SCR-96) : deux lignes de contrôles (5 puis 4) — un
+   maximum de cinq colonnes de largeur égale par ligne, sans changer l'ordre du DOM. */
+[data-regime='intermediaire'] .kycar-primary-line {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+}
+
+/* Zone (2) — recherche de filtre, EX-SCR-79, largeur 320 px en `large`. */
+.kycar-filter-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: 320px;
+}
+.kycar-filter-search input[type='search'] {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+.kycar-filter-search__result {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* Zone (3) — groupes secondaires, EX-SCR-92/93 : accordéon replié par défaut, zone interne
+   défilante (le plafond de 320 px du bandeau déplié est porté par l'appelant : cette règle ne
+   fixe qu'une hauteur MAXIMALE raisonnable pour que le défilement apparaisse avant de déborder). */
+.kycar-secondary-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.kycar-secondary-group {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  margin: 0;
+}
+.kycar-secondary-group > legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  gap: var(--space-2);
+}
+.kycar-secondary-group__toggle {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+.kycar-secondary-group__reset {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.kycar-secondary-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Un contrôle générique (EX-SCR-72bis) : socle commun, les variantes `--range`/`--checkbox-list`/
+   etc. n'ajoutent que ce qui leur est propre. */
+.kycar-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 9rem;
+}
+.kycar-control__label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.kycar-control__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.kycar-control__error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-danger);
+}
+.kycar-control__warning {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-danger);
+}
+.kycar-control__counter {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.kycar-control__value {
+  font-weight: 600;
+}
+.kycar-warning-icon {
+  cursor: help;
+  color: var(--color-text-muted);
+}
+
+/* enum_multi <= 14 (EX-SCR-65) : grille de cases à cocher, deux colonnes au-delà de 6 options. */
+.kycar-checkbox-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-1) var(--space-3);
+}
+.kycar-checkbox-grid--2col {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.kycar-checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+/* EX-SCR-89 : un effectif à 0 reste affiché, en gris — l'option n'est jamais désactivée pour ce
+   seul motif (le style inline `opacity` posé par le composant porte déjà l'atténuation ; cette
+   règle fixe la couleur de base pour que « … » pendant le recalcul soit lisible de la même façon). */
+.kycar-facet-count {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Intervalle (EX-SCR-67) : couple de champs + paliers suggérés. */
+.kycar-range-fields {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.kycar-range-fields input[type='number'] {
+  width: 6rem;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+.kycar-range-fields[aria-disabled='true'] {
+  opacity: 0.6;
+}
+.kycar-range-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.kycar-range-steps button {
+  padding: 0.15rem var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+/* EX-SCR-98 (régime compact) : les paliers deviennent une liste déroulante native. */
+.kycar-range-steps__select {
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  max-width: 100%;
+}
+
+/* Interrupteur booléen (EX-SCR-69). */
+.kycar-toggle {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.kycar-toggle--active {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+
+/* Radio segmenté (EX-SCR-63) et panneau de recherche (EX-SCR-66). */
+.kycar-radio-segment {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.kycar-radio-segment--checked {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+.kycar-panel-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* Zone (4) — filtres actifs, EX-SCR-75, visible dès qu'un filtre est posé. */
+.kycar-active-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: var(--space-1) 0;
+}
+.kycar-active-tokens__summary {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.kycar-active-tokens__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+}
+.kycar-token {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0 var(--space-1) 0 var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.kycar-token button {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+.kycar-token__removal-popover {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 3;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+}
+.kycar-token:hover .kycar-token__removal-popover,
+.kycar-token:focus-within .kycar-token__removal-popover {
+  display: block;
+}
+.kycar-active-tokens__clear-all,
+.kycar-active-tokens__save-search {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  font: inherit;
+}
+.kycar-active-tokens__count {
+  font-weight: 600;
+  color: var(--color-text);
+}
+.kycar-active-tokens__count--dim {
+  color: var(--color-text-muted);
+}
+
+/* Notification de retrait en cascade (EX-SCR-73 : « <n> filtres retirés », 5 s, Annuler). */
+.kycar-cascade-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+.kycar-cascade-notice button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Formulaire d'enregistrement de la recherche (EX-SCR-94). */
+.kycar-save-search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+.kycar-save-search-form input[type='text'] {
+  flex: 1;
+  min-width: 12rem;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+/* Régime compact (< 768 px, EX-SCR-97) : barre unique 56 px + feuille plein écran, application
+   différée. Structure alternative rendue par `FilterBand.tsx` (`regime === 'compact'`), PAS une
+   simple media query : les deux DOM diffèrent (feuille montée seulement quand ouverte). */
+.kycar-filter-band--compact {
+  padding: 0;
+}
+.kycar-compact-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 56px;
+  padding: 0 var(--space-3);
+  overflow-x: auto;
+}
+.kycar-compact-bar__open {
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kycar-compact-bar .kycar-active-tokens {
+  flex-wrap: nowrap;
+  min-height: 0;
+}
+.kycar-compact-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  overflow-y: auto;
+}
+.kycar-compact-sheet > header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+.kycar-compact-sheet > header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.kycar-compact-sheet__footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+.kycar-compact-sheet__footer button {
+  flex: 1;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kycar-compact-sheet__footer button:last-child {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+
+/* Repli visuel défensif si `regime` n'est pas (encore) fourni par l'appelant : au-dessous du
+   seuil `large` d'`src/styles/breakpoints.ts` (1280 px), la ligne primaire s'enroule déjà grâce à
+   `flex-wrap` ci-dessus ; ces deux requêtes affinent seulement l'espacement, elles ne remplacent
+   jamais la structure alternative que `regime='compact'` doit produire côté script. */
+@media (max-width: 1279px) {
+  .kycar-primary-line {
+    gap: var(--space-1) var(--space-2);
+  }
+}
+@media (max-width: 767px) {
+  .kycar-filter-band {
+    padding: var(--space-1) var(--space-2);
+  }
+}

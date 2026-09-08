@@ -5,6 +5,7 @@ import type { SelectionState } from '../../state/filter-types';
 import {
   buildActiveFilterTokens,
   formatNumberFr,
+  formatYear,
   resolveOptionLabel,
   semanticsWarningTooltip,
 } from './labels';
@@ -120,8 +121,11 @@ describe('formatage numérique fr-BE et jetons d’intervalle (EX-SCR-75)', () =
     const tokens = buildActiveFilterTokens({ dateOfRegistrationFrom: 2015 });
     expect(tokens).toHaveLength(1);
     expect(tokens[0]?.text.startsWith('Première immatriculation : ≥')).toBe(true);
-    // Année : aucun suffixe d'unité (le séparateur de milliers fr-BE est l'espace fine insécable).
-    expect(tokens[0]?.text).toBe(`Première immatriculation : ≥ ${formatNumberFr(2015)}`);
+    // `FV-14` : une année ne porte NI suffixe d'unité NI séparateur de milliers — « 2015 », jamais
+    // « 2 015 » (contrairement à un prix ou un kilométrage, formatés avec l'espace fine fr-BE).
+    expect(tokens[0]?.text).toBe(`Première immatriculation : ≥ ${formatNumberFr(2015, 'année')}`);
+    expect(tokens[0]?.text).toBe('Première immatriculation : ≥ 2015');
+    expect(tokens[0]?.text).not.toContain('2 015');
     expect(tokens[0]?.text.endsWith('€')).toBe(false);
   });
 
@@ -137,6 +141,23 @@ describe('formatage numérique fr-BE et jetons d’intervalle (EX-SCR-75)', () =
 
   it('un filtre de classe D n’est jamais un jeton (défense en profondeur, EX-SCR-57)', () => {
     expect(buildActiveFilterTokens({ hadAccidentNew: 'include' })).toHaveLength(0);
+  });
+});
+
+describe('FV-14 — formateur d’année dédié : jamais de séparateur de milliers', () => {
+  it('formatYear rend une année sans espace de groupement', () => {
+    expect(formatYear(2017)).toBe('2017');
+    expect(formatYear(2017)).not.toContain(' ');
+  });
+
+  it('formatNumberFr(n, "année") délègue à formatYear, contrairement aux autres unités', () => {
+    expect(formatNumberFr(2017, 'année')).toBe('2017');
+    expect(formatNumberFr(18000, 'EUR')).not.toBe('18000 €'); // le prix, lui, EST groupé
+  });
+
+  it('un intervalle « Première immatriculation » à deux bornes ne porte aucun séparateur', () => {
+    const tokens = buildActiveFilterTokens({ dateOfRegistrationFrom: 2017, dateOfRegistrationTo: 2017 });
+    expect(tokens[0]?.text).toBe('Première immatriculation : 2017 – 2017');
   });
 });
 

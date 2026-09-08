@@ -55,6 +55,7 @@ const BASE_PROPS = {
   onRemove: NOOP,
   onClearAll: NOOP,
   onRemovePartial: NOOP,
+  onNarrow: NOOP,
 } as const;
 
 describe('D5 — EX-SCR-75/77 : jetons et « Tout effacer »', () => {

@@ -50,6 +50,12 @@ export interface FilterFieldRowProps {
   readonly disabled: boolean;
   readonly disabledReason?: string;
   readonly facetCounts?: FacetCounts;
+  /** `D8-05` : routé tel quel vers `ControlRenderer`/`CheckboxList` — `…` pendant l'écart de
+   * recalcul des facettes plutôt qu'une valeur figée. */
+  readonly facetCountsPending?: boolean;
+  /** `EX-SCR-98` (régime `compact`, `D8-15`) : routé vers `RangeControl` — liste de paliers en
+   * liste déroulante native plutôt qu'en boutons. Sans effet sur les autres contrôles. */
+  readonly compact?: boolean;
   readonly onChange: OnFilterChange;
   /** Requis uniquement pour `mmmv` (`structured-picker`). */
   readonly onOpenScreenG?: () => void;
@@ -62,6 +68,8 @@ export function FilterFieldRow({
   disabled,
   disabledReason,
   facetCounts,
+  facetCountsPending,
+  compact,
   onChange,
   onOpenScreenG,
   screenGSummary,
@@ -106,6 +114,7 @@ export function FilterFieldRow({
         toValue={toDef !== undefined ? numberOrUndefined(selection[toDef.id]) : undefined}
         disabled={disabled}
         disabledReason={disabledReason}
+        compact={compact}
         onChange={onChange}
       />
     );
@@ -118,6 +127,7 @@ export function FilterFieldRow({
       disabled={disabled}
       disabledReason={disabledReason}
       facetCounts={facetCounts}
+      facetCountsPending={facetCountsPending}
       onChange={onChange}
     />
   );

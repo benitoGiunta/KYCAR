@@ -14,12 +14,17 @@
 import { buildSecondaryGroups, isControlDisabled } from './band-model';
 import { FilterFieldRow, isConsumedElsewhere } from './FilterFieldRow';
 import type { ScreenMode, SelectionState } from '../../state/filter-types';
-import type { OnFilterChange } from './types';
+import type { FacetCounts, OnFilterChange } from './types';
 
 export interface SecondaryGroupsProps {
   readonly mode: ScreenMode;
   readonly selection: SelectionState;
   readonly expandedGroups: ReadonlySet<string>;
+  /** `D8-05` : facettes du dernier recalcul, PAR FILTRE — mêmes règles que `PrimaryLine`. */
+  readonly facetCounts?: ReadonlyMap<string, FacetCounts>;
+  readonly facetCountsPending?: boolean;
+  /** `EX-SCR-98` (`D8-15`) : routé vers chaque `RangeControl` de l'accordéon secondaire. */
+  readonly compact?: boolean;
   readonly onToggleGroup: (group: string) => void;
   readonly onChange: OnFilterChange;
   /** Réinitialisation PAR GROUPE (`EX-SRCH-19`, `DR-061`) — vide `resetFilterIds`, routé par
@@ -31,6 +36,9 @@ export function SecondaryGroups({
   mode,
   selection,
   expandedGroups,
+  facetCounts,
+  facetCountsPending,
+  compact,
   onToggleGroup,
   onChange,
   onResetGroup,
@@ -76,6 +84,9 @@ export function SecondaryGroups({
                       selection={selection}
                       disabled={isControlDisabled(def, selection, mode)}
                       disabledReason={def.disabledReason}
+                      facetCounts={facetCounts?.get(def.id)}
+                      facetCountsPending={facetCountsPending}
+                      compact={compact}
                       onChange={onChange}
                     />
                   ))}
