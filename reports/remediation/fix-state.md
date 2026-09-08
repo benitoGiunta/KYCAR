@@ -253,3 +253,158 @@ développement, conformément au repli imposé, et une dernière fois ci-dessus.
 10. 561/561 tests par défaut verts, ESLint propre, `tsc` propre sauf 1 erreur hors périmètre
     (`src/app/navigation.ts`, switch non exhaustif après l'ajout de `/suivis`) ; +27 sondes de revue
     vertes nettes ; aucune sonde `R-D5/R-PATHO/R-D7` modifiée.
+
+---
+
+## 8. Finition DR-060 / DR-139 (arbre principal `claude/kycar-project-ffcplk`, 2026-09-08)
+
+Reprise ciblée des deux points laissés **OUVERTS** par la vérification indépendante
+(`reports/REMEDIATION.md` §7, `reports/DEV-REVIEW.md` §3 lignes `DR-060`/`DR-139`), qui bloquaient
+la porte G5 sur le critère S1 (« zéro problème bloquant ou majeur ouvert »). Contrairement au §3
+ci-dessus (« aucune sonde ne les couvre, aucun DOM disponible »), les composants concernés
+n'utilisent PAS tous des hooks : `ActiveFilterTokens.tsx` n'en a jamais eu, et une partie de
+`ScreenG.tsx` peut en être extraite sans hook (même principe que `ModelZone`/`SummaryBar` du lot D6,
+`structure-a11y.test.ts`) — les deux résidus sont donc bien prouvables par sonde, méthode D-32
+(sonde d'échec écrite AVANT la correction, vue rouge, puis verte, sans être modifiée après coup).
+
+### 8.1 DR-060 (MAJEUR, résidu d'`EX-SCR-216`) — `ScreenG.tsx`
+
+**Sonde d'échec (rouge)** — `tests/review/D5/screen-g.test.ts`, deux nouveaux `describe` :
+`R-D5-25` (fenêtrage) et `R-D5-26` (`ET-VIDE-FILTRES` / « Effacer la recherche »). Extrait de la
+première exécution, avant correction :
+
+```
+TypeError: ScreenGMakeRow is not a function
+ ❯ tests/review/D5/screen-g.test.ts:239:19
+TypeError: ScreenGEmptyNotice is not a function
+ ❯ tests/review/D5/screen-g.test.ts:282:19
+ Test Files  1 failed (1)
+      Tests  3 failed | 15 passed (18)
+```
+
+(Les tests portant uniquement sur `computeRowWindow`/`makePanelEmptyState`/`clearScreenGSearch`
+passaient déjà à ce stade — la logique pure était facile à écrire correctement du premier coup ;
+seule la structure des VNodes exportés manquait, d'où les 3 échecs ci-dessus.)
+
+**Correction** (`src/components/filters/screen-g-model.ts`, `src/components/filters/ScreenG.tsx`) :
+
+- **Fenêtrage** (c) : `computeRowWindow<T>(rows, scrollTop, rowHeightPx?, visibleRows?, bufferRows?)`
+  — fonction pure, aucune dépendance externe — rend `{ items, startIndex, endIndex, totalCount,
+  topPaddingPx, bottomPaddingPx }` pour une fenêtre de `SCREEN_G_VISIBLE_ROWS = 60` lignes visibles
+  + `SCREEN_G_BUFFER_ROWS = 20` de tampon de chaque côté. `ScreenG.tsx` la branche sur les deux
+  `<ul>` (`onScroll` → `scrollTop` en état local, un espaceur `<li>` haut/bas de la hauteur exacte
+  des lignes non montées) : jamais plus qu'une fenêtre montée sur les 295 marques ou les 4 955
+  modèles. Chaque ligne montée (`ScreenGMakeRow`/`ScreenGModelRow`, composants SANS hook, exportés)
+  porte `aria-posinset`/`aria-setsize` calculés sur la liste COMPLÈTE — l'équivalent accessible
+  demandé par la mission : un lecteur d'écran annonce toujours « <n> sur 295 », jamais la taille de
+  la fenêtre montée. Le commentaire de tête « jamais de virtualisation réelle ici — DETTE SIGNALÉE »
+  a été retiré (`grep -n "DETTE SIGNALÉE" src/components/filters/ScreenG.tsx` → 0 occurrence).
+- **« Effacer la recherche »** (a) : `clearScreenGSearch()` rend l'état initial figé
+  (`INITIAL_SCREEN_G_SEARCH_STATE` : les deux champs vides, aucune marque ni modèle sélectionnés).
+  `ScreenG.handleClearSearch` l'applique aux quatre états locaux (`makeQuery`, `modelQuery`,
+  `selectedMakeId`, `selectedModelId`) plus les deux positions de défilement — **les deux
+  panneaux**, pas seulement celui où le bouton a été actionné, conformément au comportement demandé.
+- **`ET-VIDE-FILTRES`** (b) : `makePanelEmptyState`/`modelPanelEmptyState` détectent une saisie non
+  vide sans correspondance (le cas « Recherche sans correspondance » normatif de
+  `docs/requirements/draft-screens.md` §7.4 : `Aucune marque ne contient « <saisie> »` /
+  `Aucun modèle ne contient « <saisie> »`) et rendent `{ stateId: 'ET-VIDE-FILTRES', message }`.
+  `ScreenGEmptyNotice` (composant SANS hook, exporté) rend ce message **avec le bouton « Effacer la
+  recherche » accessible juste en dessous**, routé sur `handleClearSearch` — donc sur la
+  réinitialisation complète des deux panneaux, pas seulement le champ courant.
+
+**Preuve (verte)** :
+
+```
+$ npx vitest run --config vitest.review.config.ts tests/review/D5/screen-g.test.ts
+ ✓ tests/review/D5/screen-g.test.ts (18 tests) 24ms
+      Tests  18 passed (18)
+
+$ npx vitest run --config vitest.review.config.ts tests/review/D5/screen-g.test.ts -t "R-D5-25"
+      Tests  5 passed | 13 skipped (18)
+$ npx vitest run --config vitest.review.config.ts tests/review/D5/screen-g.test.ts -t "R-D5-26"
+      Tests  5 passed | 13 skipped (18)
+```
+
+`R-D5-20` (le cœur déjà corrigé — effectif `null` plutôt qu'`announcedCount`) n'a pas été modifiée
+et reste verte dans la même exécution. **Statut : CORRIGÉ.**
+
+### 8.2 DR-139 (MINEUR, `EX-SCR-94`/`EX-SCR-78`) — `ActiveFilterTokens.tsx`
+
+**Sonde d'échec (rouge)** — `tests/review/D5/band-actions.test.ts`, nouveau `describe` `R-D5-24`.
+Extrait de la première exécution, avant correction :
+
+```
+× le bouton « Enregistrer la recherche » (EX-SCR-94) n'est rendu que si `onSaveSearch` est fourni
+  → expected [] to have a length of 1 but got +0
+× le compteur (EX-SCR-78) est au format EX-SCR-10, dernier enfant de la zone (extrémité droite)
+  → expected 'Tout effacer' to be '2 656 offres'
+× pendant `ET-CHARGE-MAJ`, la valeur PRÉCÉDENTE reste affichée, atténuée, suivie de `…`, jamais `0`
+  → expected 'Tout effacer' to be '112 offres…'
+ Tests  3 failed | 6 passed (9)
+```
+
+**Correction** (`src/components/filters/ActiveFilterTokens.tsx`, `src/components/filters/FilterBand.tsx`) :
+
+- **Bouton `EX-SCR-94`** : prop optionnelle `onSaveSearch?: () => void`. Rendu **uniquement** si
+  fournie — le CRUD (`req-behaviour`, écran E) n'est **pas** dupliqué ici. Un mécanisme
+  d'enregistrement existe déjà en mode 1 : `src/app.tsx` définit `saveCurrentSearch` (l. 447) et le
+  câble sur `MarketToolbar` (l. 767, 972 — bouton « Enregistrer cette recherche », `EX-CRUD-4`) et
+  sur `MarketScreen.onSaveSearch` (l. 809, bouton de l'état `ET-VIDE-FILTRES` de l'écran A). Ce sont
+  des emplacements DIFFÉRENTS de la zone (4) demandée par `EX-SCR-94` (persistante, pas seulement
+  dans l'état vide) : **câblage attendu**, non fait ici (hors périmètre d'écriture) —
+  `src/app.tsx` l. 712 (`<FilterBand … />`) doit recevoir
+  `onSaveSearch={() => saveCurrentSearch(defaultSearchName())}`, exactement comme l. 809.
+- **Compteur `EX-SCR-78`** : sorti du texte inline `, <n> offres` accolé au résumé de jetons ;
+  nouvel élément `<span class="kycar-active-tokens__count">` en fin de zone (`style={{ marginLeft:
+  'auto' }}`, même convention que `ModelZone.tsx` l. 61 pour l'alignement à droite sans CSS
+  dédiée), formaté par `formatOfferCount` (`src/screens/market/format.ts`, déjà normatif
+  `EX-SCR-10`, réutilisé — pas dupliqué). Nouvelle prop optionnelle `resultCountLoading?: boolean` :
+  pendant `ET-CHARGE-MAJ`, la valeur `resultCount` (la dernière connue, fournie par l'appelant,
+  jamais `0`) est enveloppée dans `<span class="…__count--dim">…</span>` suivi de `…`.
+  `FilterBand.tsx` route les deux nouvelles props telles quelles vers `ActiveFilterTokens`.
+
+**Preuve (verte)** :
+
+```
+$ npx vitest run --config vitest.review.config.ts tests/review/D5/band-actions.test.ts
+ ✓ tests/review/D5/band-actions.test.ts (9 tests) 12ms
+      Tests  9 passed (9)
+
+$ npx vitest run --config vitest.review.config.ts tests/review/D5/band-actions.test.ts -t "R-D5-24"
+      Tests  4 passed | 5 skipped (9)
+```
+
+**Statut : CORRIGÉ** (bouton et compteur) ; **câblage restant, hors périmètre d'écriture** : ajouter
+`onSaveSearch` à l'appel `<FilterBand>` de `src/app.tsx` (l. 712) — fix-app informé.
+
+### 8.3 Contrôles rejoués après les deux corrections
+
+```
+$ npx tsc --noEmit -p tsconfig.json && npx tsc --noEmit -p tsconfig.review.json   → 0 erreur
+$ npx eslint src/components src/state tests/review/D5                            → vert
+$ npx vitest run --no-file-parallelism src/components src/state
+      Test Files  11 passed (11)   Tests  180 passed (180)
+$ npx vitest run --config vitest.review.config.ts tests/review/D5
+      Test Files  11 passed (11)   Tests  117 passed (117)
+$ npm run build   → 0 erreur, bundle initial 90.62 Kio gzip (contre 87.82 avant, marge intacte)
+$ npm run lint    → vert
+$ npm test
+      Test Files  54 passed (54)   Tests  615 passed (615)      ← suite unitaire, inchangée
+      Test Files  78 passed (78)   Tests  798 passed (798)      ← suite de revue, 784 + 14 nouvelles
+```
+
+Les lignes `[size] FAIL: initial bundle … / deferred bundle …` émises pendant `npm test` sont les
+sondes D1 (`tests/review/D1/bundle-size-guard.test.ts`) qui éprouvent la garde `EX-NFR-10`/`11` sur
+des manifestes **factices** — non liées à cette finition, déjà notées comme normales par
+`REMEDIATION.md` §0. `R-D5-20`, `R-D5-21`, `R-D5-22` et `keyboard-band.test.ts`/`keyboard-nav.ts`
+n'ont pas été modifiées et restent vertes : aucune régression sur le piège de focus à 6 arrêts ni
+sur les corrections déjà livrées.
+
+### 8.4 Récapitulatif
+
+| Constat | Sonde (rouge → verte) | Correction | Fichiers | Statut |
+|---|---|---|---|---|
+| `DR-060` (résidu) | `R-D5-25`/`R-D5-26` (`screen-g.test.ts`) : `ScreenGMakeRow is not a function` → `18 passed` | Fenêtrage (`computeRowWindow`), « Effacer la recherche » (`clearScreenGSearch`), `ET-VIDE-FILTRES` (`makePanelEmptyState`/`modelPanelEmptyState`, `ScreenGEmptyNotice`) | `screen-g-model.ts`, `ScreenG.tsx` | **CORRIGÉ** — `S1`/G5 atteints sur ce point |
+| `DR-139` | `R-D5-24` (`band-actions.test.ts`) : `expected 'Tout effacer' to be '2 656 offres'` → `9 passed` | Prop `onSaveSearch?` (bouton `EX-SCR-94`, non dupliqué), compteur `EX-SCR-78` (`formatOfferCount`, extrémité droite, atténué + `…` pendant `ET-CHARGE-MAJ`) | `ActiveFilterTokens.tsx`, `FilterBand.tsx` | **CORRIGÉ** — câblage `onSaveSearch` restant en l. 712 d'`app.tsx`, hors périmètre d'écriture |
+
+Commits (arbre principal, non poussés) : `949bba6` (DR-060), `c24f1e4` (DR-139).
