@@ -409,9 +409,9 @@ export function DistributionScreen(props: DistributionScreenProps) {
 
       {/* Bloc 2 — histogrammes G1–G3 */}
       <section class="kycar-hist-row" aria-label="Distributions">
-        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} selectedCounts={priceSelectedCounts} />
-        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} selectedCounts={mileageSelectedCounts} />
-        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} selectedCounts={yearSelectedCounts} />
+        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
+        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
+        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
       </section>
 
       {/* Bloc 3 — nuage G4 */}
@@ -427,6 +427,7 @@ export function DistributionScreen(props: DistributionScreenProps) {
           degraded={degraded}
           resolveTooltip={resolveTooltip}
           onOpenListing={props.onOpenListing}
+          dataSelection={stats.selectionHash}
         />
         {selectedRows && selectedRows.size > 0 ? (
           <div class="kycar-scatter-selection-actions">
@@ -444,9 +445,9 @@ export function DistributionScreen(props: DistributionScreenProps) {
           « Modèle non identifié », G5/G6/G8/G10/G14 sont hors DOM (jamais seulement masqués en CSS —
           C₁/C₂ de la détection d'outlier exigent un `modelId` résolu, EX-SCR-113bis). */}
       <section class="kycar-graph-grid" aria-label="Graphes additionnels">
-        {!isUnresolvedModel ? <YearMedianChart points={yearMedian} /> : null}
-        {!isUnresolvedModel ? <DepreciationChart model={depreciation} /> : null}
-        <DensityHeatmap density={density} />
+        {!isUnresolvedModel ? <YearMedianChart points={yearMedian} dataSelection={stats.selectionHash} /> : null}
+        {!isUnresolvedModel ? <DepreciationChart model={depreciation} dataSelection={stats.selectionHash} /> : null}
+        <DensityHeatmap density={density} dataSelection={stats.selectionHash} />
         {!isUnresolvedModel ? (
           <OutlierLollipopChart
             items={lollipops}
@@ -454,14 +455,21 @@ export function DistributionScreen(props: DistributionScreenProps) {
             onOpen={props.onOpenListing}
             modelCaption={g8Caption}
             rSquaredWarning={g8Warning}
+            dataSelection={stats.selectionHash}
           />
         ) : null}
-        <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} />
-        {!isUnresolvedModel ? <MileageBoxes boxes={mileageBoxes} /> : null}
-        <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." />
-        <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} />
-        {!isUnresolvedModel ? <PowerTiers tiers={powerTiers} /> : null}
-        <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} />
+        <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} dataSelection={stats.selectionHash} />
+        {!isUnresolvedModel ? <MileageBoxes boxes={mileageBoxes} dataSelection={stats.selectionHash} /> : null}
+        <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." dataSelection={stats.selectionHash} />
+        <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} dataSelection={stats.selectionHash} />
+        {!isUnresolvedModel ? <PowerTiers tiers={powerTiers} dataSelection={stats.selectionHash} /> : null}
+        {/* `EX-SCR-170` (D8-06/FV-18) — G15 n'est tracé QUE si le périmètre contient plus d'un
+            `countryCode` distinct (ou si le filtre `cy` porte plusieurs valeurs — hors périmètre de
+            ce composant, qui ne reçoit pas l'état du filtre actif ; condition sur les données seule,
+            ci-dessous). Sinon le bloc est absent du DOM (pas un `ET-CHAMP-ABSENT-SOURCE`). */}
+        {countryBars === 'unavailable' || countryBars.length > 1 ? (
+          <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} dataSelection={stats.selectionHash} />
+        ) : null}
       </section>
       {/* A-08 (DR-147, D8-12 — dette LEVÉE) : les graphes CO₂/consommation/boîte de vitesses restent
           écartés de la grille (dette A-08 elle-même inchangée), mais `EX-SCR-39` (« aucun état n'est

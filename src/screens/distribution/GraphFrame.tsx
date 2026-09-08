@@ -31,13 +31,18 @@ export interface GraphFrameProps {
   readonly children: ComponentChildren;
   /** La table de données équivalente (dépliée par « Voir les données »). */
   readonly dataTable: ComponentChildren;
+  /** `EX-SCR-176` (D8-06/FV-18) — empreinte du jeu de filtres qui a produit ce graphe
+   * (`selectionHash`). Permet à l'hôte de détecter, PAR GRAPHE, qu'un changement de filtre a été
+   * appliqué ailleurs mais que CE graphe affiche encore l'ancien résultat (`ET-CHARGE-MAJ`) —
+   * jamais deux graphes sur des périmètres différents sans que ce soit visible. */
+  readonly dataSelection?: string;
 }
 
 export function GraphFrame(props: GraphFrameProps) {
   const [showData, setShowData] = useState(false);
   const tableId = `${props.graphId}-data`;
   return (
-    <figure class="kycar-graph" data-graph={props.graphId} role="group" aria-label={props.ariaLabel}>
+    <figure class="kycar-graph" data-graph={props.graphId} data-selection={props.dataSelection} role="group" aria-label={props.ariaLabel}>
       <figcaption class="kycar-graph-head">
         <h3 class="kycar-graph-title">
           {props.title}

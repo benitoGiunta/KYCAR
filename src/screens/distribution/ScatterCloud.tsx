@@ -61,6 +61,10 @@ export interface ScatterCloudProps {
   /** `EX-SCR-158`/`201` (DR-084, cohérent avec DR-010) — clic sur un point : ouvre l'annonce
    * d'origine. Point d'intégration D8 (l'URL réelle vient du batch, tenu par l'hôte). */
   readonly onOpenListing?: (row: number) => void;
+  /** `EX-SCR-176` (D8-06/FV-18) — empreinte du jeu de filtres qui a produit ce nuage, posée telle
+   * quelle en `data-selection` sur le `<figure>` (même contrat que `GraphFrame`, pas de dépendance
+   * directe puisque G4 se peint lui-même). */
+  readonly dataSelection?: string;
 }
 
 /** Bornes d'année / km observées (pour normaliser les rampes couleur). `hasAnyYear` (DR-086) est
@@ -293,7 +297,7 @@ export function ScatterCloud(props: ScatterCloudProps) {
   }, [props.points]);
 
   return (
-    <figure class="kycar-graph kycar-scatter" data-graph="G4" role="group" aria-label="Nuage prix, année et kilométrage">
+    <figure class="kycar-graph kycar-scatter" data-graph="G4" data-selection={props.dataSelection} role="group" aria-label="Nuage prix, année et kilométrage">
       <figcaption class="kycar-graph-head">
         <h3 class="kycar-graph-title">Prix × année × kilométrage</h3>
         <div class="kycar-scatter-controls">

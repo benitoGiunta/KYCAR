@@ -33,6 +33,8 @@ export interface HistogramProps {
   /** `EX-SCR-184` (DR-080) — part sélectionnée (brossage G4) par indice de bucket, pour la
    * surimpression de liaison croisée. `undefined`/absent = aucun brossage actif. */
   readonly selectedCounts?: ReadonlyMap<number, number>;
+  /** `EX-SCR-176` (D8-06/FV-18) — empreinte du jeu de filtres, transmise telle quelle à `GraphFrame`. */
+  readonly dataSelection?: string;
 }
 
 export function Histogram(props: HistogramProps) {
@@ -51,6 +53,7 @@ export function Histogram(props: HistogramProps) {
       ariaLabel={ariaLabel}
       count={props.headerCount !== undefined && props.headerCount !== model.totalCount ? model.totalCount : undefined}
       exclusions={props.exclusions}
+      dataSelection={props.dataSelection}
       dataTable={
         <table>
           <caption>Données de {props.title}</caption>

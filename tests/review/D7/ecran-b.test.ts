@@ -149,6 +149,17 @@ describe('D7 · écran B — structure des blocs et graphes (EX-SCR-141/144/191)
     const t = textOf(tree);
     expect(t).toMatch(/CO₂|consommation|boîte de vitesses/i);
   });
+
+  // D8-06/FV-18 (EX-SCR-176) : chaque graphe (les 14 additionnels + G4) porte l'empreinte du jeu de
+  // filtres qui l'a produit, pour qu'un hôte puisse détecter un graphe resté sur un ancien périmètre
+  // (`ET-CHARGE-MAJ`) après un changement de filtre ailleurs sur l'écran.
+  it('EX-SCR-176 : les 14 figures portent `data-selection` = l’empreinte de la sélection courante', () => {
+    const figures = findAll(tree, (n) => n.type === 'figure');
+    expect(figures).toHaveLength(14);
+    for (const fig of figures) {
+      expect(fig.props['data-selection'], `graphe ${String(fig.props['data-graph'])}`).toBe(f.recalc.selectionStats.selectionHash);
+    }
+  });
 });
 
 describe('D7 · écran B — notes d’exclusion sous G1–G3 (EX-SCR-178, FV-11)', () => {
