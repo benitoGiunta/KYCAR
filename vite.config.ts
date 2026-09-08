@@ -28,5 +28,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // Les bancs de perf (*.perf.test.ts) sont lourds (100k, ~100 s) et fausseraient le heartbeat
+    // RPC de vitest en suite parallèle. Ils sont exclus du `npm test` par défaut et lancés à la
+    // demande via `npm run test:perf` (vitest.perf.config.ts, mono-thread, gros timeout).
+    exclude: ['**/node_modules/**', '**/dist/**', '**/*.perf.test.ts'],
   },
 });
