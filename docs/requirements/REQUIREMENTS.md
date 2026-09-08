@@ -319,6 +319,46 @@ Ils sont énumérés ici pour que la phase 2.2 ne les découvre pas comme des tr
 |---|---|---|
 | 0.9 | 2026-09-06 | Assemblage des 3 annexes, 447 exigences, 9 arbitrages du coordinateur. Soumis au stress-test |
 | **1.0** | **2026-09-06** | **GELÉ. 485 exigences.** Voir le détail ci-dessous |
+| **1.1** | **2026-09-08** | **Remédiation 2.6, `fix-docs`.** Aucune exigence créée ni supprimée, aucun identifiant renuméroté. 30 exigences amendées (annexes A, B, C) contre les décisions de `reports/remediation/FIX-LEAD-DECISIONS.md` et les tensions §5.2/§5.3/§6.5 de `reports/DEV-REVIEW.md`. Détail ci-dessous |
+
+### Journal des amendements 2.6 (v1.0 → v1.1)
+
+Chaque exigence amendée porte la marque `[amendée 2.6 — D-xx]` (ou `T-xx`/`O-xx`) en fin de texte.
+Aucune formule ni disposition n'est réécrite au-delà de ce que la décision citée impose.
+
+| Identifiant | Annexe | Nature de l'amendement | Décision |
+|---|---|---|---|
+| `EX-DATA-49` | A | Note : `zip`/`location`, `lat`, `lon` exclus du périmètre retenu, motif `R3_DONNEE_PERSONNELLE` | `D-14` |
+| `EX-DATA-83bis` | A | Dette consignée : `GROUPSTAT`/`NTILE` non implémentées dans le worker en 2.6, reportées en 2.7 | `D-17` |
+| `EX-DATA-99` | A | Éligibilité au tracé requalifiée en « prix valide » au sens d'`EX-DATA-60` (au lieu de `priceStatus = QUOTED` seul) | `D-05` |
+| `EX-DATA-100bis` | A | Requalifiée en propriété (identité octet à octet entre permutations), satisfaite par `EX-DATA-101` ; algorithme `xoshiro128**`/Fisher-Yates et graine `0x4B594341` retirés | `D-06` |
+| `EX-DATA-104` (I7) | A | La marginale de la grille de densité est précisée comme portant sur l'ensemble éligible `Elig`, pas sur `V_year(Σ)` | `D-25` |
+| `EX-DATA-105` | A | Décompte corrigé : quatorze entités (au lieu de treize) | `O16` |
+| `EX-DATA-107` | A | Précision : `sourceKind` n'est pas un champ d'`AggregateResult`/`ListingColumnBatch` ; identifié par `describe()` + `snapshotId` | `D-24` |
+| `EX-DATA-108` | A | Précision : une règle de canonisation, appliquée à deux espaces d'identifiants distincts (KYCAR, AutoScout24) | `D-23` |
+| `EX-DATA-119` (§ C.3, table physique) | A | `makeId` : `Int16Array` → `Int32Array` ; `ingestFlags` : `Uint16Array` → `Uint32Array` ; total colonnes ≈ 71 → ≈ 75 | `D-01`, `D-02` |
+| § A.1 (table des vocabulaires, `KYCAR_INGEST_FLAG`) | A | Décompte corrigé : 14 → 17 codes | `D-01` |
+| § C.5 (récapitulatif chiffré, « Entités ») | A | Décompte corrigé : 13 → 14 | `O16` |
+| `EX-NAV-5` | C | Paramètre KYCAR `make` retiré ; `mmmv` est le seul paramètre marque/modèle, en mode 1 comme en mode 2 | `D-09` |
+| `EX-NAV-10bis` | C | Ajout des paramètres d'état d'interface `page`, `size`, `sel` (hors `selectionHash`, ne changent jamais `Σ`) | `D-11`, `D-12` |
+| `EX-NAV-15` | C | Transition mode 1 → mode 2 réécrite autour de `mmmv` (absorbé par la route) au lieu de `make` | `D-09` |
+| `EX-NAV-16` | C | Retour mode 2 → mode 1 réécrit : `mmmv` réinjecté (segment modèle vide) au lieu de `make` | `D-09` |
+| `EX-NAV-17` | C | Référence à `make` remplacée par `mmmv` | `D-09` |
+| `EX-SRCH-18bis` | C | `damaged_listing` confirmé en classe `D` ; absence de contrôle utilisateur « accidentés » en 2.6 consignée comme dette produit | `D-15` (`ARB-30`) |
+| `EX-SRCH-26` | C | Texte du bandeau harmonisé sur `EX-SCR-32` (« affinez pour comparer ») | `T-t` |
+| `EX-CRUD-19` | C | Schéma de stockage précisé : une clé `localStorage` par entrée + une clé d'index, `mutate` n'écrit jamais la collection entière | `D-16` |
+| `ARB-12` (limite du partage par URL pure) | C | Portée du risque de troncature non détectable restreinte à la troncature *dans* le domaine ; la troncature *hors* domaine est rattrapée par `EX-NAV-21` | `T-s` |
+| `ARB-56` (longueur de référence de l'URL) | C | Chiffres corrigés : 827 / 1 535 / 1 649 caractères (au lieu de « ≈ 1 720 ») ; conclusion normative inchangée | `T-r` |
+| `EX-SCR-32` | B | Seuil `ET-TROP-RESULTATS` de l'écran B (20 000, graine) retiré ; ne s'applique plus qu'à l'écran A | `D-06`, `D-08` |
+| `EX-SCR-57` | B | Débounce de la classe `T` : renvoi à la table `EX-SRCH-1…8` au lieu d'un délai unique de 400 ms | `D-19` |
+| `EX-SCR-76` | B | Retrait unitaire au-delà de 2 valeurs déplacé dans l'infobulle/popover du jeton (le jeton reste unique) | `D-10` |
+| `EX-SCR-86` | B | Débounce du champ numérique corrigé à 500 ms + `blur` + `Entrée` | `D-19` |
+| `EX-SCR-134` | B | Palier `5 ≤ n ≤ 11` (`P5`/`P95` masqués, jeton) câblé sur la zone-modèle, aligné sur `EX-SCR-33` | `D-04` |
+| `EX-SCR-157` | B | Requalifiée : `K = 5 000` gouverne seul ; seuil à 20 000 et graine retirés | `D-06`, `D-08` |
+| `EX-SCR-158` | B | Brossage : un bouton (`Convertir la sélection en filtre`) plus un lien (`Voir ces annonces`) au lieu de deux boutons | `D-26` |
+| `EX-SCR-177` | B | `G4` sorti du périmètre d'`ET-TROP-RESULTATS` (§6.7) | `D-08` |
+| `EX-SCR-194` | B | Format de `m` corrigé en `<makeId>-<modelId>` | `D-13` |
+| `EX-SCR-208` | B | Rendu virtualisé remplacé par la pagination client de 50 lignes | `D-27` |
 
 ### Ce qui s'est passé entre 0.9 et 1.0
 
