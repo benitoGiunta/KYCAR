@@ -5,14 +5,15 @@ KYCAR montre la **structure statistique de l'offre** — et les anomalies qui s'
 
 ## État du dépôt
 
-Le code existe et s'exécute (`src/`, lots D1 à D9 de la phase 2.4). Les phases **2.4 (build),
-2.5 (revue), 2.6 (remédiation), 2.7 (vérification finale) et 2.8 (remédiation post-vérification)
-sont closes** : `reports/DEV-REVIEW.md` porte la revue, `reports/REMEDIATION.md` la remédiation 2.6,
-`reports/FINAL-VERIFICATION.md` la vérification finale 2.7 (matrice de couverture chiffrée sur les
-485 exigences), `reports/REMEDIATION-2.8.md` (rev 3) la remédiation post-vérification et la porte G7
-(dix dettes admises, toutes écrites). La phase **2.9 (recette navigateur)** a son harnais livré
-(`tests/e2e/`, 2.9a) ; la recette finale 2.9b produit `reports/ACCEPTANCE.md`. Les décisions et
-rapports par agent de 2.8 sont dans `reports/remediation-2.8/`.
+Le code existe et s'exécute (`src/`, lots D1 à D9 de la phase 2.4). **Toutes les phases du plan 2
+sont closes** : 2.4 (build), 2.5 (revue, `reports/DEV-REVIEW.md`), 2.6 (remédiation,
+`reports/REMEDIATION.md`), 2.7 (vérification finale, `reports/FINAL-VERIFICATION.md`, 485 exigences
+cotées), 2.8 (remédiation post-vérification, `reports/REMEDIATION-2.8.md` rev 3, porte G7, dix dettes
+admises et écrites) et 2.9 (recette navigateur Playwright, `tests/e2e/` et `reports/ACCEPTANCE.md`
+rev 2, porte G8 : 264 tests E2E sans échec inattendu, 0 violation axe-core, budgets tenus). Les
+décisions et rapports par agent de 2.8/2.9 sont dans `reports/remediation-2.8/`. Restent une dette de
+présentation consignée (`ACCEPTANCE.md` §8, décision D8-43) et la livraison (fusion `main`, tag), qui
+relèvent du commanditaire.
 
 ## Documentation
 

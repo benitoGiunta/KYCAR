@@ -41,7 +41,7 @@ Ne jamais pousser ce dépôt avec le compte pro. Ne jamais saisir de credentials
 
 ### 1.3 Branche et cadence
 
-- On développe sur la branche désignée par la session (en 2.5/2.6 : `claude/kycar-project-ffcplk`,
+- On développe sur la branche désignée par la session (2.5 → 2.9 : `claude/kycar-project-ffcplk`,
   créée depuis `phase-2.4-build`). Jamais de push sur une autre branche sans accord explicite.
 - **Chaque livrable d'agent est commité et poussé dès réception** (un commit par lot revu ou corrigé,
   message qui résume les constats/corrections). Entre deux livrables, un commit « WIP … snapshot » des
@@ -220,7 +220,7 @@ depuis `src/`. Le navigateur se lance par `executablePath` (détection dans la c
 ```bash
 npm run build         # tsc app + worker + vite build ; doit être 0 erreur / 0 warning
 npm run lint          # eslint . ; vert
-npm test              # suite unitaire (675) PUIS sondes de revue promues (1079) ; tout doit être vert
+npm test              # suite unitaire (675) PUIS sondes de revue promues (1091) ; tout doit être vert
 npm run test:unit     # suite unitaire seule
 npm run test:review   # sondes de revue seules (2 dettes externes en it.fails annoté : R-D9-21, R-D2-16 ; jamais skip)
 npm run size          # bundle initial < 300 Ko gzip

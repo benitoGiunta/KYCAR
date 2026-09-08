@@ -1,6 +1,6 @@
 # HANDOFF — reprise du projet KYCAR par un nouvel agent
 
-**Mis à jour le 2026-09-08 (clôture 2.8, recette 2.9b en cours) par l'agent coordinateur.** Ce fichier suffit à reprendre le travail sans
+**Mis à jour le 2026-09-09 (clôture 2.9 : toutes les phases du plan 2 sont closes) par l'agent coordinateur.** Ce fichier suffit à reprendre le travail sans
 aucun contexte conversationnel. Lis-le en entier, puis lis `docs/EXECUTION-LOG.md` (source de vérité
 de l'avancement).
 
@@ -22,13 +22,20 @@ de l'avancement).
     traités, 26/26 constats E2E levés, 8 dettes 2.6 sur 9 levées, **dix dettes admises, toutes écrites**
     (5 externes, 1 produit, 2 architecturales O17 mode 1, 2 d'interface gelée).
   - **2.9a (harnais Playwright) : VALIDÉE** — `tests/e2e/`, 3 projets, Chromium préinstallé.
-    **2.9b (recette finale `acceptance`, Fable/max) : EN COURS** → `reports/ACCEPTANCE.md`, porte G8.
-  - **Build 0/0 · lint 0 · `npm test` = 675 tests unitaires + 1 079 sondes de revue, tous verts ·
-    E2E 255 tests, 0 échec inattendu, 3 `test.fail()` attendus (dette D8-15) · bundle 116 Kio gzip
-    (< 300, chunk worker compris) · recalcul p95 181 ms (< 200) · chargement 4G ≈ 1,5 s (< 2 s).**
-- **Reste : le verdict G8 de 2.9b, puis la clôture (ce fichier, `EXECUTION-LOG`).** Ensuite, hors plan
-  et sur décision explicite du commanditaire uniquement : fusion de `claude/kycar-project-ffcplk` dans
-  `main`, tag `v0.1.0` ; levée d'AC-01 (juridique 2dehands) avant tout câblage du provider réel.
+    **2.9b (recette finale `acceptance`, Fable/max) : VALIDÉE — porte G8 franchie** (`reports/ACCEPTANCE.md`
+    rev 2) : 264 tests E2E, 0 échec inattendu ; axe-core 24/24 balayages à 0 violation ; EX-NFR-6/7/8/9
+    tenus et mesurés ; P1/P2 journalisés, 18 captures. 16 constats ACC : ACC-01 (MAJEUR, filtres T
+    ignorés en silence en mode 2), ACC-05, ACC-15 **corrigés** (`fix-app-3`, D8-41/42) ; ACC-02…04,
+    06…14, 16 = **dette de présentation D8-43** (décision du commanditaire).
+  - **Build 0/0 · lint 0 · `npm test` = 675 tests unitaires + 1 091 sondes de revue, tous verts ·
+    E2E 264 tests, 0 échec inattendu, 3 `test.fail()` attendus (dette D8-15) · bundle 116,6 Kio gzip
+    (< 300, chunk worker compris) · recalcul p95 181 ms (< 200) · chargement 4G max 1,76 s (< 2 s).**
+- **Toutes les phases du plan 2 sont closes ; le projet est à l'arrêt.** Prochaines actions possibles,
+  toutes sur décision explicite du commanditaire : (1) livraison = fusion de `claude/kycar-project-ffcplk`
+  dans `main` + tag `v0.1.0` (avis de l'acceptance : prêt, réserves nommées) ; (2) phase 2.10 « finition
+  visuelle » sur la dette D8-43 (`ACCEPTANCE.md` §8 = cahier des charges, ACC-06 puis ACC-16 en tête) ;
+  (3) levée d'AC-01 (juridique 2dehands) avant tout câblage du provider réel ; (4) v2 de l'interface
+  `DataProvider` (dettes D8-32, D8-36, composante T complète vers `fetchListingColumns`).
 
 ## 1. Ce qu'est le projet
 
@@ -122,11 +129,16 @@ garde de bundle sur des manifestes factices, pas un échec.
 
 ## 6. Ce qui RESTE
 
-- **2.9b — recette finale** : verdict G8 dans `reports/ACCEPTANCE.md` (S1 E2E vert 3 projets ; S2 zéro
-  violation axe A/AA sur 8 surfaces ; S3 EX-NFR-9 ≤ 2 s en 4G, EX-NFR-7/8 au rAF ; S4 parcours P1/P2
-  journalisés avec captures dans `reports/acceptance/`). Puis mise à jour de ce fichier et du journal.
-- **Livraison (hors plan, décision du commanditaire)** : fusion dans `main` + tag `v0.1.0`. Ne rien faire
-  sans accord explicite.
+Rien dans le plan 2. Sur décision explicite du commanditaire uniquement :
+
+- **Livraison** : fusion dans `main` + tag `v0.1.0` (`CLAUDE.md` §1.3 : jamais sans accord). Notes de
+  version à écrire à partir de `ACCEPTANCE.md` §7–§9 (dettes visibles, réserves).
+- **Phase 2.10 « finition visuelle »** (optionnelle) : dette de présentation D8-43 — ACC-02 (bandeau
+  collant inerte, hauteur repliée > viewport), ACC-03 (régime compact de l'écran B), ACC-04, 06 (`sel`
+  2D → écran D), 07–14, 16 (libellés bruts du bandeau générique). Cahier des charges : `ACCEPTANCE.md` §8.
+- **AC-01** (juridique 2dehands) puis câblage du provider réel (DR-104, `it.fails` R-D9-21).
+- **v2 de `DataProvider`** : `co2Source`, bloc 13 valeurs par agrégat (`MetricRange`), composante T vers
+  `fetchListingColumns`, `facets()` mode 1 (D8-29/D8-37).
 
 **Dettes admises à la clôture de 2.8** (`reports/REMEDIATION-2.8.md` §6.7 ; décisions dans
 `FIX-LEAD-DECISIONS-2.8.md`) — chacune est écrite, et visible dans les tests quand une sonde peut la
@@ -205,7 +217,7 @@ exact) dans le schéma ni le stockage. `sellerType` (particulier/pro) et `region
 
 ---
 
-## 9. Definition of Done — phases 2.4 à 2.8 et 2.9a ATTEINTES
+## 9. Definition of Done — phases 2.4 à 2.9 ATTEINTES
 
 - ✅ 2.4 : D1–D9 fusionnés, critères vérifiés par exécution.
 - ✅ 2.5 : S1–S4 de PLAN-2 §2.5 atteints (`reports/DEV-REVIEW.md` §7) ; 783 sondes, 116 critères jugés.
@@ -213,10 +225,10 @@ exact) dans le schéma ni le stockage. `sellerType` (particulier/pro) et `region
 - ✅ 2.7 : `reports/FINAL-VERIFICATION.md`, 485 exigences cotées, porte G6 (juge sans corriger).
 - ✅ 2.8 : S1–S4 de PLAN-2 §2.8 atteints (`reports/REMEDIATION-2.8.md` rev 3 §8) ; **porte G7 franchie** :
   zéro NON COUVERTE, zéro PARTIELLE sans décision écrite, dix dettes admises nommées.
-- ✅ 2.9a : harnais Playwright livré, 26 constats E2E tous levés en 2.8.
-- ✅ build 0/0, lint vert, `npm test` vert (675 + 1 079), E2E 255 tests / 0 échec inattendu, bundle 116 Kio
-  gzip, recalcul p95 181 ms, 4G ≈ 1,5 s.
-- ✅ `docs/EXECUTION-LOG.md`, `CLAUDE.md`, ce handoff à jour ; tout commité et poussé sur
-  `claude/kycar-project-ffcplk` (dépôt perso `benitoGiunta/KYCAR`).
-- ⏳ 2.9b : `reports/ACCEPTANCE.md` et porte G8 (en cours). Ensuite arrêt : fusion `main` + tag `v0.1.0`
-  sur décision explicite du commanditaire uniquement.
+- ✅ 2.9 : S1–S4 de PLAN-2 §2.9 atteints (`reports/ACCEPTANCE.md` rev 2 §1, §9) ; **porte G8 franchie** :
+  E2E verts sur 3 projets, 0 violation axe A/AA, budgets navigateur tenus, ACC-01 corrigé.
+- ✅ build 0/0, lint vert, `npm test` vert (675 + 1 091), E2E 264 tests / 0 échec inattendu, bundle
+  116,6 Kio gzip, recalcul p95 181 ms, 4G max 1,76 s.
+- ✅ `docs/EXECUTION-LOG.md`, `CLAUDE.md`, `README.md`, `DEV.md`, ce handoff à jour ; tout commité et
+  poussé sur `claude/kycar-project-ffcplk` (dépôt perso `benitoGiunta/KYCAR`).
+- ⏸️ **Arrêt.** Aucune fusion vers `main`, aucun tag, aucune PR sans accord explicite du commanditaire.
