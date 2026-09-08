@@ -1,0 +1,84 @@
+/**
+ * KYCAR — Styles de l'écran D (lot D7). Couleurs depuis les tokens de D1.
+ */
+
+.kycar-screen-d {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: var(--color-text);
+}
+.kycar-listings-head h2 {
+  margin: 0 0 var(--space-1) 0;
+}
+.kycar-listings-scope,
+.kycar-listings-sort {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.kycar-listings-export {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.kycar-listings-export button,
+.kycar-pager button,
+.kycar-sort-btn,
+.kycar-open {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  font: inherit;
+}
+.kycar-open {
+  color: var(--color-primary);
+}
+.kycar-sort-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font-weight: 600;
+}
+
+.kycar-table-scroll {
+  overflow-x: auto;
+}
+.kycar-listings-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+.kycar-listings-table th,
+.kycar-listings-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-2);
+  height: 44px;
+  text-align: left;
+  white-space: nowrap;
+}
+.kycar-listings-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  z-index: 1;
+}
+.kycar-row-highlight {
+  box-shadow: inset 3px 0 0 0 var(--color-primary);
+}
+.kycar-listings-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.85rem;
+}
+.kycar-pager {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
