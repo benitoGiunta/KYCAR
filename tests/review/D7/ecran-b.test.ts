@@ -381,6 +381,87 @@ describe('D7 · G4 — légendes et table des points (EX-SCR-154/155/156/160, EX
   });
 });
 
+// D8-24 (EX-SCR-159) : sous 4 offres tracées dans G4, les légendes passent en style discret (texte
+// atténué, taille réduite, annexe B) et le brossage/zoom rectangulaire est neutralisé
+// (`aria-disabled`, message court) — seul le clic simple (survol, ouverture d'annonce) reste actif.
+describe('D7 · G4 — faible effectif (EX-SCR-159, D8-24)', () => {
+  const gp = (row: number) => ({ row, priceEur: 10000 + row * 1000, year: 2018 + row, regYearMonth: (2018 + row) * 12, mileageKm: 50000 + row * 10000, fuelCategory: 1, powerKw: 90, isOutlier: false, opportunityScore: null });
+  const info = (n: number) => ({ eligibleCount: n, plottedCount: n, outlierCount: 0, outlierPlottedCount: 0, sampled: false, outlierTruncated: false });
+  const fakeTarget = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 900, height: 480 }) };
+  const down = (x: number, y: number) => ({ clientX: x, clientY: y, shiftKey: false, currentTarget: fakeTarget });
+  const move = (x: number, y: number) => ({ clientX: x, clientY: y, currentTarget: fakeTarget });
+
+  async function renderCloud(n: number, onBrushChange: (bx: unknown, by: unknown) => void) {
+    const { ScatterCloud } = await import('../../../src/screens/distribution/ScatterCloud');
+    const points = Array.from({ length: n }, (_v, i) => gp(i));
+    const tree = deepRender(
+      ScatterCloud({ points, variant: 'scatter', onVariantChange: NOOP, sampleInfo: info(n), brushX: null, brushY: null, onBrushChange } as never),
+    );
+    const canvas = findAll(tree, byType('canvas'))[0]!;
+    const legends = findAll(tree, (nn) => nn.props['class'] === 'kycar-legend' || nn.props['class'] === 'kycar-legend kycar-legend-size' || nn.props['class'] === 'kycar-legend kycar-legend--discrete' || nn.props['class'] === 'kycar-legend kycar-legend-size kycar-legend--discrete');
+    return { canvas, legends };
+  }
+
+  it('n = 3 (< 4) : les légendes portent la classe discrète (`kycar-legend--discrete`)', async () => {
+    const { legends } = await renderCloud(3, NOOP);
+    expect(legends.length).toBeGreaterThan(0);
+    for (const l of legends) expect(String(l.props['class'])).toContain('kycar-legend--discrete');
+  });
+
+  it('n = 4 (seuil atteint) : les légendes restent en style CONTINU, aucune classe discrète', async () => {
+    const { legends } = await renderCloud(4, NOOP);
+    expect(legends.length).toBeGreaterThan(0);
+    for (const l of legends) expect(String(l.props['class'])).not.toContain('kycar-legend--discrete');
+  });
+
+  it('n = 3 : le canevas porte `aria-disabled` et un message court, un VRAI glisser (brossage) ne pose rien', async () => {
+    const calls: unknown[] = [];
+    const { canvas } = await renderCloud(3, (bx, by) => calls.push([bx, by]));
+    expect(canvas.props['aria-disabled']).toBe(true);
+    expect(String(canvas.props['title'])).toBe('Sélection inutile en dessous de 4 offres');
+    expect(String(canvas.props['class'])).toContain('kycar-scatter-canvas--brush-disabled');
+    (canvas.props['onMouseDown'] as (e: unknown) => void)(down(10, 10));
+    (canvas.props['onMouseMove'] as (e: unknown) => void)(move(200, 200));
+    (canvas.props['onMouseUp'] as (e: unknown) => void)(move(200, 200));
+    expect(calls).toHaveLength(0); // brossage neutralisé sous 4 offres
+  });
+
+  it('n = 4 (non-régression) : ni `aria-disabled` ni message, un glisser pose bien un brossage', async () => {
+    const calls: unknown[] = [];
+    const { canvas } = await renderCloud(4, (bx, by) => calls.push([bx, by]));
+    expect(canvas.props['aria-disabled']).toBeFalsy();
+    expect(canvas.props['title']).toBeUndefined();
+    expect(String(canvas.props['class'])).not.toContain('kycar-scatter-canvas--brush-disabled');
+    (canvas.props['onMouseDown'] as (e: unknown) => void)(down(10, 10));
+    (canvas.props['onMouseMove'] as (e: unknown) => void)(move(200, 200));
+    (canvas.props['onMouseUp'] as (e: unknown) => void)(move(200, 200));
+    expect(calls).toHaveLength(1); // comportement normal inchangé au-delà du seuil
+  });
+
+  it('n = 3 : le clic simple (aucun déplacement, aucun point sous le curseur) efface un brossage existant — jamais bloqué par le seuil', async () => {
+    const calls: Array<[unknown, unknown]> = [];
+    const { ScatterCloud } = await import('../../../src/screens/distribution/ScatterCloud');
+    const points = [gp(0), gp(1), gp(2)];
+    const tree = deepRender(
+      ScatterCloud({
+        points,
+        variant: 'scatter',
+        onVariantChange: NOOP,
+        sampleInfo: info(3),
+        brushX: { from: 0, to: 1 },
+        brushY: { from: 0, to: 1 },
+        onBrushChange: (bx: unknown, by: unknown) => calls.push([bx, by]),
+      } as never),
+    );
+    const canvas = findAll(tree, byType('canvas'))[0]!;
+    // (2, 2) tombe dans le remplissage du cadre (padLeft = 52, padTop = 16) : jamais assez près d'un
+    // point tracé (`HIT_RADIUS_PX = 8`) pour déclencher `onOpenListing` plutôt que l'effacement.
+    (canvas.props['onMouseDown'] as (e: unknown) => void)(down(2, 2));
+    (canvas.props['onMouseUp'] as (e: unknown) => void)(move(2, 2));
+    expect(calls).toEqual([[null, null]]); // clic simple actif : efface le brossage, PAS neutralisé par lowSample
+  });
+});
+
 describe('D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17, D8-07)', () => {
   // D8-07/D-31 (dette D-17 levée) : G5/G6/G9/G10/G12/G13/G14/G15 ne recalculent plus rien depuis
   // `ListingColumnBatch` sur le thread principal — leur agrégation `O(n)` est désormais dans le
