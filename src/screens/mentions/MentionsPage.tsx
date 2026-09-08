@@ -18,7 +18,7 @@ export function MentionsPage(props: MentionsPageProps): JSX.Element {
     <section class="kycar-mentions" aria-labelledby="kycar-mentions-title">
       <h1 id="kycar-mentions-title">Mentions et méthodologie</h1>
 
-      {props.sourceKind !== undefined ? (
+      {props.sourceKind === 'REAL' || props.sourceKind === 'SYNTHETIC' ? (
         <p class="kycar-mentions-provenance" role="note">
           Données actuellement affichées :{' '}
           <strong>{props.sourceKind === 'SYNTHETIC' ? 'jeu synthétique de démonstration' : 'marché réel'}</strong>
