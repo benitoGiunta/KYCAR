@@ -128,7 +128,10 @@ describe('D7 · écran B — structure des blocs et graphes (EX-SCR-141/144/191)
     }
   });
 
-  it('R-D7-10 — A-08 : les graphes en dette (CO₂, consommation, boîte de vitesses) sont absents sans aucune mention à l’utilisateur', () => {
+  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
+  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
+  // DETTE DR-147 / D-49 : mention utilisateur des graphes en dette A-08 (CO₂, consommation, boîte), traçabilité documentaire.
+  it.fails('R-D7-10 — A-08 : les graphes en dette (CO₂, consommation, boîte de vitesses) sont absents sans aucune mention à l’utilisateur', () => {
     const t = textOf(tree);
     expect(t).toMatch(/CO₂|consommation|boîte de vitesses/i);
   });

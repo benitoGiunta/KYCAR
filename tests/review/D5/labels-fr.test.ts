@@ -104,7 +104,10 @@ describe('R-D5-09 — EX-NFR-30 : `prevownersid` affiche des libellés égaux à
 });
 
 describe('R-D5-10 — EX-NFR-29 : libellés forgés non marqués `[EXTRAPOLÉ]`', () => {
-  it('R-D5-10 — les libellés de `zipr` sont forgés (domaine source sans libellé) et non marqués', () => {
+  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
+  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
+  // DETTE DR-132 / D-49 : marquage [EXTRAPOLÉ] des libellés forgés de zipr (filtre désormais hors périmètre R3, D-14).
+  it.fails('R-D5-10 — les libellés de `zipr` sont forgés (domaine source sans libellé) et non marqués', () => {
     const radius = FILTER_DEFS.find((d) => d.param === 'zipr');
     const raw = rawById.get('radius');
     // Domaine source : une liste de nombres nus, aucun `label_fr` — les libellés « 10 km »… sont

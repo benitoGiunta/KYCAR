@@ -206,7 +206,10 @@ describe('D5 — EX-SCR-79/80 : recherche de filtre', () => {
     expect(searchFilters('exterior colour').matches.map((d) => d.param)).toEqual(['bcol']);
   });
 
-  it('R-D5-13 — EX-SCR-80 : zéro correspondance doit proposer les 3 filtres les plus proches', () => {
+  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
+  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
+  // DETTE DR-134 / D-49 : suggestions par distance d édition (EX-SCR-80), confort sans effet sur une valeur affichée.
+  it.fails('R-D5-13 — EX-SCR-80 : zéro correspondance doit proposer les 3 filtres les plus proches', () => {
     const result = searchFilters('kilomtrage');
     expect(result.matches.map((d) => d.param)).toContain('kmfrom');
   });

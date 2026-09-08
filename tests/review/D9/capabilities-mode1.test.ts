@@ -83,7 +83,10 @@ describe('D9 · §7.1 — « mode 1 réel servi »', () => {
     expect(requestKeys.has('fuel')).toBe(false);
   });
 
-  it('R-D9-21 — le provider n’est câblé nulle part : l’application sert le mode 1 SYNTHÉTIQUE', () => {
+  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
+  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
+  // DETTE DR-104 / D-18 : provider réel non câblé tant qu AC-01 (validation juridique 2dehands) n est pas levée ; source par défaut SYNTHETIC, dit dans /mentions.
+  it.fails('R-D9-21 — le provider n’est câblé nulle part : l’application sert le mode 1 SYNTHÉTIQUE', () => {
     const main = readFileSync(fileURLToPath(new URL('../../../src/main.tsx', import.meta.url)), 'utf8');
     expect(main.includes('SyntheticDataProvider')).toBe(true);
     expect(main.includes('TweedehandsDataProvider'), 'mode 1 réel servi par l’application').toBe(true);

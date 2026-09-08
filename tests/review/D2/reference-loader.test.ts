@@ -177,7 +177,10 @@ describe('D2 — O14 : table NUTS-2 BE encodée en dur (EX-DATA-52/53)', () => {
     expect(data.resolveRegionBE(10_000)).toBeNull();
   });
 
-  it('R-D2-16 — EX-DATA-54 : les exceptions communales priment sur les plages', () => {
+  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
+  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
+  // DETTE DR-112 / D-49 : exceptions communales (postal-regions-be.json) exigent une source externe officielle interdite par E5 ; couverture actuelle exhaustive, marquée [EXTRAPOLÉ].
+  it.fails('R-D2-16 — EX-DATA-54 : les exceptions communales priment sur les plages', () => {
     // `data/reference/postal-regions-be.json` (sections `ranges` + `exceptions`) n'existe pas dans
     // le dépôt ; `resolveRegionBE` ne consulte que les plages extrapolées codées en dur.
     const fichiers = import.meta.glob('../../../data/reference/postal-regions-be.json', { eager: true });

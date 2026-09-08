@@ -185,7 +185,10 @@ describe('D7 · écran D — colonnes et texte adverse (EX-SCR-203/204, ADV-17/1
     }
   });
 
-  it('R-D7-16 — EX-SCR-203 : les colonnes « Conso. », « CO₂ » et « TVA » ne sont pas rendues', () => {
+  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
+  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
+  // DETTE D-38 : colonne TVA seule (aucun champ taxDeductible dans l interface gelée) ; Conso. et CO₂ sont rendues.
+  it.fails('R-D7-16 — EX-SCR-203 : les colonnes « Conso. », « CO₂ » et « TVA » ne sont pas rendues', () => {
     const tree = deepRender(ListingsScreen({ batch: f.batch, recalc: f.recalc, rows: f.rows, csvMeta: META } as never));
     const heads = findAll(tree, byType('th')).map((n) => norm(visibleTextOf(n)));
     expect(heads.join(' | ')).toContain('Conso.');

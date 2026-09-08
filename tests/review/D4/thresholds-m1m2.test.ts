@@ -59,7 +59,10 @@ describe('ADV-06 / ARB-17 — n = 11 : aucune détection ; n = 12 : M1 seule', (
     expect(result.outlierVerdicts.some((x) => x.method === 'M2')).toBe(false);
   });
 
-  it('R-D4-05 — n = 11 : EX-DATA-85/86/95 exigent un verdict INSUFFICIENT_DATA par annonce non évaluable ; le moteur n’en émet aucun et le vocabulaire gelé D2 ne contient pas ce code', () => {
+  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
+  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
+  // DETTE DR-114 / D-45 : verdicts INSUFFICIENT_* exigeraient d étendre un vocabulaire gelé (6 → 8 codes) ; à instruire en 2.7 avec l annexe A.
+  it.fails('R-D4-05 — n = 11 : EX-DATA-85/86/95 exigent un verdict INSUFFICIENT_DATA par annonce non évaluable ; le moteur n’en émet aucun et le vocabulaire gelé D2 ne contient pas ce code', () => {
     const { result } = run(11);
     const codes = OUTLIER_FLAG_VALUES.map((v) => v.code);
     console.log(`[vocab KYCAR_OUTLIER_FLAG] ${codes.join(', ')}`);

@@ -55,7 +55,10 @@ describe('D2 — garde R3 : variantes de portage d’un champ interdit', () => {
     expect(scanForbiddenFields({ seller: { id: 'dealer-42' } })).toHaveLength(1);
   });
 
-  it('R-D2-02 — rejette les champs RGPD E15..E17 (vin, licencePlate, belgianCarpassMileageUrl)', () => {
+  // Promotion 2.6 (D-49) : sonde rouge convertie en it.fails — elle documente une dette consignée et se
+  // signalera d elle-même (échec de it.fails) le jour où la dette est levée. Jamais skip.
+  // DETTE DR-105 / D-49 : E15..E17 relèvent du RGPD, pas de R3 (EX-DATA-49 cite E1..E14) ; aucun de ces champs n existe dans le schéma.
+  it.fails('R-D2-02 — rejette les champs RGPD E15..E17 (vin, licencePlate, belgianCarpassMileageUrl)', () => {
     // EX-DATA-47 : « ces champs n'existent dans aucune table, aucun type, aucune colonne ».
     // EX-DATA-49 ne cite que E1..E14 ; le garde s'arrête donc avant E15..E17, qui restent
     // pourtant proscrits par EX-DATA-47 (RGPD).

@@ -9,11 +9,12 @@
     "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config vitest.review.config.ts",
     "test:watch": "vitest",
     "test:perf": "vitest run --config vitest.perf.config.ts",
     "size": "node tools/check-bundle-size.mjs",
-    "test:review": "tsc --noEmit -p tsconfig.review.json && vitest run --config vitest.review.config.ts"
+    "test:review": "tsc --noEmit -p tsconfig.review.json && vitest run --config vitest.review.config.ts",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "preact": "^10.29.8"

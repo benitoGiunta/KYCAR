@@ -80,6 +80,9 @@ export default defineConfig({
     // Les bancs de perf (*.perf.test.ts) sont lourds (100k, ~100 s) et fausseraient le heartbeat
     // RPC de vitest en suite parallèle. Ils sont exclus du `npm test` par défaut et lancés à la
     // demande via `npm run test:perf` (vitest.perf.config.ts, mono-thread, gros timeout).
+    // Depuis la clôture de la phase 2.6 (D-49), `npm test` enchaîne cette suite ET les sondes de
+    // revue promues (`vitest.review.config.ts`, un fichier à la fois, 60 s) ; les 8 sondes d'une
+    // dette consignée sont en `it.fails` annoté, jamais `skip`.
     exclude: ['**/node_modules/**', '**/dist/**', '**/*.perf.test.ts'],
   },
 });
