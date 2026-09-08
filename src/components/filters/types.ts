@@ -34,6 +34,10 @@ export interface FilterControlProps {
   readonly disabled: boolean;
   readonly disabledReason?: string;
   readonly facetCounts?: FacetCounts;
+  /** `D8-05` (`EX-SCR-65`/`89`/`90`) : `true` pendant l'écart de recalcul des facettes (≤ 100 ms
+   * normatif) — le contrôle affiche `…` à la place de chaque effectif plutôt que de figer
+   * silencieusement l'ancienne valeur ou de faire disparaître la parenthèse. */
+  readonly facetCountsPending?: boolean;
   readonly onChange: OnFilterChange;
 }
 

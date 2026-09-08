@@ -27,6 +27,12 @@ export interface RangeControlProps {
   readonly toValue: number | undefined;
   readonly disabled: boolean;
   readonly disabledReason?: string;
+  /** `EX-SCR-98` (régime `compact`, `D8-15`) : la liste de paliers devient une liste déroulante
+   * native au lieu de boutons — aucun histogramme miniature n'existe dans ce contrôle à ce jour
+   * (`grep -rn "histogramme miniature\|MiniHistogram" src/components/filters` = 0 résultat avant
+   * comme après cette correction : rien à masquer côté `RangeControl`, seule la construction du
+   * palier change de forme). */
+  readonly compact?: boolean;
   readonly onChange: OnFilterChange;
 }
 
@@ -39,7 +45,72 @@ function clampToDomain(n: number, def: FilterDef): { value: number; clamped: boo
   return { value: v, clamped: v !== n };
 }
 
-export function RangeControl({ fromDef, toDef, fromValue, toValue, disabled, disabledReason, onChange }: RangeControlProps) {
+export interface RangeStepsProps {
+  readonly steps: readonly number[];
+  readonly unit?: string;
+  readonly label: string;
+  readonly disabled: boolean;
+  readonly compact?: boolean;
+  readonly onPick: (step: number) => void;
+}
+
+/**
+ * Les paliers suggérés d'un `RangeControl` (`EX-SCR-67`/`98`) — composant SANS hook (même principe
+ * que `ScreenGMakeRow`/`CheckboxList`, appelable directement hors cycle de rendu Preact pour une
+ * sonde de structure), extrait de `RangeControl` UNIQUEMENT parce que ce dernier porte des hooks
+ * (`useState`) et ne peut donc pas être invoqué comme une fonction pure par une sonde. Régime
+ * `compact` (`EX-SCR-98`) : liste déroulante native au lieu de boutons — AUCUN histogramme
+ * miniature n'existe dans ce contrôle à ce jour (`grep -rn "histogramme miniature\|MiniHistogram"
+ * src/components/filters` = 0 résultat avant comme après cette correction : rien à masquer côté
+ * `RangeControl`, seule la construction du palier change de forme).
+ */
+export function RangeSteps({ steps, unit, label, disabled, compact, onPick }: RangeStepsProps) {
+  if (compact === true) {
+    return (
+      <select
+        class="kycar-range-steps__select"
+        disabled={disabled}
+        aria-label={`Paliers suggérés — ${label}`}
+        value=""
+        onChange={(e) => {
+          const raw = (e.currentTarget as HTMLSelectElement).value;
+          if (raw.length === 0) return;
+          onPick(Number(raw));
+          (e.currentTarget as HTMLSelectElement).value = '';
+        }}
+      >
+        <option value="" disabled>
+          Palier suggéré…
+        </option>
+        {steps.map((step) => (
+          <option key={step} value={step}>
+            {formatNumberFr(step, unit)}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  return (
+    <div class="kycar-range-steps">
+      {steps.map((step) => (
+        <button key={step} type="button" disabled={disabled} onClick={() => onPick(step)}>
+          {formatNumberFr(step, unit)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function RangeControl({
+  fromDef,
+  toDef,
+  fromValue,
+  toValue,
+  disabled,
+  disabledReason,
+  compact,
+  onChange,
+}: RangeControlProps) {
   const [error, setError] = useState<string | null>(null);
   const [clampedMsg, setClampedMsg] = useState<string | null>(null);
   const label = toDef !== undefined ? fromDef.label.replace(/\s+de$/, '') : fromDef.label;
@@ -106,18 +177,14 @@ export function RangeControl({ fromDef, toDef, fromValue, toValue, disabled, dis
         ) : null}
       </div>
       {domain?.steps !== undefined ? (
-        <div class="kycar-range-steps">
-          {domain.steps.map((step) => (
-            <button
-              key={step}
-              type="button"
-              disabled={disabled}
-              onClick={() => commitPalier(toDef !== undefined && fromValue !== undefined ? 'to' : 'from', step)}
-            >
-              {formatNumberFr(step, fromDef.unit)}
-            </button>
-          ))}
-        </div>
+        <RangeSteps
+          steps={domain.steps}
+          unit={fromDef.unit}
+          label={label}
+          disabled={disabled}
+          compact={compact}
+          onPick={(step) => commitPalier(toDef !== undefined && fromValue !== undefined ? 'to' : 'from', step)}
+        />
       ) : null}
       {error !== null ? <p class="kycar-control__error" role="alert">{error}</p> : null}
       {clampedMsg !== null ? <p class="kycar-control__hint" role="status">{clampedMsg}</p> : null}

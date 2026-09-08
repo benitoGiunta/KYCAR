@@ -83,11 +83,16 @@ export interface ScreenGMakeRowProps {
 
 /** Une ligne du panneau marque, avec sa position dans la liste complète (`aria-posinset`/
  * `aria-setsize`) — l'équivalent accessible du fenêtrage : un lecteur d'écran annonce toujours
- * « <n> sur 295 », jamais seulement « <n> sur <taille de la fenêtre montée> ». */
+ * « <n> sur 295 », jamais seulement « <n> sur <taille de la fenêtre montée> ».
+ *
+ * `FV-16`/`D8-14` (`aria-allowed-attr`, axe-core, ×82 dans l'écran G) : `aria-selected` n'est PAS
+ * un attribut permis sur un rôle implicite `button` — l'ancienne version le posait sur le
+ * `<button>` interne. Le rôle explicite qui accepte `aria-selected` est `option`, porté par le
+ * `<li>` : c'est LUI qui reçoit l'attribut d'état, le bouton reste un déclencheur nu. */
 export function ScreenGMakeRow({ row, index, totalCount, selected, onSelect }: ScreenGMakeRowProps) {
   return (
-    <li key={row.make.makeId} role="option" aria-posinset={index + 1} aria-setsize={totalCount}>
-      <button type="button" aria-selected={selected} onClick={onSelect}>
+    <li key={row.make.makeId} role="option" aria-posinset={index + 1} aria-setsize={totalCount} aria-selected={selected}>
+      <button type="button" onClick={onSelect}>
         {row.make.label} {row.count === null ? '—' : row.count}
       </button>
     </li>
@@ -102,10 +107,12 @@ export interface ScreenGModelRowProps {
   readonly onSelect: () => void;
 }
 
-/** Une ligne du panneau modèle — même principe d'accessibilité que `ScreenGMakeRow`. */
+/** Une ligne du panneau modèle — même principe d'accessibilité que `ScreenGMakeRow` (`FV-16`/
+ * `D8-14` : `aria-selected` porté par le `<li role="option">`, jamais par un élément de rôle
+ * incompatible). */
 export function ScreenGModelRow({ row, index, totalCount, selected, onSelect }: ScreenGModelRowProps) {
   return (
-    <li key={row.model.modelId} role="option" aria-posinset={index + 1} aria-setsize={totalCount}>
+    <li key={row.model.modelId} role="option" aria-posinset={index + 1} aria-setsize={totalCount} aria-selected={selected}>
       <label>
         <input type="checkbox" checked={selected} onChange={onSelect} />
         {row.model.label} {row.count === null ? '—' : row.count}
@@ -117,6 +124,12 @@ export function ScreenGModelRow({ row, index, totalCount, selected, onSelect }: 
 export interface ScreenGProps {
   readonly referenceData?: ScreenGReferenceData;
   readonly currentSelection: SelectionState;
+  /** `FV-05`/`D8-05` (`EX-SCR-216`) : effectifs du périmètre filtré courant, fournis par
+   * l'appelant (le contrôleur, fix-app) — absents ⇒ repli sur `announcedCount` (`ScreenGMakeRow`/
+   * `ScreenGModelRow` affichent alors `—` jusqu'à ce que ce repli existe côté `screen-g-model.ts`,
+   * qui distingue déjà les deux cas). Clé du second : `modelKey(makeId, modelId)`. */
+  readonly counts?: ReadonlyMap<number, number>;
+  readonly modelCounts?: ReadonlyMap<string, number>;
   readonly onCancel: () => void;
   readonly onApply: (mmmv: string) => void;
 }
@@ -127,7 +140,7 @@ function currentMmmvString(selection: SelectionState): string | undefined {
   return Array.isArray(raw) ? String(raw[0]) : String(raw);
 }
 
-export function ScreenG({ referenceData, currentSelection, onCancel, onApply }: ScreenGProps) {
+export function ScreenG({ referenceData, currentSelection, counts, modelCounts, onCancel, onApply }: ScreenGProps) {
   const [makeQuery, setMakeQuery] = useState('');
   const [modelQuery, setModelQuery] = useState('');
   const [selectedMakeId, setSelectedMakeId] = useState<number | undefined>(undefined);
@@ -164,8 +177,8 @@ export function ScreenG({ referenceData, currentSelection, onCancel, onApply }: 
     );
   }
 
-  const makeRows = searchMakes(referenceData, makeQuery);
-  const modelRows = searchModels(referenceData, selectedMakeId, modelQuery);
+  const makeRows = searchMakes(referenceData, makeQuery, counts);
+  const modelRows = searchModels(referenceData, selectedMakeId, modelQuery, modelCounts);
   const candidate =
     selectedMakeId !== undefined ? serializeMmmv(selectedMakeId, selectedModelId) : undefined;
   const applyDisabled = candidate === undefined || isSameSelection(candidate, currentMmmvString(currentSelection));

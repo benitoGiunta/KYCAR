@@ -310,3 +310,39 @@ describe('R-D5-26 — écran G : « Effacer la recherche » et `ET-VIDE-FILTRES`
     expect(collectText(modelRow)).toContain('7');
   });
 });
+
+describe('R-D5-28 — FV-16/D8-14 : `aria-allowed-attr` de l’écran G (axe-core critique ×82)', () => {
+  // Avant correction : `aria-selected` était posé sur le `<button>` interne (rôle implicite
+  // `button`), qui ne le supporte pas — axe-core lève `aria-allowed-attr` (critique) sur chaque
+  // ligne montée. `aria-selected` n'est permis que sur un rôle qui le déclare (dont `option`,
+  // porté ici par le `<li>`) : c'est LUI qui doit recevoir l'attribut d'état.
+  it('R-D5-28 — ScreenGMakeRow : `aria-selected` est sur le `<li role="option">`, jamais sur le `<button>`', () => {
+    const vnode = ScreenGMakeRow({
+      row: { make: { makeId: 1, label: 'Test', slug: 'test', announcedCount: 5 }, count: 5 },
+      index: 0,
+      totalCount: 1,
+      selected: true,
+      onSelect: () => {},
+    });
+    expect(vnode.props.role).toBe('option');
+    expect(vnode.props['aria-selected']).toBe(true);
+    const button = findAll(vnode, (n) => n.type === 'button')[0];
+    expect(button).toBeDefined();
+    expect(button?.props['aria-selected']).toBeUndefined();
+  });
+
+  it('R-D5-28 — ScreenGModelRow : même règle, `aria-selected` sur le `<li role="option">`', () => {
+    const vnode = ScreenGModelRow({
+      row: {
+        model: { makeId: 1, modelId: 2, label: 'Modèle', slug: 'modele', bodyTypes: [], announcedCount: 3 },
+        count: 3,
+      },
+      index: 0,
+      totalCount: 1,
+      selected: false,
+      onSelect: () => {},
+    });
+    expect(vnode.props.role).toBe('option');
+    expect(vnode.props['aria-selected']).toBe(false);
+  });
+});

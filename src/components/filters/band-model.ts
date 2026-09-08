@@ -10,6 +10,7 @@
 
 import {
   EXPOSED_FILTER_DEFS,
+  FILTER_BY_ID,
   GROUP_LABELS,
   GROUP_ORDER,
   PRIMARY_FILTER_DEFS,
@@ -18,6 +19,7 @@ import {
   resolveFilterClass,
 } from '../../state/filter-registry';
 import type { FilterDef, ScreenMode, SelectionState } from '../../state/filter-types';
+import { formatOfferCount } from '../../screens/market/format';
 
 /** Groupes normatifs de l'accordéon (`EX-SCR-93`) : `tri` et `liste_annonces` en sont exclus — le
  * premier est un contrôle de tri dédié des écrans A/D, le second n'existe que sur l'écran D. */
@@ -143,4 +145,68 @@ export function defaultExpandedGroups(selection: SelectionState): ReadonlySet<st
 export function isControlDisabled(def: FilterDef, selection: SelectionState, mode: ScreenMode): boolean {
   if (resolveFilterClass(def, mode) === 'D') return true;
   return !isDependencySatisfied(def, selection);
+}
+
+/* ================================================================================================
+ * `D8-15` — régimes responsive du bandeau (`EX-SCR-96` intermédiaire, `EX-SCR-97` compact,
+ * `EX-SCR-98` paliers en liste déroulante native — confirmé par le coordinateur : `EX-SCR-95` est
+ * le bloc « Assainissement KYCAR », HORS PÉRIMÈTRE, dette produit ratifiée par D8-15, à ne pas
+ * implémenter), raccourci clavier `/` (`EX-SCR-81`) et notification de retrait en cascade
+ * (`EX-SCR-73`) — voir `reports/remediation-2.8/fix-state.md` pour le détail de cette lecture.
+ * ============================================================================================== */
+
+/** Trois régimes visuels du bandeau (`draft-screens.md` §3/4) : `large` (défaut, ≥ 1280 px),
+ * `intermediaire` (768–1279 px, `EX-SCR-96`) et `compact` (< 768 px, `EX-SCR-97`). La mise en page
+ * elle-même (grille, largeurs, media queries) est un point de style qui appartient à
+ * `src/app/app.css` (hors périmètre `src/components/filters`) — ce module ne porte que la
+ * DÉCISION de régime et le comportement fonctionnel qui en dépend (feuille plein écran et
+ * application différée du régime `compact`, non de la seule CSS). */
+export type BandRegime = 'large' | 'intermediaire' | 'compact';
+
+/**
+ * `EX-SCR-81` : le raccourci `/` doit ATTEINDRE le champ de recherche de filtre depuis n'importe
+ * où dans l'application, SAUF si le focus est déjà dans un champ de saisie — sinon il empêcherait
+ * de taper un `/` littéral dans un champ texte (ex. une plaque, une note). Fonction pure : ne
+ * connaît que la forme de l'élément actuellement focalisé, pas le DOM lui-même (`FilterBand.tsx`
+ * l'appelle depuis un `useEffect`, non sondable ici faute d'environnement DOM, `vitest.review.
+ * config.ts#environment: 'node'`).
+ */
+export function isTypingTarget(tagName: string | null | undefined, isContentEditable: boolean): boolean {
+  if (isContentEditable) return true;
+  const tag = tagName?.toUpperCase();
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
+/**
+ * `EX-SCR-73` : « Lorsqu'un parent est retiré, ses enfants sont retirés avec une notification
+ * explicite : `3 filtres de leasing retirés` pendant 5 s, avec un bouton `Annuler`. » Le message
+ * nomme le GROUPE des filtres retirés par la cascade quand ils appartiennent tous au même groupe
+ * (le cas normatif : les 9 filtres de leasing dépendent tous de `hasLeasing`) ; repli générique
+ * sinon (une chaîne de dépendances peut, en théorie, traverser plusieurs groupes). `null` si rien
+ * n'a été retiré PAR LA CASCADE (le retrait direct de l'utilisateur ne se notifie pas lui-même).
+ */
+export function cascadeRemovalMessage(removedFilterIds: readonly string[]): string | null {
+  if (removedFilterIds.length === 0) return null;
+  const n = removedFilterIds.length;
+  const plural = n > 1 ? 's' : '';
+  const groups = new Set(
+    removedFilterIds.map((id) => FILTER_BY_ID.get(id)?.group).filter((g): g is string => g !== undefined),
+  );
+  if (groups.size === 1) {
+    const groupLabel = (GROUP_LABELS[[...groups][0]!] ?? '').toLowerCase();
+    if (groupLabel.length > 0) return `${n} filtre${plural} de ${groupLabel} retiré${plural}`;
+  }
+  return `${n} filtre${plural} retiré${plural}`;
+}
+
+/**
+ * `EX-SCR-97` : « le bouton [de validation] affiche l'effectif projeté. » `projectedCount`
+ * provient de l'appelant (le contrôleur, seul à pouvoir évaluer un effectif sous une sélection
+ * candidate non encore appliquée) ; `undefined` tant qu'il n'a pas encore répondu ⇒ un libellé
+ * neutre plutôt qu'un effectif inventé ou périmé.
+ */
+export function deferredApplyLabel(projectedCount: number | undefined): string {
+  if (projectedCount === undefined) return 'Voir les résultats';
+  if (projectedCount === 0) return 'Voir les résultats (0 offre)';
+  return `Voir les ${formatOfferCount(projectedCount)}`;
 }

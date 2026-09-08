@@ -12,12 +12,15 @@
  * ailleurs dans la coquille (`src/app.tsx`, `saveCurrentSearch`/`MarketToolbar`) — ce composant ne
  * le duplique pas, il expose seulement le point de câblage.
  */
-import { buildActiveFilterTokens } from './labels';
-import type { SelectionState } from '../../state/filter-types';
+import { buildActiveFilterTokens, type TokenTaxonomyReference } from './labels';
+import type { FilterValue, SelectionState } from '../../state/filter-types';
 import { formatOfferCount } from '../../screens/market/format';
 
 export interface ActiveFilterTokensProps {
   readonly selection: SelectionState;
+  /** `D8-04d` : résout les libellés taxonomiques du jeton `mmmv` (« Volkswagen », « Golf »),
+   * jamais le code brut — absent ⇒ repli sur un espace réservé numéroté (`labels.ts`). */
+  readonly referenceData?: TokenTaxonomyReference;
   readonly resultCount?: number;
   /** `EX-SCR-78` : pendant `ET-CHARGE-MAJ`, `true` fait afficher `resultCount` (la dernière valeur
    * CONNUE, jamais `0`) atténué et suivi de `…`. L'appelant continue de passer le dernier effectif
@@ -29,6 +32,10 @@ export interface ActiveFilterTokensProps {
    * substance », `D-10`, `DR-062`). Absent des jetons à 1 ou 2 valeurs (`removalTargets` alors
    * absent), qui se retirent entièrement via `onRemove`. */
   readonly onRemovePartial: (filterId: string, removesCodes: readonly string[]) => void;
+  /** `D8-04d` : retrait du jeton « modèle » de `mmmv` — RESTREINT le filtre à `value` plutôt que
+   * de le supprimer (`narrowsTo`, `labels.ts`). Seul le jeton de niveau modèle en porte un ; les
+   * autres croix passent par `onRemove`. */
+  readonly onNarrow: (filterId: string, value: FilterValue) => void;
   /** `EX-SCR-94` : ouvre le CRUD d'enregistrement de recherche (écran E). Absent ⇒ le bouton n'est
    * pas rendu — n'invente jamais un mécanisme d'enregistrement local (`DR-139`). */
   readonly onSaveSearch?: () => void;
@@ -36,14 +43,16 @@ export interface ActiveFilterTokensProps {
 
 export function ActiveFilterTokens({
   selection,
+  referenceData,
   resultCount,
   resultCountLoading,
   onRemove,
   onClearAll,
   onRemovePartial,
+  onNarrow,
   onSaveSearch,
 }: ActiveFilterTokensProps) {
-  const tokens = buildActiveFilterTokens(selection);
+  const tokens = buildActiveFilterTokens(selection, referenceData);
   if (tokens.length === 0) return null;
 
   return (
@@ -58,7 +67,7 @@ export function ActiveFilterTokens({
             <button
               type="button"
               aria-label={`Retirer le filtre ${t.text}`}
-              onClick={() => onRemove(t.filterIds)}
+              onClick={() => (t.narrowsTo !== undefined ? onNarrow(t.narrowsTo.filterId, t.narrowsTo.value) : onRemove(t.filterIds))}
             >
               ×
             </button>

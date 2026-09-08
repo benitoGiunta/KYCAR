@@ -11,7 +11,24 @@ function toCodeSet(value: unknown): Set<string> {
   return new Set([String(value)]);
 }
 
-export function CheckboxList({ def, value, disabled, disabledReason, facetCounts, onChange }: FilterControlProps) {
+/** `D8-05` (`EX-SCR-89`) : le libellé de la parenthèse d'effectif — `…` pendant l'écart de
+ * recalcul (`facetCountsPending`), sinon la valeur connue. `undefined` (facette non fournie, ex.
+ * filtre de classe T) ne rend AUCUNE parenthèse — jamais une parenthèse vide. */
+function facetCountLabel(count: number | undefined, pending: boolean): string | null {
+  if (pending) return '…';
+  if (count === undefined) return null;
+  return String(count);
+}
+
+export function CheckboxList({
+  def,
+  value,
+  disabled,
+  disabledReason,
+  facetCounts,
+  facetCountsPending,
+  onChange,
+}: FilterControlProps) {
   const options = def.options ?? [];
   const current = toCodeSet(value);
   const warning = semanticsWarningTooltip(def);
@@ -42,6 +59,11 @@ export function CheckboxList({ def, value, disabled, disabledReason, facetCounts
         {options.map((opt) => {
           const id = `filter-${def.id}-${opt.code}`;
           const count = facetCounts?.get(opt.code);
+          const pending = facetCountsPending === true;
+          const label = facetCountLabel(count, pending);
+          // `EX-SCR-89` : `(0)` reste visible mais en gris — l'option reste cochable (aucune
+          // désactivation liée à l'effectif, seul un filtre de classe T désactive une option).
+          const isZero = !pending && count === 0;
           return (
             <label key={opt.code} for={id} class="kycar-checkbox-option">
               <input
@@ -52,7 +74,12 @@ export function CheckboxList({ def, value, disabled, disabledReason, facetCounts
                 onChange={() => toggle(opt.code)}
               />
               {resolveOptionLabel(def, opt.code)}
-              {count !== undefined ? ` (${count})` : ''}
+              {label !== null ? (
+                <span class="kycar-facet-count" style={isZero ? { opacity: 0.55 } : undefined}>
+                  {' '}
+                  ({label})
+                </span>
+              ) : null}
             </label>
           );
         })}
