@@ -17,6 +17,7 @@
 
 import { useMemo, useState } from 'preact/hooks';
 import type { ListingColumnBatch, SelectionInput } from '../../types/index';
+import { MODEL_ID_UNRESOLVED } from '../../types/index';
 import type { RecalcResult } from '../../engine/index';
 import { decodeListingId } from '../../engine/uuid';
 import { OutlierIndex, comparisonBaseLabel, methodLabel } from '../outlier-index';
@@ -87,6 +88,9 @@ export interface DistributionScreenProps {
   readonly labels?: DistributionLabels;
   /** Nom « Marque Modèle » pour l'en-tête et l'étiquetage EX-SCR-158bis. */
   readonly makeModelName?: string;
+  /** `EX-SCR-113bis` (D8-06/FV-08) — clé réservée `MODEL_ID_UNRESOLVED` (0) : mode « Modèle non
+   * identifié ». Bandeau non refermable, `G5`/`G6`/`G8`/`G10`/`G14` hors DOM, `Comparer` désactivé. */
+  readonly modelId?: number;
   /** Ouvre l'annonce d'origine (deeplink), fourni par D8. */
   readonly onOpenListing?: (row: number) => void;
 
@@ -175,6 +179,9 @@ export function DistributionScreen(props: DistributionScreenProps) {
   const selectionCell = useMemo(() => selectionCellStat(recalc.cellStats), [recalc.cellStats]);
   const g8Caption = useMemo(() => g8ModelCaption(selectionCell), [selectionCell]);
   const g8Warning = useMemo(() => g8RSquaredWarning(selectionCell), [selectionCell]);
+
+  // `EX-SCR-113bis` (D8-06/FV-08) — mode « Modèle non identifié ».
+  const isUnresolvedModel = props.modelId === MODEL_ID_UNRESOLVED;
 
   const variant: G4Variant = effectiveG4Variant(ui, selectionCount);
   const labels = props.labels ?? {};
@@ -323,7 +330,12 @@ export function DistributionScreen(props: DistributionScreenProps) {
           <button type="button" onClick={props.onViewListings}>
             Voir les {selectionCount} annonces
           </button>
-          <button type="button" onClick={props.onCompare}>
+          <button
+            type="button"
+            onClick={props.onCompare}
+            disabled={isUnresolvedModel}
+            title={isUnresolvedModel ? 'un modèle non identifié ne peut pas être comparé' : undefined}
+          >
             Comparer
           </button>
           <button type="button" onClick={() => props.onFollow?.(!props.isFollowed)} aria-pressed={props.isFollowed ?? false}>
@@ -347,11 +359,19 @@ export function DistributionScreen(props: DistributionScreenProps) {
         </div>
       </header>
 
+      {/* `EX-SCR-113bis` (D8-06/FV-08) — bandeau NON refermable du mode « Modèle non identifié ». */}
+      {isUnresolvedModel ? (
+        <div class="kycar-banner kycar-banner--ambre" role="status">
+          Ces annonces n’ont pas pu être rattachées à un modèle du référentiel — les distributions
+          par modèle ne s’appliquent pas
+        </div>
+      ) : null}
+
       {/* Bloc 2 — histogrammes G1–G3 */}
       <section class="kycar-hist-row" aria-label="Distributions">
         <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} selectedCounts={priceSelectedCounts} />
-        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} onSelectBucket={onSelectBucket('mileage')} selectedCounts={mileageSelectedCounts} />
-        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} onSelectBucket={onSelectBucket('year')} selectedCounts={yearSelectedCounts} />
+        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} selectedCounts={mileageSelectedCounts} />
+        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} selectedCounts={yearSelectedCounts} />
       </section>
 
       {/* Bloc 3 — nuage G4 */}
@@ -380,23 +400,27 @@ export function DistributionScreen(props: DistributionScreenProps) {
         ) : null}
       </section>
 
-      {/* Bloc 4 — graphes additionnels (ordre EX-SCR-144) */}
+      {/* Bloc 4 — graphes additionnels (ordre EX-SCR-144). `EX-SCR-113bis` (D8-06/FV-08) : en mode
+          « Modèle non identifié », G5/G6/G8/G10/G14 sont hors DOM (jamais seulement masqués en CSS —
+          C₁/C₂ de la détection d'outlier exigent un `modelId` résolu, EX-SCR-113bis). */}
       <section class="kycar-graph-grid" aria-label="Graphes additionnels">
-        <YearMedianChart points={yearMedian} />
-        <DepreciationChart model={depreciation} />
+        {!isUnresolvedModel ? <YearMedianChart points={yearMedian} /> : null}
+        {!isUnresolvedModel ? <DepreciationChart model={depreciation} /> : null}
         <DensityHeatmap density={density} />
-        <OutlierLollipopChart
-          items={lollipops}
-          perimeter={{ makeModel: props.makeModelName }}
-          onOpen={props.onOpenListing}
-          modelCaption={g8Caption}
-          rSquaredWarning={g8Warning}
-        />
+        {!isUnresolvedModel ? (
+          <OutlierLollipopChart
+            items={lollipops}
+            perimeter={{ makeModel: props.makeModelName }}
+            onOpen={props.onOpenListing}
+            modelCaption={g8Caption}
+            rSquaredWarning={g8Warning}
+          />
+        ) : null}
         <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} />
-        <MileageBoxes boxes={mileageBoxes} />
+        {!isUnresolvedModel ? <MileageBoxes boxes={mileageBoxes} /> : null}
         <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." />
         <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} />
-        <PowerTiers tiers={powerTiers} />
+        {!isUnresolvedModel ? <PowerTiers tiers={powerTiers} /> : null}
         <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} />
         {/* A-08 (DR-147, DETTE consignée) : CO₂, consommation et boîte de vitesses sont écartés de
             cette grille — voir `reports/remediation/fix-screens.md` §6.5. Mention volontairement

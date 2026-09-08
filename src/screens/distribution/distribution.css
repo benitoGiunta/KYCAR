@@ -29,6 +29,14 @@
   font-size: var(--font-size-large);
 }
 
+/* Bandeau d'état de l'écran B (`EX-SCR-113bis`, D8-06) — mêmes tons que `kycar-market-banner`. */
+.kycar-banner {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+.kycar-banner--ambre { background: color-mix(in srgb, #b3261e 0%, #ffd54a 22%); }
+
 .kycar-hist-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

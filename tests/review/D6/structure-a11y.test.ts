@@ -129,6 +129,21 @@ describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-
     expect(text).toContain('2010');
     expect(text).toContain('12 000');
   });
+
+  // D8-06 (FV-09) : `view-model.ts::lowSampleToken` était calculé mais JAMAIS rendu par `ModelZone`
+  // — le jeton ambre `n = <n>` d'`EX-SCR-33`/`134` n'apparaissait donc jamais dans le DOM.
+  it("D8-06/FV-09 : le jeton ambre `n = <n>` (effectif réduit) est bien rendu quand `view-model.ts` le pose", () => {
+    const zone = baseZone({
+      price: { label: '9 000 – 15 000 €', caption: 'fourchette observée (min – max, effectif réduit)', available: true, lowSampleToken: 'n = 8' },
+    });
+    const vnode = ModelZone({ zone, onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
+    expect(collectText(vnode)).toContain('n = 8');
+  });
+
+  it('absence de `lowSampleToken` sur les trois fourchettes -> aucun jeton rendu (non-régression)', () => {
+    const vnode = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
+    expect(collectText(vnode)).not.toMatch(/n = \d/);
+  });
 });
 
 describe('SummaryBar — EX-SCR-106, structure de formulaire (label/select associés)', () => {

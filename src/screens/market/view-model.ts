@@ -78,21 +78,30 @@ export interface CentralRange {
 
 const CENTRAL_RANGE_CAPTION = 'fourchette centrale (90 % des offres)';
 const RAW_RANGE_CAPTION = 'du moins cher au plus cher';
+/** `D8-06` (FV-09, D-04/D-36) : sous `n = 12`, la fourchette affichée n'est plus `[p05, p95]` (non
+ * significatif à si faible effectif) mais `[min, max]` — ce libellé le dit, jamais la légende du
+ * P5/P95 normal. */
+const LOW_SAMPLE_CAPTION = 'fourchette observée (min – max, effectif réduit)';
 const UNAVAILABLE_RANGE: CentralRange = { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false };
 
-/** `EX-SCR-33` (D-04) : paliers `'trop-faible'`/`'reduite'` (1 ≤ n ≤ 11) masquent le P5/P95 et posent
- * le jeton `n = <n>`, quelle que soit la métrique — même table de seuils que partout ailleurs
- * (`thresholds.ts::effectifTier`), jamais un seuil local à cette fonction. */
-function lowSampleGuard(n: number): CentralRange | undefined {
+/**
+ * `EX-SCR-33`/`114`/`134` (D-04, D-36, D8-06/FV-09) : sous `n = 12` (paliers `'trop-faible'` ET
+ * `'reduite'`, `thresholds.ts::effectifTier` — seuils uniques pour toute l'application), la
+ * fourchette centrale `[p05, p95]` est remplacée par `[min, max]`, disponible DÈS `n = 1`, avec le
+ * jeton ambre `n = <n>` (`lowSampleToken`) — jamais `« — »` : c'est exactement le défaut que FV-09 a
+ * relevé (fourchette masquée alors que `min`/`max` sont connus). `min`/`max` eux-mêmes `null`
+ * (métrique jamais renseignée) reste le seul cas où `« — »` est affiché. */
+function lowSampleRange(n: number, min: number | null, max: number | null, format: (lo: number, hi: number) => string): CentralRange | undefined {
   const tier = effectifTier(n);
-  if (tier === 'trop-faible' || tier === 'reduite') {
+  if (tier !== 'trop-faible' && tier !== 'reduite') return undefined;
+  if (min === null || max === null) {
     return { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false, lowSampleToken: `n = ${n}` };
   }
-  return undefined;
+  return { label: format(min, max), caption: LOW_SAMPLE_CAPTION, available: true, lowSampleToken: `n = ${n}` };
 }
 
 function priceCentralRange(price: MetricRange): CentralRange {
-  const guard = lowSampleGuard(price.n);
+  const guard = lowSampleRange(price.n, price.min, price.max, formatPriceRange);
   if (guard) return guard;
   if (price.p05 === null || price.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatPriceRange(price.p05, price.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
@@ -104,14 +113,14 @@ function priceRawRangeTooltip(price: MetricRange): string | undefined {
 }
 
 function yearCentralRange(year: MetricRange): CentralRange {
-  const guard = lowSampleGuard(year.n);
+  const guard = lowSampleRange(year.n, year.min, year.max, formatYearRange);
   if (guard) return guard;
   if (year.p05 === null || year.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatYearRange(year.p05, year.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
 }
 
 function mileageCentralRange(mileage: MetricRange): CentralRange {
-  const guard = lowSampleGuard(mileage.n);
+  const guard = lowSampleRange(mileage.n, mileage.min, mileage.max, formatMileageRange);
   if (guard) return guard;
   if (mileage.p05 === null || mileage.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatMileageRange(mileage.p05, mileage.p95), caption: CENTRAL_RANGE_CAPTION, available: true };

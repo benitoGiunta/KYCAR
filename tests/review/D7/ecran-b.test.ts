@@ -150,6 +150,66 @@ describe('D7 · écran B — structure des blocs et graphes (EX-SCR-141/144/191)
   });
 });
 
+describe('D7 · écran B — notes d’exclusion sous G1–G3 (EX-SCR-178, FV-11)', () => {
+  it('G1 (prix) : la note d’exclusion, déjà alimentée depuis `SelectionStats`, est bien rendue', () => {
+    const g1 = findAll(tree, (n) => n.type === 'figure' && n.props['data-graph'] === 'G1')[0]!;
+    expect(norm(visibleTextOf(g1))).toMatch(/annonces exclues \(\s*(prix sur demande|prix absent)\s*\)/);
+  });
+
+  // Le dataset synthétique du fixture ne laisse aucun km/année inconnu (`mileage.n`/`year.n` =
+  // `selectionCount`), donc G2/G3 n'ont normativement RIEN à exclure ici (`GraphFrame` masque une
+  // note à `count = 0`, EX-SCR-178). On force un écart artificiel sur une COPIE de `recalc` pour
+  // prouver que G2/G3 sont bien câblés sur `SelectionStats.mileage.n`/`year.n` (FV-11), pas juste G1.
+  it('D8-06/FV-11 : G2 (km) et G3 (année) portent une note d’exclusion dès que `mileage.n`/`year.n` < `selectionCount`', () => {
+    const gappy = renderScreen({
+      recalc: {
+        ...f.recalc,
+        selectionStats: {
+          ...f.recalc.selectionStats,
+          mileage: { ...f.recalc.selectionStats.mileage, n: f.recalc.selectionStats.mileage.n - 50 },
+          year: { ...f.recalc.selectionStats.year, n: f.recalc.selectionStats.year.n - 30 },
+        },
+      },
+    });
+    const g2 = findAll(gappy, (n) => n.type === 'figure' && n.props['data-graph'] === 'G2')[0]!;
+    const g3 = findAll(gappy, (n) => n.type === 'figure' && n.props['data-graph'] === 'G3')[0]!;
+    expect(norm(visibleTextOf(g2))).toMatch(/50 annonces exclues \(\s*kilométrage non renseigné\s*\)/);
+    expect(norm(visibleTextOf(g3))).toMatch(/30 annonces exclues \(\s*année non renseignée\s*\)/);
+  });
+});
+
+describe('D7 · écran B — mode « Modèle non identifié » (EX-SCR-113bis, D8-06/FV-08)', () => {
+  const restricted = renderScreen({ modelId: 0 });
+
+  it('bandeau non refermable, texte exact', () => {
+    expect(findAll(restricted, (n) => n.props['role'] === 'status').length).toBeGreaterThan(0);
+    expect(norm(visibleTextOf(restricted))).toContain(
+      'Ces annonces n’ont pas pu être rattachées à un modèle du référentiel — les distributions par modèle ne s’appliquent pas',
+    );
+  });
+
+  it('G5, G6, G8, G10, G14 sont hors DOM ; G1–G4, G7, G9, G12, G13, G15 restent rendus', () => {
+    const present = findAll(restricted, (n) => n.type === 'figure').map((n) => String(n.props['data-graph']));
+    for (const hidden of ['G5', 'G6', 'G8', 'G10', 'G14']) expect(present, hidden).not.toContain(hidden);
+    for (const kept of ['G1', 'G2', 'G3', 'G7', 'G9', 'G12', 'G13', 'G15']) expect(present, kept).toContain(kept);
+  });
+
+  it('« Comparer » est désactivé avec l’infobulle normative', () => {
+    const compare = findAll(restricted, byType('button')).find((b) => norm(visibleTextOf(b)) === 'Comparer')!;
+    expect(compare.props['disabled']).toBe(true);
+    expect(compare.props['title']).toBe('un modèle non identifié ne peut pas être comparé');
+  });
+
+  it('un modèle RÉSOLU ne montre ni le bandeau ni aucune restriction (non-régression)', () => {
+    const normal = renderScreen({ modelId: 42 });
+    expect(norm(visibleTextOf(normal))).not.toContain('n’ont pas pu être rattachées');
+    const present = findAll(normal, (n) => n.type === 'figure').map((n) => String(n.props['data-graph']));
+    expect(present).toContain('G5');
+    const compare = findAll(normal, byType('button')).find((b) => norm(visibleTextOf(b)) === 'Comparer')!;
+    expect(compare.props['disabled']).toBeFalsy();
+  });
+});
+
 describe('D7 · écran B — liaison croisée et interactions du nuage (EX-SCR-158/184/185)', () => {
   const brushed = renderScreen({ ui: { ...EMPTY_UI_STATE, brushX: { from: 0, to: 1e9 }, brushY: { from: 0, to: 1e9 } } });
 

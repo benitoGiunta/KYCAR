@@ -80,6 +80,13 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
           <span title={zone.year.caption}>{zone.year.label}</span>
           <span title={zone.mileage.caption}>{zone.mileage.label}</span>
           <span>{zone.medianLabel}</span>
+          {/* `EX-SCR-33`/`134` (D8-06/FV-09) : jeton ambre `n = <n>` — un seul jeton pour les trois
+              fourchettes, elles partagent le même effectif de métrique sous ce palier. */}
+          {zone.price.lowSampleToken ?? zone.year.lowSampleToken ?? zone.mileage.lowSampleToken ? (
+            <span class="kycar-market-low-sample-token" title="effectif réduit — percentiles désactivés">
+              {zone.price.lowSampleToken ?? zone.year.lowSampleToken ?? zone.mileage.lowSampleToken}
+            </span>
+          ) : null}
         </div>
       ) : (
         <div class="kycar-market-zone-ranges">Fourchettes indisponibles — aucune annonce échantillonnée</div>

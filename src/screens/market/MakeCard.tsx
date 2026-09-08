@@ -78,6 +78,12 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
             '—'
           )}
           {card.year.available ? <span> · {card.year.label}</span> : null}
+          {/* `EX-SCR-33` (D8-06/FV-09) : même jeton ambre qu'en zone-modèle, au niveau de la carte. */}
+          {card.price.lowSampleToken ?? card.year.lowSampleToken ? (
+            <span class="kycar-market-low-sample-token" title="effectif réduit — percentiles désactivés">
+              {card.price.lowSampleToken ?? card.year.lowSampleToken}
+            </span>
+          ) : null}
         </div>
       </div>
 

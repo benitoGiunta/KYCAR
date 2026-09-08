@@ -51,7 +51,12 @@ describe(
     // protocole d'écriture d'abord rouge puis vert a été suivi (`npx vitest run` sur ce fichier avant
     // la correction de `view-model.ts` → rouge ; après → vert, voir `reports/remediation/fix-
     // screens.md`).
-    it("un modèle à n_price = 8 (palier 'reduite') masque désormais le P5-P95 numérique et porte le jeton ambre n = 8", () => {
+    // D8-06/D8-19 (FV-09) : `D-36` tranche que le P5/P95 masqué sous n=12 est REMPLACÉ par
+    // `[min, max]` (jamais par « — » tant que min/max sont connus) — c'est exactement l'écart relevé
+    // par FV-09 (« — » affiché au lieu de min–max). `available` passe donc de `false` à `true` (une
+    // fourchette EST affichée, seulement pas la fourchette P5/P95 normale) et le libellé attendu
+    // devient le min–max formaté ; le jeton ambre `n = 8`, lui, est INCHANGÉ.
+    it("un modèle à n_price = 8 (palier 'reduite') affiche [min, max] (pas « — ») et porte le jeton ambre n = 8", () => {
       const agg = modelAgg({
         modelId: 50,
         listingCount: 8,
@@ -59,7 +64,8 @@ describe(
       });
       const zone = buildModelZoneViewModel(agg, CORSA, 8, false);
       expect(effectifTier(agg.price.n)).toBe('reduite');
-      expect(zone.price.available).toBe(false);
+      expect(zone.price.available).toBe(true);
+      expect(zone.price.label).not.toBe('—');
       expect(zone.price.lowSampleToken).toBe('n = 8');
     });
 

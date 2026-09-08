@@ -223,6 +223,16 @@
 .kycar-market-coverage-dot--creux { background: var(--color-danger); }
 .kycar-market-coverage-dot--indisponible { background: none; color: var(--color-text-muted); }
 
+/* `EX-SCR-33` (D8-06/FV-09) : jeton ambre `n = <n>` d'effectif réduit (1 ≤ n ≤ 11). */
+.kycar-market-low-sample-token {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #b3261e 0%, #ffd54a 30%);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .kycar-market-card-footer {
   min-height: 40px;
   display: flex;
