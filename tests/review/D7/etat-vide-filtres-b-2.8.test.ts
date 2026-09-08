@@ -12,7 +12,8 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import type { MetricStats, RecalcResult } from '../../../src/engine/index';
+import type { RecalcResult } from '../../../src/engine/index';
+import type { MetricStats } from '../../../src/types/index';
 import type { RestrictiveFilterHint } from '../../../src/screens/market/state';
 
 vi.mock('preact/hooks', () => ({

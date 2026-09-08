@@ -17,6 +17,8 @@
 const NNBSP = ' '; // espace insécable étroite — séparateur de milliers (EX-SCR-1)
 const NBSP = ' '; // espace insécable normale — devant un symbole d'unité (EX-SCR-3/5)
 const EN_DASH = '–'; // tiret demi-cadratin — séparateur de fourchette (EX-SCR-4)
+/** Caractère d'absence normatif (`EX-SCR-34`, `ET-CHAMP-MANQUANT`) — U+2014. */
+export const MISSING_VALUE = '—';
 
 const GROUP_FORMAT = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 0 });
 
@@ -105,7 +107,15 @@ export function formatModelYear(year: number): string {
  * chaîne ISO-8601 (`condition.firstRegistrationDate`) ; `null`/invalide suit `EX-SCR-36`/`ET-CHAMP-
  * MANQUANT` au niveau appelant, ce module ne décide pas de ce repli. */
 export function formatFirstRegistrationMonthYear(isoDate: string): string {
+  // `EX-DATA-23` (D8-31, signalé par fix-engine-2) : toute forme non parsable donne `INCONNU` +
+  // `FIRST_REG_UNPARSEABLE` à l'ingestion. Ici, `new Date('inconnu')` produisait `NaN/NaN` — une
+  // valeur affichée qui n'existe pas. `EX-SCR-34` : le repli est le caractère d'absence `—`.
+  // La forme attendue est celle d'`EX-DATA-23` : `AAAA-MM` (éventuellement suivi du jour et de
+  // l'heure d'un ISO-8601 complet), mois 01..12. Une année NUE (`2017`) est écartée elle aussi :
+  // `new Date('2017')` la ramènerait à janvier, c'est-à-dire un mois INVENTÉ (« aucune tolérance »).
+  if (!/^\d{4}-(0[1-9]|1[0-2])(?![\d])/.test(isoDate)) return MISSING_VALUE;
   const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return MISSING_VALUE;
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   const yyyy = String(d.getUTCFullYear());
   return `${mm}/${yyyy}`;

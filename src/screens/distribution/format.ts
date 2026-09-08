@@ -27,9 +27,26 @@ export function formatYear(value: number): string {
   return String(Math.round(value));
 }
 
-/** `firstRegistrationYearMonth` → `MM/AAAA` (EX-SCR-203). */
+/** Caractère d'absence normatif (`EX-SCR-34`, `ET-CHAMP-MANQUANT`) — U+2014. */
+export const MISSING_VALUE = '—';
+
+/** Domaine plausible d'une année de première immatriculation (`EX-DATA-23` : `1900-01 ≤ v`). */
+const FIRST_REG_YEAR_MIN = 1900;
+const FIRST_REG_YEAR_MAX = 2100;
+
+/**
+ * `firstRegistrationYearMonth` (`12 · année + (mois − 1)`) → `MM/AAAA` (EX-SCR-203).
+ *
+ * `EX-DATA-23` (D8-31, signalé par fix-engine-2) : une date non parsable vaut `INCONNU`
+ * (`NUMERIC_UNKNOWN = −1`) + `FIRST_REG_UNPARSEABLE` à l'ingestion, et une colonne peut porter une
+ * valeur résiduelle hors domaine. Sans garde, ce formateur rendait `NaN/NaN` (valeur non finie),
+ * `00/-1` (sentinelle) ou `01/0` (année 0) : autant de dates FORGÉES, ce que `EX-SCR-34` interdit —
+ * une valeur non renseignée s'affiche `—`, jamais une date que la donnée ne porte pas.
+ */
 export function formatMonthYear(yearMonth: number): string {
+  if (!Number.isInteger(yearMonth) || yearMonth < 0) return MISSING_VALUE;
   const year = Math.floor(yearMonth / 12);
+  if (year < FIRST_REG_YEAR_MIN || year > FIRST_REG_YEAR_MAX) return MISSING_VALUE;
   const month = (yearMonth % 12) + 1;
   return `${String(month).padStart(2, '0')}/${year}`;
 }
