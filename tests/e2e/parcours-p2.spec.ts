@@ -29,7 +29,17 @@ import {
   regimeOf,
   readSelectionCount,
   stripSpaces,
+  waitForDistribution,
+  waitForMarket,
 } from './_helpers';
+
+/**
+ * Sélection à effectif NUL sur la cellule Opel Corsa : aucune Corsa n'est immatriculée entre 1950
+ * et 1960 dans le snapshot synthétique (1 352 offres sans ce filtre). C'est un intervalle, donc un
+ * SEUL jeton du bandeau porté par DEUX identifiants de filtre (`fregfrom`/`fregto`) — ce qui éprouve
+ * du même coup le retrait apparié d'`EX-SCR-26`.
+ */
+const P2_EMPTY_QUERY = '?fregfrom=1950&fregto=1960';
 
 /** Somme des effectifs de la table de données équivalente d'un cadre de graphe (`EX-NFR-15`). */
 async function sumDataTable(page: Page, graphId: string, column: number): Promise<number> {
@@ -370,5 +380,124 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
       page.getByRole('button', { name: 'Annonces du périmètre (CSV)' }).click(),
     ]);
     expect(download.suggestedFilename()).toMatch(/\.csv$/);
+  });
+  /* ==============================================================================================
+   * Vague F3 (`D8-31`) — comportements visibles ouverts par le câblage de la coquille.
+   * ============================================================================================ */
+
+  test('EX-SCR-174 / EX-SCR-26 — sélection vide : en-tête « aucune offre », graphes RETIRÉS, suggestions de retrait chiffrées', async ({
+    page,
+  }, testInfo) => {
+    await open(page, `${P2_PATH}${P2_EMPTY_QUERY}`);
+
+    // L'en-tête statistique reste affiché, mais ne rend AUCUN chiffre hérité du périmètre précédent.
+    const header = await page.locator('.kycar-stat-header').innerText();
+    mesure(testInfo, 'EX-SCR-174 — en-tête à effectif nul', header.replace(/\n/g, ' · '));
+    expect(header).toContain('aucune offre');
+    expect(header).not.toMatch(/\d\s*offres/);
+    expect(header).toContain('médiane —');
+
+    // `EX-SCR-174` : les graphes sortent du DOM — un graphe vide ferait croire à une distribution plate.
+    expect(await page.locator('#kycar-main figure').count()).toBe(0);
+
+    const block = page.locator('.kycar-screen-b-empty');
+    await expect(block).toBeVisible();
+    const blockText = await block.innerText();
+    mesure(testInfo, 'EX-SCR-26 — bloc ET-VIDE-FILTRES de l’écran B', blockText.replace(/\n+/g, ' · '));
+    expect(blockText).toContain('Aucune offre ne correspond');
+    // Le compte est celui du BANDEAU (`countActiveFilters`) : un intervalle compte ses deux bornes.
+    expect(blockText).toMatch(/2 filtres actifs restreignent la recherche\./);
+
+    // `EX-SCR-26` — la suggestion porte un GAIN, et ce gain est celui qu'on observe en la suivant.
+    const suggestion = block.getByRole('button', { name: /^retirer « / });
+    await expect(suggestion).toHaveCount(1);
+    const label = await suggestion.innerText();
+    const promised = parseInteger(/:\s*([\d\s\u00A0\u202F]+)\s*offres de plus/.exec(label)?.[1] ?? '');
+    expect(promised).toBe(P2_EXPECTED.corsaTotal);
+
+    await suggestion.click();
+    // Le retrait relance un recalcul : on attend que l'état `ET-VIDE-FILTRES` soit LEVÉ avant de
+    // lire l'effectif (sur une sélection vide, l'en-tête n'affiche aucun nombre — c'est le sujet
+    // même d'`EX-SCR-174`, pas une valeur à sonder).
+    await expect(block).toHaveCount(0, { timeout: 20_000 });
+    await waitForDistribution(page);
+    expect(await readSelectionCount(page)).toBe(promised);
+    // Le retrait emporte les DEUX bornes de l'intervalle (`removalPatchFor`), et rien d'autre.
+    expect(new URL(page.url()).search).toBe('');
+    expect(new URL(page.url()).pathname).toBe(P2_PATH);
+  });
+
+  test('EX-SCR-26 — « Réinitialiser tous les filtres » vide la requête sans quitter le modèle', async ({
+    page,
+  }) => {
+    await open(page, `${P2_PATH}${P2_EMPTY_QUERY}`);
+    const block = page.locator('.kycar-screen-b-empty');
+    await block.getByRole('button', { name: 'Réinitialiser tous les filtres' }).click();
+    await expect(block).toHaveCount(0, { timeout: 20_000 });
+    await waitForDistribution(page);
+    // La route mode 2 EST le périmètre (`EX-NAV-2`) : elle survit à la réinitialisation.
+    expect(new URL(page.url()).pathname).toBe(P2_PATH);
+    expect(new URL(page.url()).search).toBe('');
+    expect(await readSelectionCount(page)).toBe(P2_EXPECTED.corsaTotal);
+  });
+
+  test('EX-SCR-17 — la bascule d’échelle log de l’axe des prix existe sur G7, et sur lui seul', async ({
+    page,
+  }, testInfo) => {
+    await open(page, P2_PATH);
+    const g7 = page.locator('[data-graph="G7"]');
+    await expect(g7).toHaveCount(1);
+
+    const toggle = g7.getByRole('button', { name: 'Échelle log de l’axe des prix' });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(g7.locator('svg[data-price-scale]')).toHaveAttribute('data-price-scale', 'linear');
+
+    // La bascule DÉPLACE réellement les cellules : un drapeau décoratif ne passerait pas.
+    const before = await g7.locator('svg[data-price-scale] rect[data-price-lower]').first().getAttribute('y');
+    await toggle.click();
+
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(g7.locator('svg[data-price-scale]')).toHaveAttribute('data-price-scale', 'log');
+    const after = await g7.locator('svg[data-price-scale] rect[data-price-lower]').first().getAttribute('y');
+    mesure(testInfo, 'EX-SCR-17 — ordonnée de la première cellule G7', `linéaire ${before} → log ${after}`);
+    expect(after).not.toBe(before);
+
+    // `EX-SCR-16` — l'état est mémorisé PAR GRAPHE dans l'URL, en `replace` (aucune entrée d'historique).
+    expect(new URL(page.url()).search).toBe('?g7log=1');
+    // Aucun autre graphe ne bascule : `g1log` reste absent et G4 n'offre aucune bascule log.
+    expect(await page.locator('[data-graph="G4"]').getByRole('button', { name: /Échelle log/ }).count()).toBe(0);
+
+    // Rouverte, l'URL rend le MÊME état (`EX-NAV-18`).
+    await open(page, `${P2_PATH}?g7log=1`);
+    await expect(
+      page.locator('[data-graph="G7"]').getByRole('button', { name: 'Échelle log de l’axe des prix' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('EX-SRCH-14 — changer de marque en mode 2 vide le modèle et redirige vers l’écran A', async ({
+    page,
+  }, testInfo) => {
+    await open(page, `${P2_PATH}?priceto=20000`);
+
+    // `EX-SCR-103` — le seul sélecteur de marque atteignable en mode 2 est le contrôle
+    // `Marque / Modèle` du bandeau, qui ouvre l'écran `G`.
+    await page.locator('.kycar-filter-band .kycar-control--structured-picker button').first().click();
+    const dialog = page.getByRole('dialog', { name: 'Sélectionner marque et modèle' });
+    await expect(dialog).toBeVisible();
+    await dialog.getByPlaceholder('Rechercher…').fill('Volkswagen');
+    await dialog.locator('[role="option"]').first().click();
+    await dialog.getByRole('button', { name: 'Appliquer' }).click();
+
+    await waitForMarket(page);
+    const url = new URL(page.url());
+    mesure(testInfo, 'EX-SRCH-14 — URL après changement de marque depuis l’écran B', `${url.pathname}${url.search}`);
+    // Plus aucun segment de modèle dans le chemin : l'utilisateur revient à « marque choisie,
+    // modèle à choisir ». La forme canonique de `mmmv` est la forme COURTE (`74`), qui est la même
+    // valeur que `74|||` (cf. fix-state-2 §2.3, hypothèse E4 ratifiée par la sonde R-D5-2.8-03).
+    expect(url.pathname).toBe('/marche');
+    expect(url.searchParams.get('mmmv')).toBe('74');
+    // Les autres filtres posés sont CONSERVÉS (`EX-NAV-17`).
+    expect(url.searchParams.get('priceto')).toBe('20000');
   });
 });

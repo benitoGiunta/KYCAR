@@ -220,4 +220,35 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     mesure(testInfo, 'EX-NAV-21 — corrections appliquées en silence', silent.join(' ; ') || '(aucune)');
     expect(silent).toEqual([]);
   });
+  test('EX-SCR-101 — une URL partagée portant une marque absente du snapshot : le filtre est CONSERVÉ, marqué et compté à part', async ({
+    page,
+  }, testInfo) => {
+    // `D8-31` — la validation référentielle de `mmmv` n'appartient pas à `EX-NAV-21` : un
+    // identifiant taxonomique inconnu n'est PAS retiré de l'URL (le lien reste fidèle à ce que son
+    // auteur a partagé). Le bandeau doit donc le dire, sans jamais l'effacer en silence.
+    await page.goto('/marche?mmmv=999999&priceto=20000', { waitUntil: 'commit' });
+    const tokens = page.locator('.kycar-active-tokens').first();
+    await expect(tokens).toBeVisible({ timeout: 60_000 });
+
+    // L'URL n'a pas bougé : aucune correction n'a retiré l'identifiant inconnu.
+    expect(new URL(page.url()).search).toBe('?mmmv=999999&priceto=20000');
+
+    const marked = page.locator('[data-ineffective="true"]');
+    await expect(marked).toHaveCount(1);
+    const tooltip = await marked.first().getAttribute('title');
+    mesure(testInfo, 'EX-SCR-101 — infobulle du filtre sans effet', String(tooltip));
+    expect(tooltip).toMatch(/^Cette marque est absente du snapshot du \d{2}\/\d{2}\/\d{4}$/);
+
+    // Le jeton reste RENDU et retirable : jamais de retrait automatique.
+    await expect(marked.first().getByRole('button', { name: /^Retirer le filtre/ })).toBeVisible();
+
+    // Compteur SÉPARÉ, à côté du compteur de filtres actifs — jamais à sa place.
+    const zone = await tokens.innerText();
+    mesure(testInfo, 'EX-SCR-101 — zone (4) du bandeau', zone.split('\n').slice(0, 2).join(' · '));
+    expect(zone).toContain('2 filtres actifs');
+    expect(zone).toContain('1 filtre sans effet');
+
+    // La couleur n'est jamais le seul signal (`EX-SCR-99`) : une note est référencée par `aria-describedby`.
+    expect(await marked.first().getAttribute('aria-describedby')).toBeTruthy();
+  });
 });

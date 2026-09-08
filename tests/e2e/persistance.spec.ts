@@ -31,6 +31,18 @@ import {
   waitForMarket,
 } from './_helpers';
 
+/**
+ * `EX-SCR-212` (D8-31, fix-screens-2 §8.3) — la carte de l'écran E ne fait PLUS du nom un bouton :
+ * le nom est un texte (`.kycar-saved-name`), l'ouverture est un bouton NOMMÉ `Ouvrir`, à côté de
+ * `Renommer` et `Supprimer`. Toutes les désignations d'une recherche enregistrée passent donc par
+ * sa CARTE, puis par le contrôle voulu. La classe est ici le contrat de la carte (au sens du
+ * README : `.kycar-saved-row` est l'unité que l'exigence décrit), le contrôle reste désigné par son
+ * rôle et son libellé.
+ */
+function savedRow(page: Page, name: string) {
+  return page.locator('.kycar-saved-row', { hasText: name });
+}
+
 /** Enregistre la recherche courante depuis la barre d'outils d'écran (`EX-CRUD-1`). */
 async function saveSearch(page: Page, name: string): Promise<void> {
   await page.locator('.kycar-market-toolbar').getByRole('button', { name: 'Enregistrer cette recherche' }).first().click();
@@ -65,7 +77,7 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     expect(record.effectifInitial).toBeGreaterThan(0);
 
     await open(page, SURFACES.E);
-    await expect(page.getByRole('button', { name: 'Budget 20k' })).toBeVisible();
+    await expect(savedRow(page, 'Budget 20k')).toBeVisible();
   });
 
   test('EX-CRUD-6 — rouvrir une recherche met à jour dernier_accès_le sans toucher aux valeurs figées (ARB-45)', async ({
@@ -81,7 +93,7 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     const before = JSON.parse((await dumpLocalStorage(page))[key] ?? '{}') as Record<string, unknown>;
 
     await open(page, SURFACES.E);
-    await page.getByRole('button', { name: 'À rouvrir' }).click();
+    await savedRow(page, 'À rouvrir').getByRole('button', { name: 'Ouvrir' }).click();
     await waitForMarket(page);
     expect(new URL(page.url()).search).toBe('?priceto=15000');
 
@@ -175,8 +187,8 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     // Réconciliation SANS rechargement : l'onglet A voit l'entrée écrite par l'onglet B.
     await openNav(page);
     await page.getByRole('link', { name: 'Recherches' }).click();
-    await expect(page.getByRole('button', { name: 'Onglet A' })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole('button', { name: 'Onglet B' })).toBeVisible();
+    await expect(savedRow(page, 'Onglet A')).toBeVisible({ timeout: 20_000 });
+    await expect(savedRow(page, 'Onglet B')).toBeVisible();
     await second.close();
   });
 
@@ -241,7 +253,7 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     await waitForMarket(page);
     await openNav(page);
     await page.getByRole('link', { name: 'Recherches' }).click();
-    await expect(page.getByRole('button', { name: 'Survivante' })).toBeVisible({ timeout: 20_000 });
+    await expect(savedRow(page, 'Survivante')).toBeVisible({ timeout: 20_000 });
   });
 
   test('EX-CRUD-18 — un blob illisible est préservé sous une clé .corrupt avant toute réécriture', async ({
@@ -293,5 +305,35 @@ test.describe('EX-CRUD — persistance locale, plafonds et concurrence entre ong
     const text = await banner.innerText();
     mesure(testInfo, 'EX-CRUD-1 — message après le tout premier enregistrement', text.replace(/\n/g, ' '));
     expect(text).not.toContain('un nom identique existait déjà');
+  });
+  test('EX-SCR-212 / EX-SCR-213 — la carte de l’écran E : nom, périmètre, filtres, effectif, et trois actions nommées', async ({
+    page,
+  }, testInfo) => {
+    await open(page, '/marche?priceto=20000');
+    await saveSearch(page, 'Budget 20k');
+    await expect.poll(async () => Object.keys(await dumpLocalStorage(page)).length, { timeout: 20_000 }).toBeGreaterThan(1);
+
+    await open(page, SURFACES.E);
+    const row = savedRow(page, 'Budget 20k');
+    await expect(row).toBeVisible({ timeout: 20_000 });
+
+    // `EX-SCR-212` — TROIS boutons nommés ; le nom n'est plus une action.
+    expect(await row.getByRole('button').allInnerTexts()).toEqual(['Ouvrir', 'Renommer', 'Supprimer']);
+    await expect(row.getByRole('button', { name: 'Ouvrir' })).toBeEnabled();
+
+    const text = await row.innerText();
+    mesure(testInfo, 'EX-SCR-212 — carte de recherche enregistrée', text.replace(/\n+/g, ' · '));
+    // Périmètre puis description GÉNÉRÉE des filtres actifs, dans les libellés du bandeau.
+    expect(text).toContain('Toutes marques');
+    expect(text).toMatch(/Prix\s*:\s*\u2264\s*20[\s\u00A0\u202F]?000\s*\u20AC/);
+    expect(text).toMatch(/offres à la création/);
+    // `EX-SCR-213` — snapshot INCHANGÉ depuis la création : aucun écart affiché, jamais un « + 0 ».
+    await expect(row.locator('.kycar-saved-delta')).toHaveCount(0);
+    expect(text).toMatch(/offres actuellement/);
+
+    // `Ouvrir` restitue exactement l'URL enregistrée (`EX-CRUD-6`).
+    await row.getByRole('button', { name: 'Ouvrir' }).click();
+    await waitForMarket(page);
+    expect(new URL(page.url()).search).toBe('?priceto=20000');
   });
 });
