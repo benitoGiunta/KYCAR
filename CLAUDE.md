@@ -197,4 +197,5 @@ npm run size          # bundle initial < 300 Ko gzip
 
 Pièges d'environnement (worktrees, `node_modules`, timeouts) et contraintes E1, E3–E5 : voir
 `docs/HANDOFF.md` §7–8. Rappels : jamais `npm ci` dans un worktree (symlinker `node_modules` de la
-racine) ; jamais la suite complète en parallèle sur le même arbre.
+racine) ; **supprimer ce lien (`rm <worktree>/node_modules`) avant `git worktree remove`**, sinon le
+`node_modules` de la racine est détruit (D-50) ; jamais la suite complète en parallèle sur le même arbre.
