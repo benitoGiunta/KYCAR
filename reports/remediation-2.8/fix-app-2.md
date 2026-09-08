@@ -482,6 +482,127 @@ qu'ils annoncent. `fix-engine-2` §hors périmètre ne m'adressait aucune demand
 | `EX-SCR-17`, `EX-SCR-153` | **COUVERTES** par fix-screens-2, désormais attestées en navigateur |
 | `EX-SCR-103` (couple courant sur le contrôle de l'écran B) | **Demande à fix-state-2**, §7.1 — ni corrigée ni mise en dette par moi |
 | `EX-SCR-97` (feuille compacte sous l'en-tête, 360 px) | **Demande à fix-state-2**, §7.2 — remède vérifié, 3 lignes ; **1 test E2E laissé rouge** (`EX-SRCH-14` mobile) |
-| `EX-SCR-216` en mode 2 (effectifs de l'écran G) | **Signalement au fix-lead**, §7.3 — `—` affiché, jamais un chiffre faux |
+| `EX-SCR-216` en mode 2 (effectifs de l'écran G) | **CORRIGÉE** par le complément `D8-34` (§10) — le signalement du §7.3 a été rouvert par le fix-lead et traité |
 | `topRestrictiveFilters` de l'écran A (mode 1) | Dette **inchangée** de `data-controller.ts`, hors `D8-31`, même cause qu'`D8-29` (`O17`) |
 | `D8-15` / `EX-SCR-95` | Dette produit ratifiée : 3 `test.fail()`, un par projet |
+
+---
+
+## 10. Complément D8-34 — effectifs de l'écran `G` en mode 2 (`EX-SCR-216`)
+
+Mon signalement §7.3 a été **rouvert par le fix-lead** (`FIX-LEAD-DECISIONS-2.8.md` §F, `D8-34`),
+voie **(a)** : le contrôleur publie les agrégats de base **déjà en mémoire**, la coquille s'en sert en
+repli. Travail fait sur l'arbre principal depuis `6422b3f`.
+
+| Commit | Contenu |
+|---|---|
+| `b71185a` | `tests/review/D8/screen-g-counts-2.8.test.ts` — **5 cas, 5 rouges** |
+| `25d9d1d` | `src/orchestration/data-controller.ts` (accesseur) + `src/app.tsx` (repli) |
+| `d632d48` | `tests/e2e/parcours-p2.spec.ts` — assertion `EX-SCR-216` dans le test `EX-SRCH-14` |
+
+### 10.1 L'accesseur
+
+`DataController.baselineMakeCounts: ReadonlyMap<number, number> | null`
+(`src/orchestration/data-controller.ts` l. **197–221**) — carte `makeId → listingCount` dérivée de
+`cachedBaseline`, c'est-à-dire des agrégats précalculés que le contrôleur détient **de toute façon**
+après `start()` (chemin nominal l. 232, chemin de repli sur cache l. 257).
+
+- **Aucun aller provider, aucun balayage** : c'est la condition posée par `D8-34`, et elle est
+  **sondée**, pas seulement affirmée (`countingProvider` : cinq lectures, zéro appel supplémentaire).
+- **Mémoïsée sur l'IDENTITÉ de la baseline** (champ privé `baselineCountsMemo`, l. 164–169) : la
+  carte n'est reconstruite qu'au remplacement du snapshot (`start()`, `Rafraîchir`), jamais à chaque
+  rendu de la coquille — un `useMemo` de la coquille ne suffirait pas, il se réévalue à chaque
+  changement de `marketPhase`.
+- **`null`, jamais une carte vide.** Au sens de `DR-060`, une carte d'effectifs **fournie** mais sans
+  la clé demandée vaut `—` : une carte vide se lirait « toutes les marques à `—` », c'est-à-dire
+  exactement le défaut à corriger. La distinction est le premier cas de la sonde.
+
+### 10.2 Le repli dans la coquille
+
+`src/app.tsx` l. **528–546** (mémo `screenGMakeCounts`) : quand `marketPhase` n'est pas `loaded`
+**et** que l'on est en `mode2`, la carte devient `controller.baselineMakeCounts ?? out`.
+
+**Le repli est borné au mode 2, délibérément.** Hors mode 2 — typiquement l'écran A pendant son
+chargement — rien ne change : afficher des effectifs **non filtrés** sous des filtres posés serait
+une valeur fausse, alors que l'absence d'effectif y est l'état normatif `ET-CHARGE-INIT`
+(`EX-SCR-216`, tableau des états). La sonde `R-D8-2.8-09` verrouille cette borne (`currentMode !== 'mode2'`)
+en même temps que le repli lui-même, pour qu'un élargissement futur ne passe pas inaperçu.
+
+**Sémantique, dite franchement (E4).** Ces effectifs sont ceux du **snapshot entier**, non filtrés,
+alors qu'`EX-SCR-216` demande « son effectif d'offres **dans le périmètre filtré courant** ». En
+mode 2, un effectif filtré pour une **autre** marque que celle de la route n'est pas calculable sans
+aller provider — ce que `D8-34` exclut explicitement, et ce qu'`O17` interdit de toute façon. Le
+repli est donc une **valeur mesurée** (l'effectif réel de la marque dans le snapshot), strictement
+préférable au `—` qu'il remplace, et déclaré comme tel en commentaire aux deux endroits. La
+correction complète — effectifs de facettes en mode 1 comme en mode 2 — reste suspendue à la même
+condition que `D8-29` : un `DataProvider.facets()` en v2 de l'interface.
+
+### 10.3 Preuve
+
+`tests/review/D8/screen-g-counts-2.8.test.ts` — **5 cas** (`R-D8-2.8-08`, 4 cas sur le contrôleur ;
+`R-D8-2.8-09`, 1 cas sur le repli de la coquille).
+
+| Cas | Objet |
+|---|---|
+| `R-D8-2.8-08` a | `null` avant tout `start()` — jamais une carte vide (`DR-060`) |
+| `R-D8-2.8-08` b | après `start()`, une entrée par marque de la baseline, chaque valeur comparée à la **vérité terrain** relue directement sur le provider, et leur somme = 20 000 (le jeu entier) |
+| `R-D8-2.8-08` c | cinq lectures ⇒ **zéro** appel provider supplémentaire (`countingProvider` : `aggregates`, `listingColumns`, `baseline`, `selectionCount` inchangés) — la condition `EX-NFR-9` de `D8-34` |
+| `R-D8-2.8-08` d | même référence d'une lecture à l'autre (mémoïsation effective) |
+| `R-D8-2.8-09` | `app.tsx` : le mémo cite `controller.baselineMakeCounts`, la borne `currentMode !== 'mode2'`, et le chemin nominal `marketPhase.data.makeAggregates` est **conservé** |
+
+```
+# sondes seules (b71185a) — l'accesseur n'existe pas
+  Tests  5 failed (5)
+# après (25d9d1d)
+  Tests  5 passed (5)
+# contre-épreuve, fichier de sonde FINAL, src/ restauré par `git checkout --`
+  Tests  5 failed (5)   →   restauré   →   Tests  5 passed (5)
+```
+
+*Retouche à ma propre sonde après son commit rouge* : le motif du mémo utilisait deux espaces
+littéraux, refusés par `eslint no-regex-spaces` ; remplacés par ` {2}`, strictement équivalent. Le
+trace rouge ci-dessus a été **rejouée avec le fichier final**, pas avec la version d'origine.
+
+### 10.4 Recette navigateur
+
+Assertion ajoutée au test existant le plus proche — `EX-SRCH-14`, qui ouvre déjà l'écran `G` depuis
+l'écran B — plutôt qu'en test neuf : aucun parcours dupliqué, et l'assertion tombe exactement là où
+le défaut vivait. Deux niveaux : **aucune** des dix premières entrées ne se termine par `—`, et
+l'entrée recherchée porte un **entier positif** (pas seulement « autre chose qu'un tiret »).
+
+Mesure relevée, `desktop` et `tablet` :
+
+```
+[MESURE] EX-SCR-216 — effectifs de l’écran G ouvert depuis l’écran B :
+Volkswagen 9340 | BMW 8243 | Mercedes-Benz 7961 | Audi 7348 | Opel 6317 |
+Peugeot 5716 | Renault 5025 | Ford 4487 | Toyota 3529 | Citroen 3527
+```
+
+(Avant `25d9d1d` : `Volkswagen — | Abarth — | AC — | …`.)
+
+```
+npx playwright test tests/e2e/parcours-p2.spec.ts -g "EX-SRCH-14"   # les trois projets
+✓ desktop   ✓ tablet   ✘ mobile        1 failed | 2 passed
+```
+
+Le rouge `mobile` est **inchangé** : c'est le défaut `D8-35`/§7.2 attribué à `fix-state-2`, vérifié
+identique (`<header … class="app-header kycar-header"> intercepts pointer events`). Il n'est ni
+aggravé ni masqué, et aucun `test.fail()` n'a été posé.
+
+Conformément à la consigne, la suite E2E **complète n'a pas été relancée** (port 4180 partagé avec
+`fix-state-2`) et `reports/e2e/results.json` **n'est pas** commité par ce lot : il reste celui de la
+recette de `834260f`.
+
+### 10.5 Portes du complément
+
+| Commande | Résultat |
+|---|---|
+| `npx tsc --noEmit` × 3 (`tsconfig.json`, `.worker`, `.review`) | **0 erreur** |
+| `npm run lint` | **vert** |
+| `npm run build` | **vert**, 0 erreur / 0 warning |
+| `npm run size` | **116,33 / 300 Kio** gzip — OK (+0,11 Kio par rapport à `834260f`) |
+| `npm test` | **675** unitaires + **1 068** de revue, **0 échec** (99 fichiers ; +5 cas, +1 fichier) |
+| `npx playwright test -g "EX-SRCH-14"` (3 projets) | 2 verts, 1 rouge — le seul rouge est `D8-35`, hors périmètre |
+
+**§7.3 est donc close** : `EX-SCR-216` en mode 2 passe de « `—` partout » à un effectif réel par
+entrée, prouvé par sonde et en navigateur. Le tableau du §9 est amendé en conséquence.
