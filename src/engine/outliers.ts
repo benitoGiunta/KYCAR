@@ -19,6 +19,7 @@
  */
 
 import type { ListingColumnBatch, OutlierVerdict } from '../types/index';
+import { MODEL_ID_UNRESOLVED } from '../types/index';
 import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED, yearFromYearMonth } from './flags';
 import { implausibleInCellThreshold } from './implausible';
 import { quantileFromSorted } from './quantiles';
@@ -41,6 +42,8 @@ const M2_Z_THRESHOLD = 2.5;
 const M2_TRIM = 3.5;
 const MIN_M1 = 12;
 const MIN_M2 = 30;
+/** Échelle relative sous laquelle l'écart robuste de M2 est tenu pour nul (EX-DATA-89, DR-035). */
+const M2_SPREAD_EPS = 1e-9;
 
 
 /* ---- Codes de drapeau (vocabulaire gelé KYCAR_OUTLIER_FLAG) ----------------------------------- */
@@ -236,6 +239,16 @@ function fitM2(fRows: number[], fY: number[], fYear: number[], fMileage: number[
   const nF = fRows.length;
   if (nF < MIN_M2) return FIT_EMPTY;
 
+  // EX-DATA-89 / EX-DATA-92 : dispersion insuffisante ⇒ `INSUFFICIENT_SPREAD`, aucune évaluation.
+  // Le test porte sur l'échelle de la RÉPONSE, relativement à `|médiane(y)|` : à prix tous égaux, la
+  // dispersion robuste des `ln p` est nulle et aucun modèle ne peut juger un écart. Le test que ce
+  // module portait (`s <= 0` sur les résidus) ne captait que le zéro EXACT, alors que la ridge
+  // d'EX-DATA-90 pose un plancher numérique — mesuré à `s ≈ 9,3e-7` sur une cellule de 40 annonces
+  // au même prix, très au-dessus de tout epsilon relatif appliqué aux résidus.
+  const medY = median(fY);
+  const spreadY = median(fY.map((v) => Math.abs(v - medY)));
+  if (spreadY <= M2_SPREAD_EPS * Math.max(1, Math.abs(medY))) return FIT_EMPTY;
+
   const meanYear = fYear.reduce((a, b) => a + b, 0) / nF;
   const x1 = fYear.map((y) => y - meanYear);
   const x2 = fMileage.map((m) => m / 10000);
@@ -302,7 +315,11 @@ function fitM2(fRows: number[], fY: number[], fYear: number[], fMileage: number[
       pass = robust(beta2); // recalcule mr, s, z sur F COMPLET avec les coefficients de la passe 2
     }
   }
-  if (pass.s <= 0) return FIT_EMPTY; // INSUFFICIENT_SPREAD
+  // EX-DATA-89 / EX-DATA-92 (I6) : dispersion insuffisante ⇒ INSUFFICIENT_SPREAD, aucune évaluation.
+  // Le test ne peut pas être `s <= 0` : avec un régresseur non dégénéré et des prix tous égaux, les
+  // résidus ne sont pas exactement nuls et le MAD vaut ≈ 1e-16 — M2 déclarerait alors « évaluées »
+  // des annonces qu'elle ne peut pas juger. Le seuil est RELATIF à l'échelle des `y` (des `ln p`).
+  if (pass.s <= M2_SPREAD_EPS * Math.max(1, Math.abs(median(fY)))) return FIT_EMPTY;
 
   const zByRow = new Map<number, number>();
   const expectedByRow = new Map<number, number>();
@@ -362,24 +379,31 @@ export function detectOutliers(
     const mileage = batch.mileageKm[row] as number;
     const mileageValid = isMileageValid(mileage, ingest);
 
+    // ARB-59 / EX-SCR-113bis : `C₁` et `C₂` exigent un `modelId` RÉSOLU. La clé réservée
+    // `MODEL_ID_UNRESOLVED` n'est pas un modèle : elle ne forme aucune cellule de rang 1 ou 2, et
+    // l'échelle de repli de ces annonces démarre directement à `C₃ = Σ`.
+    const modelResolved = modelId !== MODEL_ID_UNRESOLVED;
+
     // M1 et sentinelle relative : cellules C1 / C2 / C3.
-    if (yearValid) {
+    if (modelResolved && yearValid) {
       pushTo(c1Prices, cellC1(c2Key, year), price);
     }
-    pushTo(c2Prices, c2Key, price);
+    if (modelResolved) pushTo(c2Prices, c2Key, price);
     c3Prices.push(price);
 
     // M2 : points F (prix, année, km tous valides).
     if (yearValid && mileageValid) {
-      let f = c2F.get(c2Key);
-      if (f === undefined) {
-        f = { rows: [], y: [], year: [], mileage: [] };
-        c2F.set(c2Key, f);
+      if (modelResolved) {
+        let f = c2F.get(c2Key);
+        if (f === undefined) {
+          f = { rows: [], y: [], year: [], mileage: [] };
+          c2F.set(c2Key, f);
+        }
+        f.rows.push(row);
+        f.y.push(ln);
+        f.year.push(year);
+        f.mileage.push(mileage);
       }
-      f.rows.push(row);
-      f.y.push(ln);
-      f.year.push(year);
-      f.mileage.push(mileage);
       c3F.rows.push(row);
       c3F.y.push(ln);
       c3F.year.push(year);
@@ -458,13 +482,15 @@ export function detectOutliers(
     const yearValid = isYearValid(ym);
     const year = yearValid ? yearFromYearMonth(ym) : 0;
 
-    const c2Sample = sampleOf(c2Prices, c2SampleCache, c2Key);
+    // ARB-59 : la clé réservée `modelId = 0` ne forme ni `C₁` ni `C₂`.
+    const modelResolved = modelId !== MODEL_ID_UNRESOLVED;
+    const c2Sample = modelResolved ? sampleOf(c2Prices, c2SampleCache, c2Key) : EMPTY_CELL;
 
     // --- M1 : choisir la première cellule à n ≥ 12 (implausibles déjà écartés) ---
     let m1Cell: CellSample = EMPTY_CELL;
     let m1Fence: M1Fence | null = null;
     let m1Level: 'MODEL_YEAR' | 'MODEL' | 'SELECTION' | null = null;
-    if (yearValid) {
+    if (modelResolved && yearValid) {
       const s = sampleOf(c1Prices, c1SampleCache, cellC1(c2Key, year));
       if (s.fence !== null) {
         m1Cell = s;
@@ -555,47 +581,57 @@ export function detectOutliers(
     const opportunityScore = m2Evaluated ? -(m2Z as number) : m1Evaluated ? -(zIqr as number) : null;
     if (m1Low || m2Low) flaggedLowRow.add(row);
 
-    // Décodage PARESSEUX : l'UUID canonique n'est construit que pour les lignes réellement signalées
-    // (≈ quelques milliers), non pour chaque annonce à prix affiché (point chaud à N = 100 000).
-    if (m1Low || m1High) {
+    // EX-DATA-92/94, EX-SCR-203/206 : un verdict est publié pour TOUTE annonce ÉVALUÉE, signalée ou
+    // non — `flags` vide quand aucune barrière n'est franchie. Le verdict d'aberration (`flags`) et
+    // le score de classement (`opportunityScore`) sont deux choses distinctes : sans cela l'écran D
+    // ne peut ni afficher l'écart au prix attendu des annonces évaluées, ni les classer.
+    // L'UUID canonique n'est décodé qu'UNE fois par annonce évaluée (point chaud à N = 100 000).
+    if (m1Evaluated || m2Evaluated) {
       const listingId = decodeListingId(batch.listingId, row);
-      m1FlaggedIds.add(listingId);
-      const flags = [m1Low ? FLAG_M1_LOW : FLAG_M1_HIGH];
-      if (agreeLow) flags.push(FLAG_AGREE_LOW);
-      if (agreeHigh) flags.push(FLAG_AGREE_HIGH);
-      verdicts.push({
-        snapshotId,
-        selectionHash,
-        listingId,
-        method: 'M1',
-        flags,
-        expectedPriceEur: null,
-        deviationPct: null,
-        opportunityScore,
-        cellLabel: m1Level,
-        cellCount: m1Cell.keptCount,
-        implausibleInCellCount: m1Cell.implausibleInCellCount,
-      });
-    }
-    if (m2Low || m2High) {
-      const listingId = decodeListingId(batch.listingId, row);
-      m2FlaggedIds.add(listingId);
-      const flags = [m2Low ? FLAG_M2_LOW : FLAG_M2_HIGH];
-      if (agreeLow) flags.push(FLAG_AGREE_LOW);
-      if (agreeHigh) flags.push(FLAG_AGREE_HIGH);
-      verdicts.push({
-        snapshotId,
-        selectionHash,
-        listingId,
-        method: 'M2',
-        flags,
-        expectedPriceEur: expected,
-        deviationPct: deviation,
-        opportunityScore,
-        cellLabel: m2Level,
-        cellCount: m2Cell.keptCount,
-        implausibleInCellCount: m2Cell.implausibleInCellCount,
-      });
+      if (m1Evaluated) {
+        const flags: string[] = [];
+        if (m1Low || m1High) {
+          m1FlaggedIds.add(listingId);
+          flags.push(m1Low ? FLAG_M1_LOW : FLAG_M1_HIGH);
+          if (agreeLow) flags.push(FLAG_AGREE_LOW);
+          if (agreeHigh) flags.push(FLAG_AGREE_HIGH);
+        }
+        verdicts.push({
+          snapshotId,
+          selectionHash,
+          listingId,
+          method: 'M1',
+          flags,
+          expectedPriceEur: null,
+          deviationPct: null,
+          opportunityScore,
+          cellLabel: m1Level,
+          cellCount: m1Cell.keptCount,
+          implausibleInCellCount: m1Cell.implausibleInCellCount,
+        });
+      }
+      if (m2Evaluated) {
+        const flags: string[] = [];
+        if (m2Low || m2High) {
+          m2FlaggedIds.add(listingId);
+          flags.push(m2Low ? FLAG_M2_LOW : FLAG_M2_HIGH);
+          if (agreeLow) flags.push(FLAG_AGREE_LOW);
+          if (agreeHigh) flags.push(FLAG_AGREE_HIGH);
+        }
+        verdicts.push({
+          snapshotId,
+          selectionHash,
+          listingId,
+          method: 'M2',
+          flags,
+          expectedPriceEur: expected,
+          deviationPct: deviation,
+          opportunityScore,
+          cellLabel: m2Level,
+          cellCount: m2Cell.keptCount,
+          implausibleInCellCount: m2Cell.implausibleInCellCount,
+        });
+      }
     }
   }
 
