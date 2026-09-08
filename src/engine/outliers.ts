@@ -66,6 +66,15 @@ export interface M3Control {
   readonly evalCoverage: number | null;
 }
 
+/** Contrôle M3 sans population évaluée (sélection vide, ou détection omise par la garde D4). */
+export const M3_EMPTY: M3Control = {
+  evaluatedPopulation: 0,
+  precisionLow: null,
+  recallLow: null,
+  kappa: null,
+  evalCoverage: null,
+};
+
 /** Résultat complet de la détection. */
 export interface OutlierResult {
   readonly verdicts: readonly OutlierVerdict[];
