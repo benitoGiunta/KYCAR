@@ -1003,6 +1003,14 @@ makeIds(Σ) }` avec `A_k = { l ∈ Σ : l.makeId = k }`. Un agrégat n'est émis
 | `rank` | position dans l'ordre de tri par défaut, 1-indexée | entier |
 | `announcedCount` | effectif annoncé par la source pour ce périmètre : `listings.metadata.totalItems` au niveau marque, `topModels[].listingsCount` au niveau modèle. Niveau de preuve `OBSERVÉ`. **Si absent : `INCONNU`.** Ce champ est une propriété du snapshot et **n'est jamais recalculé sous filtre** : il est identique pour toutes les sélections d'un même snapshot | entier ou `INCONNU` |
 
+**Dette d'interface gelée (`D8-36`, résidu DR-122)** : la clause « bloc statistique complet, 3 × 13
+valeurs » par agrégat de marque et de modèle n'est **pas** tenue par l'interface `DataProvider` v1,
+dont `MetricRange` publie six champs (`min`, `max`, `p05`, `p50`, `p95`, `n`) ; `mean`, `stdDev`,
+`p25`, `p75`, `iqr` et `coverage` ne sont pas dérivables au rendu. Aucune valeur n'est inventée : les
+champs sont absents, jamais faux. `EX-DATA-61` est tenue sur la **sélection** (`MetricStats`, `D8-30`)
+et non sur les agrégats. Levée en v2 de l'interface, même famille que la dette `co2Source`
+(`EX-DATA-35`, `D8-32`). [amendée 2.8 — D8-36]
+
 **Précision (`D8-23`, résidu DR-122)** : `makeName`, `displayRange.*` et `rank` sont le bloc
 **logique** exposé à l'écran, mais l'entité `MakeAggregate` de l'interface figée
 (`DataProvider.ts`) ne les **porte pas** comme des champs propres. `rank` et `displayRange` sont

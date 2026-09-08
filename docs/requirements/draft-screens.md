@@ -238,6 +238,12 @@ filtre de classe T, dont le retrait rechargerait le jeu de données local, le bo
 « offres de plus », pas par une note séparée.
 Actions disponibles : retirer un filtre, `Réinitialiser tous les filtres`, `Enregistrer cette
 recherche` (reste actif : une recherche vide est légitime pour une veille).
+En **mode 1** (écran A, agrégats servis sans ligne, `O17`), la liste des trois filtres les plus
+restrictifs n'est pas calculée : le « leave-one-out » exigerait un balayage des annonces que le mode 1
+n'a pas chargées, ou un aller provider par filtre. Le bloc se rend alors sans suggestion chiffrée, avec
+`Réinitialiser tous les filtres` et `Enregistrer cette recherche` ; en **mode 2** (écran B), les trois
+suggestions sont calculées sur le lot élagué (`restrictive-filters.ts`) et le gain annoncé est
+l'effectif obtenu. Dette architecturale ratifiée, extension de `D8-29`. [amendée 2.8 — D8-37]
 
 `EX-SCR-27` — **`ET-VIDE-SANS-FILTRE` — zéro résultat dans l'état `SANS-FILTRE`
 (`EX-SCR-27bis`).** Traité comme une **panne** : un jeu de données local vide sans aucun prédicat
@@ -2471,6 +2477,11 @@ dans le périmètre filtré courant ; une entrée à effectif 0 reste affichée 
 sans modèle. La modale est refermable par `Échap` et `Annuler` sans appliquer, et
 `Appliquer` pose le filtre `mmmv` et ferme. En régime `compact`, les deux panneaux deviennent
 deux étapes successives plein écran avec un bouton `Retour aux marques`.
+Précision (`D8-39`) : en **mode 2**, l'écran `G` ouvert depuis l'écran B affiche l'effectif de chaque
+marque **sur le snapshot entier, non filtré** (agrégats de base déjà en mémoire, aucun balayage
+supplémentaire — `O17`, `EX-NFR-9`) ; le « périmètre filtré courant » n'est disponible qu'en mode 1,
+où le marché est chargé. Aucun chiffre n'est faux : la sémantique est écrite dans le code aux deux
+endroits (`data-controller.ts`, `app.tsx`). [amendée 2.8 — D8-39]
 
 **États**, par identifiant du catalogue : `ET-CHARGE-INIT` (les effectifs par entrée dépendent
 du périmètre filtré courant, donc d'un calcul : squelette de 12 lignes par panneau, aucun

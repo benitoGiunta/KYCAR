@@ -345,6 +345,9 @@ de ce que la décision citée impose.
 | `EX-SCR-65`, `EX-SCR-89`, `EX-SCR-90` | draft-screens.md | Dette architecturale ratifiée : en mode 1 (agrégats servis sans ligne, `O17`), les effectifs de facette `(n)` et le marquage `(0)` ne sont pas affichés (aucun jeu chargé pour les calculer) ; aucune valeur inventée ; corrigé en mode 2 (`D8-05`) ; levée conditionnée à une décision produit ou à `DataProvider.facets()` (v2) | `D8-29` |
 | `REF-filters.md` (fiche `zipr`) | REF-filters.md | Note ajoutée : statut KYCAR de `zip`/`zipr` (`EXCLU`/`RETENU`) rappelé, dépendance de `zipr` à `zip` devenue résiduelle et sans effet | `D8-32` |
 | `ARBITRAGES-req-lead.md` (R-A15) | ARBITRAGES-req-lead.md | Note ajoutée : le décompte historique « 77 retenus + 24 exclus » de la phase 2.2 est dépassé par `D8-13` ; décompte courant 74 retenus + 27 exclus, recompté ligne à ligne sur `EX-SCR-82` et confirmé contre `filters-scope.json` | `D8-32` |
+| `EX-DATA-68`, `EX-DATA-61` (agrégats) | draft-data-dictionary.md | Dette d'interface gelée : le bloc 3 × 13 valeurs par agrégat de marque/modèle n'est pas publié par `MetricRange` v1 (6 champs), non dérivable au rendu ; levée en v2 de l'interface | `D8-36` |
+| `EX-SCR-26` (écran A) | draft-screens.md | Dette architecturale, extension de `D8-29` : en mode 1 les trois filtres les plus restrictifs ne sont pas calculés (`O17`) ; tenue en mode 2 (écran B) | `D8-37` |
+| `EX-SCR-216` (mode 2) | draft-screens.md | Précision : depuis l'écran B, l'écran G affiche l'effectif par marque sur le snapshot entier non filtré (agrégats de base en mémoire, aucun balayage) | `D8-39` |
 
 ### Journal des amendements 2.6 (v1.0 → v1.1)
 
