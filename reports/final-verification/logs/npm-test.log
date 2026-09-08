@@ -1,0 +1,405 @@
+
+> kycar@0.1.0 test
+> vitest run && vitest run --config vitest.review.config.ts
+
+
+ RUN  v3.2.7 /home/user/KYCAR
+
+stdout | src/engine/invariants.integration.test.ts > D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104) > I1 — Σ listingCount(marque) = N
+[I1] Σ listingCount(marque) = 20000 ; N = 20000
+
+stdout | src/engine/invariants.integration.test.ts > D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104) > I2 — Σ modèles(marque) = listingCount(marque)
+[I2] 231 marques cohérentes
+
+stdout | src/engine/invariants.integration.test.ts > D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104) > I3 — Σ n(métrique, marque) = n(métrique, Σ)
+[I3] price/year/mileage cohérents
+
+stdout | src/engine/invariants.integration.test.ts > D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104) > I4 — Σ bins(métrique) = n(métrique, Σ)
+[I4] histogrammes cohérents avec les effectifs métriques
+
+stdout | src/engine/invariants.integration.test.ts > D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104) > I5 — quoted + onRequest + missing = N
+[I5] quoted+onRequest+missing = 20000 ; N = 20000
+
+stdout | src/engine/invariants.integration.test.ts > D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104) > I6 — evaluated + notEvaluated = priceQuotedCount
+[I6] evaluated+notEvaluated = 18839 ; priceQuotedCount = 18839
+
+stdout | src/engine/invariants.integration.test.ts > D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104) > I7 — Σ cellules = n_e ; par colonne d’année, Σ = effectif du bin d’année
+[I7] 292 cellules cohérentes
+
+stdout | src/engine/invariants.integration.test.ts > D4 — invariants I1..I8 sur dataset D3 (EX-DATA-104) > I8 — BIN invariant par permutation ; min au premier bin, max au dernier
+[I8] 25 bins, invariance par permutation vérifiée
+
+ ✓ src/engine/invariants.integration.test.ts (9 tests) 1963ms
+   ✓ D-44 — EX-DATA-19(2) / EX-DATA-60 : la sentinelle RELATIVE sort aussi des statistiques §B.2 > le seuil publié est celui de la détection, et V_price(Σ) est l’échantillon de la SECONDE passe  946ms
+stdout | src/providers/synthetic/synthetic.test.ts > SyntheticDataProvider — outliers injectés (vérité terrain) > les outliers M1 (absolus) tombent hors des fences de Tukey sur ln(prix) global
+[D3] M1 hors fences globales = 142/142
+
+stdout | src/providers/synthetic/synthetic.test.ts > SyntheticDataProvider — outliers injectés (vérité terrain) > les outliers M2 (relatifs) tombent hors d’un garde de cellule (marque × tranche d’année)
+[D3] M2 hors cellule = 129/129 (sur 140 M2)
+
+ ✓ src/orchestration/integration.test.ts (5 tests) 437ms
+stdout | src/engine/outliers.groundtruth.test.ts
+[D4 outliers] N=100000 ; vérité terrain M1=252 M2=250 ; détections M1=2663 M2=2301 ; verdicts=183564
+
+stdout | src/engine/outliers.groundtruth.test.ts > D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96) > M1 retrouve les outliers ABSOLUS injectés (rappel élevé)
+[M1] rappel évaluable = 97.0% (129/133) ; rappel brut = 51.2% (129/252) ; injectés écartés PRICE_IMPLAUSIBLE_IN_CELL = 119 ; précision(injecté-tout) = 10.6% (sur 2663 signalés)
+
+stdout | src/engine/outliers.groundtruth.test.ts > D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96) > M2 retrouve les outliers RELATIFS injectés (rappel mesuré)
+[M2] rappel(union M1∪M2) = 99.6% (226/227) ; rappel(M2 seul) = 98.7% (224/227) ; injectés écartés PRICE_IMPLAUSIBLE_IN_CELL = 23 ; précision M2(injecté-tout) = 15.3% (sur 2301 signalés)
+
+stdout | src/engine/outliers.groundtruth.test.ts > D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96) > DIAGNOSTIC — le rappel M2 est gouverné par la taille de cellule (marque·modèle)
+[M2 cause] cellule ≥30 points : rappel M2 = 89.6% (224/250) ; cellule <30 points : rappel M2 = n/a (0/0)
+
+stdout | src/engine/outliers.groundtruth.test.ts > D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96) > M3 est un contrôle externe cohérent (jamais détecteur)
+[M3] population évaluée = 93986 ; précisionBas = 0.315 ; rappelBas = 0.028 ; kappa = 0.002 ; couverture = 1.000
+
+ ✓ src/screens/distribution/scatter-sample.test.ts (9 tests) 284ms
+stdout | src/engine/outliers.groundtruth.test.ts > D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96) > EX-DATA-97 — les quatre indicateurs M3 sont publiés pour ≥ 3 cellules d’effectif > 200 (DR-120)
+[M3 cellule marque 74, n=9283] |E|=8704 precisionLow=0.360 recallLow=0.027 kappa=0.009 evalCoverage=1.000
+[M3 cellule marque 13, n=8396] |E|=7901 precisionLow=0.271 recallLow=0.025 kappa=-0.006 evalCoverage=1.000
+[M3 cellule marque 47, n=7749] |E|=7259 precisionLow=0.289 recallLow=0.027 kappa=-0.004 evalCoverage=1.000
+
+ ✓ src/engine/outliers.groundtruth.test.ts (6 tests) 4055ms
+   ✓ D4 — détection d’outliers vs vérité terrain D3 (EX-DATA-84..96) > EX-DATA-97 — les quatre indicateurs M3 sont publiés pour ≥ 3 cellules d’effectif > 200 (DR-120)  308ms
+ ✓ src/screens/distribution/graphs-model.test.ts (11 tests) 240ms
+ ✓ src/screens/listings/listings.test.ts (10 tests) 195ms
+stdout | src/providers/synthetic/synthetic.test.ts > SyntheticDataProvider — cibles de taille EX-NFR-1/3 (100 000 annonces) > génère 100 000 annonces sous 25 Mo en mémoire et 6 Mo gzip
+[D3] mémoire colonnaire = 17.17 Mo ; gzip sérialisé = 5.45 Mo
+
+ ✓ src/providers/synthetic/synthetic.test.ts (13 tests) 4763ms
+   ✓ SyntheticDataProvider — mode 2 (échantillon fin) > D-47 : toute colonne bornée par l’annexe A tient dans son domaine, ou vaut INCONNU  378ms
+   ✓ SyntheticDataProvider — cibles de taille EX-NFR-1/3 (100 000 annonces) > génère 100 000 annonces sous 25 Mo en mémoire et 6 Mo gzip  2536ms
+ ✓ src/engine/predicates.test.ts (4 tests) 99ms
+ ✓ src/providers/synthetic/selection.test.ts (6 tests) 135ms
+ ✓ src/screens/distribution/scatter-model.test.ts (8 tests) 73ms
+ ✓ src/state/filter-registry.test.ts (22 tests) 36ms
+ ✓ src/components/filters/labels.test.ts (16 tests) 37ms
+ ✓ src/persistence/persistence.test.ts (16 tests) 36ms
+ ✓ src/screens/market/state.test.ts (10 tests) 8ms
+ ✓ src/types/r3-sweep.test.ts (5 tests) 32ms
+ ✓ src/providers/tweedehands/TweedehandsDataProvider.test.ts (10 tests) 27ms
+ ✓ src/screens/market/view-model.test.ts (22 tests) 22ms
+ ✓ src/state/url-codec.test.ts (21 tests) 27ms
+ ✓ src/engine/index-build.test.ts (4 tests) 15ms
+ ✓ src/state/interaction.test.ts (13 tests) 19ms
+ ✓ src/types/shared-rules.test.ts (23 tests) 15ms
+ ✓ src/providers/tweedehands/normalize.test.ts (7 tests) 12ms
+ ✓ src/types/selection.test.ts (10 tests) 8ms
+ ✓ src/state/router.test.ts (25 tests) 12ms
+ ✓ src/components/filters/band-model.test.ts (18 tests) 11ms
+ ✓ src/engine/quantiles.test.ts (12 tests) 8ms
+ ✓ src/screens/market/format.test.ts (43 tests) 12ms
+ ✓ src/state/corrections.test.ts (18 tests) 11ms
+ ✓ src/screens/market/csv.test.ts (9 tests) 10ms
+ ✓ src/types/validation.test.ts (15 tests) 18ms
+ ✓ src/components/filters/keyboard-nav.test.ts (20 tests) 8ms
+ ✓ src/providers/tweedehands/aggregate.test.ts (7 tests) 8ms
+ ✓ src/screens/market/thresholds.test.ts (23 tests) 7ms
+ ✓ src/providers/tweedehands/fetcher.test.ts (9 tests) 5ms
+ ✓ src/screens/distribution/histogram-model.test.ts (11 tests) 7ms
+ ✓ src/screens/market/coverage.test.ts (20 tests) 6ms
+ ✓ src/providers/tweedehands/vocabularyMap.test.ts (9 tests) 7ms
+ ✓ src/types/invariants.test.ts (16 tests) 5ms
+ ✓ src/screens/market/sort.test.ts (17 tests) 7ms
+ ✓ src/components/filters/screen-g-model.test.ts (10 tests) 6ms
+ ✓ src/providers/tweedehands/nextData.test.ts (6 tests) 7ms
+ ✓ src/screens/compare/compare-selection.test.ts (6 tests) 7ms
+ ✓ src/components/filters/filter-search.test.ts (7 tests) 7ms
+ ✓ src/types/reference.test.ts (6 tests) 6ms
+ ✓ src/providers/mock-provider.test.ts (2 tests) 4ms
+ ✓ src/app/navigation.test.ts (3 tests) 5ms
+ ✓ src/screens/distribution/url-state.test.ts (9 tests) 7ms
+ ✓ src/providers/synthetic/dedupe.test.ts (5 tests) 6ms
+ ✓ src/screens/compare/structure.test.ts (6 tests) 5ms
+ ✓ src/types/sha256.test.ts (4 tests) 5ms
+ ✓ src/state/debounce-policy.test.ts (10 tests) 5ms
+ ✓ src/worker/messages.test.ts (2 tests) 3ms
+ ✓ src/screens/distribution/brush-model.test.ts (6 tests) 4ms
+ ✓ src/test/smoke.test.ts (1 test) 2ms
+
+ Test Files  54 passed (54)
+      Tests  615 passed (615)
+   Start at  14:18:00
+   Duration  11.50s (transform 2.25s, setup 0ms, collect 6.16s, tests 12.76s, environment 23ms, prepare 4.20s)
+
+
+ RUN  v3.2.7 /home/user/KYCAR
+
+stdout | tests/review/D4/full-100k.test.ts > EX-DATA-112 / EX-DATA-115 / ARB-55 — mémoire mesurée à N = 100 000 (GC forcé) et extrapolée à 10⁶ > magasin colonnaire : batchByteLength × 10 dans l’enveloppe corrigée d’ARB-55 (colonnes + chaînes ≈ 232 Mo à 10⁶)
+[mémoire 100k — dataset] batchByteLength = 17.2 Mo (180 o/ligne, EX-DATA-119/121 annonce ≈ 251) ; retenu (heap+arrayBuffers après GC) Δ provider = 20.2 Mo ; rss Δ = 246.7 Mo (inclut la génération D3)
+
+stdout | tests/review/D4/full-100k.test.ts > EX-DATA-112 / EX-DATA-115 / ARB-55 — mémoire mesurée à N = 100 000 (GC forcé) et extrapolée à 10⁶ > R-D4-13 — la construction des index (EX-DATA-115) retient ≈ 74 Mo de tas V8 à 100k (≈ 740 Mo à 10⁶, budget EX-DATA-115 ≈ 41 Mo) : PK_LISTING est une Map de 100 000 cordes UUID non aplaties (≈ 770 o/clé)
+[mémoire 100k — index] construction 129 ms ; retenu Δ index = 2.3 Mo (heap 0.4, arrayBuffers 1.9) ; index typés (3 Int32Array + bitsets) = 1.55 Mo ; 100 000 clés UUID décodées par decodeListingId = 6.2 Mo (65 o/clé, 100000 clés) ; PK_LISTING.size = 100000
+[mémoire ×10 → 10⁶] dataset + index retenus ≈ 225 Mo (dont index ≈ 23 Mo) ; référence EX-DATA-112 corrigée (ARB-55) = 274 Mo pire cas dont index EX-DATA-115 ≈ 41 Mo (PK 24 + IDX 12 + bitsets 5,4) ; ancien total contesté ≈ 87 Mo ; budget d'onglet 512 Mo
+
+stdout | tests/review/D4/full-100k.test.ts > EX-DATA-109 — sélection vide côté moteur > le moteur n’a PAS de précalcul : `recalculate(FULL:EMPTY)` balaie les N lignes (scannedCount = N) ; le précalcul relève du provider/app
+[EX-DATA-109] sélection vide : scannedCount=100000 pruned=false durée=246 ms ; verdicts=0
+
+stdout | tests/review/D4/full-100k.test.ts > O17 — chemins de calcul au-delà de 200 ms et exposition de l’API > R-D4-12 — l’API accepte un RECALCULATE sans scope : M1/M2 (dont M2 à la cellule C₃ = snapshot entier) s’exécutent sur la sélection NON élaguée ; attendu : garde dans le moteur
+[O17 API] sans scope : pruned=false, verdicts M2@SELECTION=0, M1@SELECTION=0 (cellule = 100000 lignes)
+
+stdout | tests/review/D4/full-100k.test.ts > O17 — chemins de calcul au-delà de 200 ms et exposition de l’API > coût de M1/M2 (`detectOutliers`), de l’agrégation et de la densité en fonction de n (sous-échantillons à pas constant)
+[O17 coût vs n — médiane de 3 à 5 exécutions]
+n=   100 : M1/M2     1.2 ms | agrégats+histogrammes     0.8 ms | densité    0.2 ms | verdicts M2@SELECTION=96
+n=  1000 : M1/M2     5.7 ms | agrégats+histogrammes     2.1 ms | densité    0.6 ms | verdicts M2@SELECTION=912
+n= 10000 : M1/M2    34.8 ms | agrégats+histogrammes    15.1 ms | densité    4.5 ms | verdicts M2@SELECTION=6188
+n=100000 : M1/M2   503.8 ms | agrégats+histogrammes   128.3 ms | densité   55.5 ms | verdicts M2@SELECTION=18692
+
+stdout | tests/review/D4/full-100k.test.ts > O17 — chemins de calcul au-delà de 200 ms et exposition de l’API > O17 — point de franchissement des 200 ms d’un recalcul NON élagué (sélection filtrée R sans scope) en fonction de l’effectif retenu
+[O17 franchissement — recalc sans scope, filtre R année, médiane de 3]
+année ≥ 2024 : n= 25002 →   48 ms
+année ≥ 2022 : n= 43864 →   71 ms
+année ≥ 2020 : n= 58923 →   97 ms
+année ≥ 2018 : n= 70018 →  108 ms
+année ≥ 2015 : n= 81516 →  130 ms
+année ≥ 2010 : n= 92822 →  147 ms
+année ≥ 1900 : n= 99413 →  162 ms
+→ premier effectif retenu au-delà de 200 ms : aucun
+
+stdout | tests/review/D4/full-100k.test.ts > O17 — chemins de calcul au-delà de 200 ms et exposition de l’API > recalcul complet : non filtré (×5) vs élagué marque la plus peuplée (×20) vs modèle médian (×20)
+[recalc 100k] non filtré (N=100000) : p50=154 p95=162 max=162 ms ; marque élaguée (m=9283) : p50=46.5 p95=55.5 ms ; modèle médian (m=8) : p50=0.03 p95=0.07 ms
+
+stdout | tests/review/D4/full-100k.test.ts > EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3 > rappel M1 > 90 % et rappel M2 ≥ 95 % dans les cellules à |F| ≥ 30 (chiffres du journal : 95,8 % / 100 %) ; précision rapportée
+[vérité terrain] M1 : rappel évaluable 97.0 % (129/133), brut 51.2 % sur 252 injectés dont 119 PRICE_IMPLAUSIBLE_IN_CELL, précision 10.6 % sur 2663 signalés ; M2 (cellules |F| ≥ 30) : rappel 98.7 % (224/227), précision M2 15.3 % sur 2301 signalés ; taux de signalement M1 = 2.87 % des évaluées (attendu ≈ 1,4 % sous log-normale, EX-DATA-88)
+
+stdout | tests/review/D4/full-100k.test.ts > EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3 > EX-DATA-19 — audit des prix < 250 € du dataset D3 : drapeau PRICE_SENTINEL_ABSOLUTE posé ? conséquence sur V_price
+[EX-DATA-19 D3] prix QUOTED < 250 € : 47, dont drapeautés PRICE_SENTINEL_ABSOLUTE : 47 ; injectés M1_LOW < 250 € : 0 ; min(V_price) publié = 900 €
+
+stdout | tests/review/D4/full-100k.test.ts > EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3 > EX-DATA-97 — les quatre indicateurs M3 calculés et publiés pour ≥ 3 cellules d’effectif > 200
+[M3] plus grande cellule modèle à N=100000 : 2008 annonces (< 200)
+[M3 cellule make 74, n=9283] |E|=8704 precisionLow=0.360 recallLow=0.027 kappa=0.009 evalCoverage=1.000
+[M3 cellule make 13, n=8396] |E|=7901 precisionLow=0.271 recallLow=0.025 kappa=-0.006 evalCoverage=1.000
+[M3 cellule make 47, n=7749] |E|=7259 precisionLow=0.289 recallLow=0.027 kappa=-0.004 evalCoverage=1.000
+
+ ✓ tests/review/D4/full-100k.test.ts (10 tests) 9366ms
+   ✓ O17 — chemins de calcul au-delà de 200 ms et exposition de l’API > coût de M1/M2 (`detectOutliers`), de l’agrégation et de la densité en fonction de n (sous-échantillons à pas constant)  2492ms
+   ✓ O17 — chemins de calcul au-delà de 200 ms et exposition de l’API > O17 — point de franchissement des 200 ms d’un recalcul NON élagué (sélection filtrée R sans scope) en fonction de l’effectif retenu  2302ms
+   ✓ O17 — chemins de calcul au-delà de 200 ms et exposition de l’API > recalcul complet : non filtré (×5) vs élagué marque la plus peuplée (×20) vs modèle médian (×20)  1962ms
+stdout | tests/review/D3/dataset-100k.test.ts
+[rev-D3] openSnapshot(100 000, graine par défaut) = 180 ms
+[rev-D3] cellules C2 (marque,modèle) = 3052 ; n≥12 : 1304 ; n≥30 : 645 ; max = 1836 ; médiane = 8
+[rev-D3] cellules C1 (marque,modèle,année) = 26038 ; n≥12 : 1348 ; max = 188 ; médiane = 1
+[rev-D3] outliers = 485 (M1 243 / M2 242) sur 100000 annonces
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — 100 000 annonces sous les cibles de taille > EX-NFR-1 — empreinte mémoire (colonnes typées + zone texte) ≤ 25 Mo
+[rev-D3] EX-NFR-1 : total = 17.19 Mio (colonnes 6.77 Mio + zone texte 10.41 Mio) ; octets/ligne = 180.2
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — 100 000 annonces sous les cibles de taille > EX-NFR-3 — lot colonnaire sérialisé ≤ 6 Mo gzip (zlib.gzipSync)
+[rev-D3] EX-NFR-3 : sérialisé = 17.19 Mio → gzip = 5.45 Mio (marge 9.2 %)
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — déterminisme à graine fixée > deux générations 100k à graine identique ont les mêmes hachages de colonne et les mêmes octets
+[rev-D3] déterminisme : 34 colonnes, 18019917 octets identiques
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — déterminisme à graine fixée > deux graines différentes produisent des jeux différents
+[rev-D3] graines 101 vs 102 : 32/34 colonnes différentes
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — vérité terrain des outliers > les outliers M1 injectés sont hors de toute fourchette de marché (absolus)
+[rev-D3] M1 = 243 (HIGH ≥ 400 k€ / LOW ≤ 500 €) ; hors gabarit : 0
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — vérité terrain des outliers > R-D3-06 — l’écart réel de certains M2_LOW est écrasé par le plancher de 300 € : la vérité terrain annonce un outlier que la donnée ne porte pas
+[rev-D3] M2_LOW dont le rapport réel > 0,25 : 0 → 
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — vérité terrain des outliers > R-D3-05 — la majorité des outliers M2 tombe hors d’une cellule éligible à M2 (n_price ≥ 30, EX-DATA-86/90)
+[rev-D3] M2 dans une cellule n_price ≥ 30 : 242/242
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — vérité terrain des outliers > R-D3-07 — aucune cellule `(marque, modèle, année)` n’atteint n_price ≥ 12 : la cellule de rang 1 de M1 (EX-DATA-86) n’est jamais formable
+[rev-D3] cellules C1 éligibles (n_price ≥ 12) = 1348
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — vérité terrain des outliers > la taxonomie offre des cellules C2 éligibles à M1 (n_price ≥ 12) et des outliers dedans
+[rev-D3] cellules C2 n≥12 = 1304 ; outliers dans une telle cellule = 466/485
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — plausibilité des distributions > le prix décroît avec l’âge dans les cellules (marque, modèle) — Spearman signée
+[rev-D3] ρ(prix, âge) sur 645 cellules n≥30 : médiane -0.958 ; négatives 645/645 ; min -0.990 ; max -0.745
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — plausibilité des distributions > à âge et modèle fixés, le prix décroît avec le kilométrage — Spearman signée sur prix normalisé
+[rev-D3] ρ(prix normalisé, km) = -0.171 sur 63695 annonces / 5722 cellules (marque,modèle,année) n≥4
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — plausibilité des distributions > EX-DATA-111 / bornes du dictionnaire : 100 % des valeurs stockées sont dans le domaine
+[rev-D3] violations de bornes = {}
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — plausibilité des distributions > les sentinelles de prix (MISSING / ON_REQUEST) sont produites en proportion non nulle
+[rev-D3] priceStatus : QUOTED 94092 (94.1 %), ON_REQUEST 3857, MISSING 2051 ; incohérences statut/valeur = 0
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 §7.1 — plausibilité des distributions > R-D3-09 — aucune sentinelle d’inconnu n’est produite hors de `priceEur` (EX-DATA-120 non exercée)
+[rev-D3] colonnes portant une sentinelle d'inconnu (hors priceEur) : {"mileageKm":1262,"modelYear":832,"powerKw":1484,"firstRegistrationYearMonth":597,"bodyColor":1026,"euEmissionStandard":832}
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 — cas pathologiques 2.2 exercés (ou non) par le générateur > R-D3-08 — ADV-14/ARB-59 : aucune annonce `modelId = 0` (« Modèle non identifié ») n’est générée
+[rev-D3] annonces modelId = 0 : 469
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 — cas pathologiques 2.2 exercés (ou non) par le générateur > R-D3-03 — EX-DATA-19 : les prix injectés sous 250 € ne portent pas `PRICE_SENTINEL_ABSOLUTE`
+[rev-D3] prix ∈ {0,1} = 2 ; prix < 250 € = 47 dont drapeautés PRICE_SENTINEL_ABSOLUTE = 47
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 — cas pathologiques 2.2 exercés (ou non) par le générateur > R-D3-10 — `ingestFlags` est nul sur 100 % des annonces : aucun drapeau d’ingestion n’est jamais posé
+[rev-D3] ingestFlags ≠ 0 sur 2753 annonces ; mileageKm = 0 sur 291 annonces
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 — cas pathologiques 2.2 exercés (ou non) par le générateur > ADV-05 — aucun doublon d’identifiant ni d’annonce identique (cohérent avec un lot post-ingestion)
+[rev-D3] doublons de listingId = 0
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 — cas pathologiques 2.2 exercés (ou non) par le générateur > R-D3-13 — ADV-17 : aucun champ de version long (> 40 car.) n’est produit ; la troncature à 80 n’est jamais exercée
+[rev-D3] longueur max modelVersionRaw = 125 ; modelVersionClean = 79
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 — contrat DataProvider et garde-fous EX-NFR-9 (ARCHITECTURE §9.3) > R-D3-01 — garde-fou 1 : `fetchBaselineAggregates` doit renvoyer des agrégats PRÉCALCULÉS
+[rev-D3] fetchBaselineAggregates : appel 1 = 0 ms, appel 2 = 0 ms ; 294 marques ; identité d'objet = true
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 — contrat DataProvider et garde-fous EX-NFR-9 (ARCHITECTURE §9.3) > R-D3-02 — garde-fou 2 : les annonces individuelles ne doivent pas être sur le chemin du 1er affichage
+[rev-D3] chemin de 1er affichage : openSnapshot = 180 ms, fetchBaselineAggregates = 0 ms, total = 180 ms (marge locale EX-NFR-9 ≈ 200 ms)
+
+stdout | tests/review/D3/dataset-100k.test.ts > D3 — contrat DataProvider et garde-fous EX-NFR-9 (ARCHITECTURE §9.3) > R-D3-04 — EX-DATA-60 : les agrégats de prix servis n’excluent pas `PRICE_SENTINEL_ABSOLUTE`
+[rev-D3] agrégats de base : 294 marques ; min < 250 € sur 0 marques ; p05 < 250 € sur 0 marques ; exemple = null
+
+ ✓ tests/review/D3/dataset-100k.test.ts (27 tests) 3055ms
+   ✓ D3 §7.1 — 100 000 annonces sous les cibles de taille > EX-NFR-3 — lot colonnaire sérialisé ≤ 6 Mo gzip (zlib.gzipSync)  580ms
+   ✓ D3 §7.1 — déterminisme à graine fixée > deux générations 100k à graine identique ont les mêmes hachages de colonne et les mêmes octets  1043ms
+stdout | tests/review/D7/ecran-b.test.ts > D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17) > EX-SCR-189 : construction des modèles des 14 graphes ≤ 300 ms pour n = 20 000 (5 mesures)
+[EX-SCR-189] n=20000 modèles des 14 graphes : p50=69.2 ms, pire=95.4 ms
+
+ ✓ tests/review/D7/ecran-b.test.ts (23 tests) 1561ms
+   ✓ D7 · écran B — mention d’échantillonnage et responsive (EX-DATA-103, EX-NFR-19) > R-D7-15 — EX-DATA-103 : la mention d’échantillonnage n’énonce ni le mode d’échantillonnage ni la graine (EX-SCR-157)  475ms
+   ✓ D7 · G4 — légendes et table des points (EX-SCR-154/155/156/160, EX-NFR-15) > R-D7-22 — EX-NFR-15 : la table des points sous-jacents est plafonnée à 500 lignes alors que 5 000 points sont tracés  422ms
+   ✓ D7 · écran B — budget de recalcul des graphes (EX-SCR-189, O17) > EX-SCR-189 : construction des modèles des 14 graphes ≤ 300 ms pour n = 20 000 (5 mesures)  582ms
+stdout | tests/review/D8/parcours.test.ts
+[EX-NFR-9] 3 mesures CPU (openSnapshot+baseline) : 144 / 146 / 170 ms
+
+stdout | tests/review/D8/parcours.test.ts > Parcours 1 — mode 1 « budget 20 000 €, coupé, BE, < 100 000 km » > R-D8-31 — toute carte-marque du premier affichage doit correspondre à une marque de la taxonomie (EX-DATA-20 : marque inconnue → rejet) — observé : des makeId NÉGATIFS hors référentiel portent ~18 % des annonces
+[R-D8-31] cartes hors taxonomie : 0 sur 294, 0 annonces ; exemples : 
+
+stdout | tests/review/D8/parcours.test.ts > Parcours 2 — mode 2 « Opel Corsa 2017 » > R-D8-30 — la cellule Opel Corsa du snapshot par défaut (100 000) doit atteindre le seuil M2 (n ≥ 30, EX-SCR-33) pour que le parcours 2 montre une détection — observé : 9 annonces, 0 outlier injecté
+[R-D8-30] Opel Corsa : 1352 annonces / 100 000, 7 outlier(s) injecté(s), années -1 1996 1997 1999 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026
+
+stdout | tests/review/D8/parcours.test.ts > Parcours 2 — mode 2 « Opel Corsa 2017 » > les outliers de vérité terrain ressortent dans les verdicts M1/M2 sur la cellule éligible (n ≥ 30) la plus riche en outliers injectés (substitut : la cellule Corsa n’en porte aucun)
+[parcours 2] cellule substitut Trailer-Anhänger Autres : n=1956, injectés=9 dont évaluables=9 (seuil PRICE_IMPLAUSIBLE_IN_CELL = 225 EUR), retrouvés=9, verdicts=3593
+
+stdout | tests/review/D8/parcours.test.ts > EX-NFR-9 — premier affichage utile du mode 1 ≤ 2 000 ms (4G simulée) > coût CPU du démarrage (génération 100k + agrégats de base, machine de revue) + transfert estimé (dist + référentiels) ≤ 2 000 ms
+[EX-NFR-9] openSnapshot=146 ms, baseline=0 ms, transfert=188.0 Kio gzip → 685 ms (dist présent), total=831 ms
+
+ ✓ tests/review/D8/parcours.test.ts (12 tests) 1375ms
+ ✓ tests/review/patho/volumetrie.test.ts (6 tests) 1320ms
+   ✓ patho — volumétrie > VOL-200K — 200 000 annonces : recalcul complet, invariants et sommes exactes (extrapolation 10⁶ au rapport)  889ms
+   ✓ patho — volumétrie > VOL-50K — une cellule unique de 50 000 annonces : M1 et M2 sur la cellule C₂, aucune dégradation en C₃  390ms
+stdout | tests/review/D4/invariants-mutation.test.ts > EX-DATA-104 — I1..I8 relancés (sélection vide et sélection élaguée + filtrée) > I1..I7 tiennent sur la sélection vide (N = 20 000)
+[FULL] I1 OK — Σ listingCount(marque) = 20000 ; N = 20000
+[FULL] I2 OK — 231 marques cohérentes
+[FULL] I3 OK — price/year/mileage cohérents
+[FULL] I4 OK — histogrammes cohérents avec les effectifs métriques
+[FULL] I5 OK — quoted+onRequest+missing = 20000 ; N = 20000
+[FULL] I6 OK — evaluated+notEvaluated = 18839 ; priceQuotedCount = 18839
+[FULL] I7 OK — 292 cellules cohérentes
+
+stdout | tests/review/D4/invariants-mutation.test.ts > EX-DATA-104 — I1..I8 relancés (sélection vide et sélection élaguée + filtrée) > I1..I7 tiennent sur une sélection élaguée (marque) + filtre R (carburant)
+[ÉLAGUÉE+R] I1 OK — Σ listingCount(marque) = 803 ; N = 803
+[ÉLAGUÉE+R] I2 OK — 1 marques cohérentes
+[ÉLAGUÉE+R] I3 OK — price/year/mileage cohérents
+[ÉLAGUÉE+R] I4 OK — histogrammes cohérents avec les effectifs métriques
+[ÉLAGUÉE+R] I5 OK — quoted+onRequest+missing = 803 ; N = 803
+[ÉLAGUÉE+R] I6 OK — evaluated+notEvaluated = 758 ; priceQuotedCount = 758
+[ÉLAGUÉE+R] I7 OK — 129 cellules cohérentes
+
+stdout | tests/review/D4/invariants-mutation.test.ts > I6 — contrôle indépendant (le moteur dérive notEvaluated par soustraction) > evaluated ≤ n_price(Σ) et notEvaluated ≥ quoted − n_price(Σ), recomptés hors moteur
+[I6 indépendant] quoted=18839 valides(absolu)=18830 seuil relatif=880 implausibles=452 n_price=18378
+[I6 indépendant] quoted=18839 n_price=18378 evaluated=18560 notEvaluated=279
+
+stdout | tests/review/D4/invariants-mutation.test.ts > I7 / EX-DATA-102 — la grille de densité réutilise-t-elle EXACTEMENT les bins de BIN de la sélection ? > colonnes de la grille vs histogramme d’année PUBLIÉ (G3) : mêmes indices fermés (W = {1}) mais effectifs différents (n_e < n_year) — tension du texte d’I7
+[I7 vs G3] Σ grille = 18047 (n_e) ; Σ histogramme année = 19879 (n_year) ; colonnes égales = 0, différentes = 25
+
+stdout | tests/review/D4/invariants-mutation.test.ts > I7 / EX-DATA-102 — la grille de densité réutilise-t-elle EXACTEMENT les bins de BIN de la sélection ? > EX-DATA-102 — partition du kilométrage : la grille est binée sur l’ensemble ÉLIGIBLE, l’histogramme G2 sur V_mileage(Σ) — largeur et bornes doivent coïncider
+[EX-DATA-102 km] grille : w=20000 kLo=0 kHi=19 ; G2 publié : w=20000 kLo=0 kHi=19 ; indices de cellules km observés : 0..18
+
+ ✓ tests/review/D4/invariants-mutation.test.ts (10 tests) 1018ms
+stdout | tests/review/D4/pruning-facets-density.test.ts > EX-DATA-116 — équivalence élagage / balayage complet (20 sélections aléatoires, graine 2025) > mêmes statistiques, agrégats, histogrammes, cellules de densité et verdicts que la référence brute
+[équivalence] 20 sélections, 20 élaguées, 14 non vides — toutes identiques à la référence
+
+stdout | tests/review/D4/pruning-facets-density.test.ts > EX-DATA-116 — équivalence élagage / balayage complet (20 sélections aléatoires, graine 2025) > les bitsets énumérés (EX-DATA-115) sont construits (5 colonnes, 1 bit/ligne) — DETTE : aucun chemin de calcul ne les consulte
+[bitsets] 5 colonnes, 42568 octets alloués à N=10000 (≈ 426 o/ligne ×100)
+
+stdout | tests/review/D4/pruning-facets-density.test.ts > EX-DATA-110bis — facettes en UN balayage > un seul balayage : chaque prédicat est testé au plus une fois par ligne candidate (compteur d’appels)
+[facettes] candidats=955 prédicats=2 appels=1910 (≤ 1910) ; 32 compteurs en 0.48 ms
+
+stdout | tests/review/D4/pruning-facets-density.test.ts > EX-DATA-102 / I7 — grille de densité : bornée, triée, cohérente > Σ cellules = n_e recomputé indépendamment ; ≤ 676 cellules ; indices dans [kLo−1, kHi+1] des deux axes ; ordre lexicographique
+[densité] n_e moteur=9042 ; n_e (statut seul)=9250 ; n_e (prix valide EX-DATA-60)=9245 ; n_e (prix valide D-05, seuil 880 €)=9042 ; cellules=280
+
+ ✓ tests/review/D4/pruning-facets-density.test.ts (8 tests) 811ms
+   ✓ EX-DATA-116 — équivalence élagage / balayage complet (20 sélections aléatoires, graine 2025) > EX-DATA-115/116 — IDX_MAKE / IDX_MODEL : offsets exhaustifs, disjoints, et lignes triées par indice croissant dans chaque plage  317ms
+ ✓ tests/review/D4/quantiles-bin.test.ts (21 tests) 511ms
+   ✓ EX-DATA-75/76/77/78/79/80/81/83 — BIN : bornes, débordements, effectifs > propriété : Σ count = n et chaque valeur tombe dans exactement un bin (binIndexOf cohérent) sur 100 échantillons aléatoires  464ms
+ ✓ tests/review/D8/fallback.test.ts (13 tests) 466ms
+[size] FAIL: initial bundle 310.12 KiB gzip exceeds the 300 KiB budget (EX-NFR-10).
+[size] FAIL: initial bundle 350.15 KiB gzip exceeds the 300 KiB budget (EX-NFR-10).
+[size] FAIL: deferred bundle 410.14 KiB gzip exceeds the 400 KiB budget (EX-NFR-11).
+[size] FAIL: initial bundle 560.21 KiB gzip exceeds the 300 KiB budget (EX-NFR-10).
+ ✓ tests/review/D1/bundle-size-guard.test.ts (6 tests) 374ms
+ ✓ tests/review/D8/o17.test.ts (9 tests) 356ms
+ ✓ tests/review/D7/nuage-g4.test.ts (11 tests) 254ms
+stdout | tests/review/D3/contract-labeling.test.ts > D3 — EX-DATA-107 : propagation de l’étiquette SYNTHETIC > tout objet servi (agrégats, lot d’annonces, forage) référence le snapshot SYNTHETIC par son `snapshotId`
+[rev-D3] champs de AggregateResult = snapshotId,selection,selectionCount,rows,unsupportedFilterIds ; champ sourceKind porté : baseline false, batch false
+
+stdout | tests/review/D3/contract-labeling.test.ts > D3 — contrat de sélection, non-fusion et périmètre de filtrage > R-D3-12 — des filtres D5 dont la colonne EXISTE dans le lot sont ignorés silencieusement
+[rev-D3] filtres D5 implémentables mais ignorés (0/15) :  ; fetchSelectionCount('') = 2000 vs ('fuelType=E') = 163
+
+ ✓ tests/review/D3/contract-labeling.test.ts (9 tests) 210ms
+ ✓ tests/review/patho/structure.test.ts (10 tests) 210ms
+ ✓ tests/review/D2/reference-loader.test.ts (15 tests) 151ms
+stdout | tests/review/D4/worker-protocol.test.ts > Switch du worker (in-process, module réel) > ADV-12 — rafale de 20 RECALCULATE identiques : 20 calculs exécutés séquentiellement, aucune déduplication ni annulation possible dans le protocole
+[ADV-12 worker] 20 recalculs identiques en file : 78.9 ms cumulés (n=400) — kinds disponibles : PING, LOAD_DATASET, RECALCULATE, FACETS ; aucun CANCEL
+
+stdout | tests/review/D4/worker-protocol.test.ts > Client thread principal au-dessus d’un Worker factice (même switch) > R-D4-11 — `terminate()` pendant une requête en vol : la promesse n’est jamais réglée (ni rejetée), l’appelant reste suspendu
+[terminate] requête en vol après terminate() : rejetée
+
+ ✓ tests/review/D4/worker-protocol.test.ts (7 tests) 145ms
+ ✓ tests/review/patho/bloquants-st.test.ts (15 tests) 73ms
+ ✓ tests/review/D8/routing.test.ts (10 tests) 62ms
+ ✓ tests/review/patho/sollicitation.test.ts (9 tests) 62ms
+ ✓ tests/review/D2/sha256-vectors.test.ts (9 tests) 60ms
+ ✓ tests/review/D7/ecran-d.test.ts (18 tests) 60ms
+ ✓ tests/review/D9/r3-output.test.ts (5 tests) 52ms
+stdout | tests/review/D8/nfr9-size.test.ts > dist/ — plugin kycar-reference-data et budget bundle > EX-NFR-9 (part transfert) : octets réellement transférés au démarrage et temps à 500 Ko/s, comparés au 900 Ko / 1,8 s d’ARCHITECTURE §9.3
+[EX-NFR-9 transfert]
+     88.5 Kio  JS initial (gzip)
+      2.5 Kio  CSS initial (gzip)
+     65.3 Kio  taxonomy.json
+     17.1 Kio  filters.json
+      4.0 Kio  filters-scope.json
+      0.5 Kio  references/FuelCategory.json
+      0.6 Kio  references/FuelType.json
+      0.5 Kio  references/OfferType.json
+      0.5 Kio  references/Transmission.json
+      0.4 Kio  references/Drivetrain.json
+      1.2 Kio  references/BodyType.json
+      0.5 Kio  references/BodyColor.json
+      0.5 Kio  references/UpholsteryType.json
+      0.5 Kio  references/UpholsteryColor.json
+      0.5 Kio  references/EuEmissionStandard.json
+      0.4 Kio  references/Co2Class.json
+      0.5 Kio  references/EfficiencyClass.json
+      0.4 Kio  references/BatteryOwnershipType.json
+      2.9 Kio  references/Equipment.json
+      0.5 Kio  references/VehicleType.json
+     97.0 Kio  référentiels (gzip, 18 fichiers)
+    188.0 Kio  TOTAL → 385 ms de transfert pur, 685 ms avec 2 × 150 ms de latence
+  (agrégats de base : 0 octet transféré — calculés en mémoire par le provider synthétique, voir parcours.test.ts pour le coût CPU)
+
+ ✓ tests/review/D8/nfr9-size.test.ts (5 tests) 49ms
+ ✓ tests/review/patho/verite-affichee.test.ts (22 tests) 47ms
+stderr | tests/review/D8/persistence.test.ts > quota dépassé (QuotaExceededError simulé) > R-D8-13 — historique automatique (EX-CRUD-11/12, « silencieux ») : visit() lève au lieu d’absorber l’échec de quota
+KYCAR: historique récent non enregistré (écriture refusée) DOMException [QuotaExceededError]: The quota has been exceeded.
+[90m    at new DOMException (node:internal/per_context/domexception:76:18)[39m
+    at Object.set [90m(/home/user/KYCAR/[39mtests/review/D8/persistence.test.ts:178:15[90m)[39m
+    at CappedCollection.mutate [90m(/home/user/KYCAR/[39msrc/persistence/crud-store.ts:227:76[90m)[39m
+    at RecentHistoryStore.visitOrThrow [90m(/home/user/KYCAR/[39msrc/persistence/recent-history.ts:64:14[90m)[39m
+    at RecentHistoryStore.visit [90m(/home/user/KYCAR/[39msrc/persistence/recent-history.ts:56:12[90m)[39m
+    at [90m/home/user/KYCAR/[39mtests/review/D8/persistence.test.ts:191:24
+    at Proxy.assertThrows [90m(file:///home/user/KYCAR/[39mnode_modules/[4mchai[24m/index.js:2767:5[90m)[39m
+    at Proxy.methodWrapper [90m(file:///home/user/KYCAR/[39mnode_modules/[4mchai[24m/index.js:1686:25[90m)[39m
+    at Proxy.<anonymous> [90m(file:///home/user/KYCAR/[39mnode_modules/[4m@vitest/expect[24m/dist/index.js:1088:12[90m)[39m
+    at Proxy.overwritingMethodWrapper [90m(file:///home/user/KYCAR/[39mnode_modules/[4mchai[24m/index.js:1735:33[90m)[39m
+
+ ✓ tests/review/D8/persistence.test.ts (17 tests) 47ms
+stdout | tests/review/D4/lru-cache.test.ts > AggregationEngine — cache clé `selectionHash` devant le worker > pas de fuite de référence : un résultat évincé n’est plus retenu par le cache (WeakRef libérée si gc exposé, sinon absence structurelle)
+[LRU fuite] WeakRef après éviction + GC forcé : libérée
+
+stdout | tests/review/D4/lru-cache.test.ts > AggregationEngine — cache clé `selectionHash` devant le worker > R-D4-09 — deux demandes concurrentes du MÊME selectionHash avant la première réponse déclenchent deux calculs worker (aucune coalescence en vol ; ADV-12/ARB-57)
+[coalescence] 3 demandes identiques en vol → 1 appel(s) worker
+
+ ✓ tests/review/D4/lru-cache.test.ts (8 tests) 40ms
+ ✓ tests/review/patho/valeurs.test.ts (20 tests) 37ms
+ ✓ tests/review/D8/screens.test.ts (16 tests) 34ms
+ ✓ tests/review/D9/aggregate-invariants.test.ts (11 tests) 33ms
