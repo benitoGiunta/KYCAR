@@ -20,12 +20,18 @@ function makeAgg(partial: Partial<MakeAggregate> = {}): MakeAggregate {
 }
 const VW: Make = { makeId: 1, label: 'Volkswagen', slug: 'volkswagen', announcedCount: null };
 
-describe("R-D6-07 — EX-SCR-132 : quand le détail par modèle échoue, le résumé de marque affiche « 0 modèles » à côté d'une médiane RÉELLE et non nulle", () => {
+describe("R-D6-07 — EX-SCR-132 (DR-011, CORRIGÉ) : quand le détail par modèle échoue, le résumé de marque n'affiche plus « 0 modèles » à côté d'une médiane RÉELLE et non nulle", () => {
+  // D-32 : cette sonde était VERTE en documentant le défaut (« 0 modèles · médiane 18 900 € », une
+  // contradiction interne). Conformément au protocole (écrire la sonde d'échec, la voir rouge,
+  // corriger, la voir verte), les deux assertions qui figeaient le comportement fautif sont
+  // remplacées par les assertions du comportement corrigé (`view-model.ts::buildMakeCardViewModel`,
+  // DR-011) — la médiane réellement connue reste publiée, mais plus aux côtés d'un « 0 modèles »
+  // trompeur.
   it(
     "l'agrégat de MARQUE (agg.price.p50) a réussi (12 480 offres, médiane 18 900 €) alors que le " +
-      "détail des modèles a échoué (`modelAggregates: 'unavailable'`) : le résumé affiche pourtant " +
-      "« 0 modèles · médiane 18 900 € », une contradiction interne qui FAUSSE la lecture (0 modèles " +
-      'connus mais une médiane calculée sur 12 480 offres réparties dans des modèles).',
+      "détail des modèles a échoué (`modelAggregates: 'unavailable'`) : le résumé ne prétend plus " +
+      '« 0 modèles » — il indique explicitement l’indisponibilité du détail, sans perdre la médiane ' +
+      'réellement calculée.',
     () => {
       const agg = makeAgg({ makeId: 1, listingCount: 12480, price: range({ p50: 18900, n: 12480 }) });
       const card = buildMakeCardViewModel(agg, {
@@ -39,9 +45,10 @@ describe("R-D6-07 — EX-SCR-132 : quand le détail par modèle échoue, le rés
       });
       expect(card.modelsUnavailable).toBe(true);
       expect(card.modelCount).toBe(0);
-      // Constat : le texte contient bien un "0 modèles" ET une médiane numérique non nulle en même
-      // temps — c'est la valeur affichée qui est fausse (contradictoire), pas seulement incomplète.
-      expect(card.medianPriceLine).toContain('0 modèles');
+      // Corrigé (DR-011) : plus jamais « 0 modèles » à côté d'une médiane non nulle — la ligne dit
+      // l'indisponibilité du détail, jamais un cardinal zéro trompeur.
+      expect(card.medianPriceLine).not.toContain('0 modèles');
+      expect(card.medianPriceLine).toMatch(/indisponible/i);
       expect(card.medianPriceLine).toContain('médiane');
       expect(card.medianPriceLine).toMatch(/médiane 18.900.€/); // "." tolère l'espace fine insécable U+202F
     },

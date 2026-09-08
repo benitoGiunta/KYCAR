@@ -27,11 +27,18 @@ export interface SummaryBarProps {
   readonly onExport: () => void;
   readonly exportDisabled: boolean;
   readonly exportDisabledReason?: string;
+  /** `EX-SCR-135` — régime `'compact'` (< 768 px) : le cardinal « modèles » disparaît et le
+   * `<select>` de tri devient un déclencheur 44 px ouvrant une feuille de sélection. Absent ou
+   * différent de `'compact'` : comportement inchangé (intermédiaire/large). Composant SANS HOOK
+   * (contrainte du lot, `structure-a11y.test.ts` l'appelle hors cycle de rendu Preact) : la
+   * « feuille » de tri compacte est un `<details>` natif, pas un état local. */
+  readonly regime?: 'compact' | 'intermediate' | 'large';
 }
 
 const SORT_FIELDS: readonly MakeSortField[] = ['offres', 'median', 'alpha', 'modeles'];
 
 export function SummaryBar(props: SummaryBarProps): JSX.Element {
+  const compact = props.regime === 'compact';
   return (
     <div class="kycar-market-summary-bar">
       <div class="kycar-market-summary-counts">
@@ -39,8 +46,14 @@ export function SummaryBar(props: SummaryBarProps): JSX.Element {
           '0 marque · 0 modèle · aucune offre'
         ) : (
           <>
-            {formatInteger(props.makeCount)} marques · {formatInteger(props.modelCount)} modèles ·{' '}
-            {formatOfferCount(props.offerCount)}
+            {formatInteger(props.makeCount)} marques
+            {!compact ? (
+              <>
+                {' '}
+                · {formatInteger(props.modelCount)} modèles
+              </>
+            ) : null}{' '}
+            · {formatOfferCount(props.offerCount)}
             {props.displayedMakeCount !== undefined && props.displayedMakeCount !== props.makeCount ? (
               <span class="kycar-muted"> — {formatInteger(props.displayedMakeCount)} marques affichées</span>
             ) : null}
@@ -48,29 +61,65 @@ export function SummaryBar(props: SummaryBarProps): JSX.Element {
         )}
       </div>
       <div class="kycar-market-sort-controls">
-        <label>
-          Trier par{' '}
-          <select
-            disabled={props.sortDisabled}
-            title={props.sortDisabled ? 'Aucun résultat à trier' : undefined}
-            value={props.sortField}
-            onChange={(e: JSX.TargetedEvent<HTMLSelectElement>) => props.onSortFieldChange(e.currentTarget.value as MakeSortField)}
-          >
-            {SORT_FIELDS.map((f) => (
-              <option key={f} value={f}>
-                {MAKE_SORT_FIELD_LABEL[f]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          disabled={props.sortDisabled}
-          aria-label={props.sortDirection === 'asc' ? 'Trier en ordre décroissant' : 'Trier en ordre croissant'}
-          onClick={props.onSortDirectionToggle}
-        >
-          {props.sortDirection === 'asc' ? '↑' : '↓'}
-        </button>
+        {compact ? (
+          <details class="kycar-sort-sheet">
+            <summary
+              class="kycar-sort-sheet-trigger"
+              aria-disabled={props.sortDisabled}
+              title={props.sortDisabled ? 'Aucun résultat à trier' : undefined}
+            >
+              Trier : {MAKE_SORT_FIELD_LABEL[props.sortField]} {props.sortDirection === 'asc' ? '↑' : '↓'}
+            </summary>
+            <div role="listbox" aria-label="Choisir un tri" class="kycar-sort-sheet-list">
+              {SORT_FIELDS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  role="option"
+                  aria-selected={f === props.sortField}
+                  disabled={props.sortDisabled}
+                  onClick={() => props.onSortFieldChange(f)}
+                >
+                  {MAKE_SORT_FIELD_LABEL[f]}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={props.sortDisabled}
+                aria-label={props.sortDirection === 'asc' ? 'Trier en ordre décroissant' : 'Trier en ordre croissant'}
+                onClick={props.onSortDirectionToggle}
+              >
+                Inverser le sens ({props.sortDirection === 'asc' ? '↑' : '↓'})
+              </button>
+            </div>
+          </details>
+        ) : (
+          <>
+            <label>
+              Trier par{' '}
+              <select
+                disabled={props.sortDisabled}
+                title={props.sortDisabled ? 'Aucun résultat à trier' : undefined}
+                value={props.sortField}
+                onChange={(e: JSX.TargetedEvent<HTMLSelectElement>) => props.onSortFieldChange(e.currentTarget.value as MakeSortField)}
+              >
+                {SORT_FIELDS.map((f) => (
+                  <option key={f} value={f}>
+                    {MAKE_SORT_FIELD_LABEL[f]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              disabled={props.sortDisabled}
+              aria-label={props.sortDirection === 'asc' ? 'Trier en ordre décroissant' : 'Trier en ordre croissant'}
+              onClick={props.onSortDirectionToggle}
+            >
+              {props.sortDirection === 'asc' ? '↑' : '↓'}
+            </button>
+          </>
+        )}
         <label>
           <input
             type="checkbox"

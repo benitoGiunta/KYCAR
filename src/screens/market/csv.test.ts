@@ -54,11 +54,13 @@ describe('buildAggregateCsvRows — EX-CRUD-15 (une ligne par couple marque/mod�
     expect(rows.map((r) => r.modele)).toContain('Modèle non identifié');
   });
 
-  it('publie rawRange (min/max BRUTS), jamais displayRange (p05/p95), pour le prix', () => {
+  it('publie rawRange (min/max BRUTS) ET displayRange (médiane/p5/p95), pour le prix (EX-DATA-123bis)', () => {
     const golfRow = rows.find((r) => r.modele === 'Golf');
     expect(golfRow?.prixMinEur).toBe(4200);
     expect(golfRow?.prixMaxEur).toBe(89000);
-    // Si l'export publiait displayRange par erreur, on lirait 8900/32500 ici, pas 4200/89000.
+    expect(golfRow?.prixMedianEur).toBe(17400);
+    expect(golfRow?.prixP5Eur).toBe(8900);
+    expect(golfRow?.prixP95Eur).toBe(32500);
   });
 
   it('ne contient AUCUN champ vendeur (R3), pour chaque ligne — garde exécutable de D2', () => {
@@ -90,10 +92,15 @@ describe('toCsvString / buildAggregateCsv — EX-CRUD-14 (BOM UTF-8, séparateur
     expect(firstDataLine).toContain(';');
   });
 
-  it("l'en-tête porte les colonnes normatives d'EX-CRUD-15", () => {
+  it("l'en-tête porte les 15 colonnes normatives d'EX-DATA-123bis, précédé des 3 lignes de métadonnées", () => {
     const csv = buildAggregateCsv(sampleCards());
-    const header = csv.slice(1).split('\r\n')[0]; // slice(1) retire le BOM
-    expect(header).toBe('Marque;Modèle;Nombre d\'offres;Prix min (EUR);Prix max (EUR);Année min;Année max;Kilométrage min;Kilométrage max');
+    const lines = csv.slice(1).split('\r\n'); // slice(1) retire le BOM
+    expect(lines[0]).toMatch(/^# snapshot;/);
+    expect(lines[1]).toMatch(/^# filtres;/);
+    expect(lines[2]).toMatch(/^# couverture;/);
+    expect(lines[3]).toBe(
+      'marque;modele;offres;prix_median;prix_p5;prix_p95;prix_min;prix_max;annee_min;annee_max;km_min;km_max;n_prix;n_annee;n_km',
+    );
   });
 
   it('une valeur null (fourchette non calculable) donne une cellule vide, jamais "null"', () => {
@@ -103,7 +110,23 @@ describe('toCsvString / buildAggregateCsv — EX-CRUD-14 (BOM UTF-8, séparateur
 
   it('échappe une cellule contenant un point-virgule ou un guillemet', () => {
     const rows = [
-      { marque: 'A;B', modele: 'C"D', nombreOffres: 1, prixMinEur: null, prixMaxEur: null, anneeMin: null, anneeMax: null, kilometrageMin: null, kilometrageMax: null },
+      {
+        marque: 'A;B',
+        modele: 'C"D',
+        offres: 1,
+        prixMedianEur: null,
+        prixP5Eur: null,
+        prixP95Eur: null,
+        prixMinEur: null,
+        prixMaxEur: null,
+        anneeMin: null,
+        anneeMax: null,
+        kilometrageMin: null,
+        kilometrageMax: null,
+        nPrix: 0,
+        nAnnee: 0,
+        nKm: 0,
+      },
     ];
     const csv = toCsvString(rows);
     expect(csv).toContain('"A;B"');

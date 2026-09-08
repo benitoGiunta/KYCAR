@@ -22,6 +22,13 @@ export interface SavedSearchesScreenProps {
   readonly onRename: (id: string, nom: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onClearHistory: () => void;
+  /** `EX-SCR-212`/`213` (DR-089) — effectif ACTUEL de chaque recherche (recalculé par l'hôte,
+   * `fetchSelectionCount`/`compileSelection`), `null` = indisponible (`ET-ERREUR-PROVIDER`),
+   * absent d'une entrée = pas encore résolu (`ET-CHARGE-INIT`, squelette). Distinct de
+   * `effectifInitial` (figé à l'enregistrement). */
+  readonly currentCountById?: ReadonlyMap<string, number | null>;
+  /** `EX-SCR-27bis`-like (DR-089, ET-VIDE-FILTRES) : amorce vers l'écran A depuis l'état vide. */
+  readonly onGoToMarket?: () => void;
 }
 
 function schemaBadge(status: SchemaStatus): string | null {
@@ -46,6 +53,8 @@ function SavedRow(props: {
   readonly onOpen: (url: string) => void;
   readonly onRename: (id: string, nom: string) => void;
   readonly onDelete: (id: string) => void;
+  /** `EX-SCR-212`/`213` (DR-089). `undefined` = pas encore résolu, `null` = indisponible. */
+  readonly currentCount?: number | null;
 }): JSX.Element {
   const { value, status } = props.record;
   const [confirming, setConfirming] = useState(false);
@@ -90,6 +99,19 @@ function SavedRow(props: {
           Mode {value.mode} · {value.effectifInitial.toLocaleString('fr-BE')} offres à la création · créée le{' '}
           {fmtDate(value.creeeLe)}
         </p>
+        {/* `EX-SCR-212`/`213` (DR-089) : effectif actuel et écart — la valeur ajoutée de l'écran. */}
+        {props.currentCount === undefined ? (
+          <p class="kycar-saved-current kycar-market-skeleton-block" aria-hidden="true" />
+        ) : props.currentCount === null ? (
+          <p class="kycar-saved-current">effectif actuel indisponible</p>
+        ) : (
+          <p class="kycar-saved-current">
+            {props.currentCount.toLocaleString('fr-BE')} offres actuellement
+            {props.currentCount !== value.effectifInitial ? (
+              <> · {props.currentCount > value.effectifInitial ? '+' : ''}{(props.currentCount - value.effectifInitial).toLocaleString('fr-BE')} offres depuis le {fmtDate(value.creeeLe)}</>
+            ) : null}
+          </p>
+        )}
         {badge !== null ? <p class="kycar-saved-badge" role="note">{badge}</p> : null}
       </div>
       <div class="kycar-saved-actions no-print">
@@ -122,7 +144,13 @@ export function SavedSearchesScreen(props: SavedSearchesScreenProps): JSX.Elemen
       <div class="kycar-saved-list">
         <h1 id="kycar-saved-title">Recherches sauvegardées</h1>
         {props.saved.length === 0 ? (
-          <p>Aucune recherche sauvegardée. Depuis le marché, utilisez « Enregistrer cette recherche ».</p>
+          <div class="kycar-saved-empty">
+            <p>Aucune recherche enregistrée.</p>
+            <p>Enregistrez une recherche depuis le bandeau de filtres, sur l’écran du marché.</p>
+            <button type="button" onClick={props.onGoToMarket}>
+              Aller au survol du marché
+            </button>
+          </div>
         ) : (
           <ul class="kycar-saved-rows">
             {props.saved.map((record) => (
@@ -132,6 +160,7 @@ export function SavedSearchesScreen(props: SavedSearchesScreenProps): JSX.Elemen
                 onOpen={props.onOpen}
                 onRename={props.onRename}
                 onDelete={props.onDelete}
+                currentCount={props.currentCountById?.get(record.value.id)}
               />
             ))}
           </ul>

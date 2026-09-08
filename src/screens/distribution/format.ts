@@ -45,6 +45,18 @@ export function formatSignedPct(pct: number): string {
   return `${sign}${pct.toFixed(1).replace('.', ',')}${NBSP}%`;
 }
 
+/** Consommation combinée, `EX-SCR-8` : 1 décimale, `l/100 km`. `x10` = valeur × 10 du batch
+ * (`consumptionCombinedL100KmX10`). */
+export function formatConsumption(x10: number): string {
+  return `${(x10 / 10).toFixed(1).replace('.', ',')}${NBSP}l/100${NBSP}km`;
+}
+
+/** Émissions de CO₂, `EX-SCR-8` : entier, `g/km`. `x10` = valeur × 10 du batch
+ * (`co2EmissionsGPerKmX10`). */
+export function formatCo2(x10: number): string {
+  return `${Math.round(x10 / 10)}${NBSP}g/km`;
+}
+
 /** Format d'une borne selon la métrique d'histogramme. */
 export function formatMetric(value: number, metric: 'price' | 'year' | 'mileage'): string {
   if (!Number.isFinite(value)) return value > 0 ? '∞' : '−∞';

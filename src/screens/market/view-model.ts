@@ -35,7 +35,7 @@ import {
   truncateGraphemes,
   type Truncated,
 } from './format';
-import { isSparseModel, modelZoneMedianDisplay } from './thresholds';
+import { effectifTier, isSparseModel, modelZoneMedianDisplay } from './thresholds';
 import { sortModelRows } from './sort';
 
 export const MODEL_NON_IDENTIFIE_LABEL = 'Modèle non identifié';
@@ -70,13 +70,31 @@ export interface CentralRange {
   /** Toujours présent quand `label` porte une valeur : « fourchette centrale (90 % des offres) ». */
   readonly caption: string;
   readonly available: boolean;
+  /** `EX-SCR-33` (D-04, ARB-17) : jeton ambre `n = <n>` quand le palier d'effectif de LA métrique
+   * (pas `listingCount`) est `'trop-faible'` ou `'reduite'` (`n` compris entre 1 et 11) — paliers
+   * uniques pour toute l'application, y compris l'écran A. `undefined` sinon (rien à signaler). */
+  readonly lowSampleToken?: string;
 }
 
 const CENTRAL_RANGE_CAPTION = 'fourchette centrale (90 % des offres)';
 const RAW_RANGE_CAPTION = 'du moins cher au plus cher';
+const UNAVAILABLE_RANGE: CentralRange = { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false };
+
+/** `EX-SCR-33` (D-04) : paliers `'trop-faible'`/`'reduite'` (1 ≤ n ≤ 11) masquent le P5/P95 et posent
+ * le jeton `n = <n>`, quelle que soit la métrique — même table de seuils que partout ailleurs
+ * (`thresholds.ts::effectifTier`), jamais un seuil local à cette fonction. */
+function lowSampleGuard(n: number): CentralRange | undefined {
+  const tier = effectifTier(n);
+  if (tier === 'trop-faible' || tier === 'reduite') {
+    return { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false, lowSampleToken: `n = ${n}` };
+  }
+  return undefined;
+}
 
 function priceCentralRange(price: MetricRange): CentralRange {
-  if (price.p05 === null || price.p95 === null) return { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false };
+  const guard = lowSampleGuard(price.n);
+  if (guard) return guard;
+  if (price.p05 === null || price.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatPriceRange(price.p05, price.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
 }
 
@@ -86,12 +104,16 @@ function priceRawRangeTooltip(price: MetricRange): string | undefined {
 }
 
 function yearCentralRange(year: MetricRange): CentralRange {
-  if (year.p05 === null || year.p95 === null) return { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false };
+  const guard = lowSampleGuard(year.n);
+  if (guard) return guard;
+  if (year.p05 === null || year.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatYearRange(year.p05, year.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
 }
 
 function mileageCentralRange(mileage: MetricRange): CentralRange {
-  if (mileage.p05 === null || mileage.p95 === null) return { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false };
+  const guard = lowSampleGuard(mileage.n);
+  if (guard) return guard;
+  if (mileage.p05 === null || mileage.p95 === null) return UNAVAILABLE_RANGE;
   return { label: formatMileageRange(mileage.p05, mileage.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
 }
 
@@ -172,10 +194,10 @@ export function buildModelZoneViewModel(
     offerCountBare: formatInteger(agg.listingCount),
     ariaLabel: `${label}, ${formatOfferCount(agg.listingCount)}`,
     rangesAvailable,
-    price: rangesAvailable ? priceCentralRange(agg.price) : { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false },
+    price: rangesAvailable ? priceCentralRange(agg.price) : UNAVAILABLE_RANGE,
     priceRawTooltip: rangesAvailable ? priceRawRangeTooltip(agg.price) : undefined,
-    year: rangesAvailable ? yearCentralRange(agg.year) : { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false },
-    mileage: rangesAvailable ? mileageCentralRange(agg.mileage) : { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false },
+    year: rangesAvailable ? yearCentralRange(agg.year) : UNAVAILABLE_RANGE,
+    mileage: rangesAvailable ? mileageCentralRange(agg.mileage) : UNAVAILABLE_RANGE,
     medianLabel,
     coverage,
     coverageLevel: coverageDiscLevel(coverage),
@@ -274,7 +296,17 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
     badgeInitials: badgeInitials(label),
     badgeColor: badgeColorForMake(agg.makeId),
     modelCount,
-    medianPriceLine: agg.price.p50 !== null ? `${modelCount} modèles · médiane ${formatPrice(agg.price.p50)}` : `${modelCount} modèles · médiane non calculable`,
+    // `EX-SCR-132` (DR-011) : quand le détail par modèle a échoué (`modelsUnavailable`), `modelCount`
+    // vaut structurellement 0 alors que l'agrégat de MARQUE (donc `agg.price.p50`) peut, lui, avoir
+    // réussi — afficher « 0 modèles · médiane <n> € » serait une valeur affichée CONTRADICTOIRE
+    // (0 modèles connus à côté d'une médiane calculée sur des offres forcément réparties dans des
+    // modèles). Le nombre de modèles est donc remplacé par une mention d'indisponibilité explicite,
+    // jamais par un zéro trompeur ; la médiane, elle, reste publiée quand elle est réellement connue.
+    medianPriceLine: modelsUnavailable
+      ? (agg.price.p50 !== null
+          ? `détail des modèles indisponible · médiane ${formatPrice(agg.price.p50)}`
+          : `détail des modèles indisponible`)
+      : (agg.price.p50 !== null ? `${modelCount} modèles · médiane ${formatPrice(agg.price.p50)}` : `${modelCount} modèles · médiane non calculable`),
     price: priceCentralRange(agg.price),
     priceRawTooltip: priceRawRangeTooltip(agg.price),
     year: yearCentralRange(agg.year),

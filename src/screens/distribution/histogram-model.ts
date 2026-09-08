@@ -15,7 +15,7 @@
  * Module PUR : testable sans DOM.
  */
 
-import type { DistributionBucket } from '../../types/index';
+import type { DistributionBucket, FilterValue, SelectionInput } from '../../types/index';
 
 /** Seuil de disponibilité de la bascule log (EX-SCR-16). */
 export const LOG_TOGGLE_MIN_RATIO = 50;
@@ -130,7 +130,47 @@ export function histogramTable(
     return {
       rangeLabel,
       count: b.count,
-      sharePct: `${(b.share * 100).toFixed(1)} %`,
+      // fr-BE (EX-NFR-28/30, R-D7-04) : virgule décimale + espace fine insécable avant `%`, jamais
+      // le point décimal ni une espace ordinaire.
+      sharePct: `${(b.share * 100).toFixed(1).replace('.', ',')}${NNBSP}%`,
     };
   });
+}
+
+const NNBSP = ' '; // espace fine insécable (séparateur fr-BE, cf. `format.ts`)
+
+/** Identifiants de filtre R d'intervalle par métrique (`src/state/filter-registry.ts`, D5) — repris
+ * ici en constantes locales : ce module n'importe rien de `src/state` (hors périmètre fix-screens),
+ * mais consomme les IDENTIFIANTS DE FILTRE, qui font partie du contrat public de `SelectionInput`
+ * (D2, `src/types/selection.ts`), pas de l'implémentation du bandeau. */
+const METRIC_FILTER_IDS: Readonly<Record<'price' | 'year' | 'mileage', { readonly from: string; readonly to: string }>> = {
+  price: { from: 'priceFrom', to: 'priceTo' },
+  mileage: { from: 'mileageFrom', to: 'mileageTo' },
+  year: { from: 'dateOfRegistrationFrom', to: 'dateOfRegistrationTo' },
+};
+
+/** `ARB-09` (DR-009) : plus petite unité adressable de la métrique côté filtre — un `<x>to` posé à
+ * `hi − u` retient exactement l'effectif de la barre (bins semi-ouverts à droite, `[lo, hi)`,
+ * EX-DATA-76). Les trois métriques sont des entiers dans leur unité canonique (€, km, année) : `u` y
+ * vaut toujours 1, quelle que soit la LARGEUR du bin (`binWidth`, sans rapport avec `u`). */
+const METRIC_UNIT: Readonly<Record<'price' | 'year' | 'mileage', number>> = { price: 1, mileage: 1, year: 1 };
+
+/**
+ * `ARB-09` / `EX-SCR-149` (DR-009) — convertit le bucket cliqué en filtre d'intervalle à poser :
+ * `<x>from = lo`, `<x>to = hi − u`. Gère les deux cas de débordement (`EX-DATA-76`, bin de
+ * débordement ouvert) : le bin bas (`lowerBound = -Infinity`) ne pose PAS de borne basse (« jusqu'à
+ * hi − u »), le bin haut (`upperBound = +Infinity`) ne pose PAS de borne haute (« à partir de lo »).
+ * Fonction PURE : elle ne pose rien elle-même — le résultat est un `SelectionInput` partiel que
+ * l'hôte (via `DistributionScreenProps.onApplyFilters`) applique à la sélection réelle Σ.
+ */
+export function bucketToIntervalFilters(
+  bucket: Pick<DistributionBucket, 'lowerBound' | 'upperBound'>,
+  metric: 'price' | 'year' | 'mileage',
+): SelectionInput {
+  const ids = METRIC_FILTER_IDS[metric];
+  const u = METRIC_UNIT[metric];
+  const out: Record<string, FilterValue> = {};
+  if (Number.isFinite(bucket.lowerBound)) out[ids.from] = bucket.lowerBound;
+  if (Number.isFinite(bucket.upperBound)) out[ids.to] = bucket.upperBound - u;
+  return out;
 }

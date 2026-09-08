@@ -240,7 +240,10 @@ describe('patho — AMB-27 → ARB-35, AMB-30 → ARB-36, T-09 → ARB-43', () =
     expect(selection).toHaveLength(4);
     expect(addToCompare(selection.slice(0, 1), { makeId: 1, modelId: 0 })).toHaveLength(1); // clé réservée
 
-    const parsed = parseCompareParam('1.101,1.102,1.103,1.104,1.105');
+    // D-31 : littéral adapté du point au tiret (D-13/DR-085 — format normatif `<makeId>-<modelId>`,
+    // annexe C fait foi sur l'encodage) ; la propriété testée ici (plafond/écrêtage signalé) est
+    // inchangée et indépendante du séparateur.
+    const parsed = parseCompareParam('1-101,1-102,1-103,1-104,1-105');
     expect(parsed.keys).toHaveLength(4);
     expect(parsed.clipped).toBe(true); // écrêtage SIGNALÉ, jamais silencieux
   });

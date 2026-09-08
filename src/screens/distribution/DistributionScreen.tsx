@@ -15,15 +15,25 @@
  * est un point d'intégration D8 (le modèle expose déjà `selectedRows`). Idem `ET-*` d'écran (D8).
  */
 
-import { useMemo } from 'preact/hooks';
-import type { ListingColumnBatch } from '../../types/index';
+import { useMemo, useState } from 'preact/hooks';
+import type { ListingColumnBatch, SelectionInput } from '../../types/index';
 import type { RecalcResult } from '../../engine/index';
 import { decodeListingId } from '../../engine/uuid';
-import { OutlierIndex } from '../outlier-index';
+import { OutlierIndex, comparisonBaseLabel, methodLabel } from '../outlier-index';
+import { buildListingRow } from '../listings/listing-fields';
+import { exportListingsCsv, exportBucketsCsv, csvFileName, type CsvMeta, type CsvLabelResolvers } from '../listings/csv-export';
 import { computeEligibility, buildScatterPoints, type OutlierLookup } from './scatter-model';
 import { sampleScatter } from './scatter-sample';
 import { Histogram } from './Histogram';
 import { ScatterCloud } from './ScatterCloud';
+import { bucketToIntervalFilters } from './histogram-model';
+import {
+  computeBrushSelection,
+  brushAccessorFor,
+  brushToIntervalFilters,
+  intervalFiltersToSelectionInput,
+  selectedCountsByBucket,
+} from './brush-model';
 import {
   YearMedianChart,
   DepreciationChart,
@@ -50,7 +60,7 @@ import {
   type G4Variant,
   type BrushRange,
 } from './url-state';
-import { formatPrice, formatKm, formatYear } from './format';
+import { formatPrice, formatKm, formatYear, formatPower, formatMonthYear } from './format';
 import './distribution.css';
 
 /** Résolveurs de libellés (fournis par D8/ReferenceData) — défaut = code brut. */
@@ -76,14 +86,44 @@ export interface DistributionScreenProps {
   readonly makeModelName?: string;
   /** Ouvre l'annonce d'origine (deeplink), fourni par D8. */
   readonly onOpenListing?: (row: number) => void;
+
+  /** `ARB-09`/`EX-SCR-184` (DR-009, DR-079) — pose un correctif de filtres RÉELS sur la sélection Σ
+   * (clic sur une barre d'histogramme, ou « Convertir la sélection en filtre »). Point d'intégration
+   * D8/fix-app : lit les valeurs actuelles du bandeau de filtres, y fusionne `patch`, écrit la
+   * nouvelle URL — voir le rapport de lot, § « Câblage attendu de fix-app ». */
+  readonly onApplyFilters?: (patch: SelectionInput) => void;
+  /** `EX-SCR-158`/`184`, `D-12`/`D-26` — « Voir ces annonces » : navigue vers l'écran D restreint à
+   * la sélection brossée (`sel=<lo>-<hi>` sur le prix, restriction d'affichage, Σ INCHANGÉE). */
+  readonly onViewBrushedListings?: (sel: { readonly from: number; readonly to: number }) => void;
+  /** `EX-SCR-142` ligne 3 (DR-078) — « Voir les <n> annonces » : écran D SANS restriction. */
+  readonly onViewListings?: () => void;
+  /** `EX-SCR-142` ligne 3 (DR-078) — « Comparer » : écran C. */
+  readonly onCompare?: () => void;
+  /** `EX-SCR-142` ligne 3 / `EX-CRUD-10` (DR-078) — « Suivre » : CRUD écran F. */
+  readonly onFollow?: (next: boolean) => void;
+  readonly isFollowed?: boolean;
+  /** Métadonnées d'en-tête des deux exports CSV auto-portés par cet écran (DR-078/`EX-CRUD-16`). */
+  readonly csvMeta?: CsvMeta;
+  /** `EX-NFR-19` (DR-081) — régime dégradé (< 768 px, prix × km, année en couleur, brossage off).
+   * Absent : repli par `matchMedia` (voir `defaultDegradedFromViewport`, plus bas). */
+  readonly degraded?: boolean;
 }
 
 function idLabel(code: number): string {
   return String(code);
 }
 
+/** `EX-NFR-19` (DR-081) — défaut de `degraded` quand l'hôte (D8, seul propriétaire du viewport) ne
+ * le fournit pas encore : estimation par `matchMedia`, alignée sur le point de rupture normatif
+ * (768 px). Un composant MONTABLE isolément reste ainsi utilisable sans hôte. */
+function defaultDegradedFromViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(max-width: 767.98px)').matches;
+}
+
 export function DistributionScreen(props: DistributionScreenProps) {
   const { batch, recalc, ui } = props;
+  const [exportOpen, setExportOpen] = useState(false);
   const rows = useMemo(
     () => props.rows ?? Int32Array.from({ length: batch.rowCount }, (_v, i) => i),
     [props.rows, batch.rowCount],
@@ -128,6 +168,7 @@ export function DistributionScreen(props: DistributionScreenProps) {
 
   const variant: G4Variant = effectiveG4Variant(ui, selectionCount);
   const labels = props.labels ?? {};
+  const degraded = props.degraded ?? defaultDegradedFromViewport();
 
   const onToggleLog = (n: number): void => props.onUiChange(toggleLogHistogram(ui, n));
   const onBrushChange = (brushX: BrushRange | null, brushY: BrushRange | null): void =>
@@ -136,31 +177,171 @@ export function DistributionScreen(props: DistributionScreenProps) {
 
   const price = stats.price;
 
+  // `EX-SCR-142` ligne 2 (DR-077) — part de particuliers, calculée depuis le batch (aucune donnée
+  // équivalente sur `SelectionStats`, hors périmètre fix-screens de l'étendre) : le libellé exact
+  // « Particulier » de l'écran D (`EX-SCR-203`) sert de pivot, résolu par le même `labels.sellerType`
+  // que le graphe G13 — sans ce résolveur, la part reste indisponible plutôt que fausse.
+  const particulier = useMemo(() => {
+    if (!labels.sellerType) return null;
+    let particulierN = 0;
+    let knownN = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i] as number;
+      const code = batch.sellerType[row] as number;
+      if (code === 255) continue; // ENUM_UNKNOWN_BYTE (EX-DATA-120)
+      knownN++;
+      if (labels.sellerType(code) === 'Particulier') particulierN++;
+    }
+    return knownN > 0 ? { pct: (particulierN / knownN) * 100, n: knownN } : null;
+  }, [batch, rows, labels]);
+
+  // `EX-SCR-184` (DR-080) — sélection brossée EN LIGNES (mêmes règles que `ScatterCloud`, via
+  // `brushAccessorFor`), pour la liaison croisée sur G1–G3 et les actions de la sélection (DR-079).
+  const selectedRows = useMemo(() => {
+    if (ui.brushX === null && ui.brushY === null) return null;
+    const accessor = brushAccessorFor(variant, degraded);
+    return computeBrushSelection(scatter.points, ui.brushX, ui.brushY, accessor);
+  }, [scatter.points, ui.brushX, ui.brushY, variant, degraded]);
+
+  const priceSelectedCounts = useMemo(
+    () => (selectedRows ? selectedCountsByBucket(scatter.points, selectedRows, recalc.priceHistogram, (p) => p.priceEur) : undefined),
+    [scatter.points, selectedRows, recalc.priceHistogram],
+  );
+  const mileageSelectedCounts = useMemo(
+    () => (selectedRows ? selectedCountsByBucket(scatter.points, selectedRows, recalc.mileageHistogram, (p) => p.mileageKm) : undefined),
+    [scatter.points, selectedRows, recalc.mileageHistogram],
+  );
+  const yearSelectedCounts = useMemo(
+    () => (selectedRows ? selectedCountsByBucket(scatter.points, selectedRows, recalc.yearHistogram, (p) => p.year) : undefined),
+    [scatter.points, selectedRows, recalc.yearHistogram],
+  );
+
+  // `ARB-09`/`EX-SCR-149` (DR-009) — clic sur une barre : pose l'intervalle correspondant.
+  const onSelectBucket = (metric: 'price' | 'year' | 'mileage') => (bucket: Parameters<typeof bucketToIntervalFilters>[0]): void => {
+    props.onApplyFilters?.(bucketToIntervalFilters(bucket, metric));
+  };
+
+  // `EX-SCR-158`/`184` (DR-079) — actions de la sélection brossée.
+  const brushInterval = selectedRows ? brushToIntervalFilters(scatter.points, selectedRows) : null;
+  const onConvertBrushToFilter = (): void => {
+    if (!brushInterval) return;
+    props.onApplyFilters?.(intervalFiltersToSelectionInput(brushInterval));
+    props.onUiChange({ ...ui, brushX: null, brushY: null }); // `sel`/`selx`/`sely` retirés (D-26)
+  };
+  const onViewBrushedListings = (): void => {
+    if (!brushInterval) return;
+    props.onViewBrushedListings?.({ from: brushInterval.priceFrom, to: brushInterval.priceTo });
+  };
+
+  // `EX-SCR-158` (DR-084) — infobulle de survol du nuage, 6 lignes, CONTENU TEXTUEL (`ARB-62`).
+  const resolveTooltip = (row: number): readonly string[] => {
+    const r = buildListingRow(batch, row, outlierIndex);
+    const evalLabel = r.priceEvaluationCategory != null ? labels.evaluation?.(r.priceEvaluationCategory) : undefined;
+    const comparisonLine =
+      r.outlierMethod != null
+        ? `${comparisonBaseLabel({ cellLabel: r.cellLabel, cellCount: r.cellCount }, { makeModel: props.makeModelName, year: r.regYear ?? undefined })} · ${methodLabel(r.outlierMethod)}`
+        : 'écart calculé sur : sélection courante';
+    const lines = [
+      r.modelVersion.slice(0, 40),
+      r.priceEur != null ? formatPrice(r.priceEur) : '—',
+      r.mileageKm != null ? formatKm(r.mileageKm) : '—',
+      r.regYearMonth != null ? `1ʳᵉ immat. ${formatMonthYear(r.regYearMonth)}` : '1ʳᵉ immat. inconnue',
+      r.powerKw != null ? formatPower(r.powerKw) : '—',
+    ];
+    if (evalLabel) lines.push(evalLabel);
+    lines.push(comparisonLine);
+    return lines;
+  };
+
+  // `EX-CRUD-16` (DR-078) — les deux exports CSV, auto-portés par l'écran B (mêmes fonctions que
+  // l'écran D). `csvMeta` par défaut : repli explicite, jamais une valeur inventée.
+  const csvMeta: CsvMeta = props.csvMeta ?? {
+    snapshotId: 'INCONNU',
+    capturedAt: '',
+    sourceKind: 'INCONNU',
+    filterQuery: '',
+    sampleCoverage: 'NON_APPLICABLE',
+    metricCoverage: '',
+  };
+  const csvLabels: CsvLabelResolvers = { fuel: labels.fuel, sellerType: labels.sellerType, country: labels.country };
+  const download = (content: string, name: string): void => {
+    if (typeof document === 'undefined') return;
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const onExportListingsCsv = (): void => {
+    const listingRows = Array.from(rows, (row) => buildListingRow(batch, row, outlierIndex));
+    download(exportListingsCsv(listingRows, csvMeta, csvLabels), csvFileName(props.makeModelName ?? 'annonces', csvMeta.snapshotId, new Date()));
+  };
+  const onExportBucketsCsv = (): void => {
+    const buckets = [
+      { metric: 'price' as const, buckets: recalc.priceHistogram },
+      { metric: 'mileage' as const, buckets: recalc.mileageHistogram },
+      { metric: 'year' as const, buckets: recalc.yearHistogram },
+    ];
+    download(exportBucketsCsv(buckets, csvMeta), csvFileName(`${props.makeModelName ?? 'agregats'}-agregats`, csvMeta.snapshotId, new Date()));
+  };
+
   return (
     <div class="kycar-screen-b">
       {/* Bloc 1 — en-tête statistique (EX-SCR-142) */}
       <header class="kycar-stat-header">
         <div class="kycar-stat-line">
           <strong>{props.makeModelName ?? 'Modèle'}</strong>
-          <span>{selectionCount} offres</span>
-          <span>médiane {price.p50 != null ? formatPrice(price.p50) : '—'}</span>
-          <span>P25 {price.p25 != null ? formatPrice(price.p25) : '—'}</span>
-          <span>P75 {price.p75 != null ? formatPrice(price.p75) : '—'}</span>
-          <span title="du moins cher au plus cher">
-            {price.min != null ? formatPrice(price.min) : '—'} – {price.max != null ? formatPrice(price.max) : '—'}
+          <span title={`n = ${selectionCount}`}>{selectionCount} offres</span>
+          <span title={`n = ${price.n}`}>médiane {price.p50 != null ? formatPrice(price.p50) : '—'}</span>
+          <span title={`n = ${price.n}`}>P25 {price.p25 != null ? formatPrice(price.p25) : '—'}</span>
+          <span title={`n = ${price.n}`}>P75 {price.p75 != null ? formatPrice(price.p75) : '—'}</span>
+          <span title={`n = ${price.n}`}>
+            min {price.min != null ? formatPrice(price.min) : '—'} – max {price.max != null ? formatPrice(price.max) : '—'}
+            <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
           </span>
         </div>
         <div class="kycar-stat-line">
-          <span>km médian {stats.mileage.p50 != null ? formatKm(stats.mileage.p50) : '—'}</span>
-          <span>1ʳᵉ immat. médiane {stats.year.p50 != null ? formatYear(stats.year.p50) : '—'}</span>
+          <span title={`n = ${stats.mileage.n}`}>km médian {stats.mileage.p50 != null ? formatKm(stats.mileage.p50) : '—'}</span>
+          <span title={`n = ${stats.year.n}`}>1ʳᵉ immat. médiane {stats.year.p50 != null ? formatYear(stats.year.p50) : '—'}</span>
+          <span title={particulier ? `n = ${particulier.n}` : undefined}>
+            {particulier ? `${particulier.pct.toFixed(0)} % particuliers` : '— % particuliers'}
+          </span>
+        </div>
+        <div class="kycar-stat-line kycar-stat-actions">
+          <button type="button" onClick={props.onViewListings}>
+            Voir les {selectionCount} annonces
+          </button>
+          <button type="button" onClick={props.onCompare}>
+            Comparer
+          </button>
+          <button type="button" onClick={() => props.onFollow?.(!props.isFollowed)} aria-pressed={props.isFollowed ?? false}>
+            {props.isFollowed ? 'Suivi ✓' : 'Suivre'}
+          </button>
+          <span class="kycar-stat-export">
+            <button type="button" aria-expanded={exportOpen} onClick={() => setExportOpen((v) => !v)}>
+              Exporter
+            </button>
+            {exportOpen ? (
+              <span class="kycar-stat-export-menu">
+                <button type="button" onClick={onExportListingsCsv}>
+                  Annonces du périmètre (CSV)
+                </button>
+                <button type="button" onClick={onExportBucketsCsv}>
+                  Agrégats affichés (CSV)
+                </button>
+              </span>
+            ) : null}
+          </span>
         </div>
       </header>
 
       {/* Bloc 2 — histogrammes G1–G3 */}
       <section class="kycar-hist-row" aria-label="Distributions">
-        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} />
-        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} />
-        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} />
+        <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} selectedCounts={priceSelectedCounts} />
+        <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} onSelectBucket={onSelectBucket('mileage')} selectedCounts={mileageSelectedCounts} />
+        <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} onSelectBucket={onSelectBucket('year')} selectedCounts={yearSelectedCounts} />
       </section>
 
       {/* Bloc 3 — nuage G4 */}
@@ -173,7 +354,20 @@ export function DistributionScreen(props: DistributionScreenProps) {
           brushX={ui.brushX}
           brushY={ui.brushY}
           onBrushChange={onBrushChange}
+          degraded={degraded}
+          resolveTooltip={resolveTooltip}
+          onOpenListing={props.onOpenListing}
         />
+        {selectedRows && selectedRows.size > 0 ? (
+          <div class="kycar-scatter-selection-actions">
+            <button type="button" onClick={onConvertBrushToFilter}>
+              Convertir la sélection en filtre
+            </button>
+            <button type="button" onClick={onViewBrushedListings}>
+              Voir ces annonces
+            </button>
+          </div>
+        ) : null}
       </section>
 
       {/* Bloc 4 — graphes additionnels (ordre EX-SCR-144) */}
@@ -188,6 +382,9 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} />
         <PowerTiers tiers={powerTiers} />
         <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} />
+        {/* A-08 (DR-147, DETTE consignée) : CO₂, consommation et boîte de vitesses sont écartés de
+            cette grille — voir `reports/remediation/fix-screens.md` §6.5. Mention volontairement
+            absente ici : le fix-lead a retenu la dette « muette » pour ce MINEUR, pas un correctif. */}
       </section>
     </div>
   );

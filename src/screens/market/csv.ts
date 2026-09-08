@@ -20,16 +20,25 @@
 
 import type { MakeCardViewModel } from './view-model';
 
+/** `EX-DATA-123bis` — 15 colonnes normatives de l'export « Agrégats mode 1 » : effectif, médiane,
+ * P5/P95 et fourchette brute du prix, fourchette brute année/km, et les trois effectifs PAR MÉTRIQUE
+ * (`n_prix`/`n_annee`/`n_km`, `EX-DATA-59` — distincts de `nombreOffres`, qui est `listingCount`). */
 export interface AggregateCsvRow {
   readonly marque: string;
   readonly modele: string;
-  readonly nombreOffres: number;
+  readonly offres: number;
+  readonly prixMedianEur: number | null;
+  readonly prixP5Eur: number | null;
+  readonly prixP95Eur: number | null;
   readonly prixMinEur: number | null;
   readonly prixMaxEur: number | null;
   readonly anneeMin: number | null;
   readonly anneeMax: number | null;
   readonly kilometrageMin: number | null;
   readonly kilometrageMax: number | null;
+  readonly nPrix: number;
+  readonly nAnnee: number;
+  readonly nKm: number;
 }
 
 /** Aplatit les cartes-marques en lignes d'export, une par couple marque/modèle actuellement
@@ -44,29 +53,43 @@ export function buildAggregateCsvRows(cards: readonly MakeCardViewModel[]): read
       rows.push({
         marque: card.label,
         modele: zone.label,
-        nombreOffres: zone.listingCount,
+        offres: zone.listingCount,
+        prixMedianEur: zone.rawMetrics.price.p50,
+        prixP5Eur: zone.rawMetrics.price.p05,
+        prixP95Eur: zone.rawMetrics.price.p95,
         prixMinEur: zone.rawMetrics.price.min,
         prixMaxEur: zone.rawMetrics.price.max,
         anneeMin: zone.rawMetrics.year.min,
         anneeMax: zone.rawMetrics.year.max,
         kilometrageMin: zone.rawMetrics.mileage.min,
         kilometrageMax: zone.rawMetrics.mileage.max,
+        nPrix: zone.rawMetrics.price.n,
+        nAnnee: zone.rawMetrics.year.n,
+        nKm: zone.rawMetrics.mileage.n,
       });
     }
   }
   return rows;
 }
 
+/** `EX-DATA-123bis` : en-tête exact, ordre exact — clés techniques minuscules, pas les libellés FR
+ * affichés à l'écran (cohérent avec l'écran D, `listings/csv-export.ts`). */
 const CSV_HEADER: readonly string[] = [
-  'Marque',
-  'Modèle',
-  "Nombre d'offres",
-  'Prix min (EUR)',
-  'Prix max (EUR)',
-  'Année min',
-  'Année max',
-  'Kilométrage min',
-  'Kilométrage max',
+  'marque',
+  'modele',
+  'offres',
+  'prix_median',
+  'prix_p5',
+  'prix_p95',
+  'prix_min',
+  'prix_max',
+  'annee_min',
+  'annee_max',
+  'km_min',
+  'km_max',
+  'n_prix',
+  'n_annee',
+  'n_km',
 ];
 
 /** `EX-CRUD-14` : séparateur `;` — une cellule qui contiendrait `;`, `"` ou un saut de ligne est
@@ -79,18 +102,68 @@ function csvCell(value: string | number | null): string {
 }
 
 function rowToLine(r: AggregateCsvRow): string {
-  return [r.marque, r.modele, r.nombreOffres, r.prixMinEur, r.prixMaxEur, r.anneeMin, r.anneeMax, r.kilometrageMin, r.kilometrageMax]
+  return [
+    r.marque,
+    r.modele,
+    r.offres,
+    r.prixMedianEur,
+    r.prixP5Eur,
+    r.prixP95Eur,
+    r.prixMinEur,
+    r.prixMaxEur,
+    r.anneeMin,
+    r.anneeMax,
+    r.kilometrageMin,
+    r.kilometrageMax,
+    r.nPrix,
+    r.nAnnee,
+    r.nKm,
+  ]
     .map(csvCell)
     .join(';');
 }
 
-/** `EX-CRUD-14` : BOM UTF-8 (compatibilité Excel FR), séparateur `;`, fin de ligne CRLF. */
-export function toCsvString(rows: readonly AggregateCsvRow[]): string {
+/** Métadonnées d'en-tête de fichier (`EX-DATA-123bis`) : les trois lignes qui précèdent l'en-tête
+ * des colonnes. Champs facultatifs, faute d'être tous portés aujourd'hui par `ScreenAState`
+ * (`snapshotId`, la requête canonique et les deux couvertures viennent de l'hôte D8 — voir le
+ * rapport de lot, § « Câblage attendu de fix-app ») : chaque champ absent est rendu par un repli
+ * explicite, jamais par une valeur inventée. */
+export interface AggregateCsvMeta {
+  readonly snapshotId?: string;
+  readonly capturedAt?: string;
+  readonly sourceKind?: string;
+  /** Requête canonique complète (`EX-NAV-9`). */
+  readonly filterQuery?: string;
+  readonly sampleCoverage?: string;
+  readonly metricCoverage?: string;
+}
+
+function metaLines(meta: AggregateCsvMeta): string[] {
+  return [
+    ['# snapshot', meta.snapshotId ?? 'INCONNU', meta.capturedAt ?? '', meta.sourceKind ?? 'INCONNU'].map(csvCell).join(';'),
+    ['# filtres', meta.filterQuery ?? ''].map(csvCell).join(';'),
+    ['# couverture', meta.sampleCoverage ?? 'NON_APPLICABLE', meta.metricCoverage ?? ''].map(csvCell).join(';'),
+  ];
+}
+
+/** `EX-CRUD-14` : BOM UTF-8 (compatibilité Excel FR), séparateur `;`, fin de ligne CRLF, précédé des
+ * trois lignes de métadonnées normatives (`EX-DATA-123bis`). */
+export function toCsvString(rows: readonly AggregateCsvRow[], meta: AggregateCsvMeta = {}): string {
   const BOM = '﻿';
-  const lines = [CSV_HEADER.map(csvCell).join(';'), ...rows.map(rowToLine)];
+  const lines = [...metaLines(meta), CSV_HEADER.map(csvCell).join(';'), ...rows.map(rowToLine)];
   return BOM + lines.join('\r\n');
 }
 
-export function buildAggregateCsv(cards: readonly MakeCardViewModel[]): string {
-  return toCsvString(buildAggregateCsvRows(cards));
+export function buildAggregateCsv(cards: readonly MakeCardViewModel[], meta: AggregateCsvMeta = {}): string {
+  return toCsvString(buildAggregateCsvRows(cards), meta);
+}
+
+/** Nom de fichier normatif (`EX-DATA-123bis`) : `kycar_<perimetre>_<snapshotId>_<AAAAMMJJ>.csv`. */
+export function buildAggregateCsvFileName(perimeter: string, snapshotId: string, date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const safe = perimeter.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const safeId = (snapshotId || 'inconnu').replace(/[^a-zA-Z0-9_-]/g, '-');
+  return `kycar_${safe}_${safeId}_${y}${m}${d}.csv`;
 }

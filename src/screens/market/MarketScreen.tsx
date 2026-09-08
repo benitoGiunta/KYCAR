@@ -27,16 +27,36 @@ import type { JSX } from 'preact';
 import { ScreenG, type ScreenGReferenceData } from '../../components/filters/ScreenG';
 import type { SelectionState } from '../../state/filter-types';
 import type { Model } from '../../types/entities';
-import { buildAggregateCsv } from './csv';
+import { buildAggregateCsv, buildAggregateCsvFileName, type AggregateCsvMeta } from './csv';
 import { buildC3Banner } from './coverage';
 import { formatInteger } from './format';
 import { GridFooter } from './GridFooter';
 import { MakeCard } from './MakeCard';
-import { MAKE_COUNT_WARNING_THRESHOLD, NO_FILTER_TEASER_MAKE_COUNT, GRID_LOAD_BATCH_SIZE } from './thresholds';
+import {
+  MAKE_COUNT_WARNING_THRESHOLD,
+  MODELS_VISIBLE_BEFORE_COLLAPSE,
+  NO_FILTER_TEASER_MAKE_COUNT,
+  GRID_LOAD_BATCH_SIZE,
+} from './thresholds';
 import { sortMakeRows, type MakeSortField, type SortDirection, type SortableMakeRow } from './sort';
 import { SummaryBar } from './SummaryBar';
 import type { RestrictiveFilterHint, ScreenAState } from './state';
 import { buildMakeCardViewModel, type MakeCardViewModel } from './view-model';
+
+/** `EX-SCR-20`/`135`/`136`/`137` — les trois régimes responsives de l'écran A. */
+export type MarketRegime = 'compact' | 'intermediate' | 'large';
+
+/** Défaut de `regime` quand l'hôte (D8, seul propriétaire du viewport) ne le fournit pas encore : une
+ * estimation par `matchMedia`, alignée sur les points de rupture de `market.css` (768/1280 px),
+ * sinon `'large'` (SSR ou environnement sans `window`). Un composant MONTABLE isolément (test,
+ * storybook) reste ainsi utilisable sans hôte ; en production, D8 passe `regime` explicitement
+ * (voir le rapport de lot, § « Câblage attendu de fix-app »). */
+function defaultRegimeFromViewport(): MarketRegime {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'large';
+  if (window.matchMedia('(max-width: 767.98px)').matches) return 'compact';
+  if (window.matchMedia('(max-width: 1279.98px)').matches) return 'intermediate';
+  return 'large';
+}
 
 export type PrimerShortcutId = 'budget-10000' | 'budget-20000' | 'mileage-100000' | 'registration-2020';
 
@@ -90,25 +110,35 @@ export interface MarketScreenProps {
   readonly onCancelScreenG: () => void;
   readonly onApplyScreenG: (mmmv: string) => void;
   readonly currentMmmv?: string;
+
+  /** `EX-SCR-20`/`135` — régime responsive courant, détecté par l'hôte D8 (seul propriétaire du
+   * viewport). Absent : repli sur `defaultRegimeFromViewport()` (voir plus haut). */
+  readonly regime?: MarketRegime;
+
+  /** `EX-DATA-123bis` — métadonnées des 3 lignes d'en-tête de l'export CSV et du nom de fichier
+   * normatif. Absentes : reploi explicite (`buildAggregateCsvFileName`/`AggregateCsvMeta`), jamais
+   * une valeur inventée (voir le rapport de lot, § « Câblage attendu de fix-app »). */
+  readonly csvMeta?: AggregateCsvMeta;
 }
 
 function currentSelectionForScreenG(mmmv: string | undefined): SelectionState {
   return mmmv === undefined ? {} : { makesModelsVariants: mmmv };
 }
 
-function triggerCsvDownload(csv: string): void {
+function triggerCsvDownload(csv: string, fileName: string): void {
   if (typeof document === 'undefined') return;
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = 'kycar-agregats-ecran-a.csv';
+  anchor.download = fileName;
   anchor.click();
   URL.revokeObjectURL(url);
 }
 
 export function MarketScreen(props: MarketScreenProps): JSX.Element {
   const { state } = props;
+  const regime: MarketRegime = props.regime ?? defaultRegimeFromViewport();
 
   const loadedData = state.kind === 'ready' || state.kind === 'no-filter' || state.kind === 'partial' ? state.data : undefined;
 
@@ -159,10 +189,10 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
           hasUserFilters: loadedData.hasUserFilters,
           hideSparseModels: props.hideSparseModels,
           isExpanded: props.expandedMakeIds.has(agg.makeId),
-          modelsVisibleBeforeCollapse: 6,
+          modelsVisibleBeforeCollapse: MODELS_VISIBLE_BEFORE_COLLAPSE[regime],
         });
       });
-  }, [loadedData, props.referenceData, props.sortField, props.sortDirection, props.hideSparseModels, props.expandedMakeIds]);
+  }, [loadedData, props.referenceData, props.sortField, props.sortDirection, props.hideSparseModels, props.expandedMakeIds, regime]);
 
   switch (state.kind) {
     case 'loading':
@@ -209,6 +239,28 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
       return (
         <div class="kycar-market-empty">
           <h2>Aucune offre ne correspond</h2>
+          {/* EX-SCR-131 — barre de synthèse à zéro : "0 marque · 0 modèle · aucune offre", tri
+              désactivé ("Aucun résultat à trier") ; rendue par <SummaryBar> avec makeCount=0 et
+              sortDisabled=true, qui produisent littéralement ce texte (voir SummaryBar.tsx). */}
+          <SummaryBar
+            makeCount={0}
+            modelCount={0}
+            offerCount={0}
+            sortField={props.sortField}
+            sortDirection={props.sortDirection}
+            onSortFieldChange={props.onSortFieldChange}
+            onSortDirectionToggle={props.onSortDirectionToggle}
+            sortDisabled={true}
+            hideSparseModels={props.hideSparseModels}
+            onToggleHideSparseModels={props.onToggleHideSparseModels}
+            onExport={() =>
+              triggerCsvDownload(
+                buildAggregateCsv([], props.csvMeta),
+                buildAggregateCsvFileName('agregats-mode1', props.csvMeta?.snapshotId ?? 'inconnu', new Date()),
+              )
+            }
+            exportDisabled={true}
+          />
           <p>{state.activeFilterCount} filtres actifs restreignent la recherche.</p>
           <div class="kycar-market-primer-shortcuts">
             {state.topRestrictive.map((hint: RestrictiveFilterHint) => (
@@ -296,8 +348,14 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
             sortDisabled={false}
             hideSparseModels={props.hideSparseModels}
             onToggleHideSparseModels={props.onToggleHideSparseModels}
-            onExport={() => triggerCsvDownload(buildAggregateCsv(cards))}
+            onExport={() =>
+              triggerCsvDownload(
+                buildAggregateCsv(cards, props.csvMeta),
+                buildAggregateCsvFileName('agregats-mode1', props.csvMeta?.snapshotId ?? 'inconnu', new Date()),
+              )
+            }
             exportDisabled={false}
+            regime={regime}
           />
 
           {/* Point d'entrée supplémentaire vers l'écran G, propre à cet écran (la voie principale

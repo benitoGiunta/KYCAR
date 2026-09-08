@@ -18,8 +18,12 @@ function params(map: Record<string, string>): URLSearchParams {
 }
 
 describe('lecture de l’état d’interface (EX-NAV-10bis)', () => {
-  it('lit g4v, g<n>log, selx, sely', () => {
-    const s = readDistributionUiState(params({ g4v: 'scatter', g1log: '1', g3log: '1', selx: '1000,5000', sely: '2010,2018' }));
+  // D-11/D-12 (FIX-LEAD-DECISIONS.md, DR-064/065) : le codec D5 fait foi sur l'URL — `g4v ∈ {a, b}`,
+  // `selx`/`sely` au format `lo-hi`. Assertions mises à jour en conséquence (le comportement testé
+  // — représentation interne `stack`/`scatter`, tri des bornes — est inchangé, seul le FORMAT SUR LE
+  // FIL change).
+  it('lit g4v (a/b), g<n>log, selx, sely (lo-hi)', () => {
+    const s = readDistributionUiState(params({ g4v: 'b', g1log: '1', g3log: '1', selx: '1000-5000', sely: '2010-2018' }));
     expect(s.g4Variant).toBe('scatter');
     expect([...s.logHistograms].sort()).toEqual([1, 3]);
     expect(s.brushX).toEqual({ from: 1000, to: 5000 });
@@ -27,19 +31,19 @@ describe('lecture de l’état d’interface (EX-NAV-10bis)', () => {
   });
 
   it('ignore une variante inconnue et des bornes mal formées', () => {
-    const s = readDistributionUiState(params({ g4v: 'wobble', selx: 'x,y' }));
+    const s = readDistributionUiState(params({ g4v: 'wobble', selx: 'x-y' }));
     expect(s.g4Variant).toBeUndefined();
     expect(s.brushX).toBeNull();
   });
 
   it('réordonne les bornes inversées', () => {
-    const s = readDistributionUiState(params({ selx: '5000,1000' }));
+    const s = readDistributionUiState(params({ selx: '5000-1000' }));
     expect(s.brushX).toEqual({ from: 1000, to: 5000 });
   });
 });
 
 describe('sérialisation canonique (EX-NAV-8/9)', () => {
-  it('n’émet jamais un défaut et trie par clé', () => {
+  it('n’émet jamais un défaut, trie par clé, et écrit g4v/selx au format D5 (a/b, lo-hi)', () => {
     const pairs = writeDistributionUiState({
       g4Variant: 'stack',
       logHistograms: new Set([3, 1]),
@@ -49,8 +53,8 @@ describe('sérialisation canonique (EX-NAV-8/9)', () => {
     expect(pairs).toEqual([
       ['g1log', '1'],
       ['g3log', '1'],
-      ['g4v', 'stack'],
-      ['selx', '1000,5000'],
+      ['g4v', 'a'],
+      ['selx', '1000-5000'],
     ]);
   });
 
@@ -59,7 +63,7 @@ describe('sérialisation canonique (EX-NAV-8/9)', () => {
   });
 
   it('aller-retour lecture→écriture→lecture stable', () => {
-    const start = params({ g2log: '1', g4v: 'scatter', sely: '3000,9000' });
+    const start = params({ g2log: '1', g4v: 'b', sely: '3000-9000' });
     const s1 = readDistributionUiState(start);
     const written = new URLSearchParams(writeDistributionUiState(s1) as [string, string][]);
     const s2 = readDistributionUiState(written);

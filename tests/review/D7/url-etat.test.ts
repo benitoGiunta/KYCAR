@@ -53,7 +53,10 @@ describe('D7 · paramètres d’état d’interface (EX-NAV-10bis)', () => {
   });
 
   it('bornes inversées : `selx` est normalisé en `from ≤ to`, une valeur illisible est ignorée', () => {
-    const p = new URLSearchParams([['selx', '900,100'], ['sely', 'abc']]);
+    // D-31 : littéral adapté de `900,100` à `900-100` (D-11/D-12, DR-065 — le format canonique de
+    // `selx`/`sely` est `lo-hi`, pas `from,to` ; l'assertion normative testée ici — bornes normalisées
+    // en `from ≤ to` — est inchangée).
+    const p = new URLSearchParams([['selx', '900-100'], ['sely', 'abc']]);
     const s = readDistributionUiState(p);
     expect(s.brushX).toEqual({ from: 100, to: 900 });
     expect(s.brushY).toBeNull();

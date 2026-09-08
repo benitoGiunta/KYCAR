@@ -84,13 +84,15 @@ describe('/comparer — paramètre `m` (EX-SCR-194, EX-NAV-2ter, EX-CRUD-13bis)'
     expect(ids.size).toBe(ref.models.length);
   });
 
-  it('R-D8-17 — `m=54-1918,54-1916` (format normatif d’EX-NAV-10bis : `<makeId>-<modelId>`) est rejeté par le codec D8, qui n’accepte que `makeId.modelId`', () => {
+  it('R-D8-17 — CORRIGÉ (DR-085) : `m=54-1918,54-1916` (format normatif d’EX-NAV-10bis/annexe C : `<makeId>-<modelId>`) est désormais accepté par le codec', () => {
     const parsed = parseCompareParam('54-1918,54-1916');
     expect(parsed.keys).toEqual([{ makeId: 54, modelId: 1918 }, { makeId: 54, modelId: 1916 }]);
   });
 
-  it('écrêtage au-delà de 4 signalé, doublons et modelId = 0 exclus (comportement conforme sur le format D8)', () => {
-    const parsed = parseCompareParam('54.1918,54.1918,54.0,9.1,9.2,9.3,9.4');
+  it('écrêtage au-delà de 4 signalé, doublons et modelId = 0 exclus (comportement conforme sur le format normatif D-13)', () => {
+    // D-31 : littéral adapté du point au tiret (D-13/DR-085) — même justification que R-D8-17
+    // ci-dessus, dans le même fichier : les deux tests décrivaient le MÊME format avant l'arbitrage.
+    const parsed = parseCompareParam('54-1918,54-1918,54-0,9-1,9-2,9-3,9-4');
     expect(parsed.keys).toHaveLength(4);
     expect(parsed.clipped).toBe(true);
     expect(parsed.keys.some((k) => k.modelId === 0)).toBe(false);

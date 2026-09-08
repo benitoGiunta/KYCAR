@@ -9,8 +9,9 @@
  * sélectionnées, et fournit le comptage par bucket pour la surimpression des histogrammes.
  */
 
-import type { BrushRange } from './url-state';
+import type { BrushRange, G4Variant } from './url-state';
 import type { ScatterPoint } from './scatter-model';
+import type { SelectionInput } from '../../types/index';
 
 /** Accès aux coordonnées d'axe d'un point selon la variante (G4a : prix×rang ; G4b : an×prix). */
 export interface BrushAccessor {
@@ -24,11 +25,33 @@ export const BRUSH_ACCESSOR_SCATTER: BrushAccessor = {
   y: (p) => p.priceEur,
 };
 
-/** Accès G4a : X = prix (rang d'empilement non pertinent pour la conversion en filtre d'intervalle). */
+/** Accès G4a : X = prix. `EX-SCR-151` : l'axe Y de G4a encode le RANG D'EMPILEMENT dans le bucket de
+ * prix (bornes `{0, maxStack}`), une information qui dépend de l'ensemble des points (`stackRankByRow`
+ * dans `ScatterCloud.tsx`) et n'est donc PAS portée par un `ScatterPoint` isolé. `DR-075` : lire
+ * `priceEur` sur Y (comme avant) comparait un rang (~0-30) à un prix (des milliers d'euros) et
+ * éliminait systématiquement tous les points dès qu'un brossage touchait tout l'axe Y. Le brossage de
+ * G4a ne contraint donc QUE l'axe des prix — Y ne filtre jamais (retourne une constante toujours dans
+ * l'intervalle `[0, maxStack]`, `maxStack ≥ 1`). */
 export const BRUSH_ACCESSOR_STACK: BrushAccessor = {
   x: (p) => p.priceEur,
+  y: () => 0,
+};
+
+/** Accès dégradé (EX-NFR-19) : X = km, Y = prix, brossage désactivé par le composant mais l'accesseur
+ * reste défini pour partager EXACTEMENT le même calcul entre `ScatterCloud` et `DistributionScreen`
+ * (DR-080, liaison croisée). */
+export const BRUSH_ACCESSOR_DEGRADED: BrushAccessor = {
+  x: (p) => p.mileageKm,
   y: (p) => p.priceEur,
 };
+
+/** Sélectionne l'accesseur de brossage EXACT qu'utilise `ScatterCloud` pour une variante/mode donnés
+ * — factorisé ici pour que `DistributionScreen` (liaison croisée, DR-080) calcule la MÊME sélection
+ * que le nuage, sans dupliquer la règle. */
+export function brushAccessorFor(variant: G4Variant, degraded: boolean): BrushAccessor {
+  if (degraded) return BRUSH_ACCESSOR_DEGRADED;
+  return variant === 'stack' ? BRUSH_ACCESSOR_STACK : BRUSH_ACCESSOR_SCATTER;
+}
 
 /**
  * Calcule l'ensemble des lignes dont les coordonnées tombent dans le rectangle de brossage. Un axe
@@ -102,4 +125,60 @@ export function brushToIntervalFilters(
     mileageFrom: kMin,
     mileageTo: kMax,
   };
+}
+
+/** `EX-SCR-184`/`EX-SCR-158` (DR-079) — traduit le résultat englobant de `brushToIntervalFilters` en
+ * identifiants de filtre RÉELS du registre D5 (`priceFrom`/`priceTo`, `dateOfRegistrationFrom/To`,
+ * `mileageFrom`/`mileageTo`) : c'est ce `SelectionInput` que « Convertir la sélection en filtre »
+ * pose. L'année n'est incluse que si au moins une annonce sélectionnée en porte une (`yearFrom = 0`
+ * ET `yearTo = 0` est le repli de `brushToIntervalFilters` en l'absence totale d'année — jamais une
+ * vraie année de 1ʳᵉ immatriculation, qui n'est jamais nulle). */
+export function intervalFiltersToSelectionInput(f: IntervalFilters): SelectionInput {
+  const hasYear = !(f.yearFrom === 0 && f.yearTo === 0);
+  return {
+    priceFrom: f.priceFrom,
+    priceTo: f.priceTo,
+    mileageFrom: f.mileageFrom,
+    mileageTo: f.mileageTo,
+    ...(hasYear ? { dateOfRegistrationFrom: f.yearFrom, dateOfRegistrationTo: f.yearTo } : {}),
+  };
+}
+
+/** Bornes minimales d'un bucket (sous-ensemble de `DistributionBucket` utile ici). */
+interface BucketBounds {
+  readonly index: number;
+  readonly lowerBound: number;
+  readonly upperBound: number;
+}
+
+/**
+ * `EX-SCR-184` (DR-080) — compte, par indice de bucket, le nombre de points SÉLECTIONNÉS (brossage)
+ * dont `metricOf(point)` tombe dans le bucket. Sert à la surimpression de liaison croisée sur les
+ * histogrammes G1-G3 : AUCUN recalcul d'échelle (`EX-SCR-190`), seule la part déjà tracée d'une barre
+ * est distinguée par une seconde barre superposée. Bins semi-ouverts à droite (`[lo, hi)`,
+ * `EX-DATA-76`) sauf le dernier bucket, fermé à droite pour capter la borne exacte. `points` est
+ * l'ÉCHANTILLON tracé du nuage (`EX-DATA-100`), pas la sélection Σ entière : au-delà de `K = 5 000`
+ * points, la surimpression porte donc sur l'échantillon, comme le nuage lui-même — cohérent, jamais
+ * une fausse précision au-delà de ce que G4 donne à voir. */
+export function selectedCountsByBucket(
+  points: readonly ScatterPoint[],
+  selectedRows: ReadonlySet<number>,
+  buckets: readonly BucketBounds[],
+  metricOf: (p: ScatterPoint) => number,
+): ReadonlyMap<number, number> {
+  const out = new Map<number, number>();
+  for (const p of points) {
+    if (!selectedRows.has(p.row)) continue;
+    const v = metricOf(p);
+    for (let i = 0; i < buckets.length; i++) {
+      const b = buckets[i] as BucketBounds;
+      const isLast = i === buckets.length - 1;
+      const inBucket = v >= b.lowerBound && (isLast ? v <= b.upperBound : v < b.upperBound);
+      if (inBucket) {
+        out.set(b.index, (out.get(b.index) ?? 0) + 1);
+        break;
+      }
+    }
+  }
+  return out;
 }

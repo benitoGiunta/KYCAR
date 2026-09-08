@@ -31,6 +31,8 @@ import {
   formatMonthYear,
   formatPower,
   formatYear,
+  formatConsumption,
+  formatCo2,
 } from '../distribution/format';
 import './listings.css';
 
@@ -48,6 +50,16 @@ export interface ListingsScreenProps {
   readonly labels?: ListingsLabels;
   readonly csvMeta: CsvMeta;
   readonly onOpenListing?: (row: number) => void;
+
+  /** `EX-NAV-10bis` (D-12, DR-066) — pagination CONTRÔLÉE depuis l'URL (1-based) : fournie par
+   * l'hôte via `src/state`/`url-state.ts::readListingsPage` (contrat provisoire, voir le rapport de
+   * lot). Absente : l'écran garde un `useState` interne (comportement inchangé, usage autonome). */
+  readonly page?: number;
+  readonly onPageChange?: (page: number) => void;
+  /** `EX-SCR-202` (D-12, DR-067) — restriction d'AFFICHAGE (paramètre `sel`, bornes de prix,
+   * `url-state.ts::readListingsSel`) : ne filtre que les LIGNES MONTRÉES, Σ (`selectionCount`) reste
+   * celui de la sélection entière. `null`/absent : aucune restriction. */
+  readonly sel?: { readonly from: number; readonly to: number } | null;
 }
 
 export function ListingsScreen(props: ListingsScreenProps) {
@@ -57,14 +69,30 @@ export function ListingsScreen(props: ListingsScreenProps) {
     [props.rows, batch.rowCount],
   );
   const [sort, setSort] = useState<SortState | undefined>(undefined);
-  const [pageIndex, setPageIndex] = useState(0);
+  const [internalPageIndex, setInternalPageIndex] = useState(0);
+  // `page` est 1-based côté URL (D-12), `pageIndex` reste 0-based en interne (`listings-model.ts`).
+  const pageIndex = props.page !== undefined ? Math.max(0, props.page - 1) : internalPageIndex;
+  const setPageIndex = (updater: (prev: number) => number): void => {
+    const next = updater(pageIndex);
+    if (props.onPageChange) props.onPageChange(next + 1);
+    else setInternalPageIndex(next);
+  };
 
   const index = useMemo(() => new OutlierIndex(recalc.outlierVerdicts), [recalc.outlierVerdicts]);
   const listingRows = useMemo(() => {
     const out: ListingRow[] = [];
-    for (let i = 0; i < rows.length; i++) out.push(buildListingRow(batch, rows[i] as number, index));
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i] as number;
+      // `EX-SCR-202` (DR-067) — `sel` restreint l'AFFICHAGE (pas Σ) : les bornes portent sur le
+      // prix, l'axe commun aux deux projections du nuage (cf. `url-state.ts::readListingsSel`).
+      if (props.sel) {
+        const p = batch.priceEur[row] as number;
+        if (p < props.sel.from || p > props.sel.to) continue;
+      }
+      out.push(buildListingRow(batch, row, index));
+    }
     return out;
-  }, [batch, rows, index]);
+  }, [batch, rows, index, props.sel]);
 
   // P10 des écarts (EX-SCR-207), calculé sur tout le périmètre, en pourcentage.
   const p10 = useMemo(() => {
@@ -82,7 +110,7 @@ export function ListingsScreen(props: ListingsScreenProps) {
     : 'score d’opportunité décroissant';
 
   const onSort = (col: SortColumn): void => {
-    setPageIndex(0);
+    setPageIndex(() => 0);
     setSort((prev) =>
       prev && prev.column === col
         ? { column: col, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
@@ -145,10 +173,15 @@ export function ListingsScreen(props: ListingsScreenProps) {
               <SortableTh label="Année-mod." col="modelYear" sort={sort} onSort={onSort} />
               <SortableTh label="Puissance" col="power" sort={sort} onSort={onSort} />
               <SortableTh label="Carburant" col="fuel" sort={sort} onSort={onSort} />
+              <SortableTh label="Conso." col="consumption" sort={sort} onSort={onSort} />
+              <SortableTh label="CO₂" col="co2" sort={sort} onSort={onSort} />
               <SortableTh label="Propr." col="owners" sort={sort} onSort={onSort} />
               <SortableTh label="Éval. AS24" col="evaluation" sort={sort} onSort={onSort} />
               <SortableTh label="Vendeur" col="seller" sort={sort} onSort={onSort} />
               <SortableTh label="Pays" col="country" sort={sort} onSort={onSort} />
+              {/* `TVA` (EX-SCR-203, `prices.public.taxDeductible`) : NON FAIT — aucune colonne
+                  `ListingColumnBatch` ne porte cette donnée (interface gelée 2.3, `src/providers/
+                  DataProvider.ts`, hors périmètre fix-screens) ; voir le rapport de lot. */}
               <th scope="col">Lien</th>
             </tr>
           </thead>
@@ -161,7 +194,21 @@ export function ListingsScreen(props: ListingsScreenProps) {
                   : undefined;
               return (
                 <tr key={r.listingId} class={highlighted ? 'kycar-row-highlight' : undefined} title={highlighted ? baseLabel : undefined}>
-                  <td>{r.modelVersion.slice(0, 40)}</td>
+                  <td>
+                    {/* EX-DATA-15/EX-SCR-203 (DR-150) : jeton du drapeau d'ingestion
+                        DUPLICATE_VALUE_CONFLICT (`r.duplicateValueConflict`, dérivé par
+                        `listing-fields.ts::buildListingRow` via `hasIngestFlag`), infobulle exacte
+                        de l'annexe B. */}
+                    {r.duplicateValueConflict ? (
+                      <span
+                        class="kycar-duplicate-conflict"
+                        title="deux versions de cette annonce ont été reçues dans ce snapshot avec des valeurs différentes"
+                      >
+                        !
+                      </span>
+                    ) : null}
+                    {r.modelVersion.slice(0, 40)}
+                  </td>
                   <td>{r.priceEur != null ? formatPrice(r.priceEur) : ''}</td>
                   <td title={baseLabel}>{r.deviationPct != null ? formatSignedPct(r.deviationPct) : ''}</td>
                   <td>{r.mileageKm != null ? formatKm(r.mileageKm) : ''}</td>
@@ -169,6 +216,8 @@ export function ListingsScreen(props: ListingsScreenProps) {
                   <td>{r.modelYear != null ? `mod. ${formatYear(r.modelYear)}` : ''}</td>
                   <td>{r.powerKw != null ? formatPower(r.powerKw) : ''}</td>
                   <td>{label(props.labels?.fuel, r.fuelCategory)}</td>
+                  <td>{r.consumptionX10 != null ? formatConsumption(r.consumptionX10) : ''}</td>
+                  <td>{r.co2X10 != null ? formatCo2(r.co2X10) : ''}</td>
                   <td>{r.previousOwnerCount ?? ''}</td>
                   <td>{label(props.labels?.evaluation, r.priceEvaluationCategory)}</td>
                   <td>{label(props.labels?.sellerType, r.sellerType)}</td>

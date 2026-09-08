@@ -153,9 +153,15 @@ describe('D7 · G4 — seuils de 20 000 de l’annexe B (§9.2, EX-SCR-157)', ()
     }
   });
 
-  it('R-D7-05 — le bandeau ET-TROP-RESULTATS d’EX-SCR-157 n’est implémenté nulle part dans le lot', () => {
+  it('R-D7-05 — CORRIGÉ (D-08) : EX-SCR-157 est requalifiée, ET-TROP-RESULTATS est une absence attendue', () => {
+    // D-31/D-32 : FIX-LEAD-DECISIONS.md D-08 requalifie EX-SCR-157 — K = 5 000 (EX-DATA-100) gouverne
+    // seul, le seuil de 20 000 points de l'annexe B est du code mort au sens de la lecture retenue en
+    // §9.2, et ET-TROP-RESULTATS est SUPPRIMÉ du catalogue d'états (et de l'annexe B §6.7). DR-146 :
+    // « ne rien coder » — la correction réelle est documentaire (fix-docs) ; la mission autorise
+    // EXPLICITEMENT fix-screens à retourner cette seule sonde en absence attendue, dès maintenant,
+    // sans attendre la fusion de l'amendement de fix-docs.
     const all = sources.map((s) => s.text).join('\n');
-    expect(all).toContain('ET-TROP-RESULTATS');
+    expect(all).not.toContain('ET-TROP-RESULTATS');
   });
 });
 

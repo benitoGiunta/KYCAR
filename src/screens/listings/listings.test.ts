@@ -179,5 +179,6 @@ function blankRow(row: number): ListingRow {
     cellLabel: null,
     cellCount: 0,
     outlierMethod: null,
+    duplicateValueConflict: false,
   };
 }

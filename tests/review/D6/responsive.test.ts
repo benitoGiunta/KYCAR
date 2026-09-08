@@ -22,34 +22,44 @@ describe('EX-SCR-135 — repli à 4 modèles en régime compact (au lieu de 6)',
   });
 
   it(
-    "R-D6-08 — MODELS_VISIBLE_BEFORE_COLLAPSE n'est utilisé NULLE PART ailleurs dans le lot : " +
-      "MarketScreen.tsx passe le littéral `modelsVisibleBeforeCollapse: 6` en dur à " +
-      '`buildMakeCardViewModel`, sans jamais détecter ni recevoir le régime responsive courant ' +
-      "(aucun matchMedia/ResizeObserver/prop de régime dans MarketScreen.tsx, SummaryBar.tsx ou " +
-      "MakeCard.tsx). En régime compact réel (< 768 px), le repli reste donc à 6, jamais 4.",
+    "R-D6-08 — CORRIGÉ (DR-071) : MarketScreen.tsx indexe désormais MODELS_VISIBLE_BEFORE_COLLAPSE " +
+      "par le régime responsive courant (prop `regime`, repli par `matchMedia`), au lieu du littéral " +
+      '`modelsVisibleBeforeCollapse: 6` en dur.',
     () => {
+      // D-32 : cette sonde était VERTE en documentant le défaut (elle est explicitement nommée par
+      // la mission comme l'une des sondes que la correction autorise à réécrire, avec le protocole
+      // rouge-puis-vert). `usages` doit maintenant INCLURE MarketScreen.tsx (il consomme la
+      // constante), et le littéral `6` en dur ainsi que l'absence de `matchMedia` sont remplacés par
+      // le comportement corrigé.
       const dir = new URL('../../../src/screens/market/', import.meta.url);
       const files = readdirSync(dir).filter((f) => (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'thresholds.ts' && !f.endsWith('.test.ts'));
       const usages = files.filter((f) => readFileSync(new URL(f, dir), 'utf8').includes('MODELS_VISIBLE_BEFORE_COLLAPSE'));
-      expect(usages).toEqual([]);
+      expect(usages).toEqual(['MarketScreen.tsx']);
 
       const marketScreenSrc = readFileSync(new URL('MarketScreen.tsx', dir), 'utf8');
-      expect(marketScreenSrc).toContain('modelsVisibleBeforeCollapse: 6');
-      expect(marketScreenSrc).not.toMatch(/matchMedia|ResizeObserver/);
+      expect(marketScreenSrc).not.toContain('modelsVisibleBeforeCollapse: 6');
+      expect(marketScreenSrc).toContain('MODELS_VISIBLE_BEFORE_COLLAPSE[regime]');
+      expect(marketScreenSrc).toMatch(/matchMedia/);
     },
   );
 });
 
-describe("SummaryBar.tsx — aucune adaptation au régime compact (EX-SCR-135 : perte du cardinal « modèles », select -> feuille)", () => {
+describe("SummaryBar.tsx — adaptation au régime compact (EX-SCR-135 : perte du cardinal « modèles », select -> feuille) — CORRIGÉ (DR-072)", () => {
   it(
-    "R-D6-09 — SummaryBar affiche TOUJOURS les trois cardinaux (marques/modèles/offres) et un " +
-      '<select> natif : aucune prop/branche ne retire le cardinal « modèles » ni ne bascule vers un ' +
-      'bouton 44 px ouvrant une feuille de sélection, quel que soit le régime.',
+    "R-D6-09 — SummaryBar retire le cardinal « modèles » et bascule le `<select>` vers une feuille " +
+      "de sélection 44 px quand `regime === 'compact'`, sans changer le comportement des autres " +
+      'régimes.',
     () => {
+      // D-32 : cette sonde était VERTE en documentant le défaut (nommée explicitement par la mission
+      // parmi celles que la correction autorise à réécrire, protocole rouge-puis-vert). Le composant
+      // reste SANS HOOK (contrainte de `structure-a11y.test.ts`, qui l'appelle hors cycle de rendu
+      // Preact) : la feuille compacte est un `<details>` natif, pas un état local.
       const src = readFileSync(new URL('../../../src/screens/market/SummaryBar.tsx', import.meta.url), 'utf8');
-      expect(src).not.toMatch(/compact|feuille|sheet|matchMedia/i);
-      // Les trois cardinaux sont concaténés sans condition de régime.
-      expect(src).toContain('modèles ·');
+      expect(src).toMatch(/compact/i);
+      expect(src).toMatch(/kycar-sort-sheet/);
+      // Le cardinal « modèles » n'est plus concaténé SANS CONDITION de régime : il est maintenant
+      // gardé par `!compact`.
+      expect(src).toMatch(/!compact[\s\S]{0,120}modèles/);
     },
   );
 });
