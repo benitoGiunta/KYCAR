@@ -112,7 +112,7 @@ describe('patho — doublons (ADV-05 → ARB-54)', () => {
     ];
   }
 
-  it('R-PATHO-09 — doublon exact (prix identiques) : les deux occurrences sont comptées deux fois', async () => {
+  it('R-PATHO-09 (moteur) — doublon exact : le moteur ne rattrape pas l’absence de déduplication', async () => {
     // `EX-DATA-15` : « la PREMIÈRE occurrence d'un `listingId` dans cet ordre est conservée ; les
     // suivantes sont écartées. » Aucun maillon de la chaîne provider → moteur ne déduplique.
     const recalc = await recalcOf(duplicate(12900, 12900));
@@ -120,7 +120,7 @@ describe('patho — doublons (ADV-05 → ARB-54)', () => {
     expect(recalc.selectionStats.price.n).toBe(13);
   });
 
-  it('R-PATHO-10 — doublon à prix divergents : aucun drapeau DUPLICATE_VALUE_CONFLICT, valeur affichée arbitraire', async () => {
+  it('R-PATHO-10 (moteur) — doublon à prix divergents : deux prix pour un même listingId, aucun signal', async () => {
     // `ARB-54` : l'occurrence conservée porte `DUPLICATE_VALUE_CONFLICT` et le snapshot incrémente
     // `duplicateValueConflictCount` ; ici les deux prix entrent, et rien ne les distingue.
     const recalc = await recalcOf(duplicate(12900, 10500));

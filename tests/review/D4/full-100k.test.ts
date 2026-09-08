@@ -1,0 +1,271 @@
+import { beforeAll, describe, expect, it } from 'vitest';
+import type { ListingColumnBatch, ReferenceData } from '../../../src/types/index';
+import { AggregationDataset, type EngineSelection } from '../../../src/engine/kernel';
+import { aggregate } from '../../../src/engine/aggregate';
+import { detectOutliers, type OutlierResult } from '../../../src/engine/outliers';
+import { densityGrid } from '../../../src/engine/density';
+import { isMileageValid, isPriceValid, isYearValid, PRICE_STATUS_QUOTED, FLAG_PRICE_SENTINEL_ABSOLUTE } from '../../../src/engine/flags';
+import { modelIndexKey } from '../../../src/engine/index-build';
+import { loadReferenceData, openSyntheticProvider } from '../../../src/engine/testkit';
+import { batchByteLength, type InjectedOutlier } from '../../../src/providers/synthetic/index';
+import { medianMs, percentileMs } from './helpers';
+
+/**
+ * Revue D4 — sondes à N = 100 000 (dataset D3, graine 7), UN SEUL dataset construit et mis en cache au
+ * niveau du module (discipline CPU) :
+ *   - EX-DATA-112 : mémoire mesurée (`process.memoryUsage`) avant/après chargement + index, extrapolée
+ *     linéairement à 10⁶ et comparée aux 274 Mo d'ARB-55 (ADV-08/09) et aux ~87 Mo initiaux ;
+ *   - EX-DATA-109 : la sélection vide est-elle servie sans balayage par le MOTEUR ?
+ *   - O17 : coût de M1/M2 (`detectOutliers`) et des autres postes en fonction de n ∈ {100, 10³, 10⁴, 10⁵},
+ *     et exposition de l'API à un recalcul M1/M2 sur sélection NON élaguée ;
+ *   - EX-DATA-84..97 : rappel/précision M1/M2 contre la vérité terrain D3 ; contrôle M3 sur ≥ 3 cellules
+ *     d'effectif > 200 (EX-DATA-97) ; audit des prix < 250 € (EX-DATA-19) dans le dataset.
+ */
+
+const N = 100_000;
+const MB = 1024 * 1024;
+
+interface Mem {
+  rss: number;
+  heapUsed: number;
+  external: number;
+  arrayBuffers: number;
+}
+const snapshotMem = (): Mem => {
+  const m = process.memoryUsage();
+  return { rss: m.rss, heapUsed: m.heapUsed, external: m.external, arrayBuffers: m.arrayBuffers };
+};
+const deltaMb = (a: Mem, b: Mem): Record<keyof Mem, string> => ({
+  rss: ((b.rss - a.rss) / MB).toFixed(1),
+  heapUsed: ((b.heapUsed - a.heapUsed) / MB).toFixed(1),
+  external: ((b.external - a.external) / MB).toFixed(1),
+  arrayBuffers: ((b.arrayBuffers - a.arrayBuffers) / MB).toFixed(1),
+});
+
+let ref: ReferenceData;
+let batch: ListingColumnBatch;
+let dataset: AggregationDataset;
+let truth: readonly InjectedOutlier[];
+let memBefore: Mem;
+let memAfterProvider: Mem;
+let memAfterIndexes: Mem;
+let full: OutlierResult;
+
+beforeAll(async () => {
+  ref = loadReferenceData();
+  const gc = (globalThis as unknown as { gc?: () => void }).gc;
+  gc?.();
+  memBefore = snapshotMem();
+  const provider = await openSyntheticProvider(ref, N, 7);
+  batch = provider.getDataset().batch;
+  truth = provider.getGroundTruthOutliers();
+  memAfterProvider = snapshotMem();
+  dataset = new AggregationDataset(batch, ref.models);
+  memAfterIndexes = snapshotMem();
+  const rows = Int32Array.from({ length: N }, (_v, i) => i);
+  full = detectOutliers(batch, rows, batch.snapshotId, 'FULL:EMPTY');
+}, 300_000);
+
+describe('EX-DATA-112 / ARB-55 — mémoire mesurée à N = 100 000 et extrapolée à 10⁶', () => {
+  it('rss/heap/arrayBuffers avant→après dataset et index ; extrapolation ×10 sous 512 Mo', () => {
+    const bytesColumns = batchByteLength(batch);
+    const dProv = deltaMb(memBefore, memAfterProvider);
+    const dIdx = deltaMb(memAfterProvider, memAfterIndexes);
+    const totalRss = (memAfterIndexes.rss - memBefore.rss) / MB;
+    const totalAb = (memAfterIndexes.arrayBuffers - memBefore.arrayBuffers) / MB;
+    const totalHeap = (memAfterIndexes.heapUsed - memBefore.heapUsed) / MB;
+    console.log(
+      `[mémoire 100k] batch colonnaire (batchByteLength) = ${(bytesColumns / MB).toFixed(1)} Mo (${(bytesColumns / N).toFixed(0)} o/ligne) ; ` +
+        `Δ provider : rss ${dProv.rss} heap ${dProv.heapUsed} arrayBuffers ${dProv.arrayBuffers} Mo ; ` +
+        `Δ index : rss ${dIdx.rss} heap ${dIdx.heapUsed} arrayBuffers ${dIdx.arrayBuffers} Mo ; ` +
+        `total Δ : rss ${totalRss.toFixed(1)} / heap ${totalHeap.toFixed(1)} / arrayBuffers ${totalAb.toFixed(1)} Mo`,
+    );
+    console.log(
+      `[mémoire ×10 → 10⁶] rss ≈ ${(totalRss * 10).toFixed(0)} Mo ; heap+arrayBuffers ≈ ${((totalHeap + totalAb) * 10).toFixed(0)} Mo ; ` +
+        `référence EX-DATA-112 corrigée (ARB-55) = 274 Mo pire cas / ≈ 258 Mo cas typique ; ancien total contesté ≈ 87 Mo`,
+    );
+    expect(bytesColumns).toBeGreaterThan(0);
+    expect(totalRss * 10).toBeLessThan(512);
+  });
+});
+
+describe('EX-DATA-109 — sélection vide côté moteur', () => {
+  it('le moteur n’a PAS de précalcul : `recalculate(FULL:EMPTY)` balaie les N lignes (scannedCount = N) ; le précalcul relève du provider/app', () => {
+    const t0 = performance.now();
+    const r = dataset.recalculate({ selectionHash: 'FULL:EMPTY' });
+    const dt = performance.now() - t0;
+    console.log(`[EX-DATA-109] sélection vide : scannedCount=${r.scannedCount} pruned=${r.pruned} durée=${dt.toFixed(0)} ms ; verdicts=${r.outlierVerdicts.length}`);
+    expect(r.scannedCount).toBe(N);
+    expect(r.pruned).toBe(false);
+  });
+});
+
+describe('O17 — chemins de calcul au-delà de 200 ms et exposition de l’API', () => {
+  it('R-D4-12 — l’API accepte un RECALCULATE sans scope : M1/M2 (dont M2 à la cellule C₃ = snapshot entier) s’exécutent sur la sélection NON élaguée ; attendu : garde dans le moteur', () => {
+    const r = dataset.recalculate({ selectionHash: 'FULL:EMPTY' });
+    const m2Selection = r.outlierVerdicts.filter((v) => v.method === 'M2' && v.cellLabel === 'SELECTION').length;
+    const m1Selection = r.outlierVerdicts.filter((v) => v.method === 'M1' && v.cellLabel === 'SELECTION').length;
+    console.log(`[O17 API] sans scope : pruned=${r.pruned}, verdicts M2@SELECTION=${m2Selection}, M1@SELECTION=${m1Selection} (cellule = ${N} lignes)`);
+    expect(r.pruned).toBe(false);
+    // Un moteur gardé ne produit pas de régression M2 sur une cellule de 10⁵ lignes hors élagage.
+    expect(m2Selection).toBe(0);
+  });
+
+  it('coût de M1/M2 (`detectOutliers`), de l’agrégation et de la densité en fonction de n (sous-échantillons à pas constant)', () => {
+    const sizes = [100, 1_000, 10_000, 100_000];
+    const table: string[] = [];
+    for (const n of sizes) {
+      const stride = N / n;
+      const rows = Int32Array.from({ length: n }, (_v, i) => Math.floor(i * stride));
+      const runs = n >= 100_000 ? 3 : 5;
+      const tOut: number[] = [];
+      const tAgg: number[] = [];
+      const tDen: number[] = [];
+      let m2Sel = 0;
+      for (let k = 0; k < runs; k++) {
+        let t0 = performance.now();
+        const o = detectOutliers(batch, rows, batch.snapshotId, `FULL:n${n}`);
+        tOut.push(performance.now() - t0);
+        m2Sel = o.verdicts.filter((v) => v.method === 'M2' && v.cellLabel === 'SELECTION').length;
+        t0 = performance.now();
+        aggregate(batch, rows, batch.snapshotId, `FULL:n${n}`);
+        tAgg.push(performance.now() - t0);
+        t0 = performance.now();
+        densityGrid(batch, rows, batch.snapshotId, `FULL:n${n}`);
+        tDen.push(performance.now() - t0);
+      }
+      table.push(
+        `n=${String(n).padStart(6)} : M1/M2 ${medianMs(tOut).toFixed(1).padStart(7)} ms | agrégats+histogrammes ${medianMs(tAgg).toFixed(1).padStart(7)} ms | densité ${medianMs(tDen).toFixed(1).padStart(6)} ms | verdicts M2@SELECTION=${m2Sel}`,
+      );
+    }
+    console.log(`[O17 coût vs n — médiane de 3 à 5 exécutions]\n${table.join('\n')}`);
+    expect(table.length).toBe(4);
+  });
+
+  it('recalcul complet : non filtré (×5) vs élagué marque la plus peuplée (×20) vs modèle médian (×20)', () => {
+    const fullSel: EngineSelection = { selectionHash: 'FULL:EMPTY' };
+    let bestMake = -1;
+    let best = -1;
+    for (const [makeId, range] of dataset.indexes.makeOffsets) {
+      if (range.end - range.start > best) {
+        best = range.end - range.start;
+        bestMake = makeId;
+      }
+    }
+    const cells = [...dataset.indexes.modelOffsets.entries()].map(([key, r]) => ({ key, count: r.end - r.start })).sort((a, b) => a.count - b.count);
+    const median = cells[Math.floor(cells.length / 2)] as { key: string; count: number };
+    const [mk, md] = median.key.split(':').map(Number) as [number, number];
+    const makeSel: EngineSelection = { selectionHash: 'FULL:make', scope: { makeIds: [bestMake] } };
+    const modelSel: EngineSelection = { selectionHash: 'FULL:model', scope: { models: [{ makeId: mk, modelId: md }] } };
+    const bench = (sel: EngineSelection, runs: number) => {
+      dataset.recalculate(sel);
+      const samples: number[] = [];
+      for (let i = 0; i < runs; i++) {
+        const t0 = performance.now();
+        dataset.recalculate(sel);
+        samples.push(performance.now() - t0);
+      }
+      return { p50: medianMs(samples), p95: percentileMs(samples, 0.95), max: Math.max(...samples) };
+    };
+    const f = bench(fullSel, 5);
+    const m = bench(makeSel, 20);
+    const d = bench(modelSel, 20);
+    console.log(
+      `[recalc 100k] non filtré (N=${N}) : p50=${f.p50.toFixed(0)} p95=${f.p95.toFixed(0)} max=${f.max.toFixed(0)} ms ; ` +
+        `marque élaguée (m=${best}) : p50=${m.p50.toFixed(1)} p95=${m.p95.toFixed(1)} ms ; ` +
+        `modèle médian (m=${median.count}) : p50=${d.p50.toFixed(2)} p95=${d.p95.toFixed(2)} ms`,
+    );
+    expect(m.p95).toBeLessThanOrEqual(200);
+    expect(d.p95).toBeLessThanOrEqual(200);
+  }, 120_000);
+});
+
+describe('EX-DATA-84..97 — vérité terrain D3, sentinelles, contrôle M3', () => {
+  const inter = (a: ReadonlySet<string>, b: ReadonlySet<string>): number => {
+    let c = 0;
+    for (const x of a) if (b.has(x)) c++;
+    return c;
+  };
+
+  it('rappel M1 > 90 % et rappel M2 ≥ 95 % dans les cellules à |F| ≥ 30 (chiffres du journal : 95,8 % / 100 %) ; précision rapportée', () => {
+    const truthM1 = new Set(truth.filter((o) => o.method === 'M1').map((o) => o.listingId));
+    const truthM2 = new Set(truth.filter((o) => o.method === 'M2').map((o) => o.listingId));
+    const all = new Set(truth.map((o) => o.listingId));
+    const recallM1 = inter(truthM1, full.m1FlaggedIds) / truthM1.size;
+    const precisionM1 = inter(full.m1FlaggedIds, all) / full.m1FlaggedIds.size;
+    const precisionM2 = inter(full.m2FlaggedIds, all) / full.m2FlaggedIds.size;
+    const fByCell = new Map<string, number>();
+    for (let i = 0; i < N; i++) {
+      const status = batch.priceStatus[i] as number;
+      const ingest = batch.ingestFlags[i] as number;
+      if (!isPriceValid(batch.priceEur[i] as number, status, ingest)) continue;
+      if (!isYearValid(batch.firstRegistrationYearMonth[i] as number)) continue;
+      if (!isMileageValid(batch.mileageKm[i] as number, ingest)) continue;
+      const key = modelIndexKey(batch.makeId[i] as number, batch.modelId[i] as number);
+      fByCell.set(key, (fByCell.get(key) ?? 0) + 1);
+    }
+    let big = 0;
+    let bigCaught = 0;
+    for (const o of truth) {
+      if (o.method !== 'M2') continue;
+      if ((fByCell.get(modelIndexKey(o.makeId, o.modelId)) ?? 0) >= 30) {
+        big++;
+        if (full.m2FlaggedIds.has(o.listingId)) bigCaught++;
+      }
+    }
+    const recallM2Big = bigCaught / big;
+    console.log(
+      `[vérité terrain] M1 : rappel ${(recallM1 * 100).toFixed(1)} % (${inter(truthM1, full.m1FlaggedIds)}/${truthM1.size}), précision ${(precisionM1 * 100).toFixed(1)} % sur ${full.m1FlaggedIds.size} signalés ; ` +
+        `M2 (cellules |F| ≥ 30) : rappel ${(recallM2Big * 100).toFixed(1)} % (${bigCaught}/${big}), précision M2 ${(precisionM2 * 100).toFixed(1)} % sur ${full.m2FlaggedIds.size} signalés ; ` +
+        `taux de signalement M1 = ${((full.m1FlaggedIds.size / full.outlierEvaluatedCount) * 100).toFixed(2)} % des évaluées (attendu ≈ 1,4 % sous log-normale, EX-DATA-88)`,
+    );
+    expect(recallM1).toBeGreaterThan(0.9);
+    expect(recallM2Big).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it('EX-DATA-19 — audit des prix < 250 € du dataset D3 : drapeau PRICE_SENTINEL_ABSOLUTE posé ? conséquence sur V_price', () => {
+    let under250 = 0;
+    let under250Flagged = 0;
+    let injectedM1LowUnder250 = 0;
+    for (let i = 0; i < N; i++) {
+      const p = batch.priceEur[i] as number;
+      if ((batch.priceStatus[i] as number) !== PRICE_STATUS_QUOTED || p < 0 || p >= 250) continue;
+      under250++;
+      if (((batch.ingestFlags[i] as number) & FLAG_PRICE_SENTINEL_ABSOLUTE) !== 0) under250Flagged++;
+    }
+    for (const o of truth) if (o.method === 'M1' && o.injectedPriceEur < 250) injectedM1LowUnder250++;
+    const r = dataset.recalculate({ selectionHash: 'FULL:EMPTY' });
+    console.log(
+      `[EX-DATA-19 D3] prix QUOTED < 250 € : ${under250}, dont drapeautés PRICE_SENTINEL_ABSOLUTE : ${under250Flagged} ; ` +
+        `injectés M1_LOW < 250 € : ${injectedM1LowUnder250} ; min(V_price) publié = ${r.selectionStats.price.min} €`,
+    );
+    // Hypothèse de lecture (E4) : le drapeau est de la responsabilité du provider (étage ingestion) ; le
+    // moteur applique EX-DATA-60 à la lettre. Sans drapeau, ces prix entrent dans V_price.
+    expect(under250Flagged).toBeLessThanOrEqual(under250);
+    if (under250Flagged < under250) expect(r.selectionStats.price.min as number).toBeLessThan(250);
+  });
+
+  it('EX-DATA-97 — les quatre indicateurs M3 calculés et publiés pour ≥ 3 cellules d’effectif > 200', () => {
+    const cells = [...dataset.indexes.modelOffsets.entries()]
+      .map(([key, r]) => ({ key, count: r.end - r.start }))
+      .filter((c) => c.count > 200)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+    expect(cells.length).toBe(3);
+    for (const c of cells) {
+      const [mk, md] = c.key.split(':').map(Number) as [number, number];
+      const r = dataset.recalculate({ selectionHash: `FULL:m3-${c.key}`, scope: { models: [{ makeId: mk, modelId: md }] } });
+      const m3 = r.m3;
+      console.log(
+        `[M3 cellule ${c.key}, n=${c.count}] |E|=${m3.evaluatedPopulation} precisionLow=${fmt(m3.precisionLow)} recallLow=${fmt(m3.recallLow)} kappa=${fmt(m3.kappa)} evalCoverage=${fmt(m3.evalCoverage)}`,
+      );
+      expect(m3.evaluatedPopulation).toBeGreaterThan(200);
+      expect(m3.evalCoverage).not.toBeNull();
+      expect(m3.precisionLow !== null || m3.recallLow !== null).toBe(true);
+    }
+  });
+});
+
+function fmt(x: number | null): string {
+  return x === null ? 'null' : x.toFixed(3);
+}

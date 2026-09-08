@@ -157,6 +157,27 @@ describe('patho — étiquetage des fourchettes (ADV-02 / ADV-03 → ARB-19, ARB
     expect(zone.priceRawTooltip).toContain('du moins cher au plus cher');
   });
 
+  it('R-PATHO-16 — EX-DATA-94 : `opportunityScore` n’est publié que pour les annonces SIGNALÉES, pas pour les annonces évaluées', () => {
+    // `EX-DATA-94` : `opportunityScore = −z_i` si M2 s'applique à l'annonce, `−zIqr_i` si M1 s'applique,
+    // `null` SINON — donc défini pour toute annonce ÉVALUÉE, pas seulement pour celles qui franchissent
+    // un seuil. `EX-SCR-206` trie l'écran D sur ce score : sans lui, seules les annonces signalées
+    // sont classées et toutes les autres tombent en fin de liste.
+    const recalc = recalcOfSpecs(
+      Array.from({ length: 60 }, (_v, i) => ({
+        makeId: 7,
+        modelId: 707,
+        year: 2016,
+        month: 1 + (i % 12),
+        priceEur: i === 0 ? 1500 : 12000 + (i % 6) * 350,
+        mileageKm: 20000 + i * 1200,
+      })),
+    );
+    const index = new OutlierIndex(recalc.outlierVerdicts);
+    expect(recalc.selectionStats.outlierEvaluatedCount).toBe(60);
+    // ATTENDU : un score pour chaque annonce évaluée. Constaté : seulement pour les signalées.
+    expect(index.size).toBe(recalc.selectionStats.outlierEvaluatedCount);
+  });
+
   it('VER-METHODE — tout classement d’opportunité nomme sa méthode et sa cellule (ARB-18, ARB-47)', () => {
     const recalc = recalcOfSpecs(
       Array.from({ length: 40 }, (_v, i) => ({
