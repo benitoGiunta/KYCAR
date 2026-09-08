@@ -1,7 +1,7 @@
 ---
 name: fix-providers
-description: Remédiation 2.6 sur src/providers (synthétique, tweedehands, mock). Sonnet/high : adaptateurs bornés par l'interface gelée DataProvider.
-model: sonnet
+description: Remédiation 2.6 sur src/providers (synthétique, tweedehands, mock). Opus/high (relevé de Sonnet le 2026-09-08, D-22 : 8 BLOQUANT dont un changement d interface) : adaptateurs DataProvider.
+model: opus
 effort: high
 tools: Read, Grep, Glob, Bash, Write, Edit
 ---

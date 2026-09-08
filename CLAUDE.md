@@ -71,8 +71,8 @@ travail :
 
 | Nature de la tâche | Modèle | Exemples dans KYCAR |
 |---|---|---|
-| Outillage, vérifications mécaniques, exécution de protocole bien spécifié, édition de prose bornée, corrections localisées dont la sonde dit exactement quoi faire | **Sonnet** | rev-D1, rev-D6 ; fix-providers, fix-state, fix-screens, fix-docs |
-| Densité de spécification à confronter au code, preuves statistiques, aller-retours exhaustifs, arbitrage de doublons et de sévérités, corrections algorithmiques bornées à un module | **Opus** | rev-D2/D3/D5/D7/D9, rev-patho, rev-consolidate ; fix-engine, fix-app, fix-verify |
+| Outillage, vérifications mécaniques, exécution de protocole bien spécifié, édition de prose bornée, corrections localisées dont la sonde dit exactement quoi faire | **Sonnet** | rev-D1, rev-D6 ; fix-state, fix-screens, fix-docs |
+| Densité de spécification à confronter au code, preuves statistiques, aller-retours exhaustifs, arbitrage de doublons et de sévérités, corrections algorithmiques bornées à un module, corrections touchant une interface gelée | **Opus** | rev-D2/D3/D5/D7/D9, rev-patho, rev-consolidate ; fix-foundation, fix-engine, fix-providers (relevé de Sonnet, D-22), fix-app, fix-verify |
 | Algorithmique lourde avec budget NFR opposable, lots transverses porteurs d'un parcours cible, coordination et arbitrage global, vérification finale | **Fable** | coordinateur de session ; rev-D4 (moteur), rev-D8 (intégration) ; final-check 2.7 |
 
 Règles de bascule :
@@ -147,23 +147,32 @@ vague R (PARALLÈLE, 10 agents, même arbre, src/ en lecture seule, sorties disj
 
 ### 4.3 Phase 2.6 — remédiation (PLAN-2 §2.6)
 
+Décisions du fix-lead (arbitrages, séquencement, dettes) : `reports/remediation/FIX-LEAD-DECISIONS.md`.
+
 ```
-fix-lead = coordinateur (Fable/high) : ordonne DEV-REVIEW par sévérité, forme des clusters de
-constats par répertoires DISJOINTS de src/, attribue, arbitre les conflits.
+fix-lead = coordinateur (Fable/high) : ordonne DEV-REVIEW par sévérité, tranche les tensions,
+forme des clusters de constats par répertoires DISJOINTS de src/, attribue, arbitre les conflits.
         │
-        v  vague F (PARALLÈLE, un worktree git isolé par agent, node_modules symlinké)
-  fix-engine Opus/high (src/engine, src/worker, src/types)
-  fix-app Opus/high (src/app*, src/main.tsx, src/persistence, src/orchestration)
-  fix-providers Sonnet/high (src/providers) · fix-state Sonnet/high (src/state, src/components/filters)
-  fix-screens Sonnet/high (src/screens) · fix-docs Sonnet/high (docs/, aucun code)
+        v  étape 0 (SÉQUENTIEL, arbre principal) fix-foundation Opus/high :
+           interfaces gelées élargies (makeId Int32, ingestFlags Uint32, unsupportedFilterIds),
+           exports partagés de src/types dont plusieurs clusters dépendent
         │
-        v  (SÉQUENTIEL) coordinateur fusionne --no-ff un worktree à la fois ; après CHAQUE fusion :
+        v  vague F1 (PARALLÈLE, un worktree git isolé par agent, node_modules symlinké)
+  fix-engine Opus/high (src/engine, src/worker, src/types, tools/, vite.config.ts, data/reference/)
+  fix-providers Opus/high (src/providers) · fix-state Sonnet/high (src/state, src/components/filters)
+  fix-screens Sonnet/high (src/screens, JAMAIS app.tsx) · fix-docs Sonnet/high (docs/, DEV.md, aucun code)
+        │
+        v  (SÉQUENTIEL) coordinateur fusionne --no-ff un worktree à la fois, dans l'ordre
+           engine → providers → state → screens → docs ; après CHAQUE fusion :
            build + lint + npm test + npm run test:review ; conflit → arbitrage coordinateur
+        │
+        v  vague F2 (SÉQUENTIEL, arbre principal) fix-app Opus/high
+           (src/app*, src/main.tsx, src/persistence, src/orchestration : câblage listé par fix-screens)
         │
         v  (SÉQUENTIEL) fix-verify Opus/high : rejoue chaque preuve, écrit reports/REMEDIATION.md
         │
-        v  coordinateur : gate G5 (zéro BLOQUANT/MAJEUR ouvert), promotion des sondes dans la suite
-           par défaut, journal, commit, push
+        v  coordinateur : gate G5 (zéro BLOQUANT/MAJEUR ouvert non consigné en dette motivée),
+           promotion des sondes dans la suite par défaut, journal, commit, push
 ```
 
 Règle de preuve (PLAN-2 §2.6 S2) : une correction est prouvée par **la sonde qui a révélé le
