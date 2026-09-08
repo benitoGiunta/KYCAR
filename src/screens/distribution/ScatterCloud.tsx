@@ -206,6 +206,7 @@ export function ScatterCloud(props: ScatterCloudProps) {
       mileageMax: kmMax,
       selectedRows,
       fixedDiameterPx: 6,
+      degraded: props.degraded,
     }, stackRankByRow);
   }, [props.points, effectiveVariant, props.degraded, vp, proj, selectedRows, yearMin, yearMax, kmMin, kmMax, stackRankByRow]);
 
@@ -381,20 +382,22 @@ export function ScatterCloud(props: ScatterCloudProps) {
 
         {/* Légende (couleur + taille) — EX-SCR-154/155/156 (DR-151) : contenu TEXTUEL réel, plus
             `aria-hidden` (rien à masquer, la légende porte une information que le nuage seul ne
-            donne pas). */}
-        {!props.degraded ? (
-          <div class="kycar-scatter-legend">
-            <ColorLegend
-              variant={effectiveVariant}
-              yearMin={yearMin}
-              yearMax={yearMax}
-              yearMedian={yearMedian}
-              kmMin={kmMin}
-              kmMax={kmMax}
-            />
-            {effectiveVariant === 'stack' ? <SizeLegend /> : <SizeLegendScatter />}
-          </div>
-        ) : null}
+            donne pas). `EX-NFR-19` (E2E-17, CORRIGÉ) : en dégradé (X = km, EX-NFR-19), la couleur
+            encode l'ANNÉE (jamais le km, déjà porté par l'axe X) — la légende de couleur reste donc
+            rendue ; seule la légende de TAILLE disparaît (taille fixe en dégradé, `fixedDiameterPx`,
+            rien à légender). */}
+        <div class="kycar-scatter-legend">
+          <ColorLegend
+            variant={effectiveVariant}
+            degraded={props.degraded}
+            yearMin={yearMin}
+            yearMax={yearMax}
+            yearMedian={yearMedian}
+            kmMin={kmMin}
+            kmMax={kmMax}
+          />
+          {!props.degraded ? (effectiveVariant === 'stack' ? <SizeLegend /> : <SizeLegendScatter />) : null}
+        </div>
       </div>
 
       {/* Mention d'échantillonnage (EX-DATA-103, DR-149 — D-06 : mode + n_e + K + points, SANS
@@ -452,13 +455,16 @@ export function ScatterCloud(props: ScatterCloudProps) {
 
 function ColorLegend(props: {
   variant: ScatterVariant;
+  /** `EX-NFR-19` (E2E-17) : en dégradé, la couleur encode TOUJOURS l'année, quelle que soit
+   * `variant` (le km, déjà sur l'axe X, ne peut pas être aussi la couleur). */
+  degraded?: boolean;
   yearMin: number;
   yearMax: number;
   yearMedian: number | undefined;
   kmMin: number;
   kmMax: number;
 }) {
-  const isYear = props.variant === 'stack';
+  const isYear = props.degraded === true || props.variant === 'stack';
   const ramp = isYear ? RAMP_A_YEAR : RAMP_B_MILEAGE;
   const stops = [0, 0.25, 0.5, 0.75, 1];
   const lo = isYear ? props.yearMin : props.kmMin;

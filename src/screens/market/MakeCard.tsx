@@ -57,7 +57,9 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
           }
         }}
       >
-        <span class="kycar-market-badge" style={{ background: card.badgeColor }} aria-hidden="true">
+        {/* `D8-14` (FV-16/E2E-11) — `color` posé en style INLINE (surclasse `market.css`) : le
+            contraste ≥ 4,5:1 dépend de la teinte, calculée par carte, jamais d'une couleur fixe. */}
+        <span class="kycar-market-badge" style={{ background: card.badgeColor, color: card.badgeTextColor }} aria-hidden="true">
           {card.badgeInitials}
         </span>
         <span class="kycar-market-card-title" title={card.labelTruncated.full}>
@@ -127,7 +129,11 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
           {card.hasMoreModels || props.isExpanded ? (
             <div class="kycar-market-card-footer">
               <button type="button" onClick={() => props.onToggleExpand(card.makeId, !props.isExpanded)}>
-                {props.isExpanded ? `− Réduire à ${Math.min(card.modelZones.length, 6)} modèles` : `+ Afficher les ${card.remainingModelCount} autres modèles`}
+                {/* `EX-SCR-122`/`135` (E2E-18) : seuil RÉEL de cette carte, jamais un `6` en dur qui
+                    mentirait en régime compact (4). */}
+                {props.isExpanded
+                  ? `− Réduire à ${Math.min(card.modelZones.length, card.modelsVisibleBeforeCollapse)} modèles`
+                  : `+ Afficher les ${card.remainingModelCount} autres modèles`}
               </button>
             </div>
           ) : null}

@@ -257,7 +257,12 @@ describe('patho — variance nulle et seuils d’effectif (ADV-06 / ADV-07 → A
     }
   });
 
-  it('R-PATHO-06 — ARB-17 : à 5 ≤ n ≤ 11 la zone-modèle publie quand même la fourchette P5–P95', async () => {
+  // D8-06/D8-19 (FV-09) : `D-36` tranche que le P5/P95 masqué sous n=12 est REMPLACÉ par `[min, max]`
+  // (jamais par « — » tant que min/max sont connus, EX-SCR-114/134) — c'est exactement l'écart relevé
+  // par FV-09. `zone.price.available` passe donc de `false` à `true` (une fourchette EST affichée,
+  // seulement pas la fourchette P5/P95 « centrale ») ; le fait mesuré par cette sonde (pas de P5/P95
+  // NUMÉRIQUE à ce palier) est conservé via le jeton `lowSampleToken`.
+  it('R-PATHO-06 — ARB-17 : à 5 ≤ n ≤ 11 la zone-modèle publie [min, max] (pas P5–P95), avec le jeton ambre', async () => {
     // ARB-17 (palier 5-11) : « médiane, min et max affichés ; percentiles `P5`/`P95`, bande
     // interquartile, régression et détection d'outliers DÉSACTIVÉS ».
     const recalc = await recalcOf(cell(8, { makeId: 9, modelId: 909, basePrice: 14000 }));
@@ -265,7 +270,9 @@ describe('patho — variance nulle et seuils d’effectif (ADV-06 / ADV-07 → A
 
     expect(effectifTier(8)).toBe('reduite');
     expect(zone.medianLabel.startsWith('méd.')).toBe(true); // médiane : conforme
-    expect(zone.price.available).toBe(false); // ATTENDU : pas de P5–P95 à ce palier
+    expect(zone.price.available).toBe(true); // une fourchette [min, max] EST affichée
+    expect(zone.price.label).not.toBe('—');
+    expect(zone.price.lowSampleToken).toBe('n = 8'); // …mais le jeton ambre le signale
   });
 
   it('VAL-BASCULE-29-30 — le passage de 29 à 30 change la méthode ET le score, sans rien à l’écran (ADV-07/ARB-18)', async () => {

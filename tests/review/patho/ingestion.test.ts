@@ -86,7 +86,10 @@ describe('patho — ingestion réelle (D9) sous données pathologiques', () => {
     expect(card.price.caption).toContain('90 % des offres');
 
     // Palier « trop faible » (ARB-17) sur le MÊME chemin nominal : la carte se construit, l'effectif
-    // est servi, et la fourchette centrale est masquée derrière son jeton — jamais un P5/P95 forgé.
+    // est servi, et la fourchette centrale P5/P95 est masquée derrière son jeton — jamais forgée.
+    // D8-06/D8-19 (FV-09) : `D-36` remplace le P5/P95 masqué par `[min, max]` (jamais par « — » tant
+    // qu'ils sont connus) — `available` passe donc à `true` (une fourchette EST affichée), le jeton
+    // ambre reste le signal du palier réduit.
     const petit = providerFor({ totalResultCount: 5220, listings: listings.slice(0, 2) });
     const handlePetit = await petit.openSnapshot();
     const opelPetit = (await petit.fetchBaselineAggregates(handlePetit)).rows[0]!;
@@ -100,7 +103,8 @@ describe('patho — ingestion réelle (D9) sous données pathologiques', () => {
       isExpanded: false,
       modelsVisibleBeforeCollapse: 6,
     });
-    expect(cartePetite.price.available).toBe(false);
+    expect(cartePetite.price.available).toBe(true);
+    expect(cartePetite.price.label).not.toBe('—');
     expect(cartePetite.price.lowSampleToken).toBe('n = 2');
   });
 

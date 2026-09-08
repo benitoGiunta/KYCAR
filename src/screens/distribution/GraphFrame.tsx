@@ -54,7 +54,11 @@ export function GraphFrame(props: GraphFrameProps) {
         </button>
       </figcaption>
 
-      <div class="kycar-graph-body" style={{ overflowX: 'auto' }}>
+      {/* `scrollable-region-focusable` (axe, WCAG 2.1.1) — E2E-19 (D8-14) : en confinant le
+          défilement horizontal ICI (au lieu de le laisser remonter au document), cette région devient
+          elle-même une zone défilante potentielle sous 768 px ; `tabIndex={0}` la rend atteignable au
+          clavier, comme l'exige la règle dès qu'un conteneur peut effectivement défiler. */}
+      <div class="kycar-graph-body" style={{ overflowX: 'auto' }} tabIndex={0}>
         <div style={{ minWidth: `${props.minWidthPx ?? 280}px` }}>{props.children}</div>
       </div>
 

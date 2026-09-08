@@ -88,12 +88,15 @@ describe('market.css — valeurs de points de rupture (lecture de constante, pas
       '(EX-SCR-135 : « 1: nom+effectif ; 2: prix ; 3: années+km ; 4: médiane+barre ») par une grille ' +
       "nommée dédiée, et non plus par le seul `flex-wrap` générique de `.kycar-market-zone-ranges`.",
     () => {
+      // D8-14/D8-19 (a11y, nested-interactive) : une colonne étroite `cmp` s'est ajoutée pour la case
+      // de comparaison, désormais sibling du `role="button"` (ModelZone.tsx) plutôt que descendante —
+      // les quatre lignes normatives sont inchangées, seule la largeur de colonne 1 (`cmp`/`.`) l'est.
       const compactBlock = css.slice(css.indexOf('@container (max-width: 767.98px)'));
       expect(compactBlock).toMatch(/grid-template-areas/);
-      expect(compactBlock).toContain("'row1 row1'");
-      expect(compactBlock).toContain("'price price'");
-      expect(compactBlock).toContain("'year mileage'");
-      expect(compactBlock).toContain("'median bar'");
+      expect(compactBlock).toContain("'cmp row1 row1'");
+      expect(compactBlock).toContain("price price'");
+      expect(compactBlock).toContain("year mileage'");
+      expect(compactBlock).toContain("median bar'");
     },
   );
 });

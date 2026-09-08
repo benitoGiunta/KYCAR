@@ -52,6 +52,11 @@ export interface DrawScatterOptions {
   readonly selectedRows?: ReadonlySet<number> | null;
   /** Diamètre fixe de G4b quand la puissance manque (EX-SCR-156). */
   readonly fixedDiameterPx?: number;
+  /** `EX-NFR-19` (E2E-17) : régime dégradé (< 768 px) — l'axe X porte le km (substitué dans
+   * `regYearMonth` par l'appelant, `ScatterCloud.tsx`), donc la couleur DOIT encoder l'année
+   * (`RAMP_A_YEAR`, sur `p.year`) au lieu du km (déjà porté par la position), sinon l'encodage
+   * couleur devient à la fois redondant et illisible. */
+  readonly degraded?: boolean;
 }
 
 const POINT_ALPHA = 0.55; // EX-SCR-157
@@ -97,7 +102,7 @@ export function drawScatter(
 
     // Couleur.
     let color: string;
-    if (variant === 'stack') {
+    if (variant === 'stack' || options.degraded) {
       color = p.year < 0 ? MISSING_COLOR : rampColor(RAMP_A_YEAR, (p.year - options.yearMin) / yearSpan);
     } else {
       color = rampColor(RAMP_B_MILEAGE, (p.mileageKm - options.mileageMin) / kmSpan);

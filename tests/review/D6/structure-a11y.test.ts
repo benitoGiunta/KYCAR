@@ -81,12 +81,22 @@ function baseZone(partial: Partial<ModelZoneViewModel> = {}): ModelZoneViewModel
 }
 
 describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-label), a11y clavier', () => {
-  it('racine : role="button", tabIndex=0, aria-label complet "<nom>, <n> offres" (EX-SCR-113 #2), pas une <div> muette', () => {
+  // D8-14 (a11y, nested-interactive, FV-16) : le `role="button"` est désormais porté par
+  // `.kycar-market-zone-interactive`, un DESCENDANT de la racine (`.kycar-market-zone`) — la case de
+  // comparaison est sortie de ce sous-arbre pour devenir un SIBLING (voir le test dédié plus bas).
+  // Ces trois sondes ciblent donc le NŒUD INTERACTIF, pas la racine (qui ne porte plus ni rôle, ni
+  // `tabIndex`, ni gestionnaire de clavier — elle n'est plus qu'un conteneur de mise en page).
+  function interactiveNodeOf(root: VNode): VNode {
+    return findAll(root, (n) => n.props.role === 'button')[0]!;
+  }
+
+  it('nœud interactif : role="button", tabIndex=0, aria-label complet "<nom>, <n> offres" (EX-SCR-113 #2), pas une <div> muette', () => {
     const vnode = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
-    expect(vnode.type).toBe('div'); // pas un <button>/<a> natif — cf. constat ci-dessous
-    expect(vnode.props.role).toBe('button');
-    expect(vnode.props.tabIndex).toBe(0);
-    expect(vnode.props['aria-label']).toBe('Golf, 3 120 offres');
+    const interactive = interactiveNodeOf(vnode);
+    expect(interactive.type).toBe('div'); // pas un <button>/<a> natif — cf. constat ci-dessous
+    expect(interactive.props.role).toBe('button');
+    expect(interactive.props.tabIndex).toBe(0);
+    expect(interactive.props['aria-label']).toBe('Golf, 3 120 offres');
   });
 
   it('gestion clavier : Entrée ET Espace déclenchent la sélection, avec preventDefault (évite le défilement de page sur Espace)', () => {
@@ -99,7 +109,7 @@ describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-
       isInCompareSelection: false,
       compareAtCapacity: false,
     }) as unknown as VNode;
-    const onKeyDown = vnode.props.onKeyDown as (e: { key: string; preventDefault: () => void }) => void;
+    const onKeyDown = interactiveNodeOf(vnode).props.onKeyDown as (e: { key: string; preventDefault: () => void }) => void;
     let prevented = false;
     onKeyDown({ key: 'Enter', preventDefault: () => (prevented = true) });
     onKeyDown({ key: ' ', preventDefault: () => (prevented = true) });
@@ -110,8 +120,28 @@ describe('ModelZone — EX-SCR-117 (bande entière cliquable), EX-SCR-113 (aria-
 
   it("R-D6-06 — MINEUR : la bande interactive est une <div role=\"button\"> (ARIA), pas un élément focusable natif (<button>) — a11y correcte mais non native, cohérente sur toutes les zones", () => {
     const vnode = ModelZone({ zone: baseZone(), onSelect: () => undefined, isInCompareSelection: false, compareAtCapacity: false }) as unknown as VNode;
-    expect(vnode.type).toBe('div');
-    expect(vnode.props.role).toBe('button');
+    const interactive = interactiveNodeOf(vnode);
+    expect(interactive.type).toBe('div');
+    expect(interactive.props.role).toBe('button');
+  });
+
+  // D8-14 (FV-16, `nested-interactive`, CORRIGÉ) : axe-core relevait un contrôle interactif natif
+  // (la case à cocher) imbriqué dans un élément à rôle interactif, sur les 120 zones-modèles de
+  // l'écran A. La case doit être un SIBLING du nœud `role="button"`, jamais un de ses descendants.
+  it("D8-14/FV-16 — la case « Comparer » n'est PAS un descendant du nœud role=\"button\" (plus de nested-interactive)", () => {
+    const vnode = ModelZone({
+      zone: baseZone(),
+      onSelect: () => undefined,
+      onToggleCompare: () => undefined,
+      isInCompareSelection: false,
+      compareAtCapacity: false,
+    }) as unknown as VNode;
+    const interactive = interactiveNodeOf(vnode);
+    const checkboxInsideButton = findAll(interactive, (n) => n.type === 'input');
+    expect(checkboxInsideButton).toHaveLength(0);
+    // Elle existe bien quelque part dans l'arbre (comme sibling), sinon la sonde ne prouverait rien.
+    const checkboxAnywhere = findAll(vnode, (n) => n.type === 'input');
+    expect(checkboxAnywhere).toHaveLength(1);
   });
 
   it('la barre de part relative (EX-SCR-113 #9) porte aria-hidden="true" (redondance visuelle uniquement, EX-SCR-113)', () => {

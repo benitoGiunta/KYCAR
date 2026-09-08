@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { MakeAggregate, MetricRange, ModelAggregate } from '../../providers/DataProvider';
 import type { Make, Model } from '../../types/entities';
-import { buildMakeCardViewModel, buildModelZoneViewModel, badgeColorForMake, badgeInitials } from './view-model';
+import { buildMakeCardViewModel, buildModelZoneViewModel, badgeColorForMake, badgeTextColorForMake, badgeInitials } from './view-model';
 
 function range(partial: Partial<MetricRange> = {}): MetricRange {
   return { min: null, max: null, p05: null, p50: null, p95: null, n: 0, ...partial };
@@ -147,6 +147,68 @@ describe('badgeInitials / badgeColorForMake — EX-SCR-108', () => {
 
   it('couleur déterministe et stable pour un même makeId', () => {
     expect(badgeColorForMake(42)).toBe(badgeColorForMake(42));
+  });
+});
+
+// D8-14/FV-16/E2E-11 : `color-contrast` d'axe échouait (3,19–4,35:1 mesurés, seuil 4,5:1, WCAG 1.4.3)
+// sur les pastilles `.kycar-market-badge`. Recalcul indépendant de la luminance relative WCAG (pas un
+// import de la logique interne de `badgeTextColorForMake`) pour vérifier, sonde par sonde, que le
+// texte choisi atteint bien 4,5:1 contre les 12 teintes de la palette (0..30, dont les doublons par
+// modulo, EX-SCR-108).
+describe('badgeTextColorForMake — EX-SCR-118/a11y (D8-14, FV-16, E2E-11)', () => {
+  function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+    s /= 100; l /= 100;
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [255 * f(0), 255 * f(8), 255 * f(4)];
+  }
+  function hexToRgb(hex: string): [number, number, number] {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function relLum([r, g, b]: readonly number[]): number {
+    const lin = (c: number) => { const cs = c / 255; return cs <= 0.03928 ? cs / 12.92 : Math.pow((cs + 0.055) / 1.055, 2.4); };
+    return 0.2126 * lin(r as number) + 0.7152 * lin(g as number) + 0.0722 * lin(b as number);
+  }
+  function contrast(l1: number, l2: number): number {
+    const [hi, lo] = l1 > l2 ? [l1, l2] : [l2, l1];
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  it('les 12 teintes de `BADGE_PALETTE` atteignent ≥ 4,5:1 avec la couleur de texte choisie (WCAG 1.4.3)', () => {
+    for (let makeId = 0; makeId < 12; makeId++) {
+      const bgHsl = badgeColorForMake(makeId);
+      const m = /hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/.exec(bgHsl)!;
+      const bgLum = relLum(hslToRgb(Number(m[1]), Number(m[2]), Number(m[3])));
+      const textHex = badgeTextColorForMake(makeId);
+      const textLum = relLum(hexToRgb(textHex));
+      expect(contrast(bgLum, textLum), `makeId=${makeId} bg=${bgHsl} text=${textHex}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('déterministe et stable pour un même makeId (même carte, même rendu)', () => {
+    expect(badgeTextColorForMake(7)).toBe(badgeTextColorForMake(7));
+  });
+});
+
+describe('buildMakeCardViewModel — modelsVisibleBeforeCollapse (EX-SCR-122/135, E2E-18)', () => {
+  // E2E-18 (CORRIGÉ) : `MakeCard.tsx` codait en dur `Math.min(modelZones.length, 6)` pour le libellé
+  // « − Réduire à <n> modèles », mentant en régime compact (seuil réel 4). Le seuil REÇU par la carte
+  // est maintenant publié sur le modèle de vue lui-même, pour que le composant ne devine jamais.
+  it('publie le seuil de repli reçu (jamais un « 6 » supposé)', () => {
+    const models = new Map([[11, GOLF]]);
+    const agg = makeAgg({ makeId: 1, listingCount: 40 });
+    const vm = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [modelAgg({ modelId: 11, listingCount: 40 })],
+      models,
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: true,
+      modelsVisibleBeforeCollapse: 4, // régime compact
+    });
+    expect(vm.modelsVisibleBeforeCollapse).toBe(4);
   });
 });
 

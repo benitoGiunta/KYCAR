@@ -212,4 +212,40 @@ describe('D7 · G4 — le banc de perf exerce bien un contexte Canvas 2D (EX-NFR
     expect(strokes).toBe(points.length);
     expect(checksum).not.toBe(0); // la boucle n'est pas vide : les coordonnées sont réellement calculées
   });
+
+  // D8-14/D8-17 (E2E-17, CORRIGÉ) : en régime dégradé (EX-NFR-19, X = km), la couleur DOIT encoder
+  // l'année (RAMP_A_YEAR) — encoder le km (RAMP_B_MILEAGE, comme en régime normal) serait redondant
+  // avec l'axe X, qui porte déjà cette information.
+  it('EX-NFR-19 : `degraded: true` colore par ANNÉE (deux points même km, années différentes -> couleurs différentes)', async () => {
+    const { drawScatter } = await import('../../../src/screens/distribution/scatter-render');
+    const { makeProjector } = await import('../../../src/screens/distribution/scatter-model');
+    const proj = makeProjector({ width: 1000, height: 480, padLeft: 48, padRight: 16, padTop: 16, padBottom: 40 }, { lo: 0, hi: 300000 }, { lo: 0, hi: 100000 });
+    const base = { row: 0, priceEur: 10000, mileageKm: 100000, powerKw: 90, fuelCategory: 1, isOutlier: false, opportunityScore: null };
+    const points = [
+      { ...base, row: 0, year: 2010, regYearMonth: 100000 }, // X = km (substitution dégradée)
+      { ...base, row: 1, year: 2022, regYearMonth: 100000 },
+    ];
+    const fillStyles: string[] = [];
+    const ctx = {
+      fillStyle: '#000', strokeStyle: '#000', globalAlpha: 1, lineWidth: 1,
+      clearRect: (): void => {}, beginPath: (): void => {},
+      arc: (): void => {},
+      fill(this: { fillStyle: string }): void { fillStyles.push(this.fillStyle); },
+      stroke: (): void => {}, setLineDash: (): void => {}, save: (): void => {}, restore: (): void => {},
+    };
+    drawScatter(ctx as never, points as never, proj, 1000, 480, {
+      variant: 'scatter', yearMin: 2000, yearMax: 2025, mileageMin: 0, mileageMax: 300000, selectedRows: null, degraded: true,
+    });
+    expect(fillStyles).toHaveLength(2);
+    expect(fillStyles[0]).not.toBe(fillStyles[1]);
+
+    // Non-régression : SANS `degraded`, deux points au même km ont la même couleur (km porte la
+    // couleur en régime normal du variant `scatter`).
+    const fillStylesNormal: string[] = [];
+    const ctxNormal = { ...ctx, fill(this: { fillStyle: string }): void { fillStylesNormal.push(this.fillStyle); } };
+    drawScatter(ctxNormal as never, points as never, proj, 1000, 480, {
+      variant: 'scatter', yearMin: 2000, yearMax: 2025, mileageMin: 0, mileageMax: 300000, selectedRows: null,
+    });
+    expect(fillStylesNormal[0]).toBe(fillStylesNormal[1]);
+  });
 });

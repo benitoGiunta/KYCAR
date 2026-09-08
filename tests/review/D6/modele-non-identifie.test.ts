@@ -47,22 +47,42 @@ describe('ADV-14/ARB-59 — ModelZone.tsx : entièrement cliquable, jamais dans 
     return buildModelZoneViewModel(modelAgg({ modelId, listingCount: 42, price: range({ p05: 1000, p95: 2000, n: 42 }) }), undefined, 42, false);
   }
 
-  it("le VNode racine porte role='button'/tabIndex=0 pour modelId=0 EXACTEMENT comme pour un modèle résolu (pas de zone morte)", () => {
+  // D8-14 (a11y, nested-interactive) : le `role="button"` est porté par un DESCENDANT
+  // (`.kycar-market-zone-interactive`), la racine n'étant plus qu'un conteneur de mise en page.
+  type VNodeLike = { type: unknown; props: Record<string, unknown> };
+  function interactiveNodeOf(node: unknown): VNodeLike {
+    const v = node as VNodeLike;
+    if (v.props.role === 'button') return v;
+    const children = v.props['children'];
+    for (const child of Array.isArray(children) ? children : [children]) {
+      if (child !== null && typeof child === 'object') {
+        const found = interactiveNodeOf(child);
+        if (found.props.role === 'button') return found;
+      }
+    }
+    return v;
+  }
+
+  it("le nœud interactif porte role='button'/tabIndex=0 pour modelId=0 EXACTEMENT comme pour un modèle résolu (pas de zone morte)", () => {
     let selected: [number, number] | undefined;
-    const vnode0 = ModelZone({
-      zone: zoneVm(0),
-      onSelect: (makeId, modelId) => {
-        selected = [makeId, modelId];
-      },
-      isInCompareSelection: false,
-      compareAtCapacity: false,
-    }) as unknown as { type: string; props: Record<string, unknown> };
-    const vnodeResolved = ModelZone({
-      zone: zoneVm(11),
-      onSelect: () => undefined,
-      isInCompareSelection: false,
-      compareAtCapacity: false,
-    }) as unknown as { type: string; props: Record<string, unknown> };
+    const vnode0 = interactiveNodeOf(
+      ModelZone({
+        zone: zoneVm(0),
+        onSelect: (makeId, modelId) => {
+          selected = [makeId, modelId];
+        },
+        isInCompareSelection: false,
+        compareAtCapacity: false,
+      }),
+    );
+    const vnodeResolved = interactiveNodeOf(
+      ModelZone({
+        zone: zoneVm(11),
+        onSelect: () => undefined,
+        isInCompareSelection: false,
+        compareAtCapacity: false,
+      }),
+    );
 
     expect(vnode0.props.role).toBe('button');
     expect(vnode0.props.tabIndex).toBe(0);
