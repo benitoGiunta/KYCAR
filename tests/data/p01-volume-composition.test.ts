@@ -49,6 +49,9 @@ interface ModelsTable {
 interface ProfilesTable {
   snapshots: { index: number; snapshotSuffix: string; observedAt: string; label: string }[];
   snapshotIdPattern: string;
+  /** DR3-01 — expression régulière du motif livré, LUE par la sonde au lieu d'être recopiée. */
+  snapshotIdPatternRegex: string;
+  designSnapshotIdPattern: string;
   profiles: { name: string; listingsPerSnapshot: number; sizeBudgetGzBytes: number; minDistinctMakes: number }[];
 }
 
@@ -81,17 +84,24 @@ describe('P-01 … P-06 — volume, déterminisme, taille, ordre', () => {
   });
 
   it("R-DATA-01 — P-02 : le snapshotId livré est conforme au motif de profiles.json", () => {
-    // `profiles.json:snapshotIdPattern` annonce `be-fixture-<profil>-<AAAAMMJJ>-<graine hex 8>` ;
-    // le générateur écrit `be-20260907T060000Z` (écart EG-02, motivé par le motif et le maxLength
-    // du schéma du manifest). Les deux documents de la MÊME spécification se contredisent : la
-    // sonde P-02 telle qu'elle est écrite (« identifiants conformes à profiles.json ») ne peut pas
-    // être verte. Constat DR3 : c'est `profiles.json` qui doit être amendé.
+    // SONDE AMENDÉE — constat DR3-01, corrigé par `data-fix` (phase 3.4).
+    //
+    // Rédaction d'origine : le motif attendu était écrit EN DUR dans la sonde
+    // (`^be-fixture-(dev|test|perf)-\d{8}-[0-9a-f]{8}$`), recopié de
+    // `profiles.json:snapshotIdPattern`. Ce motif n'a jamais été émis : `snapshot-manifest.schema.json`
+    // borne `snapshotId` à 32 caractères sur un motif FERMÉ que seule la forme
+    // `be-<AAAAMMJJ>T<hhmmss>Z` satisfait, et le nom du répertoire EST l'identifiant. La forme
+    // livrée est donc le contrat VALIDÉ ; c'est `profiles.json` qui annonçait l'autre.
+    //
+    // Correction : `profiles.json` publie désormais `snapshotIdPattern` = « be-<AAAAMMJJ>T<hhmmss>Z »
+    // et son expression régulière `snapshotIdPatternRegex`, plus `designSnapshotIdPattern` pour
+    // l'identifiant de CONCEPTION (profil + graine), qui survit dans `generation.json`. La sonde ne
+    // recopie plus le motif : elle le LIT dans la table, et ne peut donc plus diverger d'elle.
     const ids = loadProfile().map((s) => s.snapshotId);
-    measure('P-02b', `snapshotId livrés ${ids.join(' ')} ; motif annoncé « ${profilesTable.snapshotIdPattern} »`);
+    const declared = new RegExp(profilesTable.snapshotIdPatternRegex);
+    measure('P-02b', `snapshotId livrés ${ids.join(' ')} ; motif annoncé « ${profilesTable.snapshotIdPattern} » (${declared.source})`);
     for (const id of ids) {
-      expect(id, `snapshotId ${id} vs motif ${profilesTable.snapshotIdPattern}`).toMatch(
-        /^be-fixture-(dev|test|perf)-\d{8}-[0-9a-f]{8}$/,
-      );
+      expect(id, `snapshotId ${id} vs motif ${profilesTable.snapshotIdPattern}`).toMatch(declared);
     }
   });
 

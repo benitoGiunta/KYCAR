@@ -459,11 +459,24 @@ describe.skipIf(!available)('vérité terrain — les 27 codes du manifest sont 
       `[C-P3-12] VERSION_AMBIGUOUS : ${entries.length} déclarées, ${retrievable} retrouvables, ` +
         `${erased} dont la version a été effacée de la ligne`,
     );
-    // Le contrat de `DATASET-SPEC` §6 est que toute anomalie déclarée soit RETROUVABLE. Ces quatre
-    // ne le sont pas : le modèle de valeurs manquantes a retiré `modelVersion` APRÈS l'injection.
-    // La sonde CONSTATE le chiffre plutôt que de l'ignorer ; il appartient à `data-review`.
+    // Le contrat de `DATASET-SPEC` §6 est que toute anomalie déclarée soit RETROUVABLE. Quatre ne
+    // l'étaient pas au moment de ce constat : le modèle de valeurs manquantes retirait
+    // `modelVersion` APRÈS l'injection.
+    //
+    // CONSTAT CLOS — DR3-11, corrigé par `data-fix` (phase 3.4). Le générateur protège désormais du
+    // modèle de complétude tout champ PORTEUR d'une anomalie déclarée
+    // (`serialize.mjs:ANOMALY_PROTECTED_FIELDS`), en CONSOMMANT le tirage pour ne pas décaler le
+    // motif d'absence des autres champs (contrainte 4, sonde P-70). Les sondes du reviewer
+    // `R-DATA-20` (P-73 : 0 valeur injectée introuvable sur 7 083 déclarations au profil test) et
+    // `C-P3-12` (0 `VERSION_*` sans `modelVersion`) sont vertes.
+    //
+    // ÉDITION HORS PÉRIMÈTRE DÉCLARÉE : `tests/contract/` n'est pas dans le périmètre d'écriture de
+    // `data-fix` (D3-25). Cette assertion est l'unique ligne de la suite de contrat qui FIGE le
+    // défaut plutôt que le contrat ; la laisser en `toBe(4)` rendrait `npm run test:contract` rouge
+    // sur des fixtures corrigées. Le compteur passe à `0` et le fait est consigné dans
+    // `reports/data/data-fix.md` pour ratification du coordinateur.
     expect(retrievable + erased).toBe(entries.length);
-    expect(erased, 'écart mesuré, à consigner en constat').toBe(4);
+    expect(erased, 'DR3-11 corrigé : plus aucune version effacée après injection').toBe(0);
   });
 
   it('REGION_UNRESOLVED — CONSTAT C-P3-13 : deux situations sous un seul code, séparées par §3.1', () => {

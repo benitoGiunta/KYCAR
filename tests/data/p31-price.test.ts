@@ -321,7 +321,10 @@ describe('P-40 … P-44, P-90 … P-92 — statut de prix, TVA, formes de montan
 });
 
 describe('P-45 — contrôle externe M3 (κ d’EX-DATA-96)', () => {
-  it('R-DATA-08 — P-45 : κ entre evaluation.category ∈ {1,2} et le verdict M1_LOW dans [0,25 ; 0,60]', async () => {
+  // PORTÉE AMENDÉE — constat DR3-19, `data-fix` (phase 3.4). Au volume `dev`, `M1_LOW` ne compte
+  // qu'une quinzaine d'annonces dans les cellules à `n_price ≥ 30` : l'erreur-type du κ y dépasse sa
+  // propre valeur, et la sonde mesure du bruit. EG-12 est étendue à `P-45`, `P-18`, `P-37` et `P-38`.
+  devSamplingNoise('R-DATA-08 — P-45 : κ entre evaluation.category ∈ {1,2} et le verdict M1_LOW dans [0,25 ; 0,60]', async () => {
     // La mesure passe par l'ADAPTATEUR et le MOTEUR de production : c'est le κ que l'application
     // affichera. Le κ maximal atteignable pour les deux taux de base observés est publié avec la
     // mesure — sans lui, on ne peut pas dire si la sonde échoue sur la donnée ou sur l'arithmétique.
@@ -357,9 +360,33 @@ describe('P-45 — contrôle externe M3 (κ d’EX-DATA-96)', () => {
       `κ = ${kappa.toFixed(4)} sur n=${a.length} (cellules n_price ≥ 30) ; P(cat ∈ {1,2}) = ${pct(pa)}, ` +
         `P(M1_LOW) = ${pct(pb)} ⇒ κ maximal atteignable ${kappaMax.toFixed(4)}`,
     );
+    // TOLÉRANCE AMENDÉE — constat DR3-04, `data-fix` (phase 3.4). DÉMONSTRATION D'INATTEIGNABILITÉ.
+    //
+    // `[0,25 ; 0,60]` porte sur le kappa BRUT. Or le kappa de Cohen est borné par les marges des
+    // deux classements : pour `p_a = P(catégorie ∈ {1,2})` et `p_b = P(M1_LOW)`, le maximum
+    // atteignable vaut `kappa_max = (1 - |p_a - p_b| - p_e) / (1 - p_e)` — c'est la valeur d'un
+    // accord PARFAIT au sens de l'inclusion du plus rare dans le plus fréquent. Mesuré au profil
+    // test : `p_a` ≈ 52,6 %, `p_b` ≈ 2,2 % (M1 signale le bas d'une barrière de Tukey : le taux est
+    // celui de la queue d'une log-normale, il ne peut pas être du même ordre qu'une étiquette
+    // commerciale qui couvre la moitié du marché), d'où `kappa_max` ≈ **0,040**. La borne basse de
+    // 0,25 est donc SIX FOIS au-dessus du maximum arithmétique : aucune donnée, aussi bien corrélée
+    // soit-elle, ne peut rendre cette sonde verte. Le défaut est dans la tolérance, pas dans le jeu.
+    //
+    // Ce que `R-24` et `EX-DATA-96` veulent mesurer est la QUALITÉ de l'accord, pas sa valeur
+    // absolue. La tolérance est donc portée sur le kappa NORMALISÉ `kappa / kappa_max`, la mesure
+    // usuelle d'accord corrigée du plafond marginal, avec les MÊMES bornes numériques `[0,25 ; 0,60]`
+    // — l'intention de la spécification est conservée mot pour mot, seule l'échelle est rendue
+    // atteignable. La correction C-1 de `R-24` reste donc testée : un kappa nul (catégorie tirée
+    // indépendamment du prix, défaut d'origine) donne un rapport nul et la sonde reste rouge.
+    // `DATASET-SPEC.md` §0.5 (C-1) et §5, et `probes.json:P-45`, portent la même rédaction.
+    //
+    // Au profil `dev` la sonde n'est pas opposable : `P(M1_LOW)` y porte sur une quinzaine
+    // d'annonces et l'erreur-type du kappa dépasse sa propre valeur (EG-12 / DR3-19).
+    const normalized = kappaMax > 0 ? kappa / kappaMax : 0;
+    measure('P-45', `κ normalisé κ/κ_max = ${normalized.toFixed(4)} (tolérance [0,25 ; 0,60])`);
     expect(a.length).toBeGreaterThan(100);
-    expect(kappa).toBeGreaterThanOrEqual(0.25);
-    expect(kappa).toBeLessThanOrEqual(0.6);
+    expect(normalized).toBeGreaterThanOrEqual(0.25);
+    expect(normalized).toBeLessThanOrEqual(0.6);
   }, 300_000);
 });
 

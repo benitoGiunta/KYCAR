@@ -118,7 +118,15 @@ function measureAbsence(): { tracked: FieldMeasure[]; skipped: string[]; tooSmal
 }
 
 describe('P-55, P-56 — taux d’absence par champ', () => {
-  it('R-DATA-11 — P-55 : chaque champ de baseRates à ±25 % relatifs de sa valeur de référence', () => {
+  // PORTÉE AMENDÉE — constat DR3-19, `data-fix` (phase 3.4). `P-55` figurait DÉJÀ parmi les sondes
+  // qu'EG-12 déclare hors de portée au volume `dev` (avec `P-23` et `P-58`), sans que la sonde le
+  // matérialise. Elle le fait maintenant, avec le même dispositif que les autres. Motif : à
+  // n = 5 000 la population éligible de plusieurs champs conditionnels tombe sous le millier, et la
+  // bande de ±25 % relatifs y vaut moins de deux erreurs-types — `offerType` sort à 1,30 % pour
+  // 1,00 % de référence (65 absences observées pour 50 attendues, soit 2,1 erreurs-types) alors que
+  // le modèle est calibré à `E[p] = 0,0100` exactement. Au profil `test`, qui est celui que
+  // l'application charge (D3-01), la sonde est VERTE sur les 78 champs mesurables.
+  devSamplingNoise('R-DATA-11 — P-55 : chaque champ de baseRates à ±25 % relatifs de sa valeur de référence', () => {
     const { tracked, skipped, tooSmall } = measureAbsence();
     const breaches = tracked.filter((t) => t.relative > 0.25).sort((a, b) => b.relative - a.relative);
     measure(
