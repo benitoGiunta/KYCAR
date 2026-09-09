@@ -1,0 +1,115 @@
+{
+ "$comment": "KYCAR — vendeurs, concessionnaires fictifs, produits publicitaires. Regles R-26 a R-29. R3 / D3-02 : aucun nom, aucune coordonnee, aucun identifiant reversible.",
+ "source": [
+  "S3 TRAXIO 2025 : 90,2 % des immatriculations d'occasion sont au nom de particuliers — cela decrit les ACHETEURS, pas les vendeurs d'annonces",
+  "S14 FINDING-allowed-surface.md §2.3 et P2 : les annonces observees portent adProduct.tier, ce qui atteste un inventaire majoritairement professionnel",
+  "H4 hypothese : la repartition 70 % professionnels / 30 % particuliers des ANNONCES est assumee (aucune publication ne la donne) ; elle est la valeur imposee par la mission et reste un parametre du fichier",
+  "S18 docs/data/DATA-MODEL.md §7 contraintes 11, 12, 15 et 28"
+ ],
+ "sellerTypeShare": {
+  "D": 0.7,
+  "P": 0.3
+ },
+ "sellerTypeBySegment": {
+  "$comment": "multiplicateur sur la cote de P(D) avant renormalisation",
+  "luxe": 1.9,
+  "sportive": 1.4,
+  "suv": 1.2,
+  "utilitaire": 1.5,
+  "citadine": 0.65,
+  "monospace": 0.85,
+  "compacte": 0.9,
+  "berline": 1.0,
+  "break": 1.0
+ },
+ "sellerTypeByAge": {
+  "formula": "logit P(D) = logit(0.70) - 0.085 * (age - 8)",
+  "comment": "les vehicules anciens sont majoritairement vendus par des particuliers ; a 20 ans P(D) ~ 0.40"
+ },
+ "dealerBucket": {
+  "counts": {
+   "dev": 90,
+   "test": 320,
+   "perf": 1500
+  },
+  "stockLaw": "Zipf d'exposant 0.85 sur le rang du concessionnaire, normalise sur le nombre d'annonces professionnelles du snapshot ; effectif borne a [3, 400]",
+  "specialisation": {
+   "preferredMakes": "1 a 3 marques tirees dans makes.json au prorata des parts",
+   "shareOfStockOnPreferred": [
+    0.55,
+    0.75
+   ]
+  },
+  "identifier": "8 caracteres hexadecimaux MINUSCULES (schema : ^[0-9a-f]{8}$) = 32 bits de poids fort de SHA-256(sel_profil || index_concessionnaire_fictif). Aucun prefixe, aucun separateur.",
+  "stability": "stable sur les 3 snapshots d'un profil ; different d'un profil a l'autre ; le concessionnaire est FICTIF, l'index n'existe que dans le generateur et n'est jamais ecrit",
+  "privateRule": "contrainte DATA-MODEL 11 : seller.dealerBucket present SI ET SEULEMENT SI seller.type = D. Jamais une chaine vide, jamais un identifiant par annonce.",
+  "groupingRule": "contrainte DATA-MODEL 12 : un dealerBucket regroupe PLUSIEURS annonces (effectif minimal 3). Un doublon inter-vendeurs est une paire au meme vehicule et a dealerBucket DIFFERENTS, declaree CROSS_SELLER_DUPLICATE avec peerListingId (anomalie A-08)."
+ },
+ "adTier": {
+  "$comment": "adProduct.tier ; vocabulaire OAS:Tier (T20, T30, T40, T50). L'ABSENCE du champ vaut NONE dans la couche canonique.",
+  "amongPro": {
+   "absent": 0.74,
+   "T20": 0.1,
+   "T30": 0.08,
+   "T40": 0.05,
+   "T50": 0.03
+  },
+  "amongPrivate": {
+   "absent": 1.0
+  },
+  "presentShareGlobal": 0.182,
+  "ceiling": "contrainte DATA-MODEL 15 : la part globale d'annonces a adProduct.tier PRESENT doit rester < 30 %, sinon coverageWarning.samplingBias est vrai partout (EX-DATA-43) et le diagnostic de representativite perd son sens. Valeur visee 18,2 %.",
+  "correlationWithStock": "la probabilite d'un palier eleve croit avec la taille du stock du concessionnaire : logit ajuste de +0.5 par decile de stock au-dessus de la mediane"
+ },
+ "sealCodes": {
+  "rule": "programmes d'occasion certifiee ; professionnels seulement ; 22 % des annonces professionnelles portent 1 a 2 codes, les particuliers aucun"
+ },
+ "imageCount": {
+  "$comment": "contrainte DATA-MODEL 28 : imageCount <= 50 (maxItems de la source). Les URL d'image sont exclues (E18).",
+  "D": {
+   "law": "Poisson tronquee",
+   "lambda": 14,
+   "min": 1,
+   "max": 50
+  },
+  "P": {
+   "law": "Poisson tronquee",
+   "lambda": 7,
+   "min": 0,
+   "max": 50
+  },
+  "zeroImageRate": 0.006
+ },
+ "hasVideo": {
+  "D": 0.09,
+  "P": 0.02
+ },
+ "excludedByConstruction": [
+  "seller.id",
+  "seller.companyName",
+  "seller.contactName",
+  "telephone",
+  "courriel",
+  "URL de vendeur",
+  "rue et numero",
+  "latitude",
+  "longitude",
+  "description",
+  "condition.description",
+  "cid",
+  "vin",
+  "licencePlate",
+  "belgianCarpassMileageUrl",
+  "URL d'image",
+  "youtubeVideoUrl"
+ ],
+ "excludedRationale": "EX-DATA-47 (E1 a E21) et D3-02 : ces champs n'existent NI dans la couche source generee, NI dans la couche canonique ; le generateur ne peut pas les produire puisqu'aucune table de ce fichier n'en contient la matiere",
+ "appliedSeals": {
+  "rule": "contrainte 28 : tableau sans doublon. Professionnels seulement ; 22 % des annonces professionnelles portent 1 a 2 codes du vocabulaire KYCAR_SEAL, les particuliers aucun (champ absent)."
+ },
+ "publication": {
+  "status": "toujours Active — contrainte DATA-MODEL 7 (une annonce Inactive n'est jamais servie par la surface de lecture) ; sonde P-89",
+  "accurateState": "domaine non etabli : le generateur emet une valeur d'un ensemble fixe de 4 chaines documentees au manifest, jamais inventee ligne a ligne",
+  "isNew": "vrai pour les annonces entrees dans ce snapshot (voir snapshot-dynamics R-52)"
+ }
+}

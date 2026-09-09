@@ -1,0 +1,76 @@
+{
+ "$comment": "KYCAR — profils de generation, snapshots, graines et budgets de taille (regles R-01 et R-30 a R-33).",
+ "source": [
+  "S12 PLAN-3 §3.1/§3.2 (volumes dev 5 000 / test 20 000 / perf 100 000 par snapshot ; test <= 8 Mio gz commites)",
+  "S13 reports/data/DATA-LEAD-DECISIONS.md D3-01 et D3-03",
+  "S18 docs/data/DATA-MODEL.md §7 contraintes 25 et 31"
+ ],
+ "marketplace": "be",
+ "countryCode": "B",
+ "vehicleType": "C",
+ "defaultSeed": "0x4B594341",
+ "snapshotSeedRule": "seed_k = xoshiro128starstar_jump(seed, k) ; k = 0,1,2 — chaque snapshot a son propre flot, derive de la graine du profil",
+ "snapshots": [
+  {
+   "index": 0,
+   "snapshotSuffix": "20260907",
+   "observedAt": "2026-09-07T06:00:00Z",
+   "label": "S0"
+  },
+  {
+   "index": 1,
+   "snapshotSuffix": "20260914",
+   "observedAt": "2026-09-14T06:00:00Z",
+   "label": "S0+7j"
+  },
+  {
+   "index": 2,
+   "snapshotSuffix": "20260921",
+   "observedAt": "2026-09-21T06:00:00Z",
+   "label": "S0+14j"
+  }
+ ],
+ "snapshotIdPattern": "be-fixture-<profil>-<AAAAMMJJ>-<graine hex 8>",
+ "profiles": [
+  {
+   "name": "dev",
+   "listingsPerSnapshot": 5000,
+   "committed": true,
+   "sizeBudgetGzBytes": 2097152,
+   "minDistinctMakes": 120,
+   "minCellsModelYearN12": 10,
+   "minCellsModelN30": 20
+  },
+  {
+   "name": "test",
+   "listingsPerSnapshot": 20000,
+   "committed": true,
+   "sizeBudgetGzBytes": 8388608,
+   "minDistinctMakes": 150,
+   "minCellsModelYearN12": 150,
+   "minCellsModelN30": 90
+  },
+  {
+   "name": "perf",
+   "listingsPerSnapshot": 100000,
+   "committed": false,
+   "sizeBudgetGzBytes": 41943040,
+   "minDistinctMakes": 290,
+   "minCellsModelYearN12": 1000,
+   "minCellsModelN30": 400
+  }
+ ],
+ "byteBudgetPerLineGz": {
+  "test": 139.8,
+  "regle": "budget / (3 x listingsPerSnapshot) ; mesure obligatoire a la generation"
+ },
+ "outputOrder": [
+  "makeId",
+  "modelId",
+  "firstRegistrationYearMonth",
+  "listingId"
+ ],
+ "outputOrderRationale": "ordre total deterministe ; les lignes voisines partagent leurs prefixes, ce qui ameliore le taux de compression gzip et fixe l'ordre d'ingestion sur lequel EX-DATA-15 arbitre les doublons",
+ "hashRule": "contrainte 31 : manifest.sha256 porte sur les octets NON COMPRESSES du NDJSON (la sortie gzip depend de la version de zlib et ne prouve pas le determinisme) ; sha256Gz, optionnel, verifie le fichier livre.",
+ "keyOrderRule": "contrainte 25 : le generateur emet les proprietes dans un ordre FIXE et documente, identique sur toutes les lignes. Le determinisme (memes octets a graine egale) porte sur l'ordre de serialisation autant que sur les valeurs — et l'ordre stable est aussi le premier levier de compression (R-33)."
+}

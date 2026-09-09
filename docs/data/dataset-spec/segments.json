@@ -1,0 +1,381 @@
+{
+ "$comment": "KYCAR — segments latents du generateur (AUCUN champ KYCAR ne porte le segment ; il conditionne carrosserie, puissance, portes, places, prix neuf et duree d'exposition). Regles R-05 a R-08.",
+ "source": [
+  "S6 auto-infos / motor1, part des SUV dans les immatriculations europeennes 2024 = 54 %",
+  "S3 TRAXIO 2025 pour l'ancrage du parc d'occasion",
+  "H5 hypothese : les parts par segment et par annee sont EXTRAPOLEES d'une tendance publique (montee des SUV, recul des monospaces et des berlines tricorps) ; aucune serie belge par carrosserie n'est publiee"
+ ],
+ "segmentShareByYear": {
+  "$comment": "part du segment dans les IMMATRICULATIONS NEUVES de l'annee ; interpolation lineaire entre les annees pivots, extrapolation plate hors bornes",
+  "pivots": [
+   2005,
+   2015,
+   2020,
+   2026
+  ],
+  "values": {
+   "citadine": [
+    0.3,
+    0.24,
+    0.18,
+    0.14
+   ],
+   "compacte": [
+    0.26,
+    0.22,
+    0.18,
+    0.15
+   ],
+   "berline": [
+    0.18,
+    0.14,
+    0.1,
+    0.08
+   ],
+   "break": [
+    0.12,
+    0.12,
+    0.1,
+    0.08
+   ],
+   "suv": [
+    0.04,
+    0.18,
+    0.34,
+    0.45
+   ],
+   "monospace": [
+    0.08,
+    0.06,
+    0.03,
+    0.02
+   ],
+   "utilitaire": [
+    0.015,
+    0.025,
+    0.04,
+    0.05
+   ],
+   "sportive": [
+    0.04,
+    0.03,
+    0.02,
+    0.02
+   ],
+   "luxe": [
+    0.015,
+    0.015,
+    0.015,
+    0.015
+   ]
+  }
+ },
+ "stockBias": {
+  "$comment": "R-06 — le STOCK d'annonces vaut le FLUX d'immatriculations multiplie par la duree moyenne d'exposition ; ce coefficient est la duree relative par segment, applique avant renormalisation",
+  "citadine": 0.85,
+  "compacte": 0.9,
+  "berline": 1.05,
+  "break": 1.0,
+  "suv": 0.95,
+  "monospace": 1.15,
+  "utilitaire": 1.05,
+  "sportive": 1.45,
+  "luxe": 1.5
+ },
+ "bodyTypeMapping": {
+  "$comment": "segment -> KYCAR_BODY_TYPE (codes AutoScout24 voiture), tirage pondere",
+  "citadine": {
+   "1": 1.0
+  },
+  "compacte": {
+   "6": 0.85,
+   "1": 0.15
+  },
+  "berline": {
+   "6": 1.0
+  },
+  "break": {
+   "5": 1.0
+  },
+  "suv": {
+   "4": 1.0
+  },
+  "monospace": {
+   "12": 1.0
+  },
+  "utilitaire": {
+   "13": 1.0
+  },
+  "sportive": {
+   "3": 0.6,
+   "2": 0.4
+  },
+  "luxe": {
+   "6": 0.55,
+   "4": 0.3,
+   "3": 0.15
+  }
+ },
+ "bodyTypeOtherRate": 0.01,
+ "bodyTypeOtherComment": "1 % des annonces portent le code 7 (Autres) quel que soit le segment : le vendeur n'a pas classe son vehicule",
+ "newPriceEur": {
+  "$comment": "prix catalogue de reference du segment, niveau de prix 2026, avant coefficient de marque, de carburant et de puissance",
+  "citadine": 22000,
+  "compacte": 30000,
+  "berline": 44000,
+  "break": 42000,
+  "suv": 42000,
+  "monospace": 38000,
+  "utilitaire": 33000,
+  "sportive": 55000,
+  "luxe": 95000
+ },
+ "newPriceScale": 1.32,
+ "newPriceScaleRationale": "constante d'etalonnage globale : elle amene la mediane des prix affiches a 15 800 EUR et la moyenne a 19 800 EUR (voir sonde P-30)",
+ "powerKw": {
+  "$comment": "loi log-normale : mediane et sigma par segment ; la mediane d'un modele curate remplace celle du segment",
+  "citadine": [
+   66,
+   0.3
+  ],
+  "compacte": [
+   85,
+   0.3
+  ],
+  "berline": [
+   125,
+   0.32
+  ],
+  "break": [
+   110,
+   0.3
+  ],
+  "suv": [
+   110,
+   0.32
+  ],
+  "monospace": [
+   92,
+   0.28
+  ],
+  "utilitaire": [
+   85,
+   0.28
+  ],
+  "sportive": [
+   180,
+   0.35
+  ],
+  "luxe": [
+   230,
+   0.35
+  ]
+ },
+ "powerKwBounds": [
+  35,
+  600
+ ],
+ "doorCount": {
+  "citadine": {
+   "5": 0.68,
+   "3": 0.3,
+   "4": 0.02
+  },
+  "compacte": {
+   "5": 0.86,
+   "3": 0.13,
+   "4": 0.01
+  },
+  "berline": {
+   "4": 0.62,
+   "5": 0.37,
+   "3": 0.01
+  },
+  "break": {
+   "5": 0.99,
+   "4": 0.01
+  },
+  "suv": {
+   "5": 0.97,
+   "3": 0.03
+  },
+  "monospace": {
+   "5": 1.0
+  },
+  "utilitaire": {
+   "4": 0.55,
+   "5": 0.4,
+   "3": 0.05
+  },
+  "sportive": {
+   "2": 0.55,
+   "3": 0.4,
+   "5": 0.05
+  },
+  "luxe": {
+   "4": 0.55,
+   "5": 0.42,
+   "2": 0.03
+  }
+ },
+ "seatCount": {
+  "citadine": {
+   "5": 0.93,
+   "4": 0.07
+  },
+  "compacte": {
+   "5": 0.98,
+   "4": 0.02
+  },
+  "berline": {
+   "5": 1.0
+  },
+  "break": {
+   "5": 0.97,
+   "7": 0.03
+  },
+  "suv": {
+   "5": 0.9,
+   "7": 0.1
+  },
+  "monospace": {
+   "5": 0.45,
+   "7": 0.5,
+   "6": 0.05
+  },
+  "utilitaire": {
+   "2": 0.45,
+   "5": 0.35,
+   "3": 0.15,
+   "9": 0.05
+  },
+  "sportive": {
+   "4": 0.55,
+   "2": 0.45
+  },
+  "luxe": {
+   "5": 0.92,
+   "7": 0.08
+  }
+ },
+ "drivetrain": {
+  "$comment": "KYCAR_DRIVETRAIN par segment",
+  "citadine": {
+   "F": 0.995,
+   "4": 0.005
+  },
+  "compacte": {
+   "F": 0.96,
+   "4": 0.03,
+   "R": 0.01
+  },
+  "berline": {
+   "F": 0.72,
+   "R": 0.2,
+   "4": 0.08
+  },
+  "break": {
+   "F": 0.8,
+   "4": 0.12,
+   "R": 0.08
+  },
+  "suv": {
+   "F": 0.55,
+   "4": 0.42,
+   "R": 0.03
+  },
+  "monospace": {
+   "F": 0.95,
+   "4": 0.05
+  },
+  "utilitaire": {
+   "F": 0.88,
+   "4": 0.09,
+   "R": 0.03
+  },
+  "sportive": {
+   "R": 0.48,
+   "F": 0.32,
+   "4": 0.2
+  },
+  "luxe": {
+   "4": 0.58,
+   "R": 0.28,
+   "F": 0.14
+  }
+ },
+ "transmissionByYearAndSegment": {
+  "$comment": "P(boite automatique ou semi-automatique) = logistique ; part_A(annee, segment) puis repartition A/S = 0.88/0.12 ; toute motorisation E (electrique) est FORCEE en A",
+  "formula": "p_auto = 1 / (1 + exp(-(a0 + a1*(annee-2015) + a2_segment)))",
+  "a0": -0.85,
+  "a1": 0.155,
+  "a2": {
+   "citadine": -1.1,
+   "compacte": -0.45,
+   "berline": 0.75,
+   "break": 0.35,
+   "suv": 0.3,
+   "monospace": -0.1,
+   "utilitaire": -0.6,
+   "sportive": 0.95,
+   "luxe": 2.2
+  },
+  "shareSemiAutoAmongAuto": 0.12
+ },
+ "bodyColor": {
+  "$comment": "KYCAR_BODY_COLOR ; distribution nationale, deja proche du releve europeen (noir/gris/blanc/argent = 72 %)",
+  "11": 0.235,
+  "6": 0.205,
+  "14": 0.165,
+  "12": 0.115,
+  "2": 0.09,
+  "10": 0.06,
+  "7": 0.03,
+  "3": 0.028,
+  "1": 0.02,
+  "15": 0.014,
+  "13": 0.012,
+  "5": 0.011,
+  "4": 0.008,
+  "16": 0.007
+ },
+ "isMetallicByColor": {
+  "$comment": "P(peinture metallisee | couleur)",
+  "11": 0.72,
+  "6": 0.88,
+  "14": 0.34,
+  "12": 0.95,
+  "2": 0.8,
+  "10": 0.55,
+  "default": 0.6
+ },
+ "upholsteryType": {
+  "$comment": "P(sellerie | segment)",
+  "default": {
+   "CL": 0.62,
+   "PL": 0.18,
+   "FL": 0.13,
+   "VL": 0.03,
+   "AL": 0.02,
+   "OT": 0.02
+  },
+  "luxe": {
+   "FL": 0.68,
+   "PL": 0.18,
+   "AL": 0.08,
+   "CL": 0.04,
+   "OT": 0.02
+  },
+  "sportive": {
+   "FL": 0.42,
+   "PL": 0.24,
+   "AL": 0.16,
+   "CL": 0.16
+  },
+  "utilitaire": {
+   "CL": 0.92,
+   "OT": 0.05,
+   "PL": 0.03
+  }
+ }
+}
