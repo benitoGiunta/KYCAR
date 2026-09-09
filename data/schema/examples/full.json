@@ -1,0 +1,111 @@
+{
+  "id": "3d9b1c47-8e52-4f0a-b6d3-1a2c4e6f8b90",
+  "webPage": "https://www.autoscout24.be/offres/3d9b1c47-8e52-4f0a-b6d3-1a2c4e6f8b90",
+  "marketplace": "be",
+  "vehicleType": "C",
+  "make": 74,
+  "makeName": "Volkswagen",
+  "model": 2084,
+  "modelName": "Golf",
+  "modelVersion": "1.4 eHybrid GTE Style DSG 5p",
+  "productionYear": 2021,
+  "firstRegistrationDate": "2021-06",
+  "mileage": 64500,
+  "mileageUnit": "km",
+  "power": 110,
+  "powerUnit": "kW",
+  "powerHp": 150,
+  "cylinderCapacity": 1395,
+  "cylinderCapacityUnit": "ccm",
+  "cylinderCount": 4,
+  "gearCount": 6,
+  "transmission": "A",
+  "drivetrain": "F",
+  "fuelCategory": "2",
+  "primaryFuelType": 5,
+  "additionalFuelTypes": [12],
+  "fuelSourceLabel": "Super E10 95 / Electrique",
+  "isPluginHybrid": true,
+  "battery": {
+    "ownershipType": "1",
+    "capacity": 13,
+    "capacityUnit": "kWh"
+  },
+  "co2EmissionsUnit": "g/km",
+  "combinedUnit": "l/100km",
+  "electricCombinedUnit": "kWh/100km",
+  "wltp": {
+    "co2EmissionsCombined": 27,
+    "consumptionCombined": 1.2,
+    "consumptionElectricCombined": 16.5,
+    "co2Class": 20
+  },
+  "co2EmissionInGramPerKmWithFallback": 27,
+  "consumptionCombinedWithFallback": 1.2,
+  "euEmissionStandard": "6",
+  "efficiencyClass": 2,
+  "electricRange": 62,
+  "hasParticleFilter": true,
+  "bodyType": 6,
+  "doorCount": 5,
+  "seatCount": 5,
+  "bodyColor": 5,
+  "isMetallic": true,
+  "paintType": "M",
+  "upholsteryType": "CL",
+  "upholsteryColor": 1,
+  "equipment": [1, 2, 4, 15, 23, 41, 112, 137, 210, 249],
+  "appliedSeals": [112, 249],
+  "offerType": "U",
+  "usageState": "U",
+  "condition": {
+    "hadAccident": false
+  },
+  "previousOwnerCount": 1,
+  "hasFullServiceHistory": true,
+  "nextInspectionDate": "2027-06",
+  "wasCabOrRental": false,
+  "warranty": 12,
+  "warrantyUnit": "Months",
+  "hasWarranty": true,
+  "prices": {
+    "public": {
+      "price": 22450,
+      "currency": "EUR",
+      "netPrice": 18554,
+      "vatRate": 21.0,
+      "isTaxDeductible": true,
+      "isNegotiable": false,
+      "onRequestOnly": false,
+      "evaluation": {
+        "category": 2
+      }
+    },
+    "manufacturersSuggestedRetail": {
+      "price": 41250,
+      "currency": "EUR"
+    }
+  },
+  "superDeal": false,
+  "adProduct": {
+    "tier": "T50"
+  },
+  "publication": {
+    "status": "Active",
+    "accurateState": "active",
+    "isNew": false
+  },
+  "createdAt": "2026-08-24T09:12:03Z",
+  "lastUpdatedAt": "2026-09-01T07:45:11Z",
+  "firstActivatedDate": "2026-08-24T09:20:00Z",
+  "imageCount": 27,
+  "hasVideo": false,
+  "location": {
+    "countryCode": "BE",
+    "postalCodePrefix2": "40"
+  },
+  "seller": {
+    "type": "D",
+    "dealerBucket": "7f3a91c2"
+  }
+}
