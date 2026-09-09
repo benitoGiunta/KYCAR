@@ -16,7 +16,10 @@
     "test:review": "tsc --noEmit -p tsconfig.review.json && vitest run --config vitest.review.config.ts",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "data:gen": "node tools/dataset/generate.mjs",
+    "data:validate": "node tools/dataset/validate.mjs",
+    "data:check": "node tools/dataset/check.mjs"
   },
   "dependencies": {
     "preact": "^10.29.8"
