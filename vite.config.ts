@@ -1,4 +1,4 @@
-import { cpSync, existsSync, createReadStream } from 'node:fs';
+import { cpSync, existsSync, createReadStream, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
 
 import preact from '@preact/preset-vite';
@@ -47,6 +47,123 @@ function kycarReferenceData(): Plugin {
 }
 
 /**
+ * KYCAR — Plugin de phase 3.3 : sert les FIXTURES du dépôt (`data/fixtures/`) sous `/fixtures/*`.
+ *
+ * Même principe que `kycar-reference-data` (D8) : des fichiers de DONNÉES servis en statique, jamais
+ * inlinés dans un chunk JS — le chargement des fixtures est du RÉSEAU, pas du bundle, et
+ * `npm run size` (EX-NFR-10) ne les voit donc pas.
+ *
+ * **Les `.ndjson.gz` sont servis TELS QUELS**, en `application/octet-stream`, **sans en-tête
+ * `Content-Encoding`.** Deux raisons, dans cet ordre :
+ *
+ *   1. avec `Content-Encoding: gzip`, c'est le NAVIGATEUR qui décompresse, et le comportement
+ *      dépendrait alors de la configuration de l'hébergeur — en dev, en `vite preview`, et chez un
+ *      tiers, on n'aurait pas le même chemin de code. Servir les octets bruts et décompresser dans
+ *      l'application par `DecompressionStream('gzip')` rend le chemin IDENTIQUE partout ;
+ *   2. le flux reste alors un flux : le provider découpe ligne à ligne sans jamais matérialiser le
+ *      fichier entier (budget mémoire ARB-55).
+ *
+ * Le client ne fait de toute façon pas confiance à l'en-tête : il RENIFLE les deux octets magiques
+ * `1f 8b` (`src/providers/fixture/ndjson.ts`), ce qui le rend correct même si un hébergeur décide
+ * de décoder à sa place.
+ *
+ * **`index.json` d'un profil** : le provider a besoin de connaître les snapshots d'un profil sans
+ * tâtonner (une requête 404 par répertoire supposé). Si le générateur a écrit
+ * `data/fixtures/<profil>/index.json`, il est servi tel quel ; sinon ce plugin le SYNTHÉTISE en
+ * lisant le `capturedAt` de chaque `manifest.json`. Le provider ne dépend donc pas d'un fichier que
+ * `dataset-gen` n'avait pas prévu.
+ */
+const FIXTURE_DIR = resolve(__dirname, 'data/fixtures');
+
+/** Profils recopiés dans `dist/` au build. `perf` (3 x 100 000, non commité) en est exclu. */
+const BUILT_FIXTURE_PROFILES: readonly string[] = ['dev', 'test'];
+
+const FIXTURE_MIME: Readonly<Record<string, string>> = {
+  '.json': 'application/json; charset=utf-8',
+  '.ndjson': 'application/x-ndjson; charset=utf-8',
+  '.gz': 'application/octet-stream',
+};
+
+/** Index d'un profil, reconstruit depuis les manifests du disque et trié par `capturedAt`. */
+function buildFixtureProfileIndex(profile: string): string | null {
+  const dir = resolve(FIXTURE_DIR, profile);
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) return null;
+  const snapshots: Array<Record<string, unknown>> = [];
+  for (const name of readdirSync(dir).sort()) {
+    const child = resolve(dir, name);
+    if (!statSync(child).isDirectory()) continue;
+    const manifestPath = resolve(child, 'manifest.json');
+    if (!existsSync(manifestPath)) continue;
+    const m = JSON.parse(readFileSync(manifestPath, 'utf-8')) as Record<string, unknown>;
+    snapshots.push({
+      snapshotId: typeof m['snapshotId'] === 'string' ? m['snapshotId'] : name,
+      dir: name,
+      capturedAt: typeof m['capturedAt'] === 'string' ? m['capturedAt'] : '',
+      listingCount: m['listingCount'],
+      file: m['file'],
+    });
+  }
+  snapshots.sort(
+    (a, b) => Date.parse(String(a['capturedAt'])) - Date.parse(String(b['capturedAt'])),
+  );
+  return JSON.stringify({ profile, snapshots }, null, 1);
+}
+
+function kycarFixtureData(): Plugin {
+  return {
+    name: 'kycar-fixture-data',
+    configureServer(server) {
+      server.middlewares.use('/fixtures', (req, res, next) => {
+        const rawUrl = req.url ?? '/';
+        const rel = decodeURIComponent(rawUrl.split('?')[0] ?? '/').replace(/^\/+/, '');
+        // Défense : aucune remontée hors du dossier de fixtures.
+        const filePath = resolve(FIXTURE_DIR, rel);
+        if (!filePath.startsWith(FIXTURE_DIR) || rel.length === 0) {
+          next();
+          return;
+        }
+        // `<profil>/index.json` synthétisé quand le générateur n'en a pas écrit.
+        const asIndex = /^([A-Za-z0-9_-]+)\/index\.json$/.exec(rel);
+        if (asIndex !== null && !existsSync(filePath)) {
+          const body = buildFixtureProfileIndex(asIndex[1] as string);
+          if (body === null) {
+            next();
+            return;
+          }
+          res.setHeader('Content-Type', FIXTURE_MIME['.json'] as string);
+          res.end(body);
+          return;
+        }
+        if (!existsSync(filePath)) {
+          next();
+          return;
+        }
+        // Les `.gz` partent BRUTS : aucun `Content-Encoding`, la décompression est côté client.
+        res.setHeader('Content-Type', FIXTURE_MIME[extname(filePath)] ?? 'application/octet-stream');
+        createReadStream(filePath).pipe(res);
+      });
+    },
+    closeBundle() {
+      if (!existsSync(FIXTURE_DIR)) return;
+      for (const profile of BUILT_FIXTURE_PROFILES) {
+        const from = resolve(FIXTURE_DIR, profile);
+        if (!existsSync(from)) continue;
+        const to = resolve(__dirname, 'dist/fixtures', profile);
+        cpSync(from, to, { recursive: true });
+        const indexPath = resolve(to, 'index.json');
+        if (!existsSync(indexPath)) {
+          const body = buildFixtureProfileIndex(profile);
+          if (body !== null) {
+            mkdirSync(to, { recursive: true });
+            writeFileSync(indexPath, body, 'utf-8');
+          }
+        }
+      }
+    },
+  };
+}
+
+/**
  * KYCAR - Vite config (lot D1).
  *
  * Bundle budgets (docs/plans/ARCHITECTURE.md S:1.3, S:7.1 D1):
@@ -66,7 +183,7 @@ function kycarReferenceData(): Plugin {
  * legacy fallback bundle, which would itself blow the 300 KiB budget).
  */
 export default defineConfig({
-  plugins: [preact(), kycarReferenceData()],
+  plugins: [preact(), kycarReferenceData(), kycarFixtureData()],
   build: {
     manifest: true,
   },
