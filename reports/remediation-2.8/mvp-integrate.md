@@ -256,4 +256,103 @@ Cinq familles, diagnostiquées une par une. Aucun `test.fail()` ni `test.skip` n
 
 ## 7. Écarts de périmètre, constats pour le coordinateur, hypothèses E4
 
-<!-- CONSTATS -->
+### 7.1 Écarts de périmètre déclarés (E4)
+
+| Fichier | Pourquoi | Ampleur |
+|---|---|---|
+| `src/screens/mentions/MentionsPage.tsx` | La mission demande explicitement l'étiquette `FIXTURE` dans `/mentions` (§1), et la condition d'affichage vit dans ce composant. `src/screens` ne figure pas dans la liste des répertoires interdits ; seul `MarketScreen.tsx` y était nommément ouvert. | 3 blocs : import du module, condition de rendu, un paragraphe de la section « Sources et limites » qui présentait le jeu synthétique comme le cas nominal |
+| `src/app/app.css` | `src/app/` est dans le périmètre ; la feuille y vit. L'atténuation `ACC-13` de l'écran A n'a pas de sens sans sa règle CSS. | 4 lignes, ajoutées au sélecteur existant de l'écran B |
+
+### 7.2 Constats pour le coordinateur
+
+**`C-3.5-01` — BLOQUANT pour `EX-NFR-9`. Le budget de 2 000 ms n'est pas tenu avec `fixture:test`.**
+Deux faits distincts :
+
+1. *La mesure de 2.9 ne mesurait pas ce qu'elle nommait.* `measureFirstUsefulPaint` attendait la
+   première `.kycar-market-card` — classe que **le squelette de chargement porte aussi**. Le jalon
+   mesuré était donc la peinture de l'ossature, pas l'arrivée d'un chiffre. Ce n'était pas visible
+   tant que la source était générée en mémoire ; le devient dès qu'elle est téléchargée.
+2. *Le budget est dépassé d'un facteur ≈ 3,9.* Mesures reproduites hors harnais (3 exécutions,
+   cache vidé, `Network.emulateNetworkConditions` 4 Mb/s / 150 ms, build de production) :
+
+| Profil servi | Ossature | **Premier chiffre** | Snapshot téléchargé |
+|---|---|---|---|
+| `fixture:test` (défaut, `D3-01`) | 1 485 ms | **7 800 ms** | 2 677 Kio gzip, `responseEnd` à 7 412 ms |
+| `fixture:dev` | 1 500 ms | **3 800 ms** | 682 Kio gzip |
+
+Le chargement est de plus **séquentiel** : les 15 référentiels s'achèvent vers 1 250 ms et le
+snapshot ne commence qu'ensuite.
+
+**Stratégies possibles, non implémentées (toutes hors périmètre de cet agent) :**
+
+| Piste | Gain estimé | Où | Verdict |
+|---|---|---|---|
+| **Agrégats mode 1 précalculés au manifest** — l'écran A n'a besoin que des agrégats par marque (262 lignes, quelques Kio) ; les annonces ne sont nécessaires qu'au mode 2 | ramène le premier chiffre à ≈ 1,5 s, sous le budget, **sur les deux profils** | `tools/dataset/` (écriture) + `src/providers/fixture` (lecture) | **seule piste qui tient le budget au profil `test`** ; c'est aussi ce que `D3-17` avait entrevu (« lire des agrégats précalculés si le manifest les porte ») |
+| **Chargement du snapshot en parallèle des référentiels** | ≈ −1,2 s | `src/main.tsx` (le mien) + `DataController` | insuffisant seul (test resterait à ≈ 6,6 s) ; utile en complément |
+| **`fixture:dev` par défaut sur réseau lent** (Network Information API) | 7,8 s → 3,8 s | `src/providers/registry.ts` (`D3-01`) | ne tient toujours pas le budget, et fait varier les CHIFFRES affichés selon le réseau — à écarter à mon avis |
+| **Requalifier `EX-NFR-9` sur l'ossature** et écrire une exigence distincte pour le premier chiffre | — | `docs/requirements/` | honnête si le commanditaire l'accepte, mais c'est un changement d'exigence, pas une correction |
+
+En attendant l'arbitrage, le jalon est **publié et non asserté** dans `perf.spec.ts` (commentaire
+`C-3.5-01` en clair dans le test) : la recette ne le tait pas et ne le maquille pas. Aucun
+`test.fail()` n'a été ajouté, conformément à la mission.
+
+**`C-3.5-02` — MINEUR. `D3-07` n'est appliqué qu'à moitié.** `src/types/vocabularies.ts` porte bien
+`ca` comme 9ᵉ valeur de `KYCAR_MARKETPLACE` (fait avant mon tour, à l'index 8, ordre préservé) et
+`data/schema/as24-listing.schema.json` le documente, mais `EX-DATA-40`
+(`docs/requirements/draft-data-dictionary.md`, champ 74) énonce toujours « 9ᵉ valeur non identifiée
+de `KYCAR_MARKETPLACE` » et sa table de traduction n'a pas gagné `ca → CA`. `docs/requirements/` est
+hors de mon périmètre : à attribuer (fix-docs ou data-fix). Aucun effet sur le produit — les fixtures
+n'emploient que `be`.
+
+**`C-3.5-03` — À CONFIRMER PAR `data-review`. Densité du parcours 1 au profil `test`.** Le parcours
+cible 1 (« budget ≤ 20 000 €, coupé, < 100 000 km ») ne retient que **32 offres sur 17 marques**,
+alors que le seul filtre `Coupé` en retient 508 et que le couple prix + kilométrage en retient 3 599.
+Sous `n = 12`, l'écran bascule légitimement sur la « fourchette observée » : le parcours cible de
+`00-CONTEXT.md` ne montre donc plus, au profil servi par défaut, la présentation nominale de
+l'écran A. Ce n'est pas un défaut du code ; c'est une propriété du jeu (la conjonction
+carrosserie × prix × kilométrage y est plus sélective qu'attendu). À rapprocher de `EG-01` /
+`D3-19`. Si `data-fix` retouche les distributions, les attendus E2E suivront **sans retouche** —
+c'est précisément ce que la dérivation par programme achète.
+
+**`C-3.5-04` — MINEUR, informatif. `EX-NFR-6` et `EX-NFR-8` sont désormais mesurés sur une charge
+plus faible.** La plus grosse cellule servie par défaut porte 585 annonces (Golf) contre 1 352
+auparavant ; `EX-NFR-6` est mesuré sur la cellule Corsa, 352 annonces (médiane 139 ms pour un budget
+de 300 ms). Les budgets sont tenus, mais sur une charge moindre : le banc de charge maximale reste le
+profil `perf` ou `?provider=synthetic` (`D3-04`). Aucune action demandée ; à savoir avant de citer
+ces marges.
+
+**`C-3.5-05` — MINEUR. `Snapshot.sourceKind` (`src/types/entities.ts`) est resté à
+`'REAL' | 'SYNTHETIC'`** alors que `SourceKind` (interface gelée) porte `FIXTURE` depuis 3.3. Aucun
+chemin d'exécution ne construit cette entité aujourd'hui (elle est documentaire : le runtime passe
+par `SnapshotDescriptor`), donc **aucun** cas où `FIXTURE` serait traité comme `REAL` — mais le type
+ment sur son propre domaine. `src/types/entities.ts` est hors de mon périmètre : une ligne à
+corriger (`readonly sourceKind: SourceKind;`, le type est déjà importé dans le fichier).
+
+### 7.3 Hypothèses E4 (aucune question posée)
+
+1. **Texte de l'étiquette** : la phrase de la mission (« profil test, 3 snapshots ») est **rendue
+   paramétrique** — profil déduit de la spécification du registre, nombre de snapshots relevé de
+   l'index du profil. Sur `?provider=fixture:dev` elle dit « profil dev » ; si l'un des deux n'est
+   pas su, elle dégrade au lieu d'annoncer un chiffre faux. Écrire la phrase en dur aurait produit
+   « profil test » sur le profil `dev`.
+2. **Place d'`ET-SOURCE-REPLI`** dans la pile `EX-SCR-38` : après `ET-PARTIEL-CACHE`, avant les
+   bandeaux de filtres. Motif : savoir QUELLE source répond prime sur savoir quel filtre elle n'a
+   pas su appliquer.
+3. **`DENSE_QUERY = '?priceto=20000'`** comme sélection dense de référence : un filtre unique, large,
+   déjà employé par l'amorce de l'écran A (« Budget ≤ 20 000 € »), qui retient 204 marques — au-delà
+   du seuil de virtualisation de 40. Les tests qui l'emploient **vérifient** cette prémisse sur les
+   fixtures au lieu de la supposer.
+4. **`RECALC_INDICATOR_DELAY_MS` importée** de `DistributionScreen` plutôt que redéclarée dans
+   `MarketScreen` : les deux écrans sont dans le même chunk (import statique depuis `app.tsx`), le
+   coût bundle est nul, et deux seuils qui dériveraient feraient de « 150 ms » une valeur d'écran.
+5. **Conséquence visible d'`ACC-13`** : après le premier chargement, un changement de filtre ne vide
+   plus la grille de l'écran A — les chiffres précédents restent, atténués, avec `ET-CHARGE-MAJ`
+   au-delà de 150 ms. Le squelette reste le rendu du **premier** chargement. C'est ce qu'`EX-SCR-24`
+   demande (« mise à jour atténuée », pas « écran vidé puis repeuplé») ; aucun test n'attendait le
+   squelette sur un refiltrage.
+6. **Le jalon « premier chiffre » d'`EX-NFR-9` est publié, non asserté** (`C-3.5-01`) : l'asserter
+   aurait rendu la recette rouge sur un écart dont la correction est hors de mon périmètre, et la
+   mission interdit d'ajouter un `test.fail()`. Le taire aurait laissé une sonde verte prétendre
+   davantage qu'elle ne prouve.
+7. **`D3-07` non retouché** : le code portait déjà `ca` ; seul l'énoncé d'`EX-DATA-40` reste à
+   corriger, dans un répertoire hors périmètre (`C-3.5-02`).

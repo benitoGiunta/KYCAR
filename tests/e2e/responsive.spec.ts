@@ -182,7 +182,12 @@ test.describe('EX-NFR-18 / EX-NFR-19 — régimes responsive', () => {
   }, testInfo) => {
     test.skip(regimeOf(testInfo) !== 'compact', 'le libellé n’est vérifiable que dans le régime qui replie à 4');
 
-    await open(page, `${SURFACES.A}${P1_QUERY}`);
+    // Phase 3.5 : le bouton de pied de carte n'existe QUE si la marque porte plus de modèles que le
+    // seuil de repli (4 en compact) — c'est tout son objet. Le parcours P1 est trop étroit au profil
+    // `test` pour garantir cette prémisse (17 marques, quelques offres chacune) : on part donc de la
+    // sélection DENSE. Le fait mesuré (le libellé annonce le seuil RÉEL du régime, 4 en compact,
+    // jamais un `6` en dur) est inchangé.
+    await open(page, `${SURFACES.A}${DENSE_QUERY}`);
     const card = page.locator('.kycar-market-card').first();
     // D8-04a/FV-04/D-31 : un clic sur l'EN-TÊTE pose désormais `mmmv` sur la marque (`EX-SCR-110`) ;
     // le DÉPLIAGE a son propre contrôle, le bouton de pied de carte. C'est ce bouton, une fois la
