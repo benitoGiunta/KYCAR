@@ -541,7 +541,9 @@ button:disabled {
 }
 
 .kycar-app a {
-  padding-block: 8px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
 }
 
 .kycar-skip-link {
@@ -580,7 +582,7 @@ button:disabled {
   }
 
   .kycar-app a {
-    padding-block: 14px;
+    min-height: 44px;
   }
 
   .kycar-app button,
