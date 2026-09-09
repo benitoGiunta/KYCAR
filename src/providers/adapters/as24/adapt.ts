@@ -672,12 +672,20 @@ export function adaptAs24Listing(raw: unknown, ctx: As24AdapterContext): As24Ada
     fuelCategory = fuelCategoryTable.index(fuelCategoryCode) as number;
   } else {
     if (fuelCategoryCode !== '') acc.flag('ENUM_UNKNOWN');
-    const fallback = primaryFuelKnown ? FUEL_TYPE_TO_CATEGORY[primaryFuelCode as string] : undefined;
+    // `EX-DATA-11` : le repli d'`EX-DATA-10` est INAPPLICABLE à un hybride rechargeable. Le type de
+    // carburant PRIMAIRE d'un hybride est, par construction, son carburant thermique : le lire comme
+    // une catégorie classerait une hybride rechargeable essence en `B` (« Essence ») dans tous les
+    // filtres et toutes les distributions, au lieu de `2` (« Électrique/Essence »). Un carburant
+    // primaire ne peut pas dire si la catégorie vaut `2`, `3` ou `O` — c'est exactement le cas que
+    // le dictionnaire déclare NON RÉSOLUBLE, et deviner y serait pire que l'INCONNU.
+    const hybridBlocksFallback = src.isPluginHybrid === true;
+    const fallback =
+      primaryFuelKnown && !hybridBlocksFallback ? FUEL_TYPE_TO_CATEGORY[primaryFuelCode as string] : undefined;
     if (fallback !== undefined && fuelCategoryTable?.has(fallback) === true) {
       fuelCategory = fuelCategoryTable.index(fallback) as number;
       fuelCategoryCode = fallback;
     } else {
-      if (src.isPluginHybrid === true) acc.notice('HYBRID_CATEGORY_UNRESOLVED');
+      if (hybridBlocksFallback) acc.notice('HYBRID_CATEGORY_UNRESOLVED');
       fuelCategoryCode = '';
       fuelCategory = acc.unknownEnum('fuelCategory');
     }
@@ -706,7 +714,11 @@ export function adaptAs24Listing(raw: unknown, ctx: As24AdapterContext): As24Ada
   // # 46 `isPluginHybrid` — tri-état + contrôle de cohérence §7-19.
   acc.booleanFlags = setBooleanFlag(acc.booleanFlags, 'isPluginHybrid', src.isPluginHybrid ?? null);
   if (src.isPluginHybrid === undefined) acc.unknown.push('isPluginHybrid');
-  if (src.isPluginHybrid === true && !['2', '3', 'O'].includes(fuelCategoryCode)) {
+  // §7-19 vise une catégorie qui CONTREDIT `isPluginHybrid`, pas une catégorie ABSENTE : quand elle
+  // est restée INCONNUE, la contradiction n'est pas établie et c'est `HYBRID_CATEGORY_UNRESOLVED`
+  // (déjà signalé plus haut) qui décrit la situation. Signaler les deux ferait compter deux fois la
+  // même annonce dans deux diagnostics distincts.
+  if (src.isPluginHybrid === true && fuelCategoryCode !== '' && !['2', '3', 'O'].includes(fuelCategoryCode)) {
     acc.notice('HYBRID_INCONSISTENT');
   }
 
