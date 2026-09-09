@@ -25,7 +25,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -40,8 +40,9 @@ export const MINI_LINES = 200;
 export const MINI_LATEST_SNAPSHOT_ID = 'be-20260914T060000Z';
 /** Identifiant du snapshot le plus ancien (choix explicite). */
 export const MINI_OLDEST_SNAPSHOT_ID = 'be-20260907T060000Z';
-/** Identifiant du snapshot volontairement sale (rejets d'ingestion). */
-export const MINI_DIRTY_SNAPSHOT_ID = 'be-20260921T060000Z';
+/** Identifiant du snapshot volontairement sale (rejets d'ingestion). Le PLUS ANCIEN : le choix par
+ *  défaut du provider doit rester le snapshot conforme le plus récent. */
+export const MINI_DIRTY_SNAPSHOT_ID = 'be-20260831T060000Z';
 
 /** Générateur congruentiel 32 bits : même graine, mêmes octets (critère de déterminisme). */
 function makePrng(seed: number): () => number {
@@ -281,11 +282,15 @@ export function buildMiniFixtures(root: string = MINI_ROOT): MiniFixtureSet {
   const base = JSON.parse(
     readFileSync(resolve(process.cwd(), 'data/schema/examples/full.json'), 'utf-8'),
   ) as Record<string, unknown>;
+  // Le répertoire est REMIS À NEUF : un snapshot laissé par une version antérieure du mini-jeu
+  // resterait dans l'index du profil et pourrait devenir « le plus récent », ce qui ferait porter
+  // les cas suivants sur un jeu que personne n'a écrit dans cette exécution.
+  rmSync(resolve(root, MINI_PROFILE), { recursive: true, force: true });
   mkdirSync(resolve(root, MINI_PROFILE), { recursive: true });
 
   writeSnapshot(root, MINI_PROFILE, buildConformingSnapshot(base, MINI_OLDEST_SNAPSHOT_ID, '2026-09-07T06:00:00Z', 0x4b594341), 0x4b594341);
   writeSnapshot(root, MINI_PROFILE, buildConformingSnapshot(base, MINI_LATEST_SNAPSHOT_ID, '2026-09-14T06:00:00Z', 0x4b594342), 0x4b594342);
-  writeSnapshot(root, MINI_PROFILE, buildDirtySnapshot(base, '2026-09-21T06:00:00Z'), 0x4b594343);
+  writeSnapshot(root, MINI_PROFILE, buildDirtySnapshot(base, '2026-08-31T06:00:00Z'), 0x4b594343);
 
   const gzPath = resolve(root, MINI_PROFILE, MINI_LATEST_SNAPSHOT_ID, 'listings.ndjson.gz');
   return {
