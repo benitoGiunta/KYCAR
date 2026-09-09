@@ -12,6 +12,8 @@
 import { test, expect } from '@playwright/test';
 import {
   P1_QUERY,
+  DENSE_QUERY,
+  derived,
   P2_PATH,
   open,
   regimeOf,
@@ -534,9 +536,16 @@ test('ACC-09 — liste de zones-modèles virtualisée à 30, ombres de débord, 
 test('ACC-10 — au-delà de 40 cartes, au plus 12 sont montées, sans plafonner l’accès (EX-SCR-127)', async ({
   page,
 }, testInfo) => {
-  // Le pied de chargement continu (`EX-SCR-129`) n'existe qu'avec des filtres posés : on part donc
-  // du parcours P1, qui retient 107 marques — bien au-delà du seuil de virtualisation (40).
-  await open(page, `/marche${P1_QUERY}`);
+  // Le pied de chargement continu (`EX-SCR-129`) n'existe qu'avec des filtres POSÉS, et la
+  // virtualisation ne s'arme qu'au-delà de 40 cartes. Le parcours P1 est trop étroit au profil
+  // `test` (quelques dizaines d'offres, 17 marques) : on part donc de la sélection DENSE, et la
+  // prémisse est VÉRIFIÉE sur les fixtures plutôt que supposée.
+  const attendu = await derived();
+  expect(
+    attendu.dense.makes,
+    'la sélection dense doit dépasser le seuil de virtualisation de 40 cartes (EX-SCR-127)',
+  ).toBeGreaterThan(40);
+  await open(page, `/marche${DENSE_QUERY}`);
   const plus = page.getByRole('button', { name: /Charger \d+ marques de plus/ });
   await expect(plus).toBeVisible({ timeout: 30_000 });
   await plus.click();

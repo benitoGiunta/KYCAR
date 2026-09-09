@@ -22,6 +22,7 @@ import { loadReferenceData } from './orchestration/reference-loader';
 import { createAggregationEngine } from './engine/index';
 import { SyntheticDataProvider } from './providers/synthetic/index';
 import { resolveProvider } from './providers/registry';
+import { createHttpFixtureLoader } from './providers/fixture/loaders/http';
 import {
   createSavedSearchStore,
   createFollowedModelStore,
@@ -44,8 +45,9 @@ async function bootstrap(): Promise<void> {
     env: import.meta.env as unknown as Record<string, string | undefined>,
   });
   if (selection.warning !== null) {
-    // L'avertissement voyage AUSSI par la `coverageNote` du snapshot (chemin visible par
-    // l'utilisateur) ; la console sert la mise au point, elle ne la remplace pas.
+    // L'avertissement voyage AUSSI par la `coverageNote` du snapshot et — depuis la phase 3.5 — par
+    // le bandeau `ET-SOURCE-REPLI` de la coquille : la console sert la mise au point, elle ne le
+    // remplace pas. La `coverageNote` seule ne suffisait pas : aucun écran ne l'affiche.
     console.warn(`KYCAR — ${selection.warning}`);
   }
   const controller = new DataController({
@@ -72,7 +74,34 @@ async function bootstrap(): Promise<void> {
     preferences: createPreferencesStore(),
   };
 
-  render(<App controller={controller} referenceData={referenceData} stores={stores} />, mountNode);
+  render(
+    <App
+      controller={controller}
+      referenceData={referenceData}
+      stores={stores}
+      providerSpec={selection.spec}
+      providerWarning={selection.warning}
+      fixtureSnapshotCount={await countFixtureSnapshots(selection.spec)}
+    />,
+    mountNode,
+  );
+}
+
+/**
+ * Nombre de snapshots du profil de fixtures servi, pour l'étiquette de provenance (`EX-DATA-107` :
+ * « profil test, 3 snapshots »). Lu de l'INDEX du profil — le même fichier, par le même chargeur,
+ * que celui que le provider ouvre juste après : la réponse est en cache HTTP, et le chiffre est
+ * RELEVÉ au lieu d'être écrit en dur dans un écran. Toute erreur rend `null` : la phrase dégrade
+ * alors en « (profil test) » plutôt que d'annoncer un nombre faux.
+ */
+async function countFixtureSnapshots(spec: string): Promise<number | null> {
+  if (!spec.startsWith('fixture:')) return null;
+  try {
+    const index = await createHttpFixtureLoader().loadProfileIndex(spec.slice('fixture:'.length));
+    return index.snapshots.length;
+  } catch {
+    return null;
+  }
 }
 
 void bootstrap().catch((err: unknown) => {

@@ -150,6 +150,9 @@ describe('EX-SCR-38 — pile de bandeaux plafonnée à deux, `+k` au-delà', () 
       'ET-ERREUR-PROVIDER',
       'ET-HORS-LIGNE',
       'ET-PARTIEL-CACHE',
+      // Phase 3.5 (`DF-2`) : le REPLI de source du registre passe devant les bandeaux de filtres —
+      // savoir QUELLE source répond prime sur savoir quel filtre n'a pas pu être appliqué par elle.
+      'ET-SOURCE-REPLI',
       'ET-FILTRE-NON-APPLIQUE',
       'ET-FILTRE-NON-APPLIQUE-BODY',
       'ET-URL-CORRIGEE',

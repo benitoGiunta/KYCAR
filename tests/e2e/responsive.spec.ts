@@ -16,6 +16,7 @@ import { test, expect } from '@playwright/test';
 
 import {
   P1_QUERY,
+  DENSE_QUERY,
   SURFACES,
   constat,
   hasCssRuleFor,
@@ -94,7 +95,10 @@ test.describe('EX-NFR-18 / EX-NFR-19 — régimes responsive', () => {
     page,
   }, testInfo) => {
     const expectedCollapse = regimeOf(testInfo) === 'compact' ? 4 : 6;
-    await open(page, `${SURFACES.A}${P1_QUERY}`);
+    // `EX-SCR-122`/`123` porte sur le REPLI d'une liste de zones : il faut donc une marque qui en
+    // porte plus que le seuil. Le parcours P1 est trop étroit au profil `test` pour cela — la
+    // sélection DENSE est la bonne prémisse, et le fait mesuré (le repli suit le régime) est intact.
+    await open(page, `${SURFACES.A}${DENSE_QUERY}`);
 
     const card = page.locator('.kycar-market-card').first();
     // D8-04a/FV-04/D-31 : depuis la remédiation 2.8, un clic sur l'EN-TÊTE de carte POSE le filtre

@@ -14,7 +14,8 @@ import { test, expect, type Page } from '@playwright/test';
 
 import {
   P1_QUERY,
-  P1_EXPECTED,
+  derived,
+  DENSE_QUERY,
   applyFilterSheet,
   constat,
   mesure,
@@ -53,8 +54,11 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     await openMarket(page);
 
     const summary = await readMarketSummary(page);
-    expect(summary.offers).toBe(100_000);
-    expect(summary.makes).toBeGreaterThan(100);
+    // `D3-24` — attendus DÉRIVÉS des fixtures servies, jamais figés : la barre de synthèse sans
+    // filtre annonce exactement les annonces INGÉRÉES du snapshot le plus récent du profil.
+    const attendu = await derived();
+    expect(summary.offers).toBe(attendu.listingCount);
+    expect(summary.makes).toBe(attendu.unfiltered.makes);
 
     // `EX-SCR-113` — bandeau C3 de couverture d'échantillon, toujours présent sur l'écran A.
     await expect(page.locator('.summary-bar-c3')).toContainText(/couverture/i);
@@ -115,8 +119,9 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
 
     await waitForMarket(page);
     const summary = await readMarketSummary(page);
-    expect(summary.offers).toBe(P1_EXPECTED.offers);
-    expect(summary.makes).toBe(P1_EXPECTED.makes);
+    const attendu = (await derived()).p1;
+    expect(summary.offers).toBe(attendu.offers);
+    expect(summary.makes).toBe(attendu.makes);
 
     // `EX-SCR-75` — chaque filtre actif est affiché AVEC sa valeur dans son jeton.
     const tokens = page.locator('.kycar-filter-band');
@@ -139,14 +144,32 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     const summary = await readMarketSummary(page);
     expect(counts.reduce((s, n) => s + n, 0)).toBeLessThanOrEqual(summary.offers);
 
+    // `EX-SCR-33`/`114` (`D8-06`, `FV-09`) — la légende de la fourchette SUIT l'effectif : sous
+    // `n = 12` elle devient « fourchette observée (min – max, effectif réduit) ». Au profil `test`
+    // le parcours 1 est étroit (quelques dizaines d'offres réparties sur autant de marques), donc
+    // c'est la branche RÉDUITE que l'écran doit rendre ici — l'exiger « centrale » reviendrait à
+    // exiger que l'application mente sur un effectif de 6.
     const firstCard = page.locator('.kycar-market-card').first();
-    await expect(firstCard).toContainText('fourchette centrale');
+    await expect(firstCard).toContainText(/fourchette (centrale|observée)/);
 
     // Dépliage : les zones-modèles arrivent et portent elles aussi l'étiquette normative.
     await firstCard.locator('.kycar-market-card-header').click();
     const zones = firstCard.locator('.kycar-market-zone-list');
-    await expect(zones).toContainText('fourchette centrale', { timeout: 30_000 });
-    await expect(zones.getByText('fourchette centrale (90 % des offres)').first()).toBeVisible();
+    await expect(zones).toContainText(/fourchette (centrale|observée)/, { timeout: 30_000 });
+  });
+
+  test('la fourchette centrale (90 % des offres) est étiquetée telle quelle dès que l’effectif la porte (EX-SCR-118)', async ({
+    page,
+  }) => {
+    // Branche DENSE du même contrat : une sélection large (`DENSE_QUERY`) place la première carte
+    // très au-dessus de `n = 12`, et la légende doit alors être exactement celle d'`EX-SCR-118`.
+    await openMarket(page, DENSE_QUERY);
+    const firstCard = page.locator('.kycar-market-card').first();
+    await expect(firstCard.getByText('fourchette centrale (90 % des offres)').first()).toBeVisible();
+
+    await firstCard.locator('.kycar-market-card-header').click();
+    const zones = firstCard.locator('.kycar-market-zone-list');
+    await expect(zones.getByText('fourchette centrale (90 % des offres)').first()).toBeVisible({ timeout: 30_000 });
   });
 
   test('tri des cartes-marques : alphabétique puis inversion du sens (EX-SCR-106)', async ({ page }, testInfo) => {
@@ -188,7 +211,9 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     await openMarket(page, P1_QUERY);
     // Une zone-modèle doit exister pour que l'export porte des lignes (`EX-CRUD-15`).
     await page.locator('.kycar-market-card-header').first().click();
-    await expect(page.locator('.kycar-market-zone-list').first()).toContainText('fourchette centrale', {
+    // La pré-condition est qu'une zone-modèle SOIT MONTÉE (l'export porte alors des lignes) : la
+    // LÉGENDE de sa fourchette dépend de l'effectif (`EX-SCR-33`) et n'est pas le sujet ici.
+    await expect(page.locator('.kycar-market-zone-list').first()).toContainText(/fourchette (centrale|observée)/, {
       timeout: 30_000,
     });
 
@@ -246,7 +271,7 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     await expect.poll(() => new URL(page.url()).search, { timeout: 20_000 }).toBe(P1_QUERY);
     await waitForMarket(page);
     await expect.poll(async () => (await readMarketSummary(page)).offers, { timeout: 30_000 }).toBe(filtered.offers);
-    expect((await readMarketSummary(page)).makes).toBe(P1_EXPECTED.makes);
+    expect((await readMarketSummary(page)).makes).toBe((await derived()).p1.makes);
   });
 
   test('CONSTAT E2E-04 — le cardinal « modèles » de la barre de synthèse vaut 0 alors que la population filtrée en compte (EX-SCR-106)', async ({
@@ -269,7 +294,7 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     test.skip(regimeOf(testInfo) === 'compact', 'le cardinal « modèles » est absent par contrat en régime compact (EX-SCR-135)');
 
     await openMarket(page, P1_QUERY);
-    expect((await readMarketSummary(page)).offers).toBe(P1_EXPECTED.offers);
+    expect((await readMarketSummary(page)).offers).toBe((await derived()).p1.offers);
     // La population filtrée compte des modèles : le cardinal ne peut valoir 0.
     await expect
       .poll(async () => (await readMarketSummary(page)).models ?? 0, { timeout: 30_000 })

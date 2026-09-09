@@ -21,7 +21,7 @@ import { serializeSelection } from './types/selection';
 import { FILTER_DEFAULTS } from './state/filter-registry';
 import { buildPath, carryFiltersAcrossMode, resolveTaxonomyRoute, type TaxonomyRouteResult } from './state/router';
 import { FilterBand } from './components/filters/FilterBand';
-import { buildActiveFilterTokens, buildSearchDescription } from './components/filters/labels';
+import { buildActiveFilterTokens, buildSearchDescription, filterDisplayLabels } from './components/filters/labels';
 import type { FacetCounts } from './components/filters/types';
 import { countActiveFilters, type BandRegime } from './components/filters/band-model';
 import {
@@ -62,6 +62,7 @@ import type { VocabularyName } from './types/vocabularies';
 import { MEDIA_QUERY_MOBILE, MEDIA_QUERY_TABLET } from './styles/breakpoints';
 import { resolveView, routeOfView, currentLocation, type AppView } from './app/navigation';
 import { removalPatchFor, topRestrictiveFilters } from './app/restrictive-filters';
+import { fixtureProfileOf, footerSourceLine, sourceNotice } from './app/source-notice';
 import { CapExceededError } from './persistence/index';
 import { modelKey } from './types/reference';
 import type {
@@ -84,6 +85,21 @@ export interface AppProps {
   readonly controller: DataController;
   readonly referenceData: ReferenceData;
   readonly stores: AppStores;
+  /**
+   * `DF-2` / `D3-01` — spécification de source RETENUE par le registre (`fixture:test`,
+   * `synthetic`, …). Elle ne pilote aucun calcul : elle NOMME la source à l'utilisateur (profil de
+   * fixtures de l'étiquette de provenance). Absente en test : l'étiquette dégrade sans profil.
+   */
+  readonly providerSpec?: string | null;
+  /**
+   * Avertissement de REPLI du registre (`?provider=` inconnu ou non câblé). Le registre le publie
+   * déjà dans la `coverageNote` du snapshot — que la coquille n'affichait NULLE PART. Il devient
+   * ici un bandeau `ET-SOURCE-REPLI` : « jamais appliqué en silence, jamais ignoré en silence »
+   * (`D-03`) vaut aussi pour le choix de la source.
+   */
+  readonly providerWarning?: string | null;
+  /** Nombre de snapshots du profil de fixtures servi, lu de l'index du profil. `null` = non su. */
+  readonly fixtureSnapshotCount?: number | null;
 }
 
 const PRIMER_SELECTIONS: Readonly<Record<PrimerShortcutId, SelectionState>> = {
@@ -94,12 +110,11 @@ const PRIMER_SELECTIONS: Readonly<Record<PrimerShortcutId, SelectionState>> = {
 };
 
 /**
- * `EX-DATA-107` (`DR-094`, `D-24`) — le câblage par défaut sert des données SYNTHÉTIQUES : la
- * coquille le dit sur TOUS les écrans de marché (A/B/D), depuis `describe()`/`StartResult`, pas
- * seulement dans `/mentions` et l'en-tête CSV.
+ * `EX-DATA-107` (`DR-094`, `D-24`, `D3-01`) — la nature de la source est dite sur TOUS les écrans de
+ * marché (A/B/D), depuis `describe()`/`StartResult`, pas seulement dans `/mentions` et l'en-tête
+ * CSV. Les phrases des TROIS natures (`REAL`, `SYNTHETIC`, `FIXTURE`) vivent dans le module pur
+ * `src/app/source-notice.ts` : la coquille les affiche, elle ne les invente pas.
  */
-const SYNTHETIC_NOTICE =
-  'Données synthétiques de démonstration — chiffres générés, sans valeur de marché réelle.';
 
 /** `EX-NFR-14` (DR-101) — titre de document par vue (annoncé au changement de route). */
 const VIEW_TITLES: Readonly<Record<AppView['kind'], string>> = {
@@ -162,6 +177,8 @@ interface Mode2State {
 
 export function App(props: AppProps): JSX.Element {
   const { controller, referenceData, stores } = props;
+  /** `DF-2` — motif de repli du registre de sources, à afficher (bandeau `ET-SOURCE-REPLI`). */
+  const providerWarning = props.providerWarning ?? null;
 
   // ---- Localisation (source de vérité du rendu, EX-NAV-18) -------------------------------------
   const [location, setLocation] = useState(currentLocation);
@@ -338,6 +355,18 @@ export function App(props: AppProps): JSX.Element {
   // ---- Mode 1 : chargement du marché ------------------------------------------------------------
   const [marketPhase, setMarketPhase] = useState<LoadPhase>({ phase: 'loading' });
   const [modelsByMake, setModelsByMake] = useState<ReadonlyMap<number, readonly ModelAggregate[] | 'unavailable'>>(new Map());
+
+  /**
+   * `ACC-13` mode 1 (`EX-SCR-24`/`25`, `visual.md` §6.2) — DERNIER résultat affiché de l'écran A.
+   * `reloadMarket` remet la phase à `loading` : sans cette mémoire, un simple changement de filtre
+   * vidait la grille et la repeuplait, alors qu'`EX-SCR-24` demande une mise à jour ATTÉNUÉE. La
+   * coquille est le seul endroit qui sait qu'« une requête est partie alors qu'un résultat était
+   * affiché » : l'écran, lui, ne voit qu'un état à la fois.
+   */
+  const lastMarketData = useRef<ScreenALoadedData | null>(null);
+  useEffect(() => {
+    if (marketPhase.phase === 'loaded') lastMarketData.current = marketPhase.data;
+  }, [marketPhase]);
 
   const reloadMarket = useCallback(
     async (sel: SelectionState): Promise<void> => {
@@ -1077,6 +1106,16 @@ export function App(props: AppProps): JSX.Element {
   // `D-24`/`D-43` (DR-094/DR-152) : la provenance vient de `describe()` et du descripteur de
   // snapshot, jamais d'un littéral d'écran.
   const sourceKind = start?.sourceKind ?? descriptor?.sourceKind ?? controller.capabilities.sourceKind;
+  /**
+   * `EX-DATA-107` — la PHRASE de provenance, pour les trois natures. Le profil de fixtures vient de
+   * la spécification retenue par le registre (`DF-2`), jamais d'un littéral d'écran.
+   */
+  const fixtureProfile = fixtureProfileOf(props.providerSpec ?? null);
+  const provenanceNotice = sourceNotice({
+    sourceKind: sourceKind ?? null,
+    fixtureProfile,
+    fixtureSnapshotCount: props.fixtureSnapshotCount ?? null,
+  });
   const loadedData = marketPhase.phase === 'loaded' ? marketPhase.data : null;
 
   /** `EX-DATA-123bis` (DR-070/140/141) — métadonnées réelles des 3 lignes d'en-tête du CSV écran A. */
@@ -1181,12 +1220,26 @@ export function App(props: AppProps): JSX.Element {
         retry: true,
       });
     }
+    if (providerWarning !== null && providerWarning.length > 0) {
+      // `DF-2` — la bascule `?provider=` a été REFUSÉE et remplacée par le défaut. Le registre
+      // écrivait déjà ce motif dans la `coverageNote` du snapshot, mais AUCUN écran n'affiche la
+      // `coverageNote` : le repli était donc muet pour l'utilisateur, contre `D-03`.
+      out.push({
+        id: 'ET-SOURCE-REPLI',
+        className: 'kycar-banner-source-fallback',
+        dismissible: true,
+        text: providerWarning,
+      });
+    }
     if (unapplied.length > 0) {
       out.push({
         id: 'ET-FILTRE-NON-APPLIQUE',
         className: 'kycar-banner-unapplied',
         dismissible: true,
-        text: `Agrégats filtrés indisponibles — ${unapplied.length === 1 ? 'le filtre' : 'les filtres'} ${unapplied.join(', ')} ${unapplied.length === 1 ? 'n’a pas pu être appliqué' : 'n’ont pas pu être appliqués'} : les chiffres affichés sont ceux de la sélection NON filtrée.`,
+        // `ACC-16` (`D3-23`, `visual.md` §6.1) : le bandeau nommait les IDENTIFIANTS de filtre
+        // (« gearType ») alors que le jeton juste au-dessus dit déjà « Boîte de vitesses ». Même
+        // registre, même mot : `filterDisplayLabels` est la fonction qui porte ces libellés.
+        text: `Agrégats filtrés indisponibles — ${unapplied.length === 1 ? 'le filtre' : 'les filtres'} ${filterDisplayLabels(unapplied)} ${unapplied.length === 1 ? 'n’a pas pu être appliqué' : 'n’ont pas pu être appliqués'} : les chiffres affichés sont ceux de la sélection NON filtrée.`,
       });
     }
     if (bodyFilterUnapplied) {
@@ -1209,7 +1262,7 @@ export function App(props: AppProps): JSX.Element {
       });
     }
     return out;
-  }, [start, offline, degraded, descriptor, unapplied, bodyFilterUnapplied, urlCorrections]);
+  }, [start, offline, degraded, descriptor, unapplied, bodyFilterUnapplied, urlCorrections, providerWarning]);
 
   return (
     <div class="kycar-app" data-crud-rev={crudTick}>
@@ -1218,7 +1271,7 @@ export function App(props: AppProps): JSX.Element {
         Aller au contenu principal
       </a>
       <AppHeader
-        sourceKind={sourceKind}
+        sourceNotice={provenanceNotice}
         snapshotDate={descriptor?.capturedAt ?? null}
         compareCount={compareKeys.length}
         followedCount={stores.followed.list().length}
@@ -1317,7 +1370,7 @@ export function App(props: AppProps): JSX.Element {
       </main>
 
       <AppFooter
-        sourceKind={sourceKind}
+        sourceKind={sourceKind ?? null}
         snapshotDate={descriptor?.capturedAt ?? null}
         diagnostics={diagnostics}
         onNavigate={navigate}
@@ -1331,8 +1384,17 @@ export function App(props: AppProps): JSX.Element {
       case 'market': {
         const mergedData: ScreenALoadedData | null =
           marketPhase.phase === 'loaded' ? { ...marketPhase.data, modelAggregatesByMake: modelsByMake } : null;
+        // `ACC-13` mode 1 : un recalcul EN COURS alors qu'un résultat était déjà affiché. Les
+        // chiffres du périmètre précédent restent à l'écran, atténués et annoncés (`ET-CHARGE-MAJ`),
+        // au lieu de laisser la place à un squelette. Le squelette reste le rendu du PREMIER
+        // chargement, où il n'y a effectivement rien à montrer.
+        const recalculating = marketPhase.phase === 'loading' && lastMarketData.current !== null;
         const load: LoadPhase =
-          marketPhase.phase === 'loaded' && mergedData !== null ? { phase: 'loaded', data: mergedData } : marketPhase;
+          marketPhase.phase === 'loaded' && mergedData !== null
+            ? { phase: 'loaded', data: mergedData }
+            : recalculating && lastMarketData.current !== null
+              ? { phase: 'loaded', data: lastMarketData.current }
+              : marketPhase;
         const derived = deriveScreenAState(load);
         // `FV-17` (`EX-SCR-126`) : l'amorce SANS-FILTRE est une AMORCE. Une fois que l'utilisateur a
         // posé des filtres dans cette session, « Tout effacer » ne le renvoie plus à l'écran
@@ -1344,6 +1406,7 @@ export function App(props: AppProps): JSX.Element {
             <MarketToolbar onSave={saveCurrentSearch} canSave={marketPhase.phase === 'loaded'} suggestedName={suggestedSearchName} />
             <MarketScreen
               state={state}
+              recalculating={recalculating}
               referenceData={referenceData}
               sortField={sortField}
               sortDirection={sortDirection}
@@ -1822,7 +1885,8 @@ function frDateTime(iso: string | null): string {
  * `/mentions` n'est PAS un onglet : c'est un lien du pied de page (`EX-SCR-47`).
  */
 function AppHeader(props: {
-  readonly sourceKind: string | null;
+  /** Phrase de provenance déjà composée (`src/app/source-notice.ts`), ou `null` s'il n'y a rien à dire. */
+  readonly sourceNotice: string | null;
   readonly snapshotDate: string | null;
   readonly compareCount: number;
   readonly followedCount: number;
@@ -1917,12 +1981,14 @@ function AppHeader(props: {
         {tokenLabel}
       </p>
 
-      {/* `EX-DATA-107` (DR-094) — la source est dite sur TOUS les écrans, pas seulement /mentions. */}
-      {props.sourceKind === 'SYNTHETIC' ? (
-        <p class="status-banner kycar-banner-synthetic" role="status">
-          {SYNTHETIC_NOTICE}
+      {/* `EX-DATA-107` (DR-094) — la source est dite sur TOUS les écrans, pas seulement /mentions.
+          Les TROIS natures sont couvertes (`FIXTURE` comprise, source par défaut depuis `D3-01`) :
+          le silence était réservé à `REAL`, et un jeu fictif en héritait. */}
+      {props.sourceNotice === null ? null : (
+        <p class="status-banner kycar-banner-source" role="status">
+          {props.sourceNotice}
         </p>
-      ) : null}
+      )}
 
       {/* `EX-SCR-45` — fil d'Ariane. */}
       <nav class="kycar-breadcrumb no-print" aria-label="Fil d’Ariane">
@@ -2008,10 +2074,11 @@ function AppFooter(props: {
 }): JSX.Element {
   return (
     <footer class="kycar-footer">
-      <p class="kycar-footer-legal">
-        Source : AutoScout24 — agrégat non affilié. Données du {frDate(props.snapshotDate)}
-        {props.sourceKind === 'SYNTHETIC' ? ' — jeu de données synthétique de démonstration' : ''}.
-      </p>
+      {/* `EX-SCR-47` / `EX-DATA-107` — la mention légale suivait la NATURE de la source : annoncer
+          « Source : AutoScout24 » sur un jeu fictif faisait passer une donnée inventée pour un
+          relevé de marché. La ligne est composée par `footerSourceLine`, qui n'écrit le nom de la
+          place de marché que sur une source RÉELLE. */}
+      <p class="kycar-footer-legal">{footerSourceLine({ sourceKind: props.sourceKind }, frDate(props.snapshotDate))}</p>
       <p class="kycar-footer-links no-print">
         <a href="/mentions" onClick={(e) => { e.preventDefault(); props.onNavigate('/mentions'); }}>
           Mentions légales

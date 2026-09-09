@@ -8,6 +8,7 @@
 import type { JSX } from 'preact';
 
 import type { SourceKind } from '../../providers/DataProvider';
+import { mentionsProvenanceLabel } from '../../app/source-notice';
 
 export interface MentionsPageProps {
   readonly snapshotDate?: string;
@@ -17,10 +18,10 @@ export interface MentionsPageProps {
    * l'union au lieu de la référencer, et bloquait donc le type-check de la coquille. Elle référence
    * désormais le type de l'interface gelée, ce qui la met à l'abri de la prochaine valeur.
    *
-   * HORS PÉRIMÈTRE, À LA CHARGE DE `mvp-integrate` (3.5) : la phrase de provenance ci-dessous ne
-   * nomme encore que `REAL` et `SYNTHETIC` ; un snapshot `FIXTURE` n'affiche donc AUCUNE mention de
-   * provenance. C'est un manque à combler avant que le provider fixture ne devienne la source par
-   * défaut de l'application (`reports/data/fixture-provider.md`, § points hors périmètre).
+   * RÉGLÉ EN 3.5 (`mvp-integrate`) : la phrase de provenance ci-dessous ne nommait que `REAL` et
+   * `SYNTHETIC` ; un snapshot `FIXTURE` — devenu la source par DÉFAUT (`D3-01`) — n'affichait donc
+   * AUCUNE mention de provenance sur la page qui existe précisément pour la porter. Les trois
+   * natures sont désormais nommées par `mentionsProvenanceLabel` (`src/app/source-notice.ts`).
    */
   readonly sourceKind?: SourceKind | null;
   readonly providerId?: string;
@@ -31,14 +32,13 @@ export function MentionsPage(props: MentionsPageProps): JSX.Element {
     <section class="kycar-mentions" aria-labelledby="kycar-mentions-title">
       <h1 id="kycar-mentions-title">Mentions et méthodologie</h1>
 
-      {props.sourceKind === 'REAL' || props.sourceKind === 'SYNTHETIC' ? (
+      {props.sourceKind === null || props.sourceKind === undefined ? null : (
         <p class="kycar-mentions-provenance" role="note">
-          Données actuellement affichées :{' '}
-          <strong>{props.sourceKind === 'SYNTHETIC' ? 'jeu synthétique de démonstration' : 'marché réel'}</strong>
+          Données actuellement affichées : <strong>{mentionsProvenanceLabel(props.sourceKind)}</strong>
           {props.providerId ? ` (source : ${props.providerId})` : ''}
           {props.snapshotDate ? ` — capture du ${props.snapshotDate}` : ''}.
         </p>
-      ) : null}
+      )}
 
       <h2>Ce que montre KYCAR</h2>
       <p>
@@ -51,9 +51,12 @@ export function MentionsPage(props: MentionsPageProps): JSX.Element {
       <h2>Sources et limites de collecte</h2>
       <ul>
         <li>
-          Il n’existe aucune API publique de lecture chez la place de marché ciblée ; les agrégats
-          proviennent donc soit d’un jeu <em>synthétique</em> clairement étiqueté, soit d’un
-          adaptateur de source réelle lorsqu’il est disponible.
+          Il n’existe aucune API publique de lecture chez la place de marché ciblée. Les agrégats
+          proviennent donc, par défaut, d’un <em>jeu de données fictif</em> à la forme AutoScout24 —
+          des annonces GÉNÉRÉES, versionnées avec l’application, sans aucun lien avec AutoScout24 ni
+          avec une annonce réelle. Les deux autres natures possibles sont un jeu <em>synthétique</em>
+          calculé à la volée et un adaptateur de source réelle, lorsqu’il est disponible ; dans les
+          trois cas la nature servie est écrite sur tous les écrans, jamais seulement ici.
         </li>
         <li>
           {/* EX-NFR-26 (DR-152) : nommer la source réelle visée et ses conditions d'usage. Idéalement

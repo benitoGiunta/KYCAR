@@ -15,7 +15,7 @@
  */
 import { test, expect, type Page, type TestInfo } from '@playwright/test';
 
-import { P1_QUERY, P2_PATH, SURFACES, mesure, open, readSelectionCount } from './_helpers';
+import { P1_QUERY, P2_PATH, SURFACES, derived, mesure, open, readSelectionCount } from './_helpers';
 
 /** `EX-NFR-9` — profil 4G normatif : ≈ 4 Mb/s descendants, 150 ms de latence. */
 const FOURG = {
@@ -228,7 +228,11 @@ test.describe('Budgets de performance mesurés au navigateur', () => {
   }, testInfo) => {
     await open(page, P2_PATH);
     const before = await readSelectionCount(page);
-    expect(before).toBeGreaterThan(1_000);
+    // Prémisse DÉRIVÉE des fixtures (`D3-24`) : la cellule mesurée est celle du couple de
+    // référence, quelle que soit sa taille au profil servi. Le BUDGET, lui, reste figé — il vient
+    // de l'exigence, pas des données.
+    expect(before).toBe((await derived()).corsaTotal);
+    expect(before).toBeGreaterThan(0);
 
     // Bascule de l'échelle logarithmique de G1 : c'est un REPEINT pur d'histogramme, sans moteur.
     const samples: number[] = [];
@@ -238,10 +242,10 @@ test.describe('Budgets de performance mesurés au navigateur', () => {
     }
     mesure(
       testInfo,
-      'EX-NFR-6 — repeint de l’histogramme G1 (bascule log, 1 352 annonces)',
+      `EX-NFR-6 — repeint de l’histogramme G1 (bascule log, ${before} annonces)`,
       `${samples.map((s) => s.toFixed(0)).join(' / ')} ms — médiane ${median(samples).toFixed(0)} ms, max ${Math.max(...samples).toFixed(0)} ms`,
     );
-    reportPremise(testInfo);
+    reportPremise(testInfo, before);
     expect(median(samples)).toBeLessThanOrEqual(NFR6_BUDGET_MS);
   });
 });
@@ -264,10 +268,14 @@ async function measureLogToggle(page: Page): Promise<number> {
 }
 
 /** `EX-NFR-6` cite « jusqu'à 100 000 annonces en entrée » : la prémisse n'existe pas dans le produit. */
-function reportPremise(testInfo: TestInfo): void {
+function reportPremise(testInfo: TestInfo, cellSize: number): void {
   mesure(
     testInfo,
     'EX-NFR-6 — prémisse',
-    'aucun histogramme du produit ne reçoit 100 000 annonces : O17 élague au couple marque/modèle avant le moteur, la plus grosse cellule du snapshot de référence porte 1 352 annonces — le budget est mesuré sur ce maximum réel',
+    `aucun histogramme du produit ne reçoit le snapshot entier : O17 élague au couple marque/modèle ` +
+      `avant le moteur. La cellule mesurée (Opel Corsa du profil de fixtures servi) porte ${cellSize} ` +
+      `annonces — contre 1 352 sur l’ancien jeu synthétique de 100 000. Le budget est donc tenu sur ` +
+      `une charge PLUS FAIBLE qu’en 2.9b : la mesure reste valide pour l’artefact livré (D3-01), et ` +
+      `le banc de charge maximale reste le profil « perf » / le provider synthétique (D3-04).`,
   );
 }

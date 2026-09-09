@@ -33,6 +33,19 @@ export const REQUIRED_REFERENCE_FILES: readonly string[] = [
   'VehicleType',
 ];
 
+/**
+ * `EX-DATA-30` — liste d'arrêt promotionnelle versionnée, appliquée à l'ÉTAPE 3 du pipeline
+ * `EX-DATA-29`. `D3-21` (constat `C-P3-11` de `fixture-provider`) : ce fichier était versionné et
+ * servi, mais lu par aucun des deux chargeurs — l'étape 3 était donc inerte dans toute
+ * l'application, et avec elle la DEUXIÈME BARRIÈRE `R3` sur le seul texte libre conservé (les
+ * entrées `kind = contact` : « tel », « @ », « www. »…). Aucune fuite sur les fixtures, propres par
+ * construction ; le risque portait sur toute source réelle branchée ensuite.
+ */
+export const VERSION_STOPLIST_FILE = 'version-stoplist.json';
+
+/** `EX-DATA-29` étape 10 — lexique FERMÉ des mentions de motorisation (`driveBadges`). Même constat. */
+export const VERSION_LEXICON_FILE = 'version-lexicon.json';
+
 /** Base publique des référentiels (servie en dev par le plugin, copiée en `dist/reference` au build). */
 const REFERENCE_BASE = '/reference';
 
@@ -44,10 +57,14 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 /** Récupère et assemble les entrées brutes des référentiels depuis `/reference/*`. */
 export async function fetchRawReferenceInputs(base: string = REFERENCE_BASE): Promise<RawReferenceInputs> {
-  const [taxonomy, filters, filtersScope, ...refFiles] = await Promise.all([
+  const [taxonomy, filters, filtersScope, versionStoplist, versionLexicon, ...refFiles] = await Promise.all([
     fetchJson<RawReferenceInputs['taxonomy']>(`${base}/taxonomy.json`),
     fetchJson<RawReferenceInputs['filters']>(`${base}/filters.json`),
     fetchJson<RawReferenceInputs['filtersScope']>(`${base}/filters-scope.json`),
+    // `D3-21` : les deux référentiels de nettoyage de version, désormais DEMANDÉS. Ils sont
+    // minuscules (< 3 Ko) et récupérés dans la même vague parallèle : aucun effet sur `EX-NFR-9`.
+    fetchJson<RawReferenceInputs['versionStoplist']>(`${base}/${VERSION_STOPLIST_FILE}`),
+    fetchJson<RawReferenceInputs['versionLexicon']>(`${base}/${VERSION_LEXICON_FILE}`),
     ...REQUIRED_REFERENCE_FILES.map((name) => fetchJson<RawReferenceFile>(`${base}/references/${name}.json`)),
   ]);
 
@@ -57,7 +74,7 @@ export async function fetchRawReferenceInputs(base: string = REFERENCE_BASE): Pr
     if (file !== undefined) referenceFiles[file.referenceType ?? name] = file;
   });
 
-  return { taxonomy, filters, filtersScope, referenceFiles };
+  return { taxonomy, filters, filtersScope, referenceFiles, versionStoplist, versionLexicon };
 }
 
 /** Charge et construit la structure de référence typée (D2) prête pour le provider et les écrans. */

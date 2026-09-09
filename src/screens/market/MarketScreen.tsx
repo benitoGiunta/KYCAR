@@ -29,6 +29,9 @@ import type { SelectionState } from '../../state/filter-types';
 import type { Model } from '../../types/entities';
 import { buildAggregateCsv, buildAggregateCsvFileName, type AggregateCsvMeta } from './csv';
 import { buildC3Banner } from './coverage';
+// `EX-SCR-25` — la temporisation de l'indicateur de recalcul est une RÈGLE, pas un réglage
+// d'écran : les écrans A et B partagent la constante plutôt que d'en tenir chacun une copie.
+import { RECALC_INDICATOR_DELAY_MS } from '../distribution/DistributionScreen';
 import { formatInteger } from './format';
 import { GridFooter } from './GridFooter';
 import { MakeCard } from './MakeCard';
@@ -127,6 +130,15 @@ export interface MarketScreenProps {
   /** `ET-PARTIEL-CACHE` (`EX-SCR-29`, DR-093) — servi depuis le cache (mode dégradé) : astérisques
    * sur la barre de synthèse et `Exporter` désactivé avec son motif. Détecté par la coquille. */
   readonly partialCache?: boolean;
+
+  /**
+   * `EX-SCR-25` / `ET-CHARGE-MAJ` (`ACC-13` mode 1, `D3-23`, `visual.md` §6.2) — une requête est
+   * partie ALORS QU'UN RÉSULTAT ÉTAIT DÉJÀ AFFICHÉ. Seule la coquille peut le savoir : le composant
+   * ne voit qu'un état à la fois. Même contrat que l'écran B : rien sous
+   * `RECALC_INDICATOR_DELAY_MS` — un recalcul qui tient dans son budget n'admet AUCUN indicateur —,
+   * au-delà seulement l'atténuation, `aria-busy` et la barre indéterminée.
+   */
+  readonly recalculating?: boolean;
 }
 
 function currentSelectionForScreenG(mmmv: string | undefined): SelectionState {
@@ -147,6 +159,20 @@ function triggerCsvDownload(csv: string, fileName: string): void {
 export function MarketScreen(props: MarketScreenProps): JSX.Element {
   const { state } = props;
   const regime: MarketRegime = props.regime ?? defaultRegimeFromViewport();
+
+  /**
+   * `EX-SCR-25` (`ACC-13`) — MÊME temporisation que l'écran B, et la MÊME constante : deux seuils
+   * qui dériveraient l'un de l'autre feraient de « 150 ms » une valeur d'écran au lieu d'une règle.
+   */
+  const [recalcVisible, setRecalcVisible] = useState(false);
+  useEffect(() => {
+    if (props.recalculating !== true) {
+      setRecalcVisible(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setRecalcVisible(true), RECALC_INDICATOR_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [props.recalculating]);
 
   const loadedData = state.kind === 'ready' || state.kind === 'no-filter' || state.kind === 'partial' ? state.data : undefined;
 
@@ -354,10 +380,22 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
       });
 
       return (
-        <div class="kycar-market-screen">
+        <div
+          class={recalcVisible ? 'kycar-market-screen kycar-market-screen--recalculating' : 'kycar-market-screen'}
+          aria-busy={recalcVisible ? 'true' : undefined}
+          data-recalculating={recalcVisible ? 'true' : undefined}
+        >
           {/* `EX-NFR-12` (E2E-15) : l'écran A n'avait aucun `h1` — le focus après navigation
               retombait sur un conteneur muet pour un lecteur d'écran. */}
           <h1 id="kycar-market-title">Survol du marché</h1>
+          {/* `ET-CHARGE-MAJ` (`EX-SCR-24`/`25`) — les cartes ci-dessous portent encore le périmètre
+              précédent : on le DIT, au lieu de laisser croire que les chiffres sont à jour. */}
+          {recalcVisible ? (
+            <div class="kycar-recalc-notice" role="status">
+              <progress class="kycar-recalc-progress" aria-label="Recalcul en cours" />
+              <span>Recalcul en cours — les chiffres affichés portent encore le périmètre précédent.</span>
+            </div>
+          ) : null}
           <div class="kycar-market-banners">
             {/* `EX-NFR-31` (DR-154) : la région `summary-bar-c3` du contrat `print.css` est le
                 bandeau de couverture C3 — TOUJOURS imprimé (règle 2 de la feuille d'impression). */}

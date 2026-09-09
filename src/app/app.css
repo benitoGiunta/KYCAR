@@ -484,7 +484,11 @@ button:disabled {
    `EX-SCR-24` demande une mise à jour ATTÉNUÉE, pas un écran vidé puis repeuplé). */
 .kycar-screen-b--recalculating .kycar-graph-grid,
 .kycar-screen-b--recalculating .kycar-hist-row,
-.kycar-screen-b--recalculating .kycar-stat-header {
+.kycar-screen-b--recalculating .kycar-stat-header,
+/* `ACC-13` mode 1 (phase 3.5) — même atténuation sur l'écran A : la grille de cartes et la barre de
+   synthèse portent encore le périmètre précédent tant que le recalcul n'a pas rendu. */
+.kycar-market-screen--recalculating .kycar-market-grid,
+.kycar-market-screen--recalculating .kycar-market-summary-bar {
   opacity: 0.55;
   transition: opacity 120ms linear;
 }

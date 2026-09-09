@@ -16,7 +16,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 import {
-  P2_EXPECTED,
+  derived,
   brushScatter,
   P2_LISTINGS_PATH,
   P2_PATH,
@@ -54,7 +54,7 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
   }, testInfo) => {
     await open(page, `${P2_PATH}${P2_YEAR_QUERY}`);
 
-    expect(await readSelectionCount(page)).toBe(P2_EXPECTED.corsa2017);
+    expect(await readSelectionCount(page)).toBe((await derived()).corsa2017);
     const header = await page.locator('.kycar-stat-header').innerText();
     expect(header).toContain('Opel Corsa');
     const NUM = '[\\d\\s\\u00A0\\u202F]+';
@@ -74,7 +74,7 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
 
   test('cellule entière sans filtre d’année : 1 352 annonces (vérité terrain D8)', async ({ page }) => {
     await open(page, P2_PATH);
-    expect(await readSelectionCount(page)).toBe(P2_EXPECTED.corsaTotal);
+    expect(await readSelectionCount(page)).toBe((await derived()).corsaTotal);
   });
 
   test('G1–G3 présents, chacun doublé de sa table de données équivalente (EX-SCR-141, EX-NFR-15)', async ({
@@ -111,7 +111,7 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
 
       const total = await sumDataTable(page, graphId, 2);
       expect(total).toBeGreaterThan(0);
-      expect(total).toBeLessThanOrEqual(P2_EXPECTED.corsa2017);
+      expect(total).toBeLessThanOrEqual((await derived()).corsa2017);
     }
   });
 
@@ -148,7 +148,7 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     page,
   }) => {
     await open(page, `${P2_PATH}${P2_YEAR_QUERY}`);
-    await page.getByRole('button', { name: `Voir les ${P2_EXPECTED.corsa2017} annonces` }).click();
+    await page.getByRole('button', { name: `Voir les ${(await derived()).corsa2017} annonces` }).click();
     await expect.poll(() => new URL(page.url()).pathname, { timeout: 20_000 }).toBe(P2_LISTINGS_PATH);
     expect(new URL(page.url()).search).toBe(P2_YEAR_QUERY);
   });
@@ -181,7 +181,7 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     );
 
     await open(page, P2_PATH);
-    expect(await readSelectionCount(page)).toBe(P2_EXPECTED.corsaTotal);
+    expect(await readSelectionCount(page)).toBe((await derived()).corsaTotal);
 
     const ariaLabel = await page.locator('[data-graph="G4"] canvas').getAttribute('aria-label');
     mesure(testInfo, 'P2 — nuage G4', String(ariaLabel));
@@ -422,7 +422,7 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     await expect(suggestion).toHaveCount(1);
     const label = await suggestion.innerText();
     const promised = parseInteger(/:\s*([\d\s\u00A0\u202F]+)\s*offres de plus/.exec(label)?.[1] ?? '');
-    expect(promised).toBe(P2_EXPECTED.corsaTotal);
+    expect(promised).toBe((await derived()).corsaTotal);
 
     await suggestion.click();
     // Le retrait relance un recalcul : on attend que l'état `ET-VIDE-FILTRES` soit LEVÉ avant de
@@ -447,7 +447,7 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     // La route mode 2 EST le périmètre (`EX-NAV-2`) : elle survit à la réinitialisation.
     expect(new URL(page.url()).pathname).toBe(P2_PATH);
     expect(new URL(page.url()).search).toBe('');
-    expect(await readSelectionCount(page)).toBe(P2_EXPECTED.corsaTotal);
+    expect(await readSelectionCount(page)).toBe((await derived()).corsaTotal);
   });
 
   test('EX-SCR-17 — la bascule d’échelle log de l’axe des prix existe sur G7, et sur lui seul', async ({

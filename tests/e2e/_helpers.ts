@@ -13,29 +13,44 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
 
 /* ================================================================================================
- * Parcours cibles (docs/00-CONTEXT.md) et valeurs attendues (tests/review/D8/parcours.test.ts)
- * ============================================================================================== */
-
-/** Parcours 1 — « budget ≤ 20 000 €, coupé, BE, < 100 000 km » sur le snapshot synthétique. */
-export const P1_QUERY = '?body=3&kmto=100000&priceto=20000';
-/**
- * `D8-26` / `D-31` — valeurs REMESURÉES le 8 septembre 2026 contre le build de la phase 2.8.
- * Elles valaient `{ makes: 112, offers: 2656 }` lors de la campagne 2.9a. La vague F1 a modifié le
- * jeu SYNTHÉTIQUE lui-même : `D8-16` fait REJETER à l'ingestion toute annonce sans `listingUrl`
- * (`LISTING_URL_MISSING`, 152 rejets à 100 000, cf. `reports/remediation-2.8/fix-providers.md` §6.5),
- * si bien que le corpus servi n'est plus exactement le même. Le parcours et l'exigence mesurée sont
- * INCHANGÉS (`EX-NAV-9`, `EX-SCR-106` : les trois cardinaux sont ceux de la population filtrée) ;
- * seules les constantes de référence suivent la donnée. Écart contrôlé : −24 offres, −5 marques.
+ * Parcours cibles (docs/00-CONTEXT.md) et valeurs attendues
+ * ================================================================================================
+ * **Depuis la phase 3.5 (`D3-17`, `D3-24`), aucune valeur qui DÉPEND DES DONNÉES n'est écrite ici.**
+ *
+ * La suite portait jusqu'en 2.9 sur le provider synthétique (100 000 annonces générées à la volée) ;
+ * l'application sert désormais des FIXTURES versionnées (`fixture:test`, `D3-01`). Les constantes
+ * relevées à la main (`P1_EXPECTED = { makes: 107, offers: 2632 }`) décrivaient donc un autre
+ * corpus : 58 échecs identiques sur les trois projets, dont pas un ne parlait de l'application.
+ *
+ * Les attendus sont maintenant **calculés par programme** dans `_expected.ts`, en rejouant le
+ * câblage de production (`FixtureDataProvider` + `DataController` + moteur D4) en Node sur les mêmes
+ * octets que ceux servis au navigateur, avec la sélection DÉCODÉE de l'URL du parcours. Un test les
+ * obtient par `await derived()` ; le calcul (≈ 3 s) est fait une fois par processus de travail.
+ * Voir l'en-tête de `_expected.ts` pour la méthode complète.
+ *
+ * Ce qui reste FIGÉ ici : ce qui ne vient pas des données — chaînes d'URL des parcours, chemins de
+ * route, clés de persistance, plafonds `EX-CRUD` et budgets de performance. Ces valeurs-là viennent
+ * des exigences, et une régénération des fixtures ne doit surtout pas les déplacer.
  */
-export const P1_EXPECTED = { makes: 107, offers: 2632 } as const;
+
+export {
+  derived,
+  DENSE_QUERY,
+  type DerivedExpectations,
+  type MarketCounts,
+  E2E_FIXTURE_PROFILE,
+  OPEL_MAKE_ID,
+  CORSA_MODEL_ID,
+} from './_expected';
+import { OPEL_MAKE_ID } from './_expected';
+
+/** Parcours 1 — « budget ≤ 20 000 €, coupé, BE, < 100 000 km ». */
+export const P1_QUERY = '?body=3&kmto=100000&priceto=20000';
 
 /** Parcours 2 — Opel Corsa (`54`/`1918`), puis restriction à l'année 2017. */
-export const OPEL_MAKE_ID = 54;
-export const CORSA_MODEL_ID = 1918;
 export const P2_PATH = '/marche/54-opel/1918-corsa';
 export const P2_LISTINGS_PATH = '/marche/54-opel/1918-corsa/annonces';
 export const P2_YEAR_QUERY = '?fregfrom=2017&fregto=2017';
-export const P2_EXPECTED = { corsaTotal: 1352, corsa2017: 54 } as const;
 
 /** Les huit surfaces d'`EX-NFR-16` (A, B, D, C, E, F, G en modale, `/mentions`). */
 export const SURFACES = {

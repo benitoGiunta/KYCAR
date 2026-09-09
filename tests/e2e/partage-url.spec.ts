@@ -15,7 +15,7 @@ import { test, expect, type Browser, type Page } from '@playwright/test';
 
 import {
   P1_QUERY,
-  P2_EXPECTED,
+  derived,
   P2_PATH,
   SURFACES,
   applyFilterSheet,
@@ -121,7 +121,7 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     const withFilter = await readSelectionCount(page);
 
     // (1) l'effectif est celui de la CELLULE ENTIÈRE : la vérité terrain de `tests/review/D8`.
-    expect(withFilter).toBe(P2_EXPECTED.corsaTotal);
+    expect(withFilter).toBe((await derived()).corsaTotal);
 
     // (2) le jeton de filtre est bien actif — l'utilisateur croit son critère posé…
     await expect(page.locator('.kycar-active-tokens__list')).toContainText('Carrosserie');
@@ -136,7 +136,7 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
 
     // Le bandeau est propre au mode 2 : sans le filtre, rien n'est déclaré (pas de faux positif).
     await open(page, P2_PATH);
-    expect(await readSelectionCount(page)).toBe(P2_EXPECTED.corsaTotal);
+    expect(await readSelectionCount(page)).toBe((await derived()).corsaTotal);
     await expect(page.locator('[data-banner-id="ET-FILTRE-NON-APPLIQUE-BODY"]')).toHaveCount(0);
   });
 

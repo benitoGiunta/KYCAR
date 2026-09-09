@@ -86,9 +86,14 @@ describe('S0 — en-tête, bandeaux, pied (EX-SCR-42…47)', () => {
     expect(app).toMatch(/aria-disabled/);
   });
 
-  it('R-D8-22 — EX-SCR-47 : pied de page obligatoire (« Source : AutoScout24 — agrégat non affilié », date du snapshot, Diagnostic, Mentions) absent', () => {
+  it('R-D8-22 — EX-SCR-47 : pied de page obligatoire (mention légale SUIVANT la nature de la source, date du snapshot, Diagnostic, Mentions)', () => {
     expect(app).toMatch(/<footer/);
-    expect(app).toMatch(/agrégat non affilié/);
+    // Phase 3.5 (`EX-DATA-107`) : la mention légale n'est plus un littéral. « Source : AutoScout24 —
+    // agrégat non affilié » n'est vraie que d'une source RÉELLE ; sur le jeu fictif servi par défaut
+    // (`D3-01`) elle attribuait à la place de marché des chiffres qu'elle n'a pas fournis. Elle est
+    // composée par `footerSourceLine`, dont les quatre branches sont éprouvées en comportement dans
+    // `shell-wiring-3.5.test.ts`.
+    expect(app).toMatch(/footerSourceLine\(/);
     expect(app).toMatch(/Diagnostic/);
   });
 
