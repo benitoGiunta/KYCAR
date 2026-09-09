@@ -1,0 +1,5428 @@
+{
+ "snapshotId": "be-20260914T060000Z",
+ "capturedAt": "2026-09-14T06:00:00Z",
+ "marketplace": "be",
+ "profile": "dev",
+ "seed": 1264141121,
+ "schemaVersion": "1.0.0",
+ "generator": {
+  "name": "kycar-dataset-gen",
+  "version": "1.0.0"
+ },
+ "file": "listings.ndjson.gz",
+ "listingCount": 5000,
+ "sha256": "62ec40bab848625c274a72ae40d320880961a969c4cfec7086df27a9faa5731f",
+ "sha256Gz": "6338fa7aa8517aaa8e06d37f5fb9e071c722950fba320dbdbf0ff9982792e2ad",
+ "uncompressedBytes": 7430788,
+ "compressedBytes": 695106,
+ "previousSnapshotId": "be-20260907T060000Z",
+ "groundTruth": [
+  {
+   "listingId": "bdf6e6cf-191d-49d6-8ab0-b093771f727e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 11794
+   }
+  },
+  {
+   "listingId": "19064560-267f-fc8f-51cc-dd50366771d2",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.237
+   }
+  },
+  {
+   "listingId": "243856a2-7c15-7159-b97c-915a93654d30",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 384400,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "ba31133d-e247-f30b-2399-0930601df400",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.126
+   }
+  },
+  {
+   "listingId": "27fef545-69c6-0909-6367-56fe9f7e0daf",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "0.9 HDi Highline",
+    "injected": "!!! !!!"
+   }
+  },
+  {
+   "listingId": "6cf4dde8-7170-cf16-d2d6-7d34f78dfe88",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.6 T Allure",
+    "injected": "1.6 T Allure Serie 3",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "f22dd9ae-1f91-a8a2-cdaa-00e594eeedb2",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.0 TSI Exec",
+    "injected": "... ..."
+   }
+  },
+  {
+   "listingId": "711afa93-d78d-5066-f848-94b97cf1ae6c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 32011
+   }
+  },
+  {
+   "listingId": "f78cd149-4adf-c036-e2e2-f349f0a9e511",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.218
+   }
+  },
+  {
+   "listingId": "4bcb50ba-c0c5-5f53-513c-795ccd2cf9e5",
+   "anomaly": "POWER_OUT_OF_RANGE",
+   "expected": {
+    "fair": 93,
+    "injected": 9999
+   }
+  },
+  {
+   "listingId": "ab16be98-9f13-13dc-addc-930145b3e51e",
+   "anomaly": "MILEAGE_OUT_OF_RANGE",
+   "expected": {
+    "fair": 48300,
+    "injected": 2669500
+   }
+  },
+  {
+   "listingId": "e732568d-2872-087f-1d5c-da90a754cc03",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "35",
+    "injected": "04"
+   }
+  },
+  {
+   "listingId": "7aebe33d-df5f-d31f-f84d-64938cf456ed",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.084
+   }
+  },
+  {
+   "listingId": "ee0ddbf1-583a-9c23-794d-030d7d051b29",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 5362,
+    "fair": 11990,
+    "factor": 0.447,
+    "cell": 106
+   }
+  },
+  {
+   "listingId": "0360c365-596e-5b46-2307-6e0dfc64bfac",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 35717,
+    "fair": 15950,
+    "factor": 2.239,
+    "cell": 159
+   }
+  },
+  {
+   "listingId": "06698f1e-dfee-5c34-3106-4cea5ad12fb6",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.19
+   }
+  },
+  {
+   "listingId": "9941a5a6-4f81-75d3-d9d4-b7008f37efae",
+   "anomaly": "PRICE_SENTINEL_ABSOLUTE",
+   "expected": {
+    "flag": "PRICE_SENTINEL_ABSOLUTE",
+    "injected": 111,
+    "fair": 13000
+   }
+  },
+  {
+   "listingId": "9941a5a6-4f81-75d3-d9d4-b7008f37efae",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2084
+   }
+  },
+  {
+   "listingId": "367ca26f-5033-2773-c5c5-71ccad105f88",
+   "anomaly": "CO2_ZERO_NON_BEV",
+   "expected": {
+    "fair": 158.4,
+    "branch": "WLTP",
+    "fuelCategory": "D"
+   }
+  },
+  {
+   "listingId": "f1665fb7-6b1e-f0ea-92d6-0a29a334f377",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.4 TSI Exec",
+    "injected": "1.4 TSI Exec 205 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "5127bb15-c50f-6097-6427-2c40217d21a2",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 7098
+   }
+  },
+  {
+   "listingId": "5127bb15-c50f-6097-6427-2c40217d21a2",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.219
+   }
+  },
+  {
+   "listingId": "1ddbcb4a-91c1-6ea3-b0f0-e2a73cf2b92a",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2089
+   }
+  },
+  {
+   "listingId": "3425fc57-8522-ea2d-e360-b7911ab2da73",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2090
+   }
+  },
+  {
+   "listingId": "ccd90bee-3075-2d6c-766f-842a4c9a4347",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "0.8 TDI Business",
+    "injected": "0.8 TDI Business 170 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "64efeb3f-3966-288c-436f-2a52717c3e1f",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 14552
+   }
+  },
+  {
+   "listingId": "e252eb23-4483-e035-24e6-24934e5bc788",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 18108
+   }
+  },
+  {
+   "listingId": "f190eaaf-ee36-84be-d6ac-5ea823603892",
+   "anomaly": "OUTLIER_M1_LOW",
+   "expected": {
+    "method": "M1",
+    "injected": 346,
+    "fair": 7990,
+    "factor": 0.043
+   }
+  },
+  {
+   "listingId": "5f0dd665-8aba-069e-f7d0-e51662aa3440",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.7 VTi Business",
+    "injected": "1.7 VTi Business Serie 3",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "523e4641-33e0-0117-318a-0b853db941e6",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 5469,
+    "fair": 15928,
+    "factor": 0.343,
+    "cell": 159
+   }
+  },
+  {
+   "listingId": "118d19e6-f872-5972-0073-ed6e73a884b7",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 56798
+   }
+  },
+  {
+   "listingId": "0543d5c5-7c80-3e71-5635-91f0b1e24ddb",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.179
+   }
+  },
+  {
+   "listingId": "6dfab1c7-bfa3-7aba-1166-b6250169d3dc",
+   "anomaly": "OUTLIER_M1_LOW",
+   "expected": {
+    "method": "M1",
+    "injected": 371,
+    "fair": 3262,
+    "factor": 0.114
+   }
+  },
+  {
+   "listingId": "3ee56959-1450-f481-2623-ff57a2a4cabb",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2084
+   }
+  },
+  {
+   "listingId": "0ecaa098-4be5-9c92-7d38-c7cc111c1146",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 8767
+   }
+  },
+  {
+   "listingId": "ecc3162f-bb30-f22a-520e-24b4de74a492",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.2 GDI Elegance",
+    "injected": "1.2 GDI Elegance Megane",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "48ea86b9-88d5-cab7-702e-a77ecd0e4f7c",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 151300
+   }
+  },
+  {
+   "listingId": "5625c4c9-806b-2513-393f-63c00be7994c",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 10590
+   }
+  },
+  {
+   "listingId": "fd022b97-db72-e79d-149a-95a7bfd94d96",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.2 GDI Highline",
+    "injected": "1.2 GDI Highline 145 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "d60b2de4-90ad-c874-779d-23128c610777",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 16193
+   }
+  },
+  {
+   "listingId": "edb685de-7075-1958-9781-970638c9449d",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 119400
+   }
+  },
+  {
+   "listingId": "52480e88-80ad-76c5-fb67-37657e971d4b",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.7 CDI Highline",
+    "injected": "*** *** ***"
+   }
+  },
+  {
+   "listingId": "c628d6f4-bd9c-548e-0e18-78bbd77a7ed7",
+   "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
+   "detail": "branche EX-DATA-10 (repli creation vers recherche)",
+   "expected": {
+    "fair": "2",
+    "branch": "EX-DATA-10"
+   }
+  },
+  {
+   "listingId": "0e0ae079-aea8-82ac-6f25-a6a8dba0a1e9",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2113
+   }
+  },
+  {
+   "listingId": "9d05b3fc-23cb-a356-6205-0acb707db292",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 5344
+   }
+  },
+  {
+   "listingId": "afb2ae82-5812-1121-abdb-fa7e3693f1ee",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "0.7 TDI Access",
+    "injected": "... ..."
+   }
+  },
+  {
+   "listingId": "da1b87c4-2610-0619-ccf3-930cc924668c",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2084
+   }
+  },
+  {
+   "listingId": "bc59fc65-d4b8-c776-2615-992e21f050f7",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2084
+   }
+  },
+  {
+   "listingId": "014a4b75-0e67-1205-0381-e83abc573b94",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.8 T Allure",
+    "injected": "1.8 T Allure Serie 3",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "5c0a5f0c-2c07-7384-0282-a83266e0fa16",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 3672
+   }
+  },
+  {
+   "listingId": "09c2dcd2-8d25-17ce-d463-8a4e31e7ceb1",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.101
+   }
+  },
+  {
+   "listingId": "db99d295-9ec8-a24d-e3d6-81ddf1596c11",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19750
+   }
+  },
+  {
+   "listingId": "70ba7f3d-2152-4751-2590-9cea713cbef1",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 23434
+   }
+  },
+  {
+   "listingId": "aadb50c5-876c-e8f3-0c93-18418d48d655",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 60500
+   }
+  },
+  {
+   "listingId": "9d02c703-0332-342a-9a57-b20021e6643b",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.0 GDI Business",
+    "injected": "1.0 GDI Business Astra",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "a206be5a-2a73-69fa-ea21-09e2d92361b6",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 44111
+   }
+  },
+  {
+   "listingId": "f05a3055-90d1-f789-7265-a443c839ace9",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 3092
+   }
+  },
+  {
+   "listingId": "c45c780b-4575-8f41-32ed-ab640b35963a",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.3 VTi Highline",
+    "injected": "*** *** ***"
+   }
+  },
+  {
+   "listingId": "413bcb16-6535-ac02-c385-2e5cf574d888",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 61059
+   }
+  },
+  {
+   "listingId": "e7a42fc6-12b5-6aba-9c5c-a8cf29f342d1",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.212
+   }
+  },
+  {
+   "listingId": "eea8ebe4-3e09-ee78-d5a5-139355b05b5f",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
+   }
+  },
+  {
+   "listingId": "b68fd090-9ee4-981d-17a1-dd7ce38064c9",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 168338
+   }
+  },
+  {
+   "listingId": "3580a4dc-7a3f-9280-060b-294c94236dc7",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.236
+   }
+  },
+  {
+   "listingId": "1327ef4b-9444-0057-1156-8625fc86dd6e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 61128
+   }
+  },
+  {
+   "listingId": "8dedc890-1a2d-c99b-7d62-eb22daa25bc0",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 24892
+   }
+  },
+  {
+   "listingId": "3169e25f-96f0-b04f-7212-6fb95e53f4c8",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 370700
+   }
+  },
+  {
+   "listingId": "efc942e2-1b9e-b674-acce-70b32bfdc307",
+   "anomaly": "POWER_OUT_OF_RANGE",
+   "expected": {
+    "fair": 116,
+    "injected": 1
+   }
+  },
+  {
+   "listingId": "5cca0b4d-6c03-9666-a438-890edfca3149",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 122400,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "3d4101b1-a75c-e36f-8c37-5370b5770175",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.164
+   }
+  },
+  {
+   "listingId": "548974dd-89ef-11fb-1614-a7c1175c69fe",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 85817
+   }
+  },
+  {
+   "listingId": "f77e638b-d669-ff1f-9ebd-52aca0178cf6",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.3 HEV Elegance",
+    "injected": "1.3 HEV Elegance Astra",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "14017585-8a83-7d06-5e9c-07f0b243a4a5",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.166
+   }
+  },
+  {
+   "listingId": "620efbe2-6a15-28c2-deff-eafa54b5aa13",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.2 T Highline",
+    "injected": "!!! !!!"
+   }
+  },
+  {
+   "listingId": "94306322-56a8-4cc0-41d5-66822745443d",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.112
+   }
+  },
+  {
+   "listingId": "ec95fbfa-4f1a-f607-aef9-7bcdabf13aac",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "61",
+    "injected": "09"
+   }
+  },
+  {
+   "listingId": "71b1d674-5ba3-8106-c5af-f02a87b0c418",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.242
+   }
+  },
+  {
+   "listingId": "1b4938e8-b11f-d39f-31fd-f6a045869d66",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.209
+   }
+  },
+  {
+   "listingId": "559e1752-7d29-c296-3ba5-6295ebc6461d",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.2 CDI Business",
+    "injected": "1.2 CDI Business Punto",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "674ac1ff-d8fd-d8c3-d8b7-02667832c103",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 108134
+   }
+  },
+  {
+   "listingId": "afa529fd-1622-ff98-f55b-a775c798dd07",
+   "anomaly": "PRICE_SENTINEL_ABSOLUTE",
+   "expected": {
+    "flag": "PRICE_SENTINEL_ABSOLUTE",
+    "injected": 99,
+    "fair": 7950
+   }
+  },
+  {
+   "listingId": "bd20252a-f035-27db-fd40-0e404e78e563",
+   "anomaly": "POWER_OUT_OF_RANGE",
+   "expected": {
+    "fair": 127,
+    "injected": 1
+   }
+  },
+  {
+   "listingId": "0b87e1f9-f3d4-c1b8-27c4-936f9fd6fb78",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 41153
+   }
+  },
+  {
+   "listingId": "e3c5953c-8f9a-aba8-8117-b74094e04949",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 18700
+   }
+  },
+  {
+   "listingId": "77ddc440-f3c7-8eb5-f4c9-612e17b84eb8",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 5176
+   }
+  },
+  {
+   "listingId": "84e6c32a-0c9e-376a-6d08-2eaaf711de65",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 82919
+   }
+  },
+  {
+   "listingId": "42b2f45f-d19f-99f7-3a40-c1619bc80d92",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "63",
+    "injected": "04"
+   }
+  },
+  {
+   "listingId": "9d58134d-5561-acb1-9ab8-42638075f09b",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 225700,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "9dc4528e-0627-a775-5933-c55561f1f998",
+   "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
+   "detail": "branche EX-DATA-11 (hybride non resolu)",
+   "expected": {
+    "fair": "2",
+    "branch": "EX-DATA-11"
+   }
+  },
+  {
+   "listingId": "de1b8a7c-9aeb-957a-b195-725c40a25a3e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 10315
+   }
+  },
+  {
+   "listingId": "63805a8b-b8bd-aba7-e052-a805c3f31062",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.8 dCi Business",
+    "injected": "1.8 dCi Business Golf",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "d4d95b6c-694a-52d3-2a05-a59f9e60944f",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.054
+   }
+  },
+  {
+   "listingId": "0056aee0-5328-06d5-50cb-90f4cac9ab75",
+   "anomaly": "FIRST_REG_OUT_OF_RANGE",
+   "expected": {
+    "fair": "2021-03",
+    "injected": "2028-04"
+   }
+  },
+  {
+   "listingId": "22e9f57b-e249-b0fe-35f8-f1bdbc593b03",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 13614
+   }
+  },
+  {
+   "listingId": "8856a2f1-dc76-da52-310d-460a49858bdf",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 8433
+   }
+  },
+  {
+   "listingId": "b2854014-dabd-597d-070d-63640cdae6dc",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 12452
+   }
+  },
+  {
+   "listingId": "59930bff-22dc-99f4-224b-38d2752ab69d",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 25054
+   }
+  },
+  {
+   "listingId": "f65276d3-0103-021f-c53d-4f29c601b9f1",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1641
+   }
+  },
+  {
+   "listingId": "7ac111e9-0c33-a1e5-7b60-6e104493c6e3",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "pays hors marche",
+   "expected": {
+    "fair": "BE",
+    "injected": "NL"
+   }
+  },
+  {
+   "listingId": "21403570-9bbb-6cb0-67d6-82d570b3ddde",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 18308
+   }
+  },
+  {
+   "listingId": "ca8165b2-a13d-518e-e371-1a05345f9432",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.158
+   }
+  },
+  {
+   "listingId": "19500836-f776-9504-5315-77c65794f9f9",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 10988
+   }
+  },
+  {
+   "listingId": "a28944eb-3e63-6d49-c2db-2e4469ee9075",
+   "anomaly": "OUTLIER_M1_HIGH",
+   "expected": {
+    "method": "M1",
+    "injected": 1349531,
+    "fair": 15950,
+    "factor": 84.61
+   }
+  },
+  {
+   "listingId": "86fe26b0-edda-6ed2-8cf0-da6dd3322718",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 41579
+   }
+  },
+  {
+   "listingId": "86fe26b0-edda-6ed2-8cf0-da6dd3322718",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 97000
+   }
+  },
+  {
+   "listingId": "ca668121-f50b-713c-e5e9-b610719f880c",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.207
+   }
+  },
+  {
+   "listingId": "fbe13101-8aa9-c826-3900-07eeddae72ad",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 10708
+   }
+  },
+  {
+   "listingId": "7ff04ff6-06ee-f83a-9e5a-20023da4d308",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 69100
+   }
+  },
+  {
+   "listingId": "776b36a0-d5dd-9328-a4b2-b87de2cfbf5d",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 31400,
+    "offerType": "J"
+   }
+  },
+  {
+   "listingId": "15f35779-2822-435b-a08c-70945c59965f",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 13901,
+    "fair": 28000,
+    "factor": 0.496,
+    "cell": 32
+   }
+  },
+  {
+   "listingId": "2227d02f-252b-733e-ccb7-cd6abfaf4343",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.081
+   }
+  },
+  {
+   "listingId": "ad82c232-2394-cec2-82d6-d9af27408ddf",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1643
+   }
+  },
+  {
+   "listingId": "9b11872f-8679-b717-ad54-44e49ce3bbeb",
+   "anomaly": "FIRST_REG_OUT_OF_RANGE",
+   "expected": {
+    "fair": "2007-03",
+    "injected": "1899-12"
+   }
+  },
+  {
+   "listingId": "2240ccfc-739a-a2ec-b0c6-05e1e540fade",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 18487
+   }
+  },
+  {
+   "listingId": "e7165964-45eb-412d-621a-02375f419166",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.088
+   }
+  },
+  {
+   "listingId": "334ae951-c1b1-3710-6268-db92acb36791",
+   "anomaly": "OUTLIER_M1_HIGH",
+   "expected": {
+    "method": "M1",
+    "injected": 1169436,
+    "fair": 11950,
+    "factor": 97.861
+   }
+  },
+  {
+   "listingId": "ab97dab9-16ea-afde-8105-fb822bc115c9",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.3 HEV Sport",
+    "injected": "1.3 HEV Sport Astra",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "c57d6bfe-c615-ca24-19cc-aeac41a534ab",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.1 VTi Business",
+    "injected": "1.1 VTi Business Golf",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "ff55358f-aea2-55e1-7764-fc4a3d166811",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.16
+   }
+  },
+  {
+   "listingId": "d2ed7b00-e14c-1df9-6e86-81d375ff1de1",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1853
+   }
+  },
+  {
+   "listingId": "dc3390c0-caf1-532f-2c73-a44b0a011f1b",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 45927
+   }
+  },
+  {
+   "listingId": "355014ba-1e92-5272-481b-bf199da9af24",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "3.0 Hybrid Sport",
+    "injected": "3.0 Hybrid Sport Punto",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "63d3454d-d224-44ee-04ff-c7380982089b",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "35",
+    "injected": "06"
+   }
+  },
+  {
+   "listingId": "7be4f1b7-c875-ee59-3e4a-a1f29a61c6a9",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "60",
+    "injected": "08"
+   }
+  },
+  {
+   "listingId": "3fc1acfa-26ca-d07f-e30e-16e2763c2a6e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 6813
+   }
+  },
+  {
+   "listingId": "a3ffaa2f-b7df-71f4-a1ed-d48ed35f04ed",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 10351
+   }
+  },
+  {
+   "listingId": "6b45161e-1561-7c17-af2b-d294a9297ccb",
+   "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
+   "detail": "branche EX-DATA-10 (repli creation vers recherche)",
+   "expected": {
+    "fair": "2",
+    "branch": "EX-DATA-10"
+   }
+  },
+  {
+   "listingId": "95e43de7-11b3-f540-47a7-09242d8d9da1",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 18487
+   }
+  },
+  {
+   "listingId": "5af8dec3-55dd-fee3-d960-2e343b4f88d9",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 118907
+   }
+  },
+  {
+   "listingId": "97c5fcce-8c27-e040-35a2-65056e0cbc4b",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 5187
+   }
+  },
+  {
+   "listingId": "23ac1676-26f1-4884-ec3c-b62c6904c6c7",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.087
+   }
+  },
+  {
+   "listingId": "6a1ac0a5-178f-951a-c3d4-7668da643365",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.7 T Confort",
+    "injected": "0.7 T Confort Punto",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "9beda64c-ace4-54c9-c857-babdf5f74f03",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 33668
+   }
+  },
+  {
+   "listingId": "96cb4542-9c57-f139-4924-e25d7efbc090",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.189
+   }
+  },
+  {
+   "listingId": "2ecfcf21-cc88-0bab-d733-3e4185ba75e6",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 30178
+   }
+  },
+  {
+   "listingId": "9ba75910-88b7-7ae9-4f09-daffbfc6a297",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.6 TSI Highline",
+    "injected": "1.6 TSI Highline Clio",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "99d13234-1ccf-354d-da0f-647b4a799424",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.7 T Elegance",
+    "injected": "1.7 T Elegance Punto",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "bc4edd4a-27a8-396c-2db9-9759052163f5",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1849
+   }
+  },
+  {
+   "listingId": "62297ebb-459e-e82b-7b47-a7befbe3e653",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 102408
+   }
+  },
+  {
+   "listingId": "0d29ad49-8fb9-d19b-7d9c-edaddc513a84",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 8180
+   }
+  },
+  {
+   "listingId": "3db60873-2609-d290-4324-07341122d54d",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1859
+   }
+  },
+  {
+   "listingId": "063c7e9f-f0bc-76fc-5013-5ae4bf6eb545",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.3 e-Hybrid Sport",
+    "injected": "1.3 e-Hybrid Sport Golf",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "5d7d3967-f142-6b36-eb91-66c37291132b",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.8 TSI Allure",
+    "injected": "1.8 TSI Allure 295 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "30df20a0-a821-5fc8-6de8-da663a62cacc",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1859
+   }
+  },
+  {
+   "listingId": "2c6c9e66-76dc-5626-b0b4-927c75efdd01",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.124
+   }
+  },
+  {
+   "listingId": "32137e75-e520-c73d-33f9-7caa0a01e11c",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 113000
+   }
+  },
+  {
+   "listingId": "90621610-8785-3e1d-abeb-43948f1e7c2c",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.9 T Elegance",
+    "injected": "0.9 T Elegance Astra",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "05d849ff-fea1-73eb-ee8a-8ee1c9ae7b71",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 361300,
+    "injected": 1900000,
+    "form": "a",
+    "ageMonths": 209
+   }
+  },
+  {
+   "listingId": "dc1cde13-4e2b-197d-3fa7-4931f8b3ef3d",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 12477
+   }
+  },
+  {
+   "listingId": "92b288b7-409c-9050-945d-3a1893413284",
+   "anomaly": "POWER_UNIT_MISMATCH",
+   "expected": {
+    "power": 173,
+    "powerHp": 217,
+    "exact": 235,
+    "deviationPct": -7.8
+   }
+  },
+  {
+   "listingId": "6c0855c7-7737-b463-16dd-11e4316c8852",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 24816
+   }
+  },
+  {
+   "listingId": "92bdb9d1-f992-032a-c5de-191007b95f38",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 9941
+   }
+  },
+  {
+   "listingId": "b49b30e2-526f-e360-5407-def28ccd855c",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.158
+   }
+  },
+  {
+   "listingId": "2ee22e24-ee3e-fa16-c9b5-af583f415601",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 6574
+   }
+  },
+  {
+   "listingId": "2ee22e24-ee3e-fa16-c9b5-af583f415601",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.7 dCi Highline",
+    "injected": "1.7 dCi Highline 245 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "7fa68dc5-adb4-0a58-606d-022633e671dc",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 30898
+   }
+  },
+  {
+   "listingId": "70823d30-89c6-e7b2-88fe-f85df5bfd92d",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1934
+   }
+  },
+  {
+   "listingId": "42c077e1-23fe-d68c-2700-f195cd33f5b0",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 15399
+   }
+  },
+  {
+   "listingId": "b3b9ef6b-e534-ed6e-d30a-6cecf7bb961b",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 62682,
+    "fair": 25990,
+    "factor": 2.412,
+    "cell": 86
+   }
+  },
+  {
+   "listingId": "54d125a4-697d-a2ee-1911-c17e7d731412",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 71000
+   }
+  },
+  {
+   "listingId": "d3993a33-3e51-d380-0fb7-e6783615cdd9",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 13363,
+    "fair": 4900,
+    "factor": 2.727,
+    "cell": 30
+   }
+  },
+  {
+   "listingId": "9b17cc41-b3e0-57f0-2450-63abe66e02b7",
+   "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
+   "expected": {
+    "status": "ON_REQUEST",
+    "amount": 4950
+   }
+  },
+  {
+   "listingId": "257e291e-d260-3cea-3624-1ab79db4b3f9",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 75200
+   }
+  },
+  {
+   "listingId": "1dfccd15-cde4-a4d3-56a6-746ad3b9dbe6",
+   "anomaly": "POWER_UNIT_MISMATCH",
+   "expected": {
+    "power": 75,
+    "powerHp": 121,
+    "exact": 102,
+    "deviationPct": 18.8
+   }
+  },
+  {
+   "listingId": "8c725ea5-106a-e0cb-8347-e621544a4e78",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.7 HEV Business",
+    "injected": "0.7 HEV Business Golf",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "c873321c-c1d9-1cd8-786f-72ed3391c750",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 4421
+   }
+  },
+  {
+   "listingId": "b020a145-f24b-8470-9089-fa99d58da8a0",
+   "anomaly": "OUTLIER_M1_HIGH",
+   "expected": {
+    "method": "M1",
+    "injected": 1300938,
+    "fair": 13899,
+    "factor": 93.599
+   }
+  },
+  {
+   "listingId": "78eb4bd3-a789-d2c5-e958-186617bfb713",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 20237
+   }
+  },
+  {
+   "listingId": "d7a8e0ac-4acb-d269-04d8-f786d0480c25",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.0 GDI Allure",
+    "injected": "... ..."
+   }
+  },
+  {
+   "listingId": "8aeeb83d-be07-0639-08dc-8d63e1aec567",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.141
+   }
+  },
+  {
+   "listingId": "704b3bdc-18dd-5df3-4623-3651abbeb61b",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.244
+   }
+  },
+  {
+   "listingId": "2e6b46dc-dbe9-aa2e-d509-474f523e2cd3",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 8855
+   }
+  },
+  {
+   "listingId": "e61a7c37-b1c2-9ae0-3def-087f8d7e2086",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 78889,
+    "fair": 32990,
+    "factor": 2.391,
+    "cell": 38
+   }
+  },
+  {
+   "listingId": "148c614c-7752-00cf-98f9-578d31c075f9",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.153
+   }
+  },
+  {
+   "listingId": "1389b726-c9f8-3361-4b32-c3c56f91245c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 11717
+   }
+  },
+  {
+   "listingId": "f4971551-30f9-3677-92fd-008c3404859f",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (b) kilometrage trop faible pour l age",
+   "expected": {
+    "fair": 179800,
+    "injected": 600,
+    "form": "b",
+    "ageMonths": 189
+   }
+  },
+  {
+   "listingId": "f4971551-30f9-3677-92fd-008c3404859f",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 15867
+   }
+  },
+  {
+   "listingId": "b961a28a-728c-bf7d-be57-682fa9453bf4",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19553
+   }
+  },
+  {
+   "listingId": "5ece63e4-ef0d-2cbd-99f3-f7070eb5e1e0",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.3 TSI Highline",
+    "injected": "*** *** ***"
+   }
+  },
+  {
+   "listingId": "b4421174-d4bf-70bb-6eff-965af4027a19",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.088
+   }
+  },
+  {
+   "listingId": "6cf8b4f4-3676-ebd4-bbd4-af4a044cfdb1",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19055
+   }
+  },
+  {
+   "listingId": "e75d26bd-ef5c-87ec-52ef-c90e3df9ab4d",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1933
+   }
+  },
+  {
+   "listingId": "09b81490-68fe-d7d5-3222-1b6c5e3dff73",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 3721,
+    "fair": 7990,
+    "factor": 0.466,
+    "cell": 86
+   }
+  },
+  {
+   "listingId": "a278f581-c471-35e8-bcd3-4069ca3e7b40",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 15287
+   }
+  },
+  {
+   "listingId": "3a1f183a-9ad4-1456-d97a-e3b4986906b2",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.226
+   }
+  },
+  {
+   "listingId": "56a48990-194f-5a6d-5faa-ba94a017c493",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "10",
+    "injected": "01"
+   }
+  },
+  {
+   "listingId": "709d9d22-ae5a-83fd-6144-3bd1a9ad0913",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 8682
+   }
+  },
+  {
+   "listingId": "60fe54ad-71ef-5f0c-f480-42284bd22e47",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.211
+   }
+  },
+  {
+   "listingId": "06976790-0f38-7039-e4a2-06032e1a51e3",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 40220
+   }
+  },
+  {
+   "listingId": "9371913f-f9a7-aae7-cc05-22fa48b66936",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1918
+   }
+  },
+  {
+   "listingId": "418843c3-bf32-7a15-acc8-89c2279d0573",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 3025,
+    "fair": 9500,
+    "factor": 0.318,
+    "cell": 95
+   }
+  },
+  {
+   "listingId": "d312933a-6cdd-fb6c-87ef-60ba65da9f82",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.7 T Style",
+    "injected": "0.7 T Style Punto",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "10a70713-04df-e890-4c51-01d17460adca",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 12840,
+    "fair": 29950,
+    "factor": 0.429,
+    "cell": 42
+   }
+  },
+  {
+   "listingId": "2da74cc8-53e7-e306-e31c-c587754083e2",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 12825
+   }
+  },
+  {
+   "listingId": "6c32828b-768c-e796-31c0-40a1c684c94c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 10480
+   }
+  },
+  {
+   "listingId": "d6f69292-1a4b-b2d5-b771-4d2e6b6b9776",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 5581,
+    "fair": 1990,
+    "factor": 2.805,
+    "cell": 95
+   }
+  },
+  {
+   "listingId": "1e92589c-c9cd-2504-2db3-23aaf24a76fa",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "2.4 T Sport",
+    "injected": "2.4 T Sport 410 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "4b5c3a9b-9e30-6b89-8a0d-692a09684484",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 234300,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "753bf2ea-81ab-11e3-b0ea-df1b6b74b211",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 18149
+   }
+  },
+  {
+   "listingId": "753bf2ea-81ab-11e3-b0ea-df1b6b74b211",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1918
+   }
+  },
+  {
+   "listingId": "aadb5e54-dcc0-c613-664e-b5a94384b071",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "37",
+    "injected": "06"
+   }
+  },
+  {
+   "listingId": "637c0ac7-d754-b19c-9315-2d440fd8b00e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 19649
+   }
+  },
+  {
+   "listingId": "ed0d36a3-30e0-b087-dd9f-f37da14bda6b",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 22166,
+    "fair": 52900,
+    "factor": 0.419,
+    "cell": 42
+   }
+  },
+  {
+   "listingId": "a4e10e59-b182-b125-a08b-64718d83b914",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 32403
+   }
+  },
+  {
+   "listingId": "6f49a00f-550d-2288-ac30-1c6235c59739",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.5 e-Hybrid Highline",
+    "injected": "1.5 e-Hybrid Highline 250 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "8feca912-b635-f1f7-dfbd-52ccf5fa8dd8",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.4 e-Hybrid Highline",
+    "injected": "... ..."
+   }
+  },
+  {
+   "listingId": "edb0b98c-608f-23f2-6b99-c347a8adddfa",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 61699
+   }
+  },
+  {
+   "listingId": "d8dcb57c-c7ce-687b-702c-177593a91538",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 8702
+   }
+  },
+  {
+   "listingId": "2aff6a98-ac61-0b65-2e9d-e8ba340b4d73",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 23860
+   }
+  },
+  {
+   "listingId": "a1b26281-aac3-a477-1bf1-f2923caf2ef2",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.163
+   }
+  },
+  {
+   "listingId": "56cfa114-e655-e651-a188-7116f2972488",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 11286
+   }
+  },
+  {
+   "listingId": "2f447d80-c893-1862-3095-d3f207c53703",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "pays hors marche",
+   "expected": {
+    "fair": "BE",
+    "injected": "FR"
+   }
+  },
+  {
+   "listingId": "7ab9c8cb-e0dc-fb1e-ed5f-c27534bf54b3",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 8503
+   }
+  },
+  {
+   "listingId": "7ab9c8cb-e0dc-fb1e-ed5f-c27534bf54b3",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.7 T Business",
+    "injected": "0.7 T Business Golf",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "cf244129-c2d9-a181-483a-f46bbe4338d6",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "0.7 VTi Access",
+    "injected": "0.7 VTi Access 130 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "371555a7-cb9d-25aa-e777-ec3de2d18602",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.172
+   }
+  },
+  {
+   "listingId": "0b4fe94a-77d2-3c07-0b7f-159d2dff27a8",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 43700
+   }
+  },
+  {
+   "listingId": "d16906d7-58be-5bc7-1851-8066a2519731",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.168
+   }
+  },
+  {
+   "listingId": "48f94b8d-7aac-ee40-502e-56fc31a3141d",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 114200,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "ae94a146-08ae-f269-f28d-66719251914b",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.052
+   }
+  },
+  {
+   "listingId": "33c2cb3c-8cf1-1fa9-e12e-b059fe81d5ec",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.101
+   }
+  },
+  {
+   "listingId": "2d90f5e7-fd3a-0ae0-40db-c9d027196dc0",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.052
+   }
+  },
+  {
+   "listingId": "5800c820-af69-d3c5-49cc-558fbb34e2c0",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19155
+   }
+  },
+  {
+   "listingId": "3913c311-acdd-c578-eca8-15fe5ea9e988",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 30676
+   }
+  },
+  {
+   "listingId": "4f035c67-4c93-2d92-2a94-753b9b13f104",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 11636
+   }
+  },
+  {
+   "listingId": "4afddf0b-718e-af8e-a718-f970180a1842",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "2.4 CDI Allure",
+    "injected": "2.4 CDI Allure Astra",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "5a0a885a-80ab-6335-d81c-a1e3ee422537",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 74373
+   }
+  },
+  {
+   "listingId": "1b8f3bf3-75fd-f1eb-24e8-6899246ed2e2",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 50066
+   }
+  },
+  {
+   "listingId": "2e9b9566-8c89-a185-c46f-6c59405493e6",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.209
+   }
+  },
+  {
+   "listingId": "00ef5085-e301-c6e0-848f-294ad168fbe2",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.144
+   }
+  },
+  {
+   "listingId": "6df9ebc0-3315-ada2-498f-88cda24e89a7",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "D",
+    "isPluginHybrid": true
+   }
+  },
+  {
+   "listingId": "32f35eb3-8d5c-748d-1839-d1cf3b7213f6",
+   "anomaly": "OUTLIER_M1_HIGH",
+   "expected": {
+    "method": "M1",
+    "injected": 1080008,
+    "fair": 27349,
+    "factor": 39.49
+   }
+  },
+  {
+   "listingId": "28e99074-8816-8e5d-39e2-5406ce2a306d",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.114
+   }
+  },
+  {
+   "listingId": "3e897908-e6f3-a906-bd9e-1ce1f32796c4",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 34600,
+    "injected": 1089000,
+    "form": "a",
+    "ageMonths": 44
+   }
+  },
+  {
+   "listingId": "a9c524ac-910b-eb55-d855-b62df431f2b5",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19047
+   }
+  },
+  {
+   "listingId": "1c66992c-bb5b-dc23-a5e5-c7aa74886832",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.207
+   }
+  },
+  {
+   "listingId": "b7a63f02-c0ea-eafa-1e8d-60e3688af2c4",
+   "anomaly": "PRICE_SENTINEL_ABSOLUTE",
+   "expected": {
+    "flag": "PRICE_SENTINEL_ABSOLUTE",
+    "injected": 111,
+    "fair": 67990
+   }
+  },
+  {
+   "listingId": "b7c3c895-1b62-ebb0-c996-a13e9a7e3e26",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 17166
+   }
+  },
+  {
+   "listingId": "4f124e47-3ca3-f723-1c4a-ad186991d567",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 312500
+   }
+  },
+  {
+   "listingId": "0a4b2dd7-0145-bebe-eefd-0837cae04686",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 17362
+   }
+  },
+  {
+   "listingId": "30e9451a-7e43-16da-aad3-d5a881fbe521",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.216
+   }
+  },
+  {
+   "listingId": "5587b2ba-11a8-455c-bfde-d431af03c0a4",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 13802
+   }
+  },
+  {
+   "listingId": "47ebf207-0e0a-8f5d-5a60-c78c0d0d4db2",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 32401
+   }
+  },
+  {
+   "listingId": "81badd53-78b5-4e16-2a01-a2d3fc252e5b",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 20215
+   }
+  },
+  {
+   "listingId": "df9e552a-01cf-2df3-92c0-c38d91490fae",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.194
+   }
+  },
+  {
+   "listingId": "5fadd4f2-80d2-8f4c-4d4c-d4ce7d54c46c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 24875
+   }
+  },
+  {
+   "listingId": "0f464387-82a9-4fe5-2871-05b30bdb2fd3",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.23
+   }
+  },
+  {
+   "listingId": "4e647540-3cba-0465-7dfb-5010a7674c01",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.139
+   }
+  },
+  {
+   "listingId": "98a025b3-43c0-702a-2dce-74971157a502",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 25467
+   }
+  },
+  {
+   "listingId": "be1c7fef-495a-6718-7d67-efc17ec8b52a",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "90",
+    "injected": "01"
+   }
+  },
+  {
+   "listingId": "354b6880-4168-3d1b-b5cf-060d0dbc28d5",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 87750
+   }
+  },
+  {
+   "listingId": "5e50c902-bd65-bc27-2330-fb510ffcca40",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 39055
+   }
+  },
+  {
+   "listingId": "9ddba752-2041-e489-9ff7-70d40f452f52",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.061
+   }
+  },
+  {
+   "listingId": "b865e33a-57e0-7878-7784-a70bc5e37f06",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 33906
+   }
+  },
+  {
+   "listingId": "24d11237-1354-bf79-e5cf-130862093368",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 21831
+   }
+  },
+  {
+   "listingId": "39a49f0a-74bf-9946-161c-1f7769eb4ed6",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 17674
+   }
+  },
+  {
+   "listingId": "fe44b866-b9a5-7094-0795-bd1bc5af454f",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 22328
+   }
+  },
+  {
+   "listingId": "901dceb6-c6aa-93f4-b085-71b4a21bc3a9",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1961
+   }
+  },
+  {
+   "listingId": "5a28861b-08dc-8dd8-76fc-b1dc4410ac7a",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "0.9 TDI Business",
+    "injected": "0.9 TDI Business 150 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "338c515b-5517-a437-84f4-842c23febf51",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 14830
+   }
+  },
+  {
+   "listingId": "3a1f9a6d-18d0-82c2-7139-077d79fb76f3",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.244
+   }
+  },
+  {
+   "listingId": "73a73ac7-0d6d-cc1a-2a6c-f33d5ce39db6",
+   "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
+   "detail": "branche EX-DATA-10 (repli creation vers recherche)",
+   "expected": {
+    "fair": "2",
+    "branch": "EX-DATA-10"
+   }
+  },
+  {
+   "listingId": "23a6ed21-278b-f8d9-883a-57f601d4a530",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1958
+   }
+  },
+  {
+   "listingId": "ba8a4397-137b-da14-9f04-d1c9892bbe47",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.168
+   }
+  },
+  {
+   "listingId": "7aaa9d8a-e6e6-e079-86f6-28bcc80821bc",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 14786
+   }
+  },
+  {
+   "listingId": "546aa6a0-bb25-2c4e-641c-688586be0cec",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 52528,
+    "fair": 17950,
+    "factor": 2.926,
+    "cell": 43
+   }
+  },
+  {
+   "listingId": "1bab771f-5237-3a2e-3831-932ee7374686",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 70292,
+    "fair": 24455,
+    "factor": 2.874,
+    "cell": 51
+   }
+  },
+  {
+   "listingId": "38b9b0a5-39f0-7097-b79a-a986705fd533",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.113
+   }
+  },
+  {
+   "listingId": "e6570d3e-dd85-cc89-a834-a04ef5a575dd",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "92",
+    "injected": "04"
+   }
+  },
+  {
+   "listingId": "bf401b91-3758-159f-2844-5896a509dfac",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "pays hors marche",
+   "expected": {
+    "fair": "BE",
+    "injected": "FR"
+   }
+  },
+  {
+   "listingId": "9dffe1dd-ad8d-28ad-8a50-0bae93db8b88",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1965
+   }
+  },
+  {
+   "listingId": "6d1e2fc8-fe70-830d-3a2a-923a558cf9ac",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 21266
+   }
+  },
+  {
+   "listingId": "2cbaf60a-af9b-8f6e-9aac-cf355e9ea342",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.7 T Business",
+    "injected": "0.7 T Business Megane",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "8a7f5816-9be2-50b8-4b1a-371a900c3977",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.099
+   }
+  },
+  {
+   "listingId": "c5e57fe0-7a85-e77e-5211-ec1681ee4f04",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.189
+   }
+  },
+  {
+   "listingId": "685cb381-ee26-fdb8-2204-6fcced364c6f",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "0.9 HDi Allure",
+    "injected": "!!! !!!"
+   }
+  },
+  {
+   "listingId": "e0629aa5-ff8f-a5ed-87d8-d87d8dbb4420",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 15317
+   }
+  },
+  {
+   "listingId": "831ca284-f42c-3bb0-878b-c06b8e0594e1",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.078
+   }
+  },
+  {
+   "listingId": "eb6ccc8f-91f9-8ba7-b42a-285e56658cb1",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.062
+   }
+  },
+  {
+   "listingId": "d89422d8-ad1b-fa92-d9af-30b65d4153fb",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 5495,
+    "fair": 11990,
+    "factor": 0.458,
+    "cell": 43
+   }
+  },
+  {
+   "listingId": "1edf219c-0ae8-6757-848c-c6ebb2366153",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 84737
+   }
+  },
+  {
+   "listingId": "5e357d32-e7b8-49f1-4d8d-a3962deba190",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 13965
+   }
+  },
+  {
+   "listingId": "e48925d4-a97c-f6b2-0460-6e2caf0d9361",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "26",
+    "injected": "01"
+   }
+  },
+  {
+   "listingId": "fd27dd16-6923-03d2-e363-760157c3cefe",
+   "anomaly": "PRICE_SENTINEL_ABSOLUTE",
+   "expected": {
+    "flag": "PRICE_SENTINEL_ABSOLUTE",
+    "injected": 249,
+    "fair": 24900
+   }
+  },
+  {
+   "listingId": "6c7db97c-b297-6a38-4ee0-f35ca402951b",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.3 dCi Comfort",
+    "injected": "--- PROMO ---"
+   }
+  },
+  {
+   "listingId": "f9f1d79a-cb89-78ca-6c87-b384bc2efda5",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.2 VTi Elegance",
+    "injected": "--- PROMO ---"
+   }
+  },
+  {
+   "listingId": "06aa4327-11fb-d00e-fda0-3a6561c6fbb4",
+   "anomaly": "CO2_ZERO_NON_BEV",
+   "expected": {
+    "fair": 193.8,
+    "branch": "NEDC",
+    "fuelCategory": "B"
+   }
+  },
+  {
+   "listingId": "57e70c95-1c98-c062-bb7d-a5c2754b9816",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.7 TSI Comfort",
+    "injected": "0.7 TSI Comfort Megane",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "be5d44f7-bc73-42c0-93db-165527b71c91",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "83",
+    "injected": "00"
+   }
+  },
+  {
+   "listingId": "7603c8b8-a77b-9128-d653-ac80019f8564",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 63259
+   }
+  },
+  {
+   "listingId": "1a04034f-50b7-006c-8141-608a0a1831cb",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.198
+   }
+  },
+  {
+   "listingId": "03cd7962-a42f-bf3b-a7f2-6188fe868742",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.079
+   }
+  },
+  {
+   "listingId": "f64c2f5f-2c77-e1bd-3d22-772d6d58b0f2",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 57448
+   }
+  },
+  {
+   "listingId": "f64c2f5f-2c77-e1bd-3d22-772d6d58b0f2",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 15716
+   }
+  },
+  {
+   "listingId": "111e8904-308a-9647-871b-2f561a9654f1",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 27994
+   }
+  },
+  {
+   "listingId": "fb5ca8e0-bc74-902b-6f44-631e89344d6f",
+   "anomaly": "OUTLIER_M1_HIGH",
+   "expected": {
+    "method": "M1",
+    "injected": 593672,
+    "fair": 27990,
+    "factor": 21.21
+   }
+  },
+  {
+   "listingId": "0a66b5ae-e530-ff69-7c47-8e8c2df70f84",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
+   }
+  },
+  {
+   "listingId": "7794c73f-d49f-1351-d450-68cb326ff712",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.162
+   }
+  },
+  {
+   "listingId": "ee8d99c9-2d19-8958-1bef-58d6878da5eb",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 10074
+   }
+  },
+  {
+   "listingId": "6126a75a-3261-8c6c-7323-59cf1535fa6b",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 7453
+   }
+  },
+  {
+   "listingId": "568079ed-e163-7dc3-222d-adae703f7755",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 28400,
+    "injected": 1206800,
+    "form": "a",
+    "ageMonths": 47
+   }
+  },
+  {
+   "listingId": "eb68a621-2a6f-b268-97cb-636f0cbf0f83",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 210100,
+    "injected": 1900000,
+    "form": "a",
+    "ageMonths": 106
+   }
+  },
+  {
+   "listingId": "0ea65251-89a9-fe9b-d18e-b49644029bba",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1707
+   }
+  },
+  {
+   "listingId": "5931ead7-1eb4-fd92-b1c9-0b683635b4b8",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 21648
+   }
+  },
+  {
+   "listingId": "f124fed7-03b9-6562-82ca-fe4d024983a9",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "0.7 GDI Elegance",
+    "injected": "... ..."
+   }
+  },
+  {
+   "listingId": "b32c0d57-e242-2dcb-b5e8-831688f8c233",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 18264
+   }
+  },
+  {
+   "listingId": "733ea7e3-84fc-8ef6-3c8e-c07bcde93e76",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 7498
+   }
+  },
+  {
+   "listingId": "22128062-e143-c904-62af-a9ef965da01e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 33106
+   }
+  },
+  {
+   "listingId": "c639c686-c33b-1ad5-331f-9c9bd6e4a9b6",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 58335
+   }
+  },
+  {
+   "listingId": "b04907e9-d884-95e4-5e85-643c10d21e79",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 107000,
+    "injected": 1754700,
+    "form": "a",
+    "ageMonths": 69
+   }
+  },
+  {
+   "listingId": "a0059d5e-847f-9dbb-0dea-3130eb066033",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 10829
+   }
+  },
+  {
+   "listingId": "e56acf34-843b-76dd-4933-523330088356",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 18264
+   }
+  },
+  {
+   "listingId": "1ce5408c-89a4-70ed-3d3c-b9a912a3aa8b",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 15138
+   }
+  },
+  {
+   "listingId": "ea64da12-e8b9-2fd9-43ff-1a671183be8d",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.199
+   }
+  },
+  {
+   "listingId": "71274dd0-ff6c-8295-03c4-2fb494fcdc06",
+   "anomaly": "PRICE_SENTINEL_ABSOLUTE",
+   "expected": {
+    "flag": "PRICE_SENTINEL_ABSOLUTE",
+    "injected": 249,
+    "fair": 16900
+   }
+  },
+  {
+   "listingId": "f9219bf1-cc5f-6a60-0a4b-bc7d44b87e83",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 11815
+   }
+  },
+  {
+   "listingId": "adf66272-cc43-a163-b9d2-a27b6a630490",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 75300
+   }
+  },
+  {
+   "listingId": "2295127c-d7f5-7e6d-d43d-9e3ddaeca79d",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 127400,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "2295127c-d7f5-7e6d-d43d-9e3ddaeca79d",
+   "anomaly": "CO2_ZERO_NON_BEV",
+   "expected": {
+    "fair": 157.9,
+    "branch": "WLTP",
+    "fuelCategory": "B"
+   }
+  },
+  {
+   "listingId": "ff8d4b1e-9775-a6b3-ec21-4bb273a9e81e",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.131
+   }
+  },
+  {
+   "listingId": "39cc0d34-20e6-6565-e0f9-057d87c1d69c",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.9 GDI Premium",
+    "injected": "0.9 GDI Premium Astra",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "39cc0d34-20e6-6565-e0f9-057d87c1d69c",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19072
+   }
+  },
+  {
+   "listingId": "c9f722b8-5395-b3cc-8445-b8b788610e0c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 13276
+   }
+  },
+  {
+   "listingId": "eab09855-9bad-bb86-b6b7-c168569d1d88",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 5945
+   }
+  },
+  {
+   "listingId": "55ec3897-cff9-60dd-09cb-e9b5ec2f128f",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 20242
+   }
+  },
+  {
+   "listingId": "ebda0ea5-0e48-21ea-40a7-81c5afb9abfe",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.219
+   }
+  },
+  {
+   "listingId": "dd8f9f69-ee07-b20b-dd9e-ac16a3568e8c",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "0.7 T Highline",
+    "injected": "*** *** ***"
+   }
+  },
+  {
+   "listingId": "76339d3b-17c1-50e9-1c91-2b170c85c2e3",
+   "anomaly": "OUTLIER_M1_LOW",
+   "expected": {
+    "method": "M1",
+    "injected": 264,
+    "fair": 8950,
+    "factor": 0.029
+   }
+  },
+  {
+   "listingId": "92ad8915-9a16-2a9d-05dd-06d83a5d4764",
+   "anomaly": "OUTLIER_M1_LOW",
+   "expected": {
+    "method": "M1",
+    "injected": 349,
+    "fair": 9900,
+    "factor": 0.035
+   }
+  },
+  {
+   "listingId": "1734d0ec-b963-c718-b61e-86461725091e",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.237
+   }
+  },
+  {
+   "listingId": "dcfd6fa7-eade-4735-3187-c96c6a41ef31",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 88100,
+    "injected": 1673700,
+    "form": "a",
+    "ageMonths": 56
+   }
+  },
+  {
+   "listingId": "4506efe7-1695-1e49-e3ac-5e1764f5132b",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 25983
+   }
+  },
+  {
+   "listingId": "89e764f4-385b-66d4-1c46-02edc18f77b0",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.064
+   }
+  },
+  {
+   "listingId": "d6866a01-9650-7990-752b-9ed1f5110958",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 3340
+   }
+  },
+  {
+   "listingId": "b52aa621-26d1-a526-b573-2586a574c566",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 19999
+   }
+  },
+  {
+   "listingId": "2b255688-e8a5-a13e-af8d-42d557599f82",
+   "anomaly": "OUTLIER_M2_LOW",
+   "expected": {
+    "method": "M2",
+    "injected": 6663,
+    "fair": 18990,
+    "factor": 0.351,
+    "cell": 37
+   }
+  },
+  {
+   "listingId": "d6994b46-d17e-d4b4-54ad-4770927ecc84",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "4.9 T Sport",
+    "injected": "!!! !!!"
+   }
+  },
+  {
+   "listingId": "1c9c8017-de3a-40f3-4091-79d62057c517",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 126821
+   }
+  },
+  {
+   "listingId": "88bbdc47-c36b-519b-9aa1-a1b8c7517dcd",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 8247
+   }
+  },
+  {
+   "listingId": "b90a157d-3334-9867-227e-5361f24b687f",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "3.7 VTi Business",
+    "injected": "3.7 VTi Business Astra",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "16b16fad-333b-8c21-1532-3b6d64bd604e",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1763
+   }
+  },
+  {
+   "listingId": "ed9f5831-24c0-9b89-588f-35423752424d",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "53",
+    "injected": "03"
+   }
+  },
+  {
+   "listingId": "5f99d2e1-3606-4fc0-ffcf-d456ae6dd0b7",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.2 TDI Allure",
+    "injected": "1.2 TDI Allure 185 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "9ff0fe69-f753-e534-2531-d7a46a39901d",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 79256
+   }
+  },
+  {
+   "listingId": "203bfba9-f8ae-68f7-65d3-d4be9ee7adbc",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "17",
+    "injected": "08"
+   }
+  },
+  {
+   "listingId": "ec083d77-7bbc-ceaf-9726-1c5b35f0927a",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 93305
+   }
+  },
+  {
+   "listingId": "ec083d77-7bbc-ceaf-9726-1c5b35f0927a",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "2.7 T Elegance",
+    "injected": "--- PROMO ---"
+   }
+  },
+  {
+   "listingId": "3fd7d0af-d392-3f40-3287-c2b31da904aa",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 3323
+   }
+  },
+  {
+   "listingId": "2c9398d5-e729-d8e9-d5db-53e2859a20d5",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 12083
+   }
+  },
+  {
+   "listingId": "87faa107-28f4-365f-2d89-4e45f458d4b0",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 10629
+   }
+  },
+  {
+   "listingId": "79cebc1d-1991-80fd-4c17-096e823965bb",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.144
+   }
+  },
+  {
+   "listingId": "d4e74957-e576-0f2b-3c31-aafd67044d24",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.077
+   }
+  },
+  {
+   "listingId": "12ae6ebf-7340-fe15-3df3-df32fbdb0e9f",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.062
+   }
+  },
+  {
+   "listingId": "66c7d080-e45c-3230-bab1-75085f98b855",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.0 GDI Business",
+    "injected": "1.0 GDI Business Megane",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "66c7d080-e45c-3230-bab1-75085f98b855",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2143
+   }
+  },
+  {
+   "listingId": "24feddf3-7a22-9403-b5be-d4501322022f",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 25574
+   }
+  },
+  {
+   "listingId": "cdeab01c-ad4a-3648-e390-3c6cbaf29741",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 21061
+   }
+  },
+  {
+   "listingId": "378f4f05-b3dc-deb3-54ce-221981f96be5",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.3 TDI Style",
+    "injected": "1.3 TDI Style Megane",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "facfe3f0-5c75-f77d-93f3-6ad9f0882851",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 23441
+   }
+  },
+  {
+   "listingId": "d0d85581-0491-73e4-1eeb-8c25ad4990d7",
+   "anomaly": "CO2_ZERO_NON_BEV",
+   "expected": {
+    "fair": 98.1,
+    "branch": "NEDC",
+    "fuelCategory": "B"
+   }
+  },
+  {
+   "listingId": "31b231c1-f440-5c4e-ffe4-60df5802406d",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.2 TSI Sport",
+    "injected": "1.2 TSI Sport 165 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "1e1e8813-2d90-a48c-8140-652f8a42cf72",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.057
+   }
+  },
+  {
+   "listingId": "931b7986-8317-a9ab-77d0-5f0126a9186b",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.5 e-Hybrid Highline",
+    "injected": "1.5 e-Hybrid Highline 315 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "b0a2de57-7cc4-965a-ac57-04ec17043dff",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2143
+   }
+  },
+  {
+   "listingId": "5e25e6de-0216-334e-1dec-74b9af0116f5",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.8 T Business",
+    "injected": "0.8 T Business Clio",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "1144b1eb-5aee-6c66-f46f-3c58aeb77d33",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 139300
+   }
+  },
+  {
+   "listingId": "5c6e4d29-f6d1-5cf1-2982-f2006d0edcdf",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 31349
+   }
+  },
+  {
+   "listingId": "df424e19-4c62-4f8c-0d89-9091a8ff92ba",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 41735,
+    "fair": 16990,
+    "factor": 2.456,
+    "cell": 90
+   }
+  },
+  {
+   "listingId": "9a8779b7-f240-9ab2-944e-4dbf3f21ef00",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 13626
+   }
+  },
+  {
+   "listingId": "cfaa7fb4-ac50-19d3-8e17-926331c4c649",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 14238
+   }
+  },
+  {
+   "listingId": "685803d6-b069-da1b-4fca-45572bccaecc",
+   "anomaly": "OUTLIER_M2_HIGH",
+   "expected": {
+    "method": "M2",
+    "injected": 9327,
+    "fair": 2990,
+    "factor": 3.119,
+    "cell": 90
+   }
+  },
+  {
+   "listingId": "3426fee7-0fa8-632e-3b68-39579c631180",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 21995
+   }
+  },
+  {
+   "listingId": "f6134000-61b4-0e92-c1a2-44cc3a0c7704",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 31763
+   }
+  },
+  {
+   "listingId": "a39010d1-c05b-8a2a-e16d-c4ea71070762",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.238
+   }
+  },
+  {
+   "listingId": "8bfc5efd-664b-8a6d-cdb0-13a4b0e53d92",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 4190
+   }
+  },
+  {
+   "listingId": "9bdc782e-9351-45b7-578d-ac10804e8346",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 20472
+   }
+  },
+  {
+   "listingId": "62dc5196-47aa-c6c8-e111-a971a5e5afe8",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 141900,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "d41101c8-6292-bcfd-6867-b710c089b8fe",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 18837
+   }
+  },
+  {
+   "listingId": "c924c3be-ffac-887d-99e7-d50c78815e70",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 38289
+   }
+  },
+  {
+   "listingId": "cb935c13-7797-ec7b-28e0-6e2494e4021a",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.229
+   }
+  },
+  {
+   "listingId": "ed5c6369-556b-870d-67c6-9d4cf72d3779",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 5618
+   }
+  },
+  {
+   "listingId": "a522630c-ef5a-ce5b-3b8f-79c493640c98",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 6350
+   }
+  },
+  {
+   "listingId": "d3e49fd6-5aa4-eaa9-fa95-99fd32f4743e",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 7067
+   }
+  },
+  {
+   "listingId": "b27b485b-856d-10cf-ef09-34c5eb4b0356",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19123
+   }
+  },
+  {
+   "listingId": "79b8c24b-d8b8-49a1-26b9-028ee9476720",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 8792
+   }
+  },
+  {
+   "listingId": "b5f6ae33-87e1-d6a5-adc9-66e67d14c9be",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 6202
+   }
+  },
+  {
+   "listingId": "abeb2230-98b5-3342-75f1-d030e0651c5a",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.186
+   }
+  },
+  {
+   "listingId": "2b7ad4c1-e57b-88ce-2957-aa5d7cc25a37",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (b) kilometrage trop faible pour l age",
+   "expected": {
+    "fair": 101400,
+    "injected": 800,
+    "form": "b",
+    "ageMonths": 156
+   }
+  },
+  {
+   "listingId": "44f0891d-be56-1188-39ad-528507245cda",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 14578
+   }
+  },
+  {
+   "listingId": "234994ff-f984-c96f-4124-343f1ed5bdcf",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 175500,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "23c7bd4a-d4dd-d642-1c45-77bf7d74f857",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 5117
+   }
+  },
+  {
+   "listingId": "88c9a5df-5cc9-7abe-c9d3-3102499e7e88",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.173
+   }
+  },
+  {
+   "listingId": "edb76d26-ee92-b9ca-fc1d-39a00e3aa46d",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.246
+   }
+  },
+  {
+   "listingId": "d4e66883-0290-c928-017b-7ea217471bec",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.6 GDI Sport",
+    "injected": "1.6 GDI Sport 235 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "5490bea5-47a5-139f-88d8-ddcef820d5b5",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 5564
+   }
+  },
+  {
+   "listingId": "aaf677c1-4f4d-54e8-005d-880f7519043b",
+   "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
+   "expected": {
+    "status": "ON_REQUEST",
+    "amount": 41950
+   }
+  },
+  {
+   "listingId": "77250c07-b29c-bfe7-3337-382bf0cf38c5",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 110800
+   }
+  },
+  {
+   "listingId": "3feac45a-b825-1a6d-2754-25dcb8ac4c62",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.148
+   }
+  },
+  {
+   "listingId": "3feac45a-b825-1a6d-2754-25dcb8ac4c62",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19258
+   }
+  },
+  {
+   "listingId": "f5d88785-f724-1b88-9441-79b2eb73e46d",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 224300
+   }
+  },
+  {
+   "listingId": "a16a3f3f-841f-4179-fef2-1e70f3d4cdf2",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 29948
+   }
+  },
+  {
+   "listingId": "a16a3f3f-841f-4179-fef2-1e70f3d4cdf2",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.4 VTi Allure",
+    "injected": "1.4 VTi Allure Golf",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "b0d15701-a9ec-30e4-57d5-25637f60ec8b",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 20952
+   }
+  },
+  {
+   "listingId": "311a4d5e-39e2-799f-95ed-909cb2963ee3",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.1 HEV Sport",
+    "injected": "1.1 HEV Sport Astra",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "c233f8b2-5df8-4f92-a071-3fb208e7b209",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 13360
+   }
+  },
+  {
+   "listingId": "e9e2ed47-836a-a491-6281-846a094c129d",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.204
+   }
+  },
+  {
+   "listingId": "74fa13f9-eb63-b32c-2eab-98d638ba3aec",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.199
+   }
+  },
+  {
+   "listingId": "134a0080-db26-e595-e59c-078e037cd37c",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 19069
+   }
+  },
+  {
+   "listingId": "73ed8c36-2c92-3367-538d-241cfb4b30b0",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 84900,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "f9858570-0d59-6073-f43a-3ce2e9c0180c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 10515
+   }
+  },
+  {
+   "listingId": "d5e3b1c0-9a05-b11c-3de0-e5eb92645abc",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 13519
+   }
+  },
+  {
+   "listingId": "8200d9d7-6462-0728-428c-1b701249b19c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 76752
+   }
+  },
+  {
+   "listingId": "d046528e-ba00-18d2-da71-2c488b7f4146",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.3 dCi Highline",
+    "injected": "1.3 dCi Highline Serie 3",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "9fffad31-1172-fd78-a5b7-52669fc41b69",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.182
+   }
+  },
+  {
+   "listingId": "d3e3b480-4872-dd3b-7b31-97f773ac7542",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 7904
+   }
+  },
+  {
+   "listingId": "08c57460-8595-ebcd-31b0-c9d7bf7859c7",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "2.0 dCi Business",
+    "injected": "*** *** ***"
+   }
+  },
+  {
+   "listingId": "a3be708f-f2b5-f4fd-b455-99e244e0ce37",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.085
+   }
+  },
+  {
+   "listingId": "1595e678-38a0-60d7-e1da-663ec2098c41",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 68861
+   }
+  },
+  {
+   "listingId": "8a3bcc5f-5d23-67f9-ee24-1146fb405a4b",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 46900,
+    "offerType": "J"
+   }
+  },
+  {
+   "listingId": "eedf87f2-448d-afb3-02de-11bc06381b94",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 2111
+   }
+  },
+  {
+   "listingId": "d3550001-7cf6-2f0f-fb76-0759bbcfbe32",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19542
+   }
+  },
+  {
+   "listingId": "7a51561b-80aa-a3dd-4a4b-c71b1db7d47b",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 72100,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "da47d958-6154-c7fd-7ab7-35c3b6aafa18",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 41989
+   }
+  },
+  {
+   "listingId": "f38fa3a5-ae35-27d0-a959-deebe7c5070a",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "90",
+    "injected": "06"
+   }
+  },
+  {
+   "listingId": "0b175a38-03b3-fc15-5ed5-a22e0900e77e",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 98200,
+    "injected": 1309400,
+    "form": "a",
+    "ageMonths": 60
+   }
+  },
+  {
+   "listingId": "98c2baf2-16a4-25bd-08fc-30a114c069e7",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 17773
+   }
+  },
+  {
+   "listingId": "149984df-5781-0df0-60b0-c4d80f327198",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "46",
+    "injected": "00"
+   }
+  },
+  {
+   "listingId": "c4ca014b-0373-5a50-c216-0eab35506b2c",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.1 HEV Exec",
+    "injected": "1.1 HEV Exec 150 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "6a272f17-056e-075e-967e-48110e8c0aa4",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.103
+   }
+  },
+  {
+   "listingId": "419876fd-0c28-9c57-3f60-f64171d678bc",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.093
+   }
+  },
+  {
+   "listingId": "952dd0e8-ab0a-82ff-57de-07ffe20f43ed",
+   "anomaly": "OUTLIER_M1_LOW",
+   "expected": {
+    "method": "M1",
+    "injected": 273,
+    "fair": 16990,
+    "factor": 0.016
+   }
+  },
+  {
+   "listingId": "a0eba15b-9703-f018-38aa-d8664d00a921",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.247
+   }
+  },
+  {
+   "listingId": "204b863d-3ffb-9e48-5ea4-bad48cad2da9",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.1 TDI Business",
+    "injected": "1.1 TDI Business Clio",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "35fd6520-3c1d-0eaa-c4cb-8e11bf3d8f08",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 15723
+   }
+  },
+  {
+   "listingId": "7f9ae232-e64e-3f20-b649-b4d4ec93e15a",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 50100
+   }
+  },
+  {
+   "listingId": "cb73e2f1-d701-419d-3bf8-39e159343f84",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.073
+   }
+  },
+  {
+   "listingId": "eec8a06f-1fb0-0350-2adb-05b7fd7e2ff8",
+   "anomaly": "POWER_UNIT_MISMATCH",
+   "expected": {
+    "power": 80,
+    "powerHp": 84,
+    "exact": 109,
+    "deviationPct": -22.9
+   }
+  },
+  {
+   "listingId": "569f5149-24a3-0587-b342-5fb1f0089ca7",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.7 TSI Business",
+    "injected": "0.7 TSI Business Clio",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "4905a936-9e4b-3361-2316-a1787234ee5e",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 62500,
+    "injected": 1900000,
+    "form": "a",
+    "ageMonths": 85
+   }
+  },
+  {
+   "listingId": "1ce7d7f5-689f-b08c-47b4-89c90b2f3953",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 4119
+   }
+  },
+  {
+   "listingId": "759bc638-7eec-6e6a-d351-441cb5c05527",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.213
+   }
+  },
+  {
+   "listingId": "6c61d988-f4b1-c5cf-cc4f-1d101f7860de",
+   "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
+   "detail": "branche EX-DATA-11 (hybride non resolu)",
+   "expected": {
+    "fair": "2",
+    "branch": "EX-DATA-11"
+   }
+  },
+  {
+   "listingId": "a9757c56-e0bc-26f4-4563-5a8a332a069c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 30209
+   }
+  },
+  {
+   "listingId": "702d6bc5-fad2-8f12-f751-8319cc58720c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 12550
+   }
+  },
+  {
+   "listingId": "f680e612-18de-e86a-cd02-fde6f9914408",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (b) kilometrage trop faible pour l age",
+   "expected": {
+    "fair": 275500,
+    "injected": 400,
+    "form": "b",
+    "ageMonths": 228
+   }
+  },
+  {
+   "listingId": "c5afe8b7-1344-bca5-edaf-a73a4548fbe8",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 4991
+   }
+  },
+  {
+   "listingId": "1f95c8d9-3f01-ff96-83ca-8c6b36c46093",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 3611
+   }
+  },
+  {
+   "listingId": "82d5dfc7-107c-2c26-8d72-bc79443c978b",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 70400,
+    "injected": 1608500,
+    "form": "a",
+    "ageMonths": 63
+   }
+  },
+  {
+   "listingId": "82d5dfc7-107c-2c26-8d72-bc79443c978b",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "0.7 HDi Sport",
+    "injected": "0.7 HDi Sport 90 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "f75cd0f2-6ad4-889d-62b4-1266b0752bbe",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 9399
+   }
+  },
+  {
+   "listingId": "dcc0d73a-d75f-dd90-0757-c6deb42487fb",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 60500
+   }
+  },
+  {
+   "listingId": "5d2ca032-6942-b844-bda6-92175e038c46",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.052
+   }
+  },
+  {
+   "listingId": "2c52383a-4deb-980c-2ecf-d139412d51db",
+   "anomaly": "OUTLIER_M1_LOW",
+   "expected": {
+    "method": "M1",
+    "injected": 447,
+    "fair": 12055,
+    "factor": 0.037
+   }
+  },
+  {
+   "listingId": "887b2dda-6020-af66-67de-f50160ab3c3b",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "0.9 dCi Elegance",
+    "injected": "0.9 dCi Elegance 145 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "15338ae1-affc-1aa8-1c3b-f12812d425b9",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "30",
+    "injected": "05"
+   }
+  },
+  {
+   "listingId": "194b39be-432c-1d0f-dccb-75fc2f5778d9",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "10",
+    "injected": "07"
+   }
+  },
+  {
+   "listingId": "a1016a7a-0171-24c1-fff8-873aa42a959b",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 8465
+   }
+  },
+  {
+   "listingId": "e3c20053-3f1b-5664-5d69-07f9b359aa26",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "0.7 T Comfort",
+    "injected": "0.7 T Comfort Punto",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "e8a22bfe-8623-4a87-c339-1f7ca4c737c0",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 107800
+   }
+  },
+  {
+   "listingId": "67242e67-dd74-c6e3-0f71-e3793e0c05ef",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.173
+   }
+  },
+  {
+   "listingId": "8412d80f-628f-0793-0584-49b5915206f3",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19264
+   }
+  },
+  {
+   "listingId": "f47c7508-ba18-6490-c5a1-c958b7c12dbc",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 16162
+   }
+  },
+  {
+   "listingId": "beb4ea0d-0fbf-d804-a75f-a2928ccb4f4d",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "0.7 HDi Highline",
+    "injected": "*** *** ***"
+   }
+  },
+  {
+   "listingId": "d6692a13-262b-3308-4ce8-2a34fe046e93",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 16603
+   }
+  },
+  {
+   "listingId": "adc17e33-3755-7b03-fbc2-ccb0202f1c00",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 45600
+   }
+  },
+  {
+   "listingId": "177e78fc-827a-f019-8c8f-dea5dc2883b8",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 11134
+   }
+  },
+  {
+   "listingId": "358aa7e4-86c7-e0fb-9c0f-4e289cc9de3e",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.076
+   }
+  },
+  {
+   "listingId": "2e5b4489-ba9e-0f73-a696-3f5ef422a5e5",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 19723
+   }
+  },
+  {
+   "listingId": "da0bdd03-ba97-7eda-aaf4-b5db5692d41a",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1842
+   }
+  },
+  {
+   "listingId": "adf82e2f-ac7d-a7af-4f9c-802929c54cd0",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 8063
+   }
+  },
+  {
+   "listingId": "42011869-5151-059d-4580-238dcca8bd8c",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.062
+   }
+  },
+  {
+   "listingId": "b029b1c7-da49-049b-321f-ad43616bfcc6",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.181
+   }
+  },
+  {
+   "listingId": "7fb7abdb-2418-e9af-6a43-2d76eed1760d",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.065
+   }
+  },
+  {
+   "listingId": "acde494f-d759-c736-222f-04173db4caf4",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.103
+   }
+  },
+  {
+   "listingId": "7e2db26a-dd51-5c0a-28ab-5b11100fcc5a",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 2984
+   }
+  },
+  {
+   "listingId": "e451fbb5-cb3e-53f8-4cc8-c533a7612ef2",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2029
+   }
+  },
+  {
+   "listingId": "5ec6abb9-021d-8013-7785-34a8dbbd2bc6",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 2148
+   }
+  },
+  {
+   "listingId": "f7699fce-1d07-9276-6a49-24e75037c8b7",
+   "anomaly": "CO2_ZERO_NON_BEV",
+   "expected": {
+    "fair": 134.6,
+    "branch": "NEDC",
+    "fuelCategory": "D"
+   }
+  },
+  {
+   "listingId": "f6ba05e8-98a0-60b6-4e29-77a5fe7365e7",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.115
+   }
+  },
+  {
+   "listingId": "29c9b578-3887-dff6-7e7f-62e8a999c9b4",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 24200,
+    "injected": 865700,
+    "form": "a",
+    "ageMonths": 29
+   }
+  },
+  {
+   "listingId": "e2a719ed-26ba-b5cb-9fff-e92db494799d",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.09
+   }
+  },
+  {
+   "listingId": "bffb0e2d-5b68-5e0f-6cb7-8289500ce500",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1773
+   }
+  },
+  {
+   "listingId": "e615f6ee-38db-9fb3-b645-a57e551403c3",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "3.2 TDI Style",
+    "injected": "3.2 TDI Style Clio",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "e9286aa4-9be2-7518-fdc6-2789bb9a5ac5",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "1.0 T Business",
+    "injected": "1.0 T Business 170 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "b3f86fa7-c822-c145-714c-a22c95b6fb4e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 77728
+   }
+  },
+  {
+   "listingId": "9beef7b0-b7a4-232e-be28-5978a606054a",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1773
+   }
+  },
+  {
+   "listingId": "40e45b7c-bc3e-5034-f562-d564d4b629ba",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "5.0 T Style",
+    "injected": "5.0 T Style Serie 3",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "32a2ff77-f6c2-ad29-9603-ccb47908e0de",
+   "anomaly": "OUTLIER_M1_HIGH",
+   "expected": {
+    "method": "M1",
+    "injected": 2882159,
+    "fair": 27900,
+    "factor": 103.303
+   }
+  },
+  {
+   "listingId": "32a2ff77-f6c2-ad29-9603-ccb47908e0de",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.054
+   }
+  },
+  {
+   "listingId": "424653c0-3cd3-1ad4-8378-ee404c370bef",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 118700
+   }
+  },
+  {
+   "listingId": "fd03b77f-01a4-8cb2-569a-9e338d7b3431",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 109322
+   }
+  },
+  {
+   "listingId": "593a0193-1c65-f6ff-3f9f-00c80250545c",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 39808
+   }
+  },
+  {
+   "listingId": "2e3df707-a777-1ad2-c856-4cce98b1b5ae",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 24732
+   }
+  },
+  {
+   "listingId": "2e3df707-a777-1ad2-c856-4cce98b1b5ae",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 20033
+   }
+  },
+  {
+   "listingId": "8910c20a-ddb8-5a70-e240-dc7add8122b5",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
+   }
+  },
+  {
+   "listingId": "061ee7ed-c300-b9aa-960e-f7a791f4c166",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 23157
+   }
+  },
+  {
+   "listingId": "db813ffd-e1c6-bbb8-290a-fa38c958620f",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 40420
+   }
+  },
+  {
+   "listingId": "a400edde-cd2b-8fa9-f52d-75cf890f90da",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 100615
+   }
+  },
+  {
+   "listingId": "365f006c-1eea-0901-f74d-8fbea4501e9e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 18463
+   }
+  },
+  {
+   "listingId": "f626f134-5fb2-2829-680f-2da3762582f1",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 34709
+   }
+  },
+  {
+   "listingId": "c62f0d74-67be-74c6-1ad3-8eafcf11a058",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 54500
+   }
+  },
+  {
+   "listingId": "a554e4a0-1a0d-4ae1-aa16-7317b47a07fc",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 19805
+   }
+  },
+  {
+   "listingId": "fe84ee76-373b-f738-af9b-a265fb5baf36",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1807
+   }
+  },
+  {
+   "listingId": "e9d6973e-d1d1-6ed9-d908-7518ca215a0e",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1806
+   }
+  },
+  {
+   "listingId": "8e616a73-9018-c8a5-5aaa-42091b20fc43",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "0.8 TSI Business",
+    "injected": "--- PROMO ---"
+   }
+  },
+  {
+   "listingId": "97525c95-9f47-dcbb-0093-285756b96c6f",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.0 TDI Business",
+    "injected": "*** *** ***"
+   }
+  },
+  {
+   "listingId": "1d92ba28-c082-6b78-26d7-b17f4d55efa1",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 9267
+   }
+  },
+  {
+   "listingId": "7bd4f3c8-3168-383e-9748-bc724d325944",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 70500,
+    "injected": 1579300,
+    "form": "a",
+    "ageMonths": 66
+   }
+  },
+  {
+   "listingId": "73b49bf8-4418-7df8-17df-6cda11c7a82a",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 4160
+   }
+  },
+  {
+   "listingId": "3d1a3bfa-eb98-fccf-0e20-a39b0f945bde",
+   "anomaly": "PRICE_OUT_OF_RANGE",
+   "expected": {
+    "injected": 5123456,
+    "fair": 20990
+   }
+  },
+  {
+   "listingId": "d773100c-9b17-6d19-4861-7f259fef0194",
+   "anomaly": "OUTLIER_M1_LOW",
+   "expected": {
+    "method": "M1",
+    "injected": 369,
+    "fair": 21950,
+    "factor": 0.017
+   }
+  },
+  {
+   "listingId": "49bd26a5-3f85-fe73-ca21-d986980ddca4",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 100083
+   }
+  },
+  {
+   "listingId": "2089e15e-fa8d-d496-f44a-e4ef4ff11e2b",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 26968
+   }
+  },
+  {
+   "listingId": "02da5238-aaba-c643-dd6f-a60055606ade",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.1 GDI Allure",
+    "injected": "1.1 GDI Allure Punto",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "02da5238-aaba-c643-dd6f-a60055606ade",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "79",
+    "injected": "05"
+   }
+  },
+  {
+   "listingId": "45bd60c2-9da0-3099-f444-f99c01eb540e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 1370
+   }
+  },
+  {
+   "listingId": "00e4344c-809c-1190-00bd-f27b7a76a7a5",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 18242
+   }
+  },
+  {
+   "listingId": "73f17368-6376-2904-02da-7e74e2913775",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 75205
+   }
+  },
+  {
+   "listingId": "f7842414-5ea4-0a60-339e-720c0748096d",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 4351
+   }
+  },
+  {
+   "listingId": "6d838d1a-9a68-20b3-49cc-1d6e0f89a301",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.081
+   }
+  },
+  {
+   "listingId": "d833ed30-04bb-c81b-7f36-af54adc16d64",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 420000
+   }
+  },
+  {
+   "listingId": "ae7257fa-904a-1739-e060-bbd988ce058e",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 68500
+   }
+  },
+  {
+   "listingId": "731b49b7-a660-8851-339b-565abc7fc0ab",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 89300,
+    "injected": 1900000,
+    "form": "a",
+    "ageMonths": 99
+   }
+  },
+  {
+   "listingId": "762b47ca-6230-af3c-5a93-83f7ba5cf078",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 19225
+   }
+  },
+  {
+   "listingId": "2c0d2516-8d41-3026-922d-8a7189f3dc8f",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 1948
+   }
+  },
+  {
+   "listingId": "30f64a8c-3f28-6e69-8987-ffb6564028f1",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 148203
+   }
+  },
+  {
+   "listingId": "fd9ae336-47f3-6686-a71c-e22d0d5d8202",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 150830
+   }
+  },
+  {
+   "listingId": "39a39779-4090-23a7-2d06-59b172ac5345",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 30188
+   }
+  },
+  {
+   "listingId": "00d003d9-7355-c7b1-42db-28e20e21c79f",
+   "anomaly": "FIRST_REG_OUT_OF_RANGE",
+   "expected": {
+    "fair": "2021-01",
+    "injected": "2028-04"
+   }
+  },
+  {
+   "listingId": "53dca957-6d38-6d0a-9218-002dd96ad758",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 98607
+   }
+  },
+  {
+   "listingId": "be98b529-ef29-505e-ea8f-fff3e76b5706",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.212
+   }
+  },
+  {
+   "listingId": "7998c0ad-64ff-2f28-b74e-531de8a42442",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 17231
+   }
+  },
+  {
+   "listingId": "9bd8882e-d3d8-d303-1ac7-fab633166446",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 156942
+   }
+  },
+  {
+   "listingId": "81445208-1c53-ef19-b6a8-1f5b3ef643d3",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 89392
+   }
+  },
+  {
+   "listingId": "f13c0410-2628-ad38-c98d-9b0d1201f55e",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "75",
+    "injected": "04"
+   }
+  },
+  {
+   "listingId": "33dab534-55b1-56c0-fc00-51264d29ca74",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.094
+   }
+  },
+  {
+   "listingId": "02c1c6a3-dd72-eb6b-fe41-bcfe65d3abee",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 1668
+   }
+  },
+  {
+   "listingId": "d1b1d42f-0373-e840-5076-e54517b0b68e",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.09
+   }
+  },
+  {
+   "listingId": "55128062-d12f-55de-af99-aabb43ec3322",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.084
+   }
+  },
+  {
+   "listingId": "d2b73b60-3456-e7f0-3a25-315055e38db4",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.087
+   }
+  },
+  {
+   "listingId": "16ee0ae8-12e0-055f-d877-a8d0db42b9ed",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 113700
+   }
+  },
+  {
+   "listingId": "5d08a73b-2676-8e8e-e07a-9bd22d04ca2a",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.114
+   }
+  },
+  {
+   "listingId": "6b54303a-3065-d835-b528-c08fa816503a",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 3707
+   }
+  },
+  {
+   "listingId": "4d4ed923-a6db-6b42-4b75-7d3cc126b73b",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.098
+   }
+  },
+  {
+   "listingId": "c2f9352f-8bec-f7e8-caa1-409d6601b65a",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.095
+   }
+  },
+  {
+   "listingId": "20f39494-112f-fd99-fdb2-37c2274cd34b",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 108400,
+    "offerType": "U"
+   }
+  },
+  {
+   "listingId": "bcf2c00c-6bbd-d387-f435-0b9c7869bfbe",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 47673
+   }
+  },
+  {
+   "listingId": "1ca5cbb0-3e80-5300-895a-a9cf973274a0",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (a) modele d une autre marque",
+   "expected": {
+    "fair": "1.1 TSI Premium",
+    "injected": "1.1 TSI Premium Golf",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "d32c01e8-fa68-a08b-a303-32fec97b2f87",
+   "anomaly": "CO2_ZERO_NON_BEV",
+   "expected": {
+    "fair": 98.1,
+    "branch": "NONE",
+    "fuelCategory": "B"
+   }
+  },
+  {
+   "listingId": "07efd777-559e-a0c4-addb-d65a0d0e071f",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 25604
+   }
+  },
+  {
+   "listingId": "de0a4985-26e3-d8d7-e5f7-c7343cdc87f3",
+   "anomaly": "FIRST_REG_OUT_OF_RANGE",
+   "expected": {
+    "fair": "2022-12",
+    "injected": "2028-04"
+   }
+  },
+  {
+   "listingId": "85aea5da-4b97-d81d-b4c2-b3b4f48fd1c7",
+   "anomaly": "MODEL_UNRESOLVED",
+   "expected": {
+    "fair": 20890
+   }
+  },
+  {
+   "listingId": "c1b7d66e-db55-5643-56b0-458c8eb8118a",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.223
+   }
+  },
+  {
+   "listingId": "13867cb6-3e83-fef9-9a69-33eedeb482dd",
+   "anomaly": "VERSION_AMBIGUOUS",
+   "detail": "forme (b) puissance contredite",
+   "expected": {
+    "fair": "0.9 VTi Sport",
+    "injected": "0.9 VTi Sport 160 ch",
+    "form": "b"
+   }
+  },
+  {
+   "listingId": "82998792-0f9c-fe21-1b0f-d47f8aaa738b",
+   "anomaly": "REGION_UNRESOLVED",
+   "detail": "prefixe postal non resolu",
+   "expected": {
+    "fair": "19",
+    "injected": "06"
+   }
+  },
+  {
+   "listingId": "02995412-ad9f-8f60-bc45-0b157b23bfa8",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "8d4e2379-0368-1eab-251e-bee9f64cc484",
+   "expected": {
+    "dealerBucket": "9108162a",
+    "price": 56900,
+    "peerPrice": 54900
+   }
+  },
+  {
+   "listingId": "352afe8c-4a25-7143-113b-4a87b016b54f",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "021b4dea-078e-3d59-bcc9-c157a820aa3b",
+   "expected": {
+    "price": 50990,
+    "peerPrice": 53990,
+    "mileage": 64400,
+    "peerMileage": 64300,
+    "dealerBucket": "708d9e3c",
+    "peerDealerBucket": "9108162a"
+   }
+  },
+  {
+   "listingId": "0260b2c9-4f9d-4625-77d8-2c1282d36210",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "76cb8bc9-c753-5069-80fe-568e1398f25d",
+   "expected": {
+    "price": 15000,
+    "peerPrice": 16000,
+    "mileage": 46200,
+    "peerMileage": 45900,
+    "dealerBucket": "6b030d45",
+    "peerDealerBucket": "9108162a"
+   }
+  },
+  {
+   "listingId": "5ae287d8-7c45-3ef1-d82e-9abc960afffa",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "6510f935-2fbc-3bcc-dc7f-9952a83108b0",
+   "expected": {
+    "price": 8950,
+    "peerPrice": 9950,
+    "mileage": 197600,
+    "peerMileage": 197400,
+    "dealerBucket": "0fc67084",
+    "peerDealerBucket": "9108162a"
+   }
+  },
+  {
+   "listingId": "e3e0c1fd-dc04-8481-864d-87b0f542592f",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "76235d7d-4979-0934-608b-8fcf81802379",
+   "expected": {
+    "dealerBucket": "dd58df7f",
+    "price": 33950,
+    "peerPrice": 38950
+   }
+  },
+  {
+   "listingId": "dbc62b68-2bbd-8c26-b5a6-866b89a50ab8",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "f8d983f3-f655-e32b-81c4-1403529f999e",
+   "expected": {
+    "price": 89900,
+    "peerPrice": 91900,
+    "mileage": 35300,
+    "peerMileage": 35200,
+    "dealerBucket": "b4ee6cae",
+    "peerDealerBucket": "dd58df7f"
+   }
+  },
+  {
+   "listingId": "e851c6d3-2baf-5f5d-6a1f-6bfca4507cb3",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "9115547e-b75d-4521-5d3c-7a70f8a8391d",
+   "expected": {
+    "dealerBucket": "dd58df7f",
+    "price": 17500,
+    "peerPrice": 18500
+   }
+  },
+  {
+   "listingId": "844245fc-708a-49fb-8851-87712e5b3fdc",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "3ab6c1e3-f26b-6214-1deb-3b1ca98ce3fe",
+   "expected": {
+    "dealerBucket": "ed16647d",
+    "price": 16950,
+    "peerPrice": 16950
+   }
+  },
+  {
+   "listingId": "48d08580-9fe3-de00-9cf9-7cd89e478223",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "7e81a7dc-5852-343f-2ad3-3c5794496ae6",
+   "expected": {
+    "price": 11723,
+    "peerPrice": 12835,
+    "mileage": 101400,
+    "peerMileage": 101000,
+    "dealerBucket": "e35162ce",
+    "peerDealerBucket": "ed16647d"
+   }
+  },
+  {
+   "listingId": "f03faa0c-80ea-96c4-db35-5c89afd4efef",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "2c5d1308-89c5-fbad-a686-65c95fe930ec",
+   "expected": {
+    "price": 99500,
+    "peerPrice": 105000,
+    "mileage": 86900,
+    "peerMileage": 86900,
+    "dealerBucket": "ccff899f",
+    "peerDealerBucket": "e35162ce"
+   }
+  },
+  {
+   "listingId": "6b5735a9-84b4-ce4a-4d5f-cbf153f8c469",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "48c6117a-5b45-7ce4-10c9-c0d5378ec293",
+   "expected": {
+    "price": 84950,
+    "peerPrice": 81950,
+    "mileage": 72500,
+    "peerMileage": 72300,
+    "dealerBucket": "7ceaec3d",
+    "peerDealerBucket": "e35162ce"
+   }
+  },
+  {
+   "listingId": "bd10d1db-7285-78db-689a-7aa9112cbd9e",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "1be110c7-c153-a2b1-4039-94d536b1d3cb",
+   "expected": {
+    "dealerBucket": "e6465740",
+    "price": 54990,
+    "peerPrice": 54990
+   }
+  },
+  {
+   "listingId": "d9ac2ca4-4aa5-2c2d-26e0-2d4b1f731d21",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "295168c0-7151-5b11-3ebd-ca0d104e682a",
+   "expected": {
+    "dealerBucket": "763be146",
+    "price": 56950,
+    "peerPrice": 54950
+   }
+  },
+  {
+   "listingId": "4a2be976-5bd4-4fa2-8c20-64e017c2f94a",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "33c5e488-34de-e4cb-a2db-febbdb0042be",
+   "expected": {
+    "price": 16891,
+    "peerPrice": 15431,
+    "mileage": 64400,
+    "peerMileage": 64200,
+    "dealerBucket": "90ee6d32",
+    "peerDealerBucket": "aeb31df8"
+   }
+  },
+  {
+   "listingId": "15be8849-e0d2-f5fb-6dc1-2413d4412d14",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "e73cb406-f015-01b7-2cea-dab4c3bc1453",
+   "expected": {
+    "price": 8950,
+    "peerPrice": 8950,
+    "mileage": 118400,
+    "peerMileage": 118300,
+    "dealerBucket": "18be7966",
+    "peerDealerBucket": "aeb31df8"
+   }
+  },
+  {
+   "listingId": "5a43d93c-3e68-9802-afde-58aa9d93de15",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "cd905c4f-1ea2-0fa0-db95-c17e494d89e9",
+   "expected": {
+    "price": 28957,
+    "peerPrice": 27260,
+    "mileage": 62100,
+    "peerMileage": 61800,
+    "dealerBucket": "ca0db892",
+    "peerDealerBucket": "1c181589"
+   }
+  },
+  {
+   "listingId": "656724e9-acdd-06c8-66d0-b6b08bf45494",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "15710059-3881-b775-2235-5e67f47cc79f",
+   "expected": {
+    "price": 17000,
+    "peerPrice": 17000,
+    "mileage": 115100,
+    "peerMileage": 114700,
+    "dealerBucket": "b4ee6cae",
+    "peerDealerBucket": "1c181589"
+   }
+  },
+  {
+   "listingId": "7c6017d4-ce8f-0f05-4b50-4c306dfdce8f",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "2bd549d1-860d-be39-dc6f-e7e564256825",
+   "expected": {
+    "price": 8076,
+    "peerPrice": 8461,
+    "mileage": 247200,
+    "peerMileage": 246800,
+    "dealerBucket": "18be7966",
+    "peerDealerBucket": "8b07855f"
+   }
+  },
+  {
+   "listingId": "d4560da3-04d3-8d53-3364-b916ef46a493",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "8b6417c7-3bf9-00ec-971c-826f64e4db29",
+   "expected": {
+    "price": 11500,
+    "peerPrice": 11500,
+    "mileage": 51400,
+    "peerMileage": 51100,
+    "dealerBucket": "95887af7",
+    "peerDealerBucket": "727e2e6e"
+   }
+  },
+  {
+   "listingId": "30c07e14-401d-cbfb-09da-3dfaddfc53ea",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "4c1565cf-a7bf-1e81-1629-ab99be68a6e7",
+   "expected": {
+    "price": 15990,
+    "peerPrice": 16990,
+    "mileage": 65400,
+    "peerMileage": 65400,
+    "dealerBucket": "47211218",
+    "peerDealerBucket": "e0fe31f7"
+   }
+  },
+  {
+   "listingId": "da3d6d8c-06a1-8215-61f2-eaa7d6e6809a",
+   "anomaly": "DUPLICATE_LISTING_ID",
+   "detail": "identifiant ecrit deux fois dans le fichier",
+   "peerListingId": "da3d6d8c-06a1-8215-61f2-eaa7d6e6809a",
+   "expected": {
+    "occurrences": 2
+   }
+  },
+  {
+   "listingId": "898d7fcf-e1ab-e84f-a158-1cc57e4f2c02",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "1c66992c-bb5b-dc23-a5e5-c7aa74886832",
+   "expected": {
+    "price": 10000,
+    "peerPrice": 9000,
+    "mileage": 188900,
+    "peerMileage": 188700,
+    "dealerBucket": "ab6d88a3",
+    "peerDealerBucket": "22d9f2ee"
+   }
+  },
+  {
+   "listingId": "ec049d62-79aa-4124-8f4d-06fa54b4b1f7",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "4f877b52-6505-787a-25ff-942f46f49cdb",
+   "expected": {
+    "price": 35990,
+    "peerPrice": 33990,
+    "mileage": 37600,
+    "peerMileage": 37500,
+    "dealerBucket": "763be146",
+    "peerDealerBucket": "90ee6d32"
+   }
+  },
+  {
+   "listingId": "489ec11b-8e59-f86a-080f-0e75758cc305",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "a05b124e-d57c-1a34-04c9-29138508466d",
+   "expected": {
+    "price": 9900,
+    "peerPrice": 10900,
+    "mileage": 150000,
+    "peerMileage": 149900,
+    "dealerBucket": "7d64115a",
+    "peerDealerBucket": "2f865f74"
+   }
+  },
+  {
+   "listingId": "f7a1e29d-7a4d-bf17-39e7-4b1e3bf8e50c",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "088117d6-6dcd-7353-e6a0-30afed242d4c",
+   "expected": {
+    "price": 66990,
+    "peerPrice": 68990,
+    "mileage": 62200,
+    "peerMileage": 62000,
+    "dealerBucket": "602bbbf5",
+    "peerDealerBucket": "2f865f74"
+   }
+  },
+  {
+   "listingId": "3fbfb5d7-8ac6-76e7-1eaf-e51bcaa3ee6c",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "86d80c0a-b405-a9f6-3135-e6523b9d9dcd",
+   "expected": {
+    "price": 11990,
+    "peerPrice": 12990,
+    "mileage": 47800,
+    "peerMileage": 47600,
+    "dealerBucket": "e8e0eadd",
+    "peerDealerBucket": "e35162ce"
+   }
+  },
+  {
+   "listingId": "90eb586d-dfe7-e46b-107f-5b92f0f5d63d",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "6aacf2c8-1b3e-5e2c-412c-01778c395c9f",
+   "expected": {
+    "price": 12950,
+    "peerPrice": 13950,
+    "mileage": 174600,
+    "peerMileage": 174500,
+    "dealerBucket": "6b030d45",
+    "peerDealerBucket": "7ceaec3d"
+   }
+  },
+  {
+   "listingId": "78349a70-aa16-08da-6d7f-282150c5adad",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "0c7dc248-714e-68c6-7610-6403e889c46c",
+   "expected": {
+    "price": 1990,
+    "peerPrice": 1990,
+    "mileage": 295200,
+    "peerMileage": 294900,
+    "dealerBucket": "83755fa9",
+    "peerDealerBucket": "6c918300"
+   }
+  },
+  {
+   "listingId": "5ad9eb14-ad6e-a408-09cf-a81b61eb2292",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "e0629aa5-ff8f-a5ed-87d8-d87d8dbb4420",
+   "expected": {
+    "price": 29950,
+    "peerPrice": 27950,
+    "mileage": 76000,
+    "peerMileage": 76000,
+    "dealerBucket": "247a162f",
+    "peerDealerBucket": "87c30337"
+   }
+  },
+  {
+   "listingId": "2bdabae0-e0c5-b7cd-d1ec-6fc0e161d9fa",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "b18de423-3c10-7552-54a7-4cc0f21e7230",
+   "expected": {
+    "dealerBucket": "ec84791e",
+    "price": 61500,
+    "peerPrice": 58500
+   }
+  },
+  {
+   "listingId": "72db4d47-f735-7ed8-d13f-988dbab27df2",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "63f46c90-f506-7851-f716-ac68c75265e3",
+   "expected": {
+    "dealerBucket": "a1e5d5dd",
+    "price": 38950,
+    "peerPrice": 37950
+   }
+  },
+  {
+   "listingId": "22ac5f18-8072-2bf6-6d64-04facaed1816",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "4b14eb4f-3a79-43eb-a9a1-570d7af71dd9",
+   "expected": {
+    "price": 37990,
+    "peerPrice": 41990,
+    "mileage": 75400,
+    "peerMileage": 75300,
+    "dealerBucket": "09429b91",
+    "peerDealerBucket": "18be7966"
+   }
+  },
+  {
+   "listingId": "2915eef5-db48-1ed8-d333-bdc208aee5c4",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "4290de74-fca9-4834-d733-3a7f778d63dc",
+   "expected": {
+    "price": 38950,
+    "peerPrice": 36950,
+    "mileage": 65800,
+    "peerMileage": 65800,
+    "dealerBucket": "a1e5d5dd",
+    "peerDealerBucket": "602bbbf5"
+   }
+  },
+  {
+   "listingId": "64c8091d-acba-3d8b-92fd-e5c484747869",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "125510ec-eadc-490c-da26-050a0ccfdb63",
+   "expected": {
+    "dealerBucket": "763be146",
+    "price": 21950,
+    "peerPrice": 19950
+   }
+  },
+  {
+   "listingId": "36d7ac4f-ef83-075e-52d6-ffc7d7ce1b38",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "1ddf4e98-0afb-89e1-9cee-97875a256c90",
+   "expected": {
+    "price": 7990,
+    "peerPrice": 8990,
+    "mileage": 32600,
+    "peerMileage": 32300,
+    "dealerBucket": "e529c887",
+    "peerDealerBucket": "ed16647d"
+   }
+  },
+  {
+   "listingId": "52e0224e-5a57-d807-bd2f-1409aa50b430",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "d6238c4d-56cc-dc02-2904-1c80327a9a9c",
+   "expected": {
+    "price": 13990,
+    "peerPrice": 13990,
+    "mileage": 100700,
+    "peerMileage": 100500,
+    "dealerBucket": "9108162a",
+    "peerDealerBucket": "ed16647d"
+   }
+  },
+  {
+   "listingId": "c1b297da-52d9-6077-5580-2999a0811cea",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "19b24e03-9657-9be7-b0f3-1e043ef52c6e",
+   "expected": {
+    "price": 6950,
+    "peerPrice": 6950,
+    "mileage": 165600,
+    "peerMileage": 165500,
+    "dealerBucket": "247a162f",
+    "peerDealerBucket": "ed16647d"
+   }
+  },
+  {
+   "listingId": "efc24956-e5db-5a8e-9ea3-9fe66b0a5ab3",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "b9f61f07-e331-0065-7ad3-304147f0e3a0",
+   "expected": {
+    "price": 35990,
+    "peerPrice": 36990,
+    "mileage": 61200,
+    "peerMileage": 61000,
+    "dealerBucket": "8487f935",
+    "peerDealerBucket": "e6465740"
+   }
+  },
+  {
+   "listingId": "79c275c7-075a-89f8-9d39-6286840e0be0",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "5f0135e7-7588-5ad4-8a18-9230649f15be",
+   "expected": {
+    "price": 2900,
+    "peerPrice": 2900,
+    "mileage": 420100,
+    "peerMileage": 420000,
+    "dealerBucket": "b4f8040d",
+    "peerDealerBucket": "e6465740"
+   }
+  },
+  {
+   "listingId": "282fe98c-2a05-f3b0-1c76-88921d836e47",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "29e1f090-15fa-5fac-3bc4-b70909d9cf6b",
+   "expected": {
+    "price": 32950,
+    "peerPrice": 33950,
+    "mileage": 115200,
+    "peerMileage": 115000,
+    "dealerBucket": "b721023f",
+    "peerDealerBucket": "708d9e3c"
+   }
+  },
+  {
+   "listingId": "4eaa5ae8-800a-629b-42cb-de044cf548b0",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "4764449d-f2bd-5552-64e1-c0257dcf0ac8",
+   "expected": {
+    "price": 34105,
+    "peerPrice": 33033,
+    "mileage": 61900,
+    "peerMileage": 61700,
+    "dealerBucket": "b4f8040d",
+    "peerDealerBucket": "5e51d27c"
+   }
+  },
+  {
+   "listingId": "f0adbb69-2b6c-8024-5fbd-9a91d9f87133",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "bf1113c7-612d-5e36-fbb7-f9e92f99837b",
+   "expected": {
+    "dealerBucket": "b3fe70bb",
+    "price": 6990,
+    "peerPrice": 6990
+   }
+  },
+  {
+   "listingId": "c78ba6f9-382b-a704-72de-3d5ff02eb3db",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "0656e9e6-8071-66c5-34aa-4a63e4add96c",
+   "expected": {
+    "dealerBucket": "763be146",
+    "price": 6990,
+    "peerPrice": 6990
+   }
+  },
+  {
+   "listingId": "b66036d2-28c1-fa44-7143-3f7f68cc4f13",
+   "anomaly": "DUPLICATE_LISTING_ID",
+   "detail": "identifiant ecrit deux fois dans le fichier",
+   "peerListingId": "b66036d2-28c1-fa44-7143-3f7f68cc4f13",
+   "expected": {
+    "occurrences": 2
+   }
+  },
+  {
+   "listingId": "1278b55e-9341-97af-0fe4-39319bed448d",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "decb904e-636f-b78b-e7b5-e451c2bc106c",
+   "expected": {
+    "price": 34950,
+    "peerPrice": 36950,
+    "mileage": 43300,
+    "peerMileage": 43100,
+    "dealerBucket": "e8e0eadd",
+    "peerDealerBucket": "e0fe31f7"
+   }
+  },
+  {
+   "listingId": "8a9642e5-6c63-7774-182f-bfee9a8088d3",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "1278b55e-9341-97af-0fe4-39319bed448d",
+   "expected": {
+    "price": 31950,
+    "peerPrice": 34950,
+    "mileage": 43700,
+    "peerMileage": 43300,
+    "dealerBucket": "e0fe31f7",
+    "peerDealerBucket": "e8e0eadd"
+   }
+  },
+  {
+   "listingId": "b40261d6-766b-51ef-a6ed-a5cdb2356401",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "952dd0e8-ab0a-82ff-57de-07ffe20f43ed",
+   "expected": {
+    "price": 17990,
+    "peerPrice": 273,
+    "mileage": 181900,
+    "peerMileage": 181800,
+    "dealerBucket": "b721023f",
+    "peerDealerBucket": "cabc8616"
+   }
+  },
+  {
+   "listingId": "520e9312-180c-85f0-47b6-0344f9338d31",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "4175bedb-1f38-ba6e-bcd6-39c1e53b221f",
+   "expected": {
+    "price": 7990,
+    "peerPrice": 7990,
+    "mileage": 63300,
+    "peerMileage": 63100,
+    "dealerBucket": "e84a2d54",
+    "peerDealerBucket": "3b8319e9"
+   }
+  },
+  {
+   "listingId": "12930f90-c82d-8914-58c3-7414a7aa6327",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "8b7919c7-8dc4-f855-1278-513796802405",
+   "expected": {
+    "price": 14950,
+    "peerPrice": 13950,
+    "mileage": 50400,
+    "peerMileage": 50100,
+    "dealerBucket": "9a145aa7",
+    "peerDealerBucket": "eae45101"
+   }
+  },
+  {
+   "listingId": "c94cf02c-aa99-06b8-9b91-7486c43724d3",
+   "anomaly": "DUPLICATE_LISTING_ID",
+   "detail": "identifiant ecrit deux fois dans le fichier",
+   "peerListingId": "c94cf02c-aa99-06b8-9b91-7486c43724d3",
+   "expected": {
+    "occurrences": 2
+   }
+  },
+  {
+   "listingId": "8a920ccc-21e6-821a-3358-b2c7390fa8a3",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "d63aaf6a-322c-7ea3-9aa5-cdd0ed6c7ced",
+   "expected": {
+    "dealerBucket": "dd58df7f",
+    "price": 19000,
+    "peerPrice": 19000
+   }
+  },
+  {
+   "listingId": "8f5b47e9-df8e-01a0-6136-fce7f56a6855",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "1f34660e-1574-4da1-f7a7-4a33dc03e31c",
+   "expected": {
+    "price": 46900,
+    "peerPrice": 45900,
+    "mileage": 27100,
+    "peerMileage": 26700,
+    "dealerBucket": "0097c228",
+    "peerDealerBucket": "b721023f"
+   }
+  },
+  {
+   "listingId": "b4826a0c-56a6-6795-216c-5128987bd44d",
+   "anomaly": "DUPLICATE_LISTING_ID",
+   "detail": "identifiant ecrit deux fois dans le fichier",
+   "peerListingId": "b4826a0c-56a6-6795-216c-5128987bd44d",
+   "expected": {
+    "occurrences": 2
+   }
+  },
+  {
+   "listingId": "39794363-df8d-c0f3-1a7e-4bbd417ad57a",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "05e62fcd-45cb-8120-46a9-b9337b253f5e",
+   "expected": {
+    "price": 88500,
+    "peerPrice": 84500,
+    "mileage": 81300,
+    "peerMileage": 81000,
+    "dealerBucket": "8bc7cbb1",
+    "peerDealerBucket": "83755fa9"
+   }
+  },
+  {
+   "listingId": "35386bab-0744-d2a7-9e63-888b8be8c650",
+   "anomaly": "DUPLICATE_VALUE_CONFLICT",
+   "detail": "republication intra-vendeur, prix different",
+   "peerListingId": "71658c91-1a45-8d6f-233a-49d0cacf768d",
+   "expected": {
+    "dealerBucket": "b7476bcd",
+    "price": 10800,
+    "peerPrice": 10408
+   }
+  },
+  {
+   "listingId": "1e9ac677-8d06-b6da-2369-c1d84e050213",
+   "anomaly": "DUPLICATE_LISTING_ID",
+   "detail": "identifiant ecrit deux fois dans le fichier",
+   "peerListingId": "1e9ac677-8d06-b6da-2369-c1d84e050213",
+   "expected": {
+    "occurrences": 2
+   }
+  },
+  {
+   "listingId": "d6777bcb-c275-f111-81e1-d3455d4854c2",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "bfa147b0-8ec3-6eca-1380-e0f8a1ba6dfd",
+   "expected": {
+    "price": 43000,
+    "peerPrice": 44000,
+    "mileage": 73300,
+    "peerMileage": 73300,
+    "dealerBucket": "7f0e1920",
+    "peerDealerBucket": "09429b91"
+   }
+  },
+  {
+   "listingId": "40796028-3fed-dcd7-fc42-e006328d75fa",
+   "anomaly": "CROSS_SELLER_DUPLICATE",
+   "detail": "quasi-doublon inter-vendeurs",
+   "peerListingId": "1c595310-5323-23bc-aafd-c883fc225162",
+   "expected": {
+    "price": 10950,
+    "peerPrice": 10950,
+    "mileage": 103200,
+    "peerMileage": 102800,
+    "dealerBucket": "9a145aa7",
+    "peerDealerBucket": "1a9b45da"
+   }
+  }
+ ],
+ "note": "generateur kycar-dataset-gen 1.0.0, graine 1264141121, profil dev. specification DATASET-SPEC.md sha256 1fe1a07fa7577538, hachage combine des 15 tables et des 2 schemas adb5a528a096d31d. identifiant de conception (profiles.json) be-fixture-dev-20260914-4b594341. 612 entrees de verite terrain sur 5000 lignes. 15 filtres non alimentes sur 53 retenus de classe enumeree ou bornee (atype financeratefrom financerateto leasingratefrom leasingrateto lsdufrom lsduto lsyeinmifrom lstagr powertype ensticker zipr ocs_listing sort desc). Parametres complets, mesures et correspondances : generation.json depose a cote.",
+ "delta": {
+  "enteredCount": 522,
+  "exitedCount": 522,
+  "priceRevisedCount": 787,
+  "carriedOverCount": 4478
+ }
+}
