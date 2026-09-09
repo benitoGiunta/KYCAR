@@ -37,6 +37,26 @@ de l'avancement).
   (3) levée d'AC-01 (juridique 2dehands) avant tout câblage du provider réel ; (4) v2 de l'interface
   `DataProvider` (dettes D8-32, D8-36, composante T complète vers `fetchListingColumns`).
 
+### 0bis. Plan 3 en cours (données fictives AutoScout24-conformes, ouvert le 2026-09-09)
+
+Plan : `docs/plans/PLAN-3-fixture-data-mvp.md` · décisions D3-00…D3-20 : `reports/data/DATA-LEAD-DECISIONS.md`.
+
+- ✅ 3.1 conception : `docs/data/DATA-MODEL.md` + `data/schema/` (90 champs source, JSON Schema strict,
+  R3 par construction) ; `docs/data/DATASET-SPEC.md` + `docs/data/dataset-spec/*.json` (61 règles,
+  26 anomalies à vérité terrain, 110 sondes).
+- ✅ 3.2 générateur : `tools/dataset/`, `npm run data:gen|data:validate|data:check` ; fixtures commitées
+  `data/fixtures/dev` (3 × 5 000) et `test` (3 × 20 000, 8,17 Mio gz) ; **porte G9a franchie**.
+- ✅ 3.3 provider : `src/providers/adapters/as24/`, `src/providers/fixture/`, `src/providers/registry.ts`
+  (bascule `?provider=fixture:test|fixture:dev|synthetic`, défaut `fixture:test`), `npm run test:contract`
+  (50 cas × 3 providers) — fusionné ; finalisation sur fixtures réelles en cours (worktree `fixture-provider`).
+- ⏳ 3.3 revue indépendante `data-review` (worktree `data-review`, Opus/high) → `tests/data/`,
+  `reports/data/DATA-REVIEW.md`, porte G9b.
+- ⏳ 2.10 finition visuelle (worktree `visual`, dette D8-43) → fusionnée à 3.5.
+- À venir : 3.4 `data-fix` si revue rouge ; 3.5 `mvp-integrate` (étiquette `FIXTURE` dans l'UI et
+  `/mentions` — **absente aujourd'hui**, `P1_EXPECTED` recalculé depuis les manifests, E2E complets)
+  puis `acceptance` rev 3 (Fable/max), porte G9.
+- Décomptes à `c973a6e` : unitaires 752, sondes de revue 1 097, contrat 50, bundle 129,15 Kio gzip.
+
 ## 1. Ce qu'est le projet
 
 KYCAR = agrégateur analytique web du marché de l'occasion. Deux modes :
