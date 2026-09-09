@@ -32,9 +32,19 @@ describe('C-P3-3 — forme réelle du snapshotId', () => {
         expect(sn.manifest.snapshotId, 'le nom du répertoire EST l’identifiant').toBe(id);
       }
     }
-    const declaredPattern = specTable<{ snapshotIdPattern: string }>('profiles').snapshotIdPattern;
-    measure('C-P3-3', `${observed.length} snapshots au motif du schéma ; profiles.json annonce « ${declaredPattern} » — documentation à corriger`);
-    expect(declaredPattern).toContain('be-fixture-'); // la contradiction est bien dans profiles.json
+    // SONDE AMENDÉE — constat C-P3-3 / DR3-01, CORRIGÉ par `data-fix` (phase 3.4). La rédaction
+    // d'origine RATIFIAIT le défaut (« la contradiction est bien dans profiles.json ») : elle
+    // devenait donc rouge dès que la contradiction disparaissait. Elle vérifie maintenant l'inverse,
+    // qui est ce que le constat demandait : `profiles.json` annonce la forme RÉELLEMENT livrée, et
+    // l'ancienne forme survit là où elle a un sens, sous `designSnapshotIdPattern`.
+    const profiles = specTable<{ snapshotIdPattern: string; designSnapshotIdPattern: string }>('profiles');
+    measure(
+      'C-P3-3',
+      `${observed.length} snapshots au motif du schéma ; profiles.json annonce « ${profiles.snapshotIdPattern} » ` +
+        `et réserve « ${profiles.designSnapshotIdPattern} » à l’identifiant de conception`,
+    );
+    expect(profiles.snapshotIdPattern).not.toContain('be-fixture-');
+    expect(profiles.designSnapshotIdPattern).toContain('be-fixture-');
   });
 });
 
@@ -78,9 +88,18 @@ describe('C-P3-8 — le manifest attend ON_REQUEST là où EX-DATA-32 dit QUOTED
         if (status === 'ON_REQUEST') onRequestExpected += 1;
       }
     }
-    measure('C-P3-8', `${rows.length} déclarations A-20 ; ${onRequestExpected} attendent ON_REQUEST alors qu’un montant est écrit`);
+    // SONDE AMENDÉE — constat C-P3-8 / DR3-18, CORRIGÉ par `data-fix` (phase 3.4). La rédaction
+    // d'origine RATIFIAIT le défaut (`onRequestExpected === rows.length`) et devenait rouge dès
+    // qu'il était corrigé. `EX-DATA-32` est normatif et l'adaptateur le suivait déjà : un montant
+    // servi AVEC le drapeau « sur demande » donne le statut canonique QUOTED plus le drapeau
+    // `PRICE_ON_REQUEST_WITH_AMOUNT`. Le manifest attendait ON_REQUEST — il demandait à l'ingestion
+    // une chose que le dictionnaire lui interdit. Il déclare désormais le statut du dictionnaire.
+    measure(
+      'C-P3-8',
+      `${rows.length} déclarations A-20 ; ${onRequestExpected} attendent encore ON_REQUEST alors qu’un montant est écrit`,
+    );
     expect(rows.length).toBeGreaterThan(0);
-    expect(onRequestExpected).toBe(rows.length);
+    expect(onRequestExpected, 'EX-DATA-32 : le statut attendu est QUOTED + drapeau').toBe(0);
   });
 });
 

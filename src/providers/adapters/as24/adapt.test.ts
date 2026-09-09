@@ -203,6 +203,33 @@ describe('adaptateur as24 — prix (# 7 à # 15)', () => {
     expect(silent.unknownFields).toContain('vatDeductible');
   });
 
+  it('# 10 `isTaxDeductible` chez un `PRIVATE` — DR3-13 : écarté et DIT, jamais accepté en silence', () => {
+    // Contrainte 7 de `DATA-MODEL` §7 : la TVA déductible est réservée aux professionnels. Servie
+    // sur un particulier, elle n'est pas une valeur mais une incohérence de la source.
+    for (const type of ['P', 'PRIVATE']) {
+      const row = accept(
+        listing({
+          seller: { type },
+          prices: { public: { price: 15990, currency: 'EUR', isTaxDeductible: true } },
+        }),
+      );
+      expect(row.vatDeductible, type).toBe(VAT_DEDUCTIBLE.UNKNOWN);
+      expect(row.unknownFields, type).toContain('vatDeductible');
+      expect(hasIngestFlag(row.ingestFlags, 'ENUM_UNKNOWN'), type).toBe(true);
+    }
+    // `false` chez un particulier est écarté de la même façon : c'est le COUPLE qui est illicite,
+    // pas la valeur `true`. Et le professionnel n'est pas touché.
+    const falseOnPrivate = accept(
+      listing({ seller: { type: 'P' }, prices: { public: { price: 15990, currency: 'EUR', isTaxDeductible: false } } }),
+    );
+    expect(falseOnPrivate.vatDeductible).toBe(VAT_DEDUCTIBLE.UNKNOWN);
+    const pro = accept(
+      listing({ seller: { type: 'D' }, prices: { public: { price: 15990, currency: 'EUR', isTaxDeductible: true } } }),
+    );
+    expect(pro.vatDeductible).toBe(VAT_DEDUCTIBLE.YES);
+    expect(hasIngestFlag(pro.ingestFlags, 'ENUM_UNKNOWN')).toBe(false);
+  });
+
   it('# 11 `priceEvaluationCategory` — projection 3 → 6 niveaux (EX-DATA-12), DÉFAUT `0`', () => {
     expect(accept(listing()).priceEvaluationCategory).toBe(byteOf('KYCAR_PRICE_EVALUATION', '2'));
     const absent = accept(listing({ prices: { public: { price: 1000, currency: 'EUR' } } }));

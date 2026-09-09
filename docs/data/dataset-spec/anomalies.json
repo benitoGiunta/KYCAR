@@ -1,15 +1,16 @@
 {
- "$comment": "KYCAR — anomalies controlees avec verite terrain. Codes ALIGNES sur l'enum groundTruth[].anomaly de data/schema/snapshot-manifest.schema.json. Regles R-57 et R-58 ; identifiants A-01 a A-24.",
- "principe": "R-57 — toute anomalie est INJECTEE APRES le calcul de la valeur plausible, et la valeur plausible est conservee au manifest. Une anomalie dont la valeur plausible n'est pas conservee n'est pas une verite terrain : elle n'est pas falsifiable. Corollaire DATA-MODEL §7 : une violation deliberee d'une contrainte de coherence est licite A LA SEULE CONDITION d'etre declaree dans manifest.groundTruth avec son code.",
+ "$comment": "KYCAR \u2014 anomalies controlees avec verite terrain. Codes ALIGNES sur l'enum groundTruth[].anomaly de data/schema/snapshot-manifest.schema.json. Regles R-57 et R-58 ; identifiants A-01 a A-24.",
+ "principe": "R-57 \u2014 toute anomalie est INJECTEE APRES le calcul de la valeur plausible, et la valeur plausible est conservee au manifest. Une anomalie dont la valeur plausible n'est pas conservee n'est pas une verite terrain : elle n'est pas falsifiable. Corollaire DATA-MODEL \u00a77 : une violation deliberee d'une contrainte de coherence est licite A LA SEULE CONDITION d'etre declaree dans manifest.groundTruth avec son code.",
  "manifest": "le manifest de chaque snapshot publie, par anomalie : le code, l'effectif, le taux realise et la liste des listingId avec valeurs avant et apres. A-10 et A-11 portent en outre la methode, le drapeau attendu et le juste prix ; A-08 porte peerListingId.",
- "exclusionMutuelle": "R-58 — une annonce porte au plus UNE anomalie de prix (A-01, A-02, A-10, A-11, A-20, A-23, A-24 sont mutuellement exclusives) ; les anomalies non tarifaires peuvent se cumuler avec une anomalie de prix mais pas entre elles sur le meme champ.",
+ "exclusionMutuelle": "R-58 \u2014 une annonce porte au plus UNE anomalie de prix (A-01, A-02, A-10, A-11, A-20, A-23, A-24 sont mutuellement exclusives) ; les anomalies non tarifaires peuvent se cumuler avec une anomalie de prix mais pas entre elles sur le meme champ.",
  "retirees": [
-  "A-06 (FIRST_REG_UNPARSEABLE) — contrainte DATA-MODEL 23",
-  "A-18 (LISTING_URL_MISSING) — webPage requis par le schema"
+  "A-06 (FIRST_REG_UNPARSEABLE) \u2014 contrainte DATA-MODEL 23",
+  "A-18 (LISTING_URL_MISSING) \u2014 webPage requis par le schema"
  ],
  "inatteignables": [
-  "MARKETPLACE_UNMAPPED — enum ferme + contrainte 14",
-  "FIRST_REG_UNPARSEABLE — motif yearMonth du schema"
+  "MARKETPLACE_UNMAPPED \u2014 enum ferme + contrainte 14",
+  "FIRST_REG_UNPARSEABLE \u2014 motif yearMonth du schema",
+  "POWER_OUT_OF_RANGE (A-13) \u2014 domaine [1, 9999] identique au schema et a l'annexe A, bornes incluses (DR3-16) ; l'anomalie reste injectee comme signal de VRAISEMBLANCE, sans drapeau attendu"
  ],
  "tauxCumule": 0.1218,
  "anomalieCount": 26,
@@ -56,23 +57,26 @@
    "anomalyCode": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
    "rate": 0.003,
    "base": "toutes",
-   "mecanisme": "deux formes : (a) mileage porte a age * 65 000 a 95 000 km, ce qui fait franchir la borne mileage * 12 / max(age_mois, 6) <= 200 000 ; (b) mileage reduit a 200-900 km sur un vehicule d'age >= 6 ans",
-   "detection": "MILEAGE_IMPLAUSIBLE_FOR_AGE (forme a). La forme (b) n'est signalee par aucune regle : elle doit apparaitre comme point extreme du nuage G4 et peser sur le regresseur x2 de M2",
+   "mecanisme": "forme (a) UNIQUE : mileage porte a (age_mois/12) x 260 000 a 360 000 km, plafonne a 1 450 000 km, ce qui fait franchir la borne mileage * 12 / max(age_mois, 6) <= 200 000 SANS franchir la borne dure du champ (#59, 1 500 000 km). DR3-02 : la forme (b) - mileage reduit a 200-900 km sur un vehicule age - est RETIREE, voir `formeBRetiree`.",
+   "detection": "MILEAGE_IMPLAUSIBLE_FOR_AGE, en signalement (`notice`) de l'adaptateur ; 100 % des injections le declenchent",
    "exigence": "EX-DATA-90, EX-DATA-102bis, DATA-MODEL 22",
    "verite": "listingId, kilometrage plausible, kilometrage injecte, forme",
-   "aRetrouver": "100 % des formes (a) depassent la borne du champ derive mileagePerYearKm"
+   "aRetrouver": "100 % des declarations depassent la borne du champ derive mileagePerYearKm et portent le signalement MILEAGE_IMPLAUSIBLE_FOR_AGE ; aucune n'est absorbee par MILEAGE_OUT_OF_RANGE",
+   "vivier": "annonces de moins de 72 mois d'age (au-dela, les deux bornes de la contrainte 22 et du champ #59 ne sont plus conciliables)",
+   "formeBRetiree": "DR3-02 \u2014 la forme (b) (kilometrage trop FAIBLE pour l'age) etait declaree au manifest sans etre retrouvable : la contrainte 22 ne borne que le HAUT du rythme annuel et aucun drapeau d'EX-DATA-45 ne nomme le cas inverse. 13 des 60 declarations n'avaient AUCUNE consequence canonique (constat C-P3-9). Meme classe que les drapeaux inatteignables de D3-16 : on n'annonce pas une detection que la ligne ne peut pas produire (contrainte 23)."
   },
   {
    "id": "A-04b",
    "nom": "Kilometrage hors domaine",
    "anomalyCode": "MILEAGE_OUT_OF_RANGE",
-   "rate": 0.0003,
+   "rate": 0.0004,
    "base": "toutes",
    "mecanisme": "mileage porte au-dela de la borne de l'annexe A (2 000 000 km)",
    "detection": "MILEAGE_OUT_OF_RANGE ; valeur mise a INCONNU",
    "exigence": "EX-DATA-45",
    "verite": "listingId, valeur emise",
-   "aRetrouver": "aucune valeur hors borne ne subsiste dans le canonique"
+   "aRetrouver": "aucune valeur hors borne ne subsiste dans le canonique",
+   "rateNote": "DR3-10 \u2014 0,0003 donnait un effectif ATTENDU de 1,5 au profil dev : aucun entier n'est alors a +/- 20 % de l'attendu, et P-72 y est inatteignable par arithmetique, non par defaut de la donnee. Les taux des anomalies rares sont choisis pour que `taux x base` soit ENTIER aux deux profils commites (2 au profil dev, 8 au profil test)."
   },
   {
    "id": "A-05",
@@ -88,14 +92,14 @@
   },
   {
    "id": "A-06",
-   "nom": "RETIREE — premiere immatriculation non analysable",
+   "nom": "RETIREE \u2014 premiere immatriculation non analysable",
    "anomalyCode": "(sans objet)",
    "rate": 0.0,
-   "base": "—",
+   "base": "\u2014",
    "mecanisme": "la premiere redaction injectait 2024-13, 13/2024, 00/2019 et 24-05 pour exercer FIRST_REG_UNPARSEABLE",
-   "detection": "RETIREE : contrainte DATA-MODEL 23 — le drapeau est INATTEIGNABLE depuis une ligne conforme au schema (le motif ^[0-9]{4}-(0[1-9]|1[0-2])$ de $defs.yearMonth rejette ces formes a la generation). Le declarer en verite terrain reviendrait a annoncer une detection que le fichier ne peut pas produire.",
+   "detection": "RETIREE : contrainte DATA-MODEL 23 \u2014 le drapeau est INATTEIGNABLE depuis une ligne conforme au schema (le motif ^[0-9]{4}-(0[1-9]|1[0-2])$ de $defs.yearMonth rejette ces formes a la generation). Le declarer en verite terrain reviendrait a annoncer une detection que le fichier ne peut pas produire.",
    "exigence": "DATA-MODEL 23",
-   "verite": "—",
+   "verite": "\u2014",
    "aRetrouver": "le drapeau FIRST_REG_UNPARSEABLE reste couvert par les tests unitaires de l'adaptateur, qui fabriquent leurs enregistrements",
    "note": "anomalie retiree a l'alignement DATA-MODEL du 2026-09-09"
   },
@@ -121,7 +125,8 @@
    "detection": "DUPLICATE_VALUE_CONFLICT",
    "exigence": "EX-DATA-15, ARB-54, DATA-MODEL 26",
    "verite": "couples de listingId, ecart de prix",
-   "aRetrouver": "le nombre de paires trouvees par l'audit egale celui du manifest ; les deux membres partagent leur dealerBucket"
+   "aRetrouver": "le nombre de paires trouvees par l'audit egale celui du manifest ; les deux membres partagent leur dealerBucket",
+   "constatDR3_15": "DR3-15 \u2014 le code DUPLICATE_VALUE_CONFLICT designe ici une REPUBLICATION intra-vendeur (deux identifiants DIFFERENTS du meme dealerBucket) alors qu'ARB-54 le reserve a une divergence de valeur entre deux occurrences du MEME identifiant. Un nom, deux notions disjointes. Le renommage (SELLER_REPUBLICATION) touche snapshot-manifest.schema.json, ce fichier, le generateur, la sonde C-P3-10 de tests/data ET la table EXPECTATIONS de tests/contract/ground-truth.test.ts, qui lit le code en dur : c'est un CHANGEMENT DE CONTRAT, hors du perimetre d'ecriture de data-fix. Consigne en dette D3-26 (reports/data/data-fix.md \u00a7dettes)."
   },
   {
    "id": "A-08",
@@ -165,7 +170,7 @@
    "anomalyCode": "OUTLIER_M1_LOW / OUTLIER_M1_HIGH",
    "rate": 0.0025,
    "base": "annonces a prix affiche",
-   "mecanisme": "haut : prix tire dans [500 000, 3 000 000] EUR (sous la borne de A-02) ; bas : prix tire dans [260, 480] EUR — jamais sous 250, sinon l'annonce devient une sentinelle A-01, sort de V_price et la verite terrain devient infalsifiable",
+   "mecanisme": "haut : prix tire dans [500 000, 3 000 000] EUR (sous la borne de A-02) ; bas : prix tire dans [260, 480] EUR \u2014 jamais sous 250, sinon l'annonce devient une sentinelle A-01, sort de V_price et la verite terrain devient infalsifiable",
    "detection": "M1, barrieres de Tukey sur ln(prix) de la cellule d'homogeneite",
    "exigence": "EX-DATA-88, EX-DATA-89",
    "verite": "listingId, methode M1, drapeau, juste prix, prix injecte",
@@ -197,15 +202,17 @@
   },
   {
    "id": "A-13",
-   "nom": "Puissance hors domaine",
+   "nom": "Puissance implausible (signal de vraisemblance)",
    "anomalyCode": "POWER_OUT_OF_RANGE",
-   "rate": 0.0005,
+   "rate": 0.0006,
    "base": "toutes",
-   "mecanisme": "power porte a 1 (borne basse du schema) ou 9999 (borne haute), hors des bornes de plausibilite de l'annexe A",
-   "detection": "POWER_OUT_OF_RANGE ; valeur mise a INCONNU",
+   "mecanisme": "power porte a 1 ou 9999, les bornes EXTREMES du domaine du schema",
+   "detection": "AUCUNE consequence canonique depuis une ligne conforme au schema \u2014 voir `inatteignableDepuisLeSchema`. Le code reste au vocabulaire du manifest pour les adaptateurs de sources REELLES, ou une puissance hors [1, 9999] est possible.",
    "exigence": "EX-DATA-45",
    "verite": "listingId, valeur emise",
-   "aRetrouver": "aucune valeur de powerKw hors bornes ne subsiste dans le canonique"
+   "aRetrouver": "les 100 % des valeurs injectees sont servies telles quelles et restent DANS le domaine du schema ; aucun drapeau n'est attendu",
+   "inatteignableDepuisLeSchema": "DR3-16 / C-P3-7 \u2014 `as24-listing.schema.json` borne `power` a [1, 9999] et l'annexe A valide EXACTEMENT le meme domaine, bornes INCLUSES : une ligne conforme au schema ne peut pas porter une puissance hors domaine, et POWER_OUT_OF_RANGE ne peut donc pas etre pose. A-13 n'est pas un test de detection mais un test de VRAISEMBLANCE : 1 kW et 9999 kW sont des valeurs licites et absurdes, que l'oeil du produit doit pouvoir montrer. Meme classe que MARKETPLACE_UNMAPPED et FIRST_REG_UNPARSEABLE (D3-16), a ceci pres que la valeur, elle, EST servie.",
+   "rateNote": "DR3-10 \u2014 meme raison qu'A-04b : 0,0005 donnait 2,5 au profil dev. 0,0006 donne 3 et 12."
   },
   {
    "id": "A-13b",
@@ -248,12 +255,14 @@
    "nom": "Categorie de carburant non resolue",
    "anomalyCode": "HYBRID_CATEGORY_UNRESOLVED",
    "rate": 0.001,
-   "base": "annonces hybrides",
+   "base": "toutes",
    "mecanisme": "fuelCategory ABSENTE ; seuls primaryFuelType et fuelSourceLabel sont servis. La moitie est resolue par la table de repli creation -> recherche (EX-DATA-10, valeur EXTRAPOLEE), l'autre reste INCONNUE (EX-DATA-11)",
    "detection": "EX-DATA-10 et EX-DATA-11, deux branches distinctes",
    "exigence": "EX-DATA-10, EX-DATA-11",
    "verite": "listingId, branche empruntee",
-   "aRetrouver": "les deux branches sont exercees par au moins 20 annonces au profil test"
+   "aRetrouver": "les deux branches sont exercees par au moins 20 annonces au profil test",
+   "vivier": "annonces hybrides (categories 2 et 3)",
+   "baseNote": "DR3-10 \u2014 le taux est lu sur l'effectif du snapshot, pas sur les seules hybrides : `aRetrouver` exige au moins 20 annonces au profil test pour que les DEUX branches (EX-DATA-10 et EX-DATA-11) soient exercees, ce que 0,1 % des 13 % d'hybrides (2,6 annonces) ne donnerait jamais. Le denominateur est N, le vivier est hybride."
   },
   {
    "id": "A-17",
@@ -269,14 +278,14 @@
   },
   {
    "id": "A-18",
-   "nom": "RETIREE — annonce sans deeplink",
+   "nom": "RETIREE \u2014 annonce sans deeplink",
    "anomalyCode": "(sans objet)",
    "rate": 0.0,
-   "base": "—",
+   "base": "\u2014",
    "mecanisme": "la premiere redaction ecrivait des lignes sans webPage pour exercer le rejet LISTING_URL_MISSING d'EX-DATA-14",
-   "detection": "RETIREE : webPage est REQUIS par le schema source (required: id, webPage, marketplace, vehicleType, make, location). Une ligne sans webPage est rejetee A LA GENERATION et ne peut pas figurer dans un fichier valide — meme raisonnement que la contrainte 23.",
-   "exigence": "DATA-MODEL §3",
-   "verite": "—",
+   "detection": "RETIREE : webPage est REQUIS par le schema source (required: id, webPage, marketplace, vehicleType, make, location). Une ligne sans webPage est rejetee A LA GENERATION et ne peut pas figurer dans un fichier valide \u2014 meme raisonnement que la contrainte 23.",
+   "exigence": "DATA-MODEL \u00a73",
+   "verite": "\u2014",
    "aRetrouver": "le rejet EX-DATA-14 reste couvert par les tests unitaires de l'adaptateur",
    "note": "anomalie retiree a l'alignement DATA-MODEL du 2026-09-09"
   },
@@ -291,19 +300,21 @@
    "exigence": "EX-DATA-55, DATA-MODEL 13",
    "verite": "listingId, countryCode emis",
    "aRetrouver": "100 % de ces annonces ont regionCode INCONNU ; MARKETPLACE_UNMAPPED n'est PAS emis (voir note)",
-   "note": "MARKETPLACE_UNMAPPED est INATTEIGNABLE : marketplace est un enum ferme du schema et la contrainte 14 impose manifest.marketplace = marketplace de chaque ligne. Le code reste au vocabulaire, jamais en verite terrain."
+   "note": "MARKETPLACE_UNMAPPED est INATTEIGNABLE : marketplace est un enum ferme du schema et la contrainte 14 impose manifest.marketplace = marketplace de chaque ligne. Le code reste au vocabulaire, jamais en verite terrain. DR3-18 : A-19 et A-21 partagent le code REGION_UNRESOLVED pour deux situations que DATA-MODEL \u00a73.1 SEPARE (pays hors marche : region INCONNUE mais AUCUN drapeau, EX-DATA-55 ; prefixe hors des 13 plages : region INCONNUE ET drapeau). Le manifest les distingue par le champ `detail`, dont les deux valeurs sont NORMEES ici et nulle part ailleurs : \u00ab pays hors marche \u00bb et \u00ab prefixe postal non resolu \u00bb.",
+   "detailNorme": "pays hors marche"
   },
   {
    "id": "A-20",
    "nom": "Prix sur demande avec montant",
    "anomalyCode": "PRICE_ON_REQUEST_WITH_AMOUNT",
-   "rate": 0.0004,
+   "rate": 0.013,
    "base": "annonces a prix sur demande",
    "mecanisme": "onRequestOnly = true ET prices.public.price present (avec sa devise)",
-   "detection": "PRICE_ON_REQUEST_WITH_AMOUNT ; le montant n'est PAS retenu, le statut reste ON_REQUEST",
+   "detection": "PRICE_ON_REQUEST_WITH_AMOUNT ; EX-DATA-32 : le statut canonique est QUOTED, le montant EST retenu, et le drapeau dit la contradiction",
    "exigence": "EX-DATA-32, DATA-MODEL 5",
-   "verite": "listingId, montant emis",
-   "aRetrouver": "aucune annonce ON_REQUEST ne porte un priceEur connu dans le canonique"
+   "verite": "listingId, montant emis, statut canonique attendu (QUOTED)",
+   "aRetrouver": "100 % de ces annonces portent PRICE_ON_REQUEST_WITH_AMOUNT et un priceEur connu, avec le statut QUOTED (EX-DATA-32)",
+   "baseNote": "DR3-10 \u2014 le taux etait lu 0,0004 et applique a N, soit 1,3 % des annonces a prix sur demande pour 0,04 % annonces : le champ `base` annoncait une population et le fichier en produisait une autre (+3 189 %). L'effectif realise est conserve ; c'est le TAUX qui est reecrit sur la base qu'il declare. 1,3 % des annonces sur demande portent malgre tout un montant."
   },
   {
    "id": "A-21",
@@ -315,7 +326,8 @@
    "detection": "REGION_UNRESOLVED ; regionCode INCONNU",
    "exigence": "EX-DATA-52, DATA-MODEL 13",
    "verite": "listingId, prefixe emis",
-   "aRetrouver": "c'est la SEULE facon d'exercer REGION_UNRESOLVED par le prefixe, l'intervalle 10..99 couvrant sans trou"
+   "aRetrouver": "c'est la SEULE facon d'exercer REGION_UNRESOLVED par le prefixe, l'intervalle 10..99 couvrant sans trou",
+   "detailNorme": "prefixe postal non resolu"
   },
   {
    "id": "A-22",
@@ -335,7 +347,7 @@
    "anomalyCode": "PRICE_ON_REQUEST",
    "rate": 0.03,
    "base": "toutes",
-   "mecanisme": "onRequestOnly = true, price absent — decision de vendeur, pas un defaut",
+   "mecanisme": "onRequestOnly = true, price absent \u2014 decision de vendeur, pas un defaut",
    "detection": "priceStatus = ON_REQUEST ; l'annonce compte dans l'effectif, jamais dans V_price",
    "exigence": "EX-DATA-32, EX-DATA-60",
    "verite": "listingId",
@@ -353,5 +365,6 @@
    "verite": "listingId",
    "aRetrouver": "l'etat MISSING est compte SEPAREMENT d'ON_REQUEST : les confondre masquerait une regression de l'adaptateur"
   }
- ]
+ ],
+ "baseVsVivier": "DR3-10 \u2014 `base` est le DENOMINATEUR du taux (la population de reference sur laquelle `rate` est lu), `vivier` est la population dans laquelle le generateur TIRE. Les deux coincident presque toujours ; quand ils different, les deux champs sont ecrits. Le generateur applique desormais chaque taux a sa base declaree (tools/dataset/anomalies.mjs, `targetOf`) : il prenait auparavant N pour base de TOUTES les anomalies, ce qui donnait +46 % sur les trois doublons (base professionnelle), +658 % sur A-16 et +3 189 % sur A-20."
 }

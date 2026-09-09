@@ -9,10 +9,11 @@
   "required": ["id", "webPage", "marketplace", "vehicleType", "make", "location"],
   "dependentSchemas": {
     "wltp": {
-      "description": "Exclusion NEDC / WLTP imposee par l'OpenAPI : le bloc wltp est interdit des lors qu'une valeur NEDC est servie, et l'OpenAPI range consumption, co2Emissions ET efficiencyClass du cote NEDC. Une annonce declare donc UNE SEULE branche de mesure, ce qui est aussi la condition de derivation de co2Source / consumptionSource (EX-DATA-35).",
+      "description": "Exclusion NEDC / WLTP imposee par l'OpenAPI : le bloc wltp est interdit des lors qu'une valeur NEDC est servie, et l'OpenAPI range consumption, co2Emissions ET efficiencyClass du cote NEDC. Une annonce declare donc UNE SEULE branche de mesure, ce qui est aussi la condition de derivation de co2Source / consumptionSource (EX-DATA-35). DR3-12 : co2EmissionsUnit est l'unite du champ NEDC co2Emissions ; elle est interdite au meme titre que lui, sans quoi le schema laisserait passer une unite orpheline que emissions.json:branchRule.WLTP.interdits nomme deja. Le bloc wltp n'a pas d'unite propre : combinedUnit et electricCombinedUnit ne sont PAS en cause.",
       "properties": {
         "consumption": false,
         "co2Emissions": false,
+        "co2EmissionsUnit": false,
         "efficiencyClass": false
       }
     }

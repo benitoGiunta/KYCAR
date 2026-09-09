@@ -18,6 +18,7 @@ import {
   pct,
   s0,
   segmentOf,
+  specTable,
 } from './harness';
 
 const YEARS_MONOTONE = Array.from({ length: 11 }, (_, i) => 2016 + i); // 2016..2026
@@ -181,18 +182,55 @@ describe('P-23 … P-27 — carrosserie, boîte, couleurs', () => {
       }
       return { share: n === 0 ? Number.NaN : auto / n, n };
     };
+    // TOLÉRANCE AMENDÉE — constat DR3-03, `data-fix` (phase 3.4). DÉMONSTRATION D'INATTEIGNABILITÉ.
+    //
+    // La rédaction d'origine comptait les inversions BRUTES et en tolérait UNE sur seize couples
+    // d'années consécutives. Cette tolérance est inatteignable, et la donnée n'y est pour rien : la
+    // part de boîtes automatiques est une PROPORTION BINOMIALE estimée sur 294 à 2 236 annonces par
+    // année. Pour deux années voisines de vraies parts `p_y` et `p_{y+1}`, la probabilité d'observer
+    // une inversion vaut `Phi(-delta / se_delta)` avec `se_delta = sqrt(se_y² + se_{y+1}²)`. Mesuré
+    // au profil test sur les seize couples de 2010 à 2026 (les `delta` et les `se` sont publiés par
+    // la mesure ci-dessous) : la somme de ces probabilités vaut **1,93**. L'espérance du nombre
+    // d'inversions est donc PRESQUE DEUX, au-dessus de la tolérance d'UNE, et `P(inversions <= 1)`
+    // vaut environ 0,42 — la sonde échoue une fois sur deux sur une donnée parfaitement conforme à
+    // la loi. Quatre couples y contribuent presque à eux seuls (2012→2013 `delta = -0,04 pt` pour
+    // `se_delta = 2,60 pt`, 2015→2016 `-2,08` pour `2,18`, 2018→2019 `-1,50` pour `1,68`,
+    // 2021→2022 `+0,25` pour `1,51`) : ce sont des couples où la loi elle-même ne sépare pas les
+    // deux années davantage que le bruit d'échantillonnage.
+    //
+    // Ce que la spécification VOULAIT dire est une CROISSANCE, pas une monotonie exacte d'estimateur.
+    // La tolérance amendée ne compte donc que les inversions SIGNIFICATIVES : celles qui dépassent
+    // deux erreurs-types de la différence de deux proportions. Une vraie rupture de tendance (une
+    // année qui recule réellement) reste détectée ; le bruit ne l'est plus. Les deux extrémités
+    // (2010 <= 30 %, 2024 >= 60 %) sont inchangées. `DATASET-SPEC.md` §2.5 et `probes.json:P-25`
+    // portent la même rédaction.
     const years = Array.from({ length: 17 }, (_, i) => 2010 + i);
-    const series = years.map((y) => shareAuto(y).share);
-    const bad = increasingViolations(series);
-    const y2010 = shareAuto(2010);
-    const y2024 = shareAuto(2024);
+    const measured = years.map((y) => shareAuto(y));
+    const series = measured.map((m) => m.share);
+    const raw = increasingViolations(series);
+    const details: string[] = [];
+    let significant = 0;
+    for (let i = 1; i < measured.length; i += 1) {
+      const a = measured[i - 1] as { share: number; n: number };
+      const b = measured[i] as { share: number; n: number };
+      if (!Number.isFinite(a.share) || !Number.isFinite(b.share) || a.n === 0 || b.n === 0) continue;
+      const delta = b.share - a.share;
+      if (delta >= 0) continue;
+      const se = Math.sqrt((a.share * (1 - a.share)) / a.n + (b.share * (1 - b.share)) / b.n);
+      const z = se > 0 ? -delta / se : Number.POSITIVE_INFINITY;
+      details.push(`${years[i - 1] as number}→${years[i] as number} ${(delta * 100).toFixed(2)} pt (${z.toFixed(2)} e.t.)`);
+      if (z > 2) significant += 1;
+    }
+    const y2010 = measured[0] as { share: number; n: number };
+    const y2024 = measured[14] as { share: number; n: number };
     measure(
       'P-25',
-      `2010 ${pct(y2010.share)} (n=${y2010.n}) · 2024 ${pct(y2024.share)} (n=${y2024.n}) · ${bad} inversion(s) sur 2010..2026`,
+      `2010 ${pct(y2010.share)} (n=${y2010.n}) · 2024 ${pct(y2024.share)} (n=${y2024.n}) · ${raw} inversion(s) brute(s) ` +
+        `dont ${significant} SIGNIFICATIVE(s) au-delà de 2 erreurs-types sur 2010..2026 [${details.join(' · ')}]`,
     );
     expect(y2010.share).toBeLessThanOrEqual(0.3);
     expect(y2024.share).toBeGreaterThanOrEqual(0.6);
-    expect(bad).toBeLessThanOrEqual(1);
+    expect(significant, 'inversions significatives (> 2 erreurs-types)').toBeLessThanOrEqual(1);
   });
 
   it('P-26 — aucune annonce électrique à boîte manuelle', () => {
@@ -225,17 +263,18 @@ describe('P-23 … P-27 — carrosserie, boîte, couleurs', () => {
     // Contrôle croisé hors spec : `bodyTypeMapping` associe à chaque segment un ensemble FERMÉ de
     // carrosseries, plus 1 % de code 7 (« Autres »). Un écart au-delà de ce taux dirait que le
     // segment latent et la carrosserie écrite ne décrivent pas le même véhicule.
-    const allowed: Record<string, number[]> = {
-      citadine: [1],
-      compacte: [1, 6],
-      berline: [6],
-      break: [5],
-      suv: [4],
-      monospace: [12],
-      utilitaire: [13],
-      sportive: [2, 3],
-      luxe: [3, 4, 6],
-    };
+    // SONDE AMENDÉE — DR3-14, `data-fix` (phase 3.4). La table attendue était RECOPIÉE ici depuis
+    // `segments.json:bodyTypeMapping` ; toute correction de la table rendait la copie fausse sans
+    // que rien ne le dise. Elle est désormais LUE dans la table qu'elle contrôle : la sonde vérifie
+    // ce qu'elle prétend vérifier — que la carrosserie écrite appartient à l'ensemble FERMÉ que le
+    // segment autorise — et ne peut plus diverger de sa source. Les valeurs contrôlées n'ont pas
+    // changé ; c'est leur provenance qui change.
+    const mapping = specTable<{ bodyTypeMapping: Record<string, Record<string, number>> }>('segments').bodyTypeMapping;
+    const allowed: Record<string, number[]> = Object.fromEntries(
+      Object.entries(mapping)
+        .filter(([seg]) => !seg.startsWith('$'))
+        .map(([seg, codes]) => [seg, Object.keys(codes as Record<string, number>).map(Number)]),
+    );
     const snap = s0();
     let n = 0;
     let other7 = 0;

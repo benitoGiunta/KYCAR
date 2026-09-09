@@ -1,5 +1,5 @@
 {
- "$comment": "KYCAR — segments latents du generateur (AUCUN champ KYCAR ne porte le segment ; il conditionne carrosserie, puissance, portes, places, prix neuf et duree d'exposition). Regles R-05 a R-08.",
+ "$comment": "KYCAR \u2014 segments latents du generateur (AUCUN champ KYCAR ne porte le segment ; il conditionne carrosserie, puissance, portes, places, prix neuf et duree d'exposition). Regles R-05 a R-08.",
  "source": [
   "S6 auto-infos / motor1, part des SUV dans les immatriculations europeennes 2024 = 54 %",
   "S3 TRAXIO 2025 pour l'ancrage du parc d'occasion",
@@ -71,7 +71,7 @@
   }
  },
  "stockBias": {
-  "$comment": "R-06 — le STOCK d'annonces vaut le FLUX d'immatriculations multiplie par la duree moyenne d'exposition ; ce coefficient est la duree relative par segment, applique avant renormalisation",
+  "$comment": "R-06 \u2014 le STOCK d'annonces vaut le FLUX d'immatriculations multiplie par la duree moyenne d'exposition ; ce coefficient est la duree relative par segment, applique avant renormalisation",
   "citadine": 0.85,
   "compacte": 0.9,
   "berline": 1.05,
@@ -83,13 +83,15 @@
   "luxe": 1.5
  },
  "bodyTypeMapping": {
-  "$comment": "segment -> KYCAR_BODY_TYPE (codes AutoScout24 voiture), tirage pondere",
+  "$comment": "segment -> KYCAR_BODY_TYPE (codes AutoScout24 voiture), tirage pondere. DR3-14 : le code 3 (Coupe) n'etait produit que par les segments sportive et luxe, dont les prix catalogue valent 55 000 et 95 000 EUR. Le parcours cible P1 (coupe + prix <= 20 000 EUR + km <= 100 000) ne rendait alors que 30 offres au profil test, contre 230 a 280 annoncees au \u00a71.4. Le marche belge de l'occasion contredit ce modele : Opel Astra GTC, VW Scirocco, Renault Megane Coupe, Peugeot RCZ, Hyundai Coupe, Mini sont des coupes de segment CITADINE ou COMPACTE, a prix d'occasion courant. Le code 3 est donc reparti sur quatre segments.",
   "citadine": {
-   "1": 1.0
+   "1": 0.93,
+   "3": 0.07
   },
   "compacte": {
-   "6": 0.85,
-   "1": 0.15
+   "1": 0.15,
+   "6": 0.785,
+   "3": 0.065
   },
   "berline": {
    "6": 1.0
@@ -107,13 +109,13 @@
    "13": 1.0
   },
   "sportive": {
-   "3": 0.6,
-   "2": 0.4
+   "2": 0.75,
+   "3": 0.25
   },
   "luxe": {
-   "6": 0.55,
+   "3": 0.04,
    "4": 0.3,
-   "3": 0.15
+   "6": 0.66
   }
  },
  "bodyTypeOtherRate": 0.01,

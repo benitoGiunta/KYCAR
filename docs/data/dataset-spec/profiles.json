@@ -30,7 +30,10 @@
    "label": "S0+14j"
   }
  ],
- "snapshotIdPattern": "be-fixture-<profil>-<AAAAMMJJ>-<graine hex 8>",
+ "snapshotIdPattern": "be-<AAAAMMJJ>T<hhmmss>Z",
+ "snapshotIdPatternRegex": "^[a-z]{2}-\\d{8}T\\d{6}Z$",
+ "snapshotIdPatternRationale": "DR3-01 — la forme livree est celle que snapshot-manifest.schema.json VALIDE (motif ferme, maxLength 32) et que le nom de repertoire porte. La forme be-fixture-<profil>-<AAAAMMJJ>-<graine hex 8> annoncee jusqu ici n a jamais ete emise : elle ne passe pas le schema. Elle survit comme IDENTIFIANT DE CONCEPTION, publie dans generation.json sous designSnapshotId, ou le profil et la graine restent lisibles.",
+ "designSnapshotIdPattern": "be-fixture-<profil>-<AAAAMMJJ>-<graine hex 8>",
  "profiles": [
   {
    "name": "dev",

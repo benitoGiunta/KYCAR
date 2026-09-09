@@ -414,9 +414,23 @@ export function adaptAs24Listing(raw: unknown, ctx: As24AdapterContext): As24Ada
     t.get('KYCAR_PRICE_STATUS')?.index(priceStatusCode) ?? acc.unknownEnum('priceStatus');
 
   // # 10 `isTaxDeductible` → colonne tri-état `vatDeductible` (D8-08).
+  //
+  // DR3-13 — GARDE (type de vendeur × TVA). La contrainte 7 de `DATA-MODEL` §7 réserve la TVA
+  // déductible aux PROFESSIONNELS : un particulier ne facture pas de TVA, donc `isTaxDeductible`
+  // servi sur un vendeur `PRIVATE` est une incohérence de la source, jamais une valeur. L'adaptateur
+  // l'acceptait EN SILENCE et écrivait `vatDeductible = 2` (« oui ») : la colonne « TVA »
+  // d'`EX-SCR-203` aurait affiché une TVA déductible chez un particulier. La valeur est désormais
+  // écartée (INCONNU, jamais « non » : « non » serait une mesure que la source n'a pas faite) et le
+  // fait est DIT par `ENUM_UNKNOWN` — le drapeau d'`EX-DATA-45` qui nomme une valeur énumérée non
+  // retenue, faute d'un code dédié au couple (vendeur, TVA) dans le vocabulaire gelé.
+  // Les fixtures n'exercent pas ce cas (`P-42` : 0 occurrence) : la garde vise une source réelle.
+  const sellerTypeCodeForVat = (normalizeText(src.seller?.type) ?? '').toUpperCase();
+  const vatOnPrivate =
+    pub.isTaxDeductible !== undefined && (sellerTypeCodeForVat === 'P' || sellerTypeCodeForVat === 'PRIVATE');
   const vatDeductible =
-    pub.isTaxDeductible === undefined
+    pub.isTaxDeductible === undefined || vatOnPrivate
       ? ((): number => {
+          if (vatOnPrivate) acc.flag('ENUM_UNKNOWN');
           acc.unknown.push('vatDeductible');
           return VAT_DEDUCTIBLE.UNKNOWN;
         })()

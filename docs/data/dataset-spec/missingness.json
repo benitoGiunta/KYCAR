@@ -1,12 +1,12 @@
 {
- "$comment": "KYCAR — taux de valeurs manquantes PAR CHAMP, jamais uniformes. Regles R-43 a R-46. Les CLES sont les chemins du schema source As24Listing (data/schema/as24-listing.schema.json). Une valeur absente est une CLE ABSENTE, jamais null.",
+ "$comment": "KYCAR \u2014 taux de valeurs manquantes PAR CHAMP, jamais uniformes. Regles R-43 a R-46. Les CLES sont les chemins du schema source As24Listing (data/schema/as24-listing.schema.json). Une valeur absente est une CLE ABSENTE, jamais null.",
  "source": [
-  "S14 FINDING-allowed-surface.md §2.3 : 40 champs releves sur les annonces reelles ; les champs qui y figurent systematiquement sont ceux dont le taux d'absence est fixe ici sous 3 %",
+  "S14 FINDING-allowed-surface.md \u00a72.3 : 40 champs releves sur les annonces reelles ; les champs qui y figurent systematiquement sont ceux dont le taux d'absence est fixe ici sous 3 %",
   "H13 hypothese : tous les taux ci-dessous sont ASSUMES ; aucun releve public ne publie de taux de completude par champ sur un site d'annonces belge. Ils sont choisis pour que chaque branche de repli du dictionnaire (EX-DATA-5, 10, 11, 14, 18, 23, 45) soit exercee par au moins 20 annonces au profil test.",
-  "S18 docs/data/DATA-MODEL.md §3 (table des champs source) et §7 contraintes 20 et 30"
+  "S18 docs/data/DATA-MODEL.md \u00a73 (table des champs source) et \u00a77 contraintes 20 et 30"
  ],
  "latentCompleteness": {
-  "rule": "R-43 — chaque annonce porte un facteur latent c ~ Beta(6, 2) (moyenne 0,75). Le taux d'absence effectif d'un champ vaut p_champ * g(c) * h(sellerType) * k(age), avec g(c) = 2 - 2c borne a [0.15, 2.2]. Une seule variable latente suffit a produire la CORRELATION entre absences observee sur les vraies annonces (une annonce baclee l'est sur tous ses champs).",
+  "rule": "R-43 \u2014 chaque annonce porte un facteur latent c ~ Beta(6, 2) (moyenne 0,75). Le taux d'absence effectif d'un champ vaut p_champ * g(c) * h(sellerType) * k(age), avec g(c) = 2 - 2c borne a [0.15, 2.2]. Une seule variable latente suffit a produire la CORRELATION entre absences observee sur les vraies annonces (une annonce baclee l'est sur tous ses champs).",
   "hSellerType": {
    "D": 0.75,
    "P": 1.55
@@ -102,8 +102,8 @@
   "seller.dealerBucket": 0.0
  },
  "conditionalAbsence": {
-  "$comment": "R-45 — absences STRUCTURELLES : le champ est sans objet, absent a 100 %, et cela n'entre dans aucun taux de completude (contraintes DATA-MODEL 7, 11, 17, 18, 20)",
-  "prices.public.isTaxDeductible": "absent si seller.type = P (contrainte 7)",
+  "$comment": "R-45 \u2014 absences STRUCTURELLES : le champ est sans objet, absent a 100 %, et cela n'entre dans aucun taux de completude (contraintes DATA-MODEL 7, 11, 17, 18, 20). DR3-17(a) : cette table etait INCOMPLETE \u2014 elle omettait les unites, deux couplages de prix et de garantie, et decrivait mal la population des champs electriques. Elle est la SOURCE de la table d'eligibilite de P-55 : un champ qui n'y figure pas est mesure sur tout le snapshot, ce qui fausse son taux. Les entrees ajoutees en 3.4 sont marquees (DR3-17).",
+  "prices.public.isTaxDeductible": "absent si seller.type = P (contrainte 7) OU si le prix n'est pas affiche (le champ accompagne un montant) \u2014 DR3-17",
   "prices.public.netPrice": "absent si isTaxDeductible != true (contrainte 8)",
   "prices.public.vatRate": "absent si isTaxDeductible != true",
   "prices.public.currency": "present si et seulement si prices.public.price est present",
@@ -113,11 +113,11 @@
   "appliedSeals": "absent si seller.type = P",
   "warranty": "absent si seller.type = P",
   "hasWarranty": "absent si seller.type = P",
-  "warrantyUnit": "absent si warranty absent",
-  "consumption.electricCombined": "absent si fuelCategory hors {E, 2, 3} (contrainte 20)",
-  "wltp.consumptionElectricCombined": "absent si fuelCategory hors {E, 2, 3}",
-  "electricRange": "absent si fuelCategory hors {E, 2, 3}",
-  "battery.capacity": "absent si fuelCategory hors {E, 2, 3}",
+  "warrantyUnit": "absent si warranty absent, donc absent chez un particulier \u2014 DR3-17",
+  "consumption.electricCombined": "absent hors des annonces qui portent une consommation electrique, c'est-a-dire ELECTRIQUE (E) OU RECHARGEABLE : une hybride NON rechargeable de categorie 2 ou 3 n'en a pas. La formulation \u00ab hors {E, 2, 3} \u00bb etait trop large (DR3-17). S'ajoute la branche : NEDC seulement.",
+  "wltp.consumptionElectricCombined": "meme population que consumption.electricCombined, branche WLTP \u2014 DR3-17",
+  "electricRange": "absent hors des annonces electriques ou rechargeables \u2014 DR3-17",
+  "battery.capacity": "absent hors des annonces electriques ou rechargeables \u2014 DR3-17",
   "battery.ownershipType": "absent si fuelCategory != E",
   "consumption.combined": "absent si fuelCategory dans {E, H}",
   "wltp.consumptionCombined": "absent si fuelCategory dans {E, H}",
@@ -126,7 +126,16 @@
   "cylinderCount": "absent si fuelCategory = E",
   "hasParticleFilter": "absent si fuelCategory hors {D, 3}",
   "co2Emissions / consumption.* / efficiencyClass": "absents a 100 % en branche WLTP (contrainte 17, rejet du schema)",
-  "wltp.*": "absents a 100 % en branche NEDC (contrainte 17, rejet du schema)"
+  "wltp.*": "absents a 100 % en branche NEDC (contrainte 17, rejet du schema)",
+  "prices.public.isNegotiable": "absent si le prix n'est pas affiche \u2014 DR3-17",
+  "mileageUnit": "present si et seulement si mileage est present : une unite ne se sert jamais seule \u2014 DR3-17",
+  "powerUnit": "present si et seulement si power est present \u2014 DR3-17",
+  "cylinderCapacityUnit": "present si et seulement si cylinderCapacity est present \u2014 DR3-17",
+  "co2EmissionsUnit": "present si et seulement si co2Emissions est present (branche NEDC) \u2014 DR3-17",
+  "battery.capacityUnit": "present si et seulement si battery.capacity est present \u2014 DR3-17",
+  "isPluginHybrid": "mesurable sur les seules categories 2 et 3. DR3-05 : le champ etait ECRIT sans condition des que l'annonce est rechargeable, ce qui rendait son taux d'absence inatteignable ; il est desormais soumis au modele de completude pour les DEUX valeurs.",
+  "wltp.co2Class": "absent hors branche WLTP. DR3-05 : la classe de CO2 est FORCEE presente quand elle est le dernier champ WLTP de la ligne \u2014 sans quoi le bloc wltp disparait et l'annonce devient indiscernable d'une annonce sans branche de mesure, ce qui biaise vers le bas tous les taux mesures sur la population WLTP.",
+  "co2EmissionInGramPerKmWithFallback / consumptionCombinedWithFallback": "servis des qu'une valeur existe dans l'une des branches : leur population n'est pas observable depuis la ligne, ils sont ECARTES de P-55 (P-97 les couvre) \u2014 DR3-17"
  },
  "equipmentCountByseller": {
   "D": {
@@ -140,5 +149,6 @@
   "D": 0.015,
   "P": 0.09
  },
- "paintTypeNote": "contrainte DATA-MODEL 30 (H-01, C-10) : paintType n'a JAMAIS ete observe sur la source. Il reste majoritairement absent (82 %) — un remplissage systematique ferait passer une hypothese pour un fait."
+ "paintTypeNote": "contrainte DATA-MODEL 30 (H-01, C-10) : paintType n'a JAMAIS ete observe sur la source. Il reste majoritairement absent (82 %) \u2014 un remplissage systematique ferait passer une hypothese pour un fait.",
+ "baseRatesNote": "DR3-05 \u2014 le facteur de calibrage par champ est resolu sur la population ELIGIBLE du champ, jamais sur un echantillon global : les populations conditionnelles (branche de mesure, motorisation, type de vendeur) ont un facteur de completude moyen tres different de celui du stock."
 }

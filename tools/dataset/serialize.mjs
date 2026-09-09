@@ -184,10 +184,36 @@ export function calibrateMissingness(listings, fields, tables) {
   const scale = new Float64Array(fields.length).fill(1);
   for (let i = 0; i < fields.length; i += 1) {
     const base = fields[i].base;
+    // DR3-05 - LE CALIBRAGE PORTE SUR LA POPULATION QUE LE CHAMP CONCERNE.
+    //
+    // Le facteur `scale[f]` etait resolu sur un echantillon GLOBAL des multiplicateurs `m`, y
+    // compris pour les champs a population CONDITIONNELLE dont le `m` moyen n'a aucune raison
+    // d'egaler celui du stock. Consequence mesuree par `P-55` : `consumption.electricCombined`
+    // (branche NEDC, donc annonces ANCIENNES, donc `m` eleve par le facteur d'age) sortait a
+    // 24,1 % pour 15 % de reference (+60,9 %), tandis qu'`isPluginHybrid` (hybrides rechargeables,
+    // donc annonces RECENTES) sortait a 4,6 % (-69,4 %). Les trois champs hors tolerance etaient
+    // les trois champs conditionnels dont la sous-population est la plus atypique.
+    //
+    // L'echantillon de resolution est desormais celui des annonces ELIGIBLES au champ. Le repli sur
+    // l'echantillon global ne sert que si la sous-population est trop petite pour etre resolue.
+    // L'echantillon est PARCOURU A PAS CONSTANT sur toute la population, jamais tronque en tete :
+    // les slots sont ordonnes par marque (apportionnement exact, R-02), donc les 4 096 premiers ne
+    // sont pas un echantillon mais une poignee de marques.
+    let eligibleTotal = 0;
+    for (let k = 0; k < listings.length; k += 1) if (fields[i].eligible(listings[k])) eligibleTotal += 1;
+    const eligibleStep = Math.max(1, Math.floor(eligibleTotal / 4096));
+    const eligibleSample = [];
+    let seen = 0;
+    for (let k = 0; k < listings.length; k += 1) {
+      if (!fields[i].eligible(listings[k])) continue;
+      if (seen % eligibleStep === 0) eligibleSample.push(completenessMultiplier(listings[k], tables) / normalizer);
+      seen += 1;
+    }
+    const resolveOn = eligibleSample.length >= 32 ? eligibleSample : sample;
     const mean = (sc) => {
       let sum = 0;
-      for (const m of sample) sum += clamp(base * sc * m, 0, 0.98);
-      return sum / sample.length;
+      for (const m of resolveOn) sum += clamp(base * sc * m, 0, 0.98);
+      return sum / resolveOn.length;
     };
     if (mean(1) >= base - 1e-9) {
       let lo = 0.2;
@@ -217,15 +243,78 @@ export function calibrateMissingness(listings, fields, tables) {
  * du profil : il ne doit pas dependre du snapshot, sinon le motif d'absence d'une survivante
  * changerait (contrainte 4, sonde P-70).
  */
-export function applyMissingness(listing, fields, tables, seed, calib) {
+/**
+ * DR3-11 - CHAMPS QU'UNE ANOMALIE DECLAREE REND INTOUCHABLES.
+ *
+ * L'injection d'anomalie precede le modele de completude ; celui-ci pouvait ensuite RETIRER le champ
+ * porteur de l'anomalie. Mesure de la revue : 61 valeurs injectees declarees au manifest ne se
+ * retrouvaient pas dans la ligne, dont 49 `VERSION_*` dont `modelVersion` avait disparu. Une
+ * anomalie sans valeur observable n'est pas une verite terrain (`DATASET-SPEC` §6, sonde `P-73`).
+ *
+ * La table ci-dessous ne protege QUE le champ que l'anomalie ecrit (ou celui dont M1/M2 ont besoin
+ * pour evaluer l'annonce) : l'absence reste libre partout ailleurs, et les taux de `P-55` ne
+ * bougent que du poids de ces quelques centaines de lignes.
+ */
+const ANOMALY_PROTECTED_FIELDS = {
+  'A-03': ['mileage'],
+  'A-04': ['mileage', 'firstRegistrationDate'],
+  'A-04b': ['mileage'],
+  'A-05': ['firstRegistrationDate'],
+  'A-09': ['modelVersion'],
+  'A-09b': ['modelVersion'],
+  'A-10': ['firstRegistrationDate'],
+  // A-11 : M2 n'evalue une annonce que si son annee ET son kilometrage sont servis (points `F`
+  // d'`EX-DATA-90`). Sans cette protection, une part des M2 injectes n'a AUCUN verdict.
+  'A-11': ['mileage', 'firstRegistrationDate'],
+  'A-13': ['power', 'powerHp'],
+  'A-13b': ['power', 'powerHp'],
+  'A-14': ['co2Emissions', 'wltp.co2EmissionsCombined'],
+  'A-15': ['isPluginHybrid'],
+  'A-17': ['mileage'],
+  'A-21': ['location.postalCodePrefix2'],
+};
+
+/** Cles de champ que les anomalies portees par cette annonce interdisent de retirer. */
+export function protectedKeysFor(listing) {
+  const keys = new Set();
+  for (const id of listing.anomalies ?? []) {
+    for (const k of ANOMALY_PROTECTED_FIELDS[id] ?? []) keys.add(k);
+  }
+  return keys;
+}
+
+/**
+ * Esperance du nombre d'annonces portant un champ apres le modele de completude (DR3-10 : la base
+ * declaree « annonces portant powerHp » doit etre chiffrable AVANT le tirage des anomalies).
+ */
+export function expectedPresence(listings, fields, tables, calib, key) {
+  const i = fields.findIndex((f) => f.key === key);
+  if (i < 0) return listings.length;
+  let present = 0;
+  for (const l of listings) {
+    if (!fields[i].eligible(l)) {
+      present += 1; // hors du modele de completude : le champ est servi (ou sans objet, voir §4)
+      continue;
+    }
+    const m = completenessMultiplier(l, tables) / calib.normalizer;
+    present += 1 - clamp(fields[i].base * calib.scale[i] * m, 0, 0.98);
+  }
+  return present;
+}
+
+export function applyMissingness(listing, fields, tables, seed, calib, protectedKeys) {
   const m = completenessMultiplier(listing, tables) / calib.normalizer;
   const absent = new Set();
   let count = 0;
+  const guarded = protectedKeys ?? new Set();
   for (let i = 0; i < fields.length; i += 1) {
     const f = fields[i];
     if (!f.eligible(listing)) continue;
     const p = clamp(f.base * calib.scale[i] * m, 0, 0.98);
     if (pureUnit(seed, DOM_MISS + i * 3, listing.rowIndex) < p) {
+      // DR3-11 : le tirage est CONSOMME meme quand le champ est protege, pour que la protection ne
+      // decale pas le motif d'absence des autres champs (contrainte 4, sonde P-70).
+      if (guarded.has(f.key)) continue;
       absent.add(f.key);
       count += 1;
     }
@@ -234,7 +323,7 @@ export function applyMissingness(listing, fields, tables, seed, calib) {
   // dans le premier centile ; on complete au besoin par les champs les plus souvent absents).
   if (listing.forceIncomplete && count < 6) {
     const ordered = fields
-      .filter((f) => f.eligible(listing) && !absent.has(f.key))
+      .filter((f) => f.eligible(listing) && !absent.has(f.key) && !guarded.has(f.key))
       .sort((a, b) => b.base - a.base);
     for (const f of ordered) {
       if (count >= 6) break;
@@ -327,7 +416,14 @@ export function toAs24(l, absent, ctx, snap) {
   if (l.additionalFuelTypes !== null && has('additionalFuelTypes')) o.additionalFuelTypes = l.additionalFuelTypes;
   if (has('fuelSourceLabel')) o.fuelSourceLabel = l.fuelSourceLabel;
   const pluginEligible = l.fuelCategory === '2' || l.fuelCategory === '3';
-  if (l.isPlugin === true) o.isPluginHybrid = true;
+  // DR3-05 : le champ etait ecrit INCONDITIONNELLEMENT des que l'annonce est rechargeable, alors que
+  // le modele de completude le tire dans la population { categories 2, 3 }. Seules les hybrides NON
+  // rechargeables (30 % de la population eligible) pouvaient donc le perdre, et le taux d'absence
+  // realise plafonnait a 4,6 % pour 15 % de reference (P-55, ecart relatif -69 %). Le tirage vaut
+  // pour les deux valeurs : une annonce rechargeable dont la ligne ne le dit pas est une annonce
+  // incomplete ordinaire. Hors des categories 2 et 3 (A-15, incoherence declaree), la valeur reste
+  // ecrite sans condition - elle n'appartient a aucune population de completude.
+  if (l.isPlugin === true && (!pluginEligible || has('isPluginHybrid'))) o.isPluginHybrid = true;
   else if (pluginEligible && has('isPluginHybrid')) o.isPluginHybrid = false;
 
   // R-45 / sonde P-59 : les champs reserves a {E, 2, 3} ne sont servis que si la ligne DECLARE sa
@@ -386,7 +482,17 @@ export function toAs24(l, absent, ctx, snap) {
       o.electricCombinedUnit = 'kWh/100km';
     }
     if (has('wltp.co2Class')) w.co2Class = l.co2Zero ? 10 : l.co2Class;
-    if (Object.keys(w).length > 0) o.wltp = w;
+    // DR3-05 / DR3-17 - LA BRANCHE DE MESURE NE DOIT PAS DISPARAITRE AVEC SON DERNIER CHAMP.
+    //
+    // Une annonce electrique ou rechargeable de branche WLTP ne porte que deux champs WLTP : la
+    // consommation electrique et la classe de CO2. Quand le modele de completude retirait les deux,
+    // le bloc `wltp` disparaissait et la ligne devenait indiscernable d'une annonce SANS branche de
+    // mesure (`measurementBranch` = NONE). Les taux d'absence mesurables s'en trouvaient biaises
+    // VERS LE BAS - la population qui porte l'absence sortait de la population observable - et la
+    // branche declaree par R-38 n'etait plus verifiable sur ces lignes. La classe de CO2 est le
+    // champ qui porte la branche quand tous les autres sont partis.
+    if (Object.keys(w).length === 0) w.co2Class = l.co2Zero ? 10 : l.co2Class;
+    o.wltp = w;
   } else {
     co2Retained = l.co2Zero ? 0 : isElec || l.fuelCategory === 'H' ? 0 : roundCo2(l.co2);
     consRetained = thermal && l.consumption !== null ? round1(l.consumption) : null;

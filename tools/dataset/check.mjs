@@ -310,20 +310,53 @@ export function runCheck(opts) {
   add('P-66', 'effectif par marque identique sur les 3 snapshots', makeStable ? 'identique' : 'DERIVE', makeStable);
   const byId0 = new Map(parsed[0].map((o) => [o.id, o]));
   let mutated = 0;
-  let revised = 0;
   for (const o of parsed[1]) {
     const prev = byId0.get(o.id);
     if (!prev) continue;
-    if (o.lastUpdatedAt !== prev.lastUpdatedAt) {
-      revised += 1;
-      continue;
-    }
+    // Une annonce revisee est hors du perimetre de P-70 ; P-68, ci-dessous, la compte a part.
+    if (o.lastUpdatedAt !== prev.lastUpdatedAt) continue;
     const a = { ...o, publication: { ...o.publication, isNew: false } };
     const b = { ...prev, publication: { ...prev.publication, isNew: false } };
     if (JSON.stringify(a) !== JSON.stringify(b)) mutated += 1;
   }
   add('P-70', 'survivantes non revisees identiques champ a champ', `${mutated} ecart(s)`, mutated === 0);
-  add('P-68', 'part de survivantes revisees (prix ou images)', `${((revised / (idSets[0].size * (1 - exitRates[0]))) * 100).toFixed(1)} %`, true);
+  // DR3-06 - LE CONTROLE P-68 NE PROUVAIT RIEN. Il passait `true` en dur (aucune tolerance evaluee)
+  // et comptait « prix OU images ». La revue a mesure 10,2 % de prix affiches reellement modifies
+  // pour une tolerance de [14 %, 20 %] : le controle etait aveugle a un ecart de quatre points.
+  // Il mesure desormais ce que la sonde mesure - la part de survivantes dont le PRIX AFFICHE change
+  // entre deux snapshots, et la part de ces changements qui sont des baisses - avec les tolerances
+  // de la specification.
+  const revisionShare = (a, b) => {
+    const before = new Map(a.map((o) => [o.id, o]));
+    let survivors = 0;
+    let changed = 0;
+    let down = 0;
+    for (const o of b) {
+      const prev = before.get(o.id);
+      if (!prev) continue;
+      survivors += 1;
+      const p0 = price(prev);
+      const p1 = price(o);
+      if (p0 === undefined || p1 === undefined || p0 === p1) continue;
+      changed += 1;
+      if (p1 < p0) down += 1;
+    }
+    return { share: changed / survivors, down: changed === 0 ? NaN : down / changed, changed, survivors };
+  };
+  const rev = [revisionShare(parsed[0], parsed[1]), revisionShare(parsed[1], parsed[2])];
+  const revOk = rev.every((r) => r.share >= 0.14 && r.share <= 0.2 && r.down >= 0.8 && r.down <= 0.88);
+  add(
+    'P-68',
+    'part de survivantes dont le PRIX AFFICHE change, et part a la baisse',
+    rev.map((r) => `${(r.share * 100).toFixed(2)} % (${r.changed}/${r.survivors}) dont ${(r.down * 100).toFixed(1)} % a la baisse`).join(' | '),
+    revOk,
+  );
+  // DR3-07 : la mediane de prix doit RECULER entre le premier et le dernier snapshot (au plus 3 %).
+  const medOf = (objs) => median(objs.map(price).filter((p) => p !== undefined));
+  const med0 = medOf(parsed[0]);
+  const medLast = medOf(parsed[parsed.length - 1]);
+  const drop = 1 - medLast / med0;
+  add('P-69', 'derive de la mediane de prix S0 -> S2', `${med0} -> ${medLast} EUR (${(-drop * 100).toFixed(2)} %)`, drop >= 0 && drop <= 0.03);
   let kmChanged = 0;
   for (const o of parsed[1]) {
     const prev = byId0.get(o.id);
@@ -336,17 +369,43 @@ export function runCheck(opts) {
   for (const g of snaps[0].manifest.groundTruth) gtByCode.set(g.anomaly, (gtByCode.get(g.anomaly) ?? 0) + 1);
   const anomalyRows = [];
   let anomalyOk = true;
+  // DR3-10 - LA BASE DECLAREE, PAS N. Le controle prenait `N` pour denominateur de TOUS les taux,
+  // exactement comme le generateur : il ne pouvait donc pas voir que cinq anomalies etaient hors
+  // tolerance sur la base qu'`anomalies.json` declare (jusqu'a +3 189 % pour A-20). Les effectifs de
+  // base sont recomptes ici sur les lignes LIVREES, indépendamment du generateur.
+  const THERMAL = new Set(['B', 'D', '2', '3', 'L', 'C', 'M', 'O']);
+  const statusOf = (o) => (o.prices?.public?.onRequestOnly === true ? 'ON_REQUEST' : price(o) !== undefined ? 'QUOTED' : 'MISSING');
+  const baseCounts = {
+    total: s0.length,
+    pro: s0.filter((o) => o.seller?.type === 'D').length,
+    usedOffer: s0.filter((o) => ['U', 'J', 'O'].includes(o.offerType)).length,
+    thermal: s0.filter((o) => o.fuelCategory !== undefined && THERMAL.has(o.fuelCategory)).length,
+    hybrid: s0.filter((o) => o.fuelCategory === '2' || o.fuelCategory === '3').length,
+    withPowerHp: s0.filter((o) => o.powerHp !== undefined).length,
+    quoted: s0.filter((o) => statusOf(o) === 'QUOTED').length,
+    onRequest: s0.filter((o) => statusOf(o) === 'ON_REQUEST').length,
+  };
+  const baseOf = (b) => {
+    if (b.startsWith('annonces a prix affiche')) return baseCounts.quoted;
+    if (b === 'annonces professionnelles') return baseCounts.pro;
+    if (b === "annonces d'offerType U, J ou O") return baseCounts.usedOffer;
+    if (b === 'annonces thermiques') return baseCounts.thermal;
+    if (b === 'annonces hybrides') return baseCounts.hybrid;
+    if (b === 'annonces portant powerHp') return baseCounts.withPowerHp;
+    if (b === 'annonces a prix sur demande') return baseCounts.onRequest;
+    return baseCounts.total;
+  };
   for (const a of tables.anomalies.anomalies) {
     if (a.rate <= 0) continue;
-    const target = Math.round(a.rate * N);
+    const target = a.rate * baseOf(a.base);
     const codes = a.anomalyCode.split('/').map((c) => c.trim()).filter((c) => c !== '(sans objet)');
     const got = codes.reduce((acc, c) => acc + (gtByCode.get(c) ?? 0), 0);
     const shared = codes.some((c) => tables.anomalies.anomalies.filter((x) => x.anomalyCode.includes(c)).length > 1);
-    const ok = shared ? got >= target : Math.abs(got - target) <= Math.max(1, Math.round(target * 0.2));
+    const ok = shared ? got >= Math.floor(target) : Math.abs(got - target) <= Math.max(1, target * 0.2);
     if (!ok) anomalyOk = false;
-    anomalyRows.push(`${a.id}:${got}/${target}`);
+    anomalyRows.push(`${a.id}:${got}/${target.toFixed(1)}@${baseOf(a.base)}`);
   }
-  add('P-72', 'effectifs par anomalie (vise / realise)', anomalyRows.join(' '), anomalyOk);
+  add('P-72', 'effectifs par anomalie (realise / attendu SUR SA BASE @ effectif de base)', anomalyRows.join(' '), anomalyOk);
   const ids0 = idSets[0];
   const orphan = snaps[0].manifest.groundTruth.filter((g) => !ids0.has(g.listingId)).length;
   add('P-73', 'verite terrain rattachee a une ligne du snapshot', `${orphan} orpheline(s)`, orphan === 0);
@@ -384,7 +443,11 @@ export function runCheck(opts) {
   add('P-11', 'familles bmw-serie-3 / bmw-serie-1', `${f3} / ${f1} (seuil 280)`, opts.profile !== 'test' || (f3 >= 280 && f1 >= 280), 'EG-01');
   const recent = s0.filter((o) => o.firstRegistrationDate && o.firstRegistrationDate >= '2022');
   const suv = recent.filter((o) => o.bodyType === 4).length / recent.length;
-  add('P-23', 'part de carrosserie SUV parmi les 1res immat. >= 2022', `${(suv * 100).toFixed(1)} %`, suv >= 0.38 && suv <= 0.52);
+  // DR3-19 : EG-12 nomme les sondes dont la tolerance n'est pas atteignable au VOLUME dev. La liste
+  // passe de trois a sept (P-18, P-23, P-37, P-38, P-45, P-55, P-58) ; ici, seules celles que ce
+  // controle rejoue sont marquees. Au profil test elles restent OPPOSABLES.
+  const devNoise = opts.profile === 'test' ? null : 'EG-12';
+  add('P-23', 'part de carrosserie SUV parmi les 1res immat. >= 2022', `${(suv * 100).toFixed(1)} %`, suv >= 0.38 && suv <= 0.52, devNoise);
   const coupe = s0.filter((o) => o.bodyType === 3).length / N;
   add('P-24', 'part de carrosserie coupe', `${(coupe * 100).toFixed(2)} %`, coupe >= 0.02 && coupe <= 0.035);
   const autoShare = (y) => {
@@ -415,14 +478,22 @@ export function runCheck(opts) {
   const presence = presenceRates(s0, tables);
   let worstField = null;
   let worstDev = 0;
-  for (const [key, { rate, base }] of presence) {
+  const breaches = [];
+  for (const [key, { rate, base, n }] of presence) {
     const dev = base === 0 ? 0 : Math.abs(rate - base) / base;
+    if (dev > 0.25) breaches.push(`${key} ${(rate * 100).toFixed(2)} % vs ${(base * 100).toFixed(2)} % (n=${n})`);
     if (dev > worstDev) {
       worstDev = dev;
-      worstField = `${key} ${(rate * 100).toFixed(1)} % vs ${(base * 100).toFixed(1)} %`;
+      worstField = `${key} ${(rate * 100).toFixed(1)} % vs ${(base * 100).toFixed(1)} % (n=${n})`;
     }
   }
-  add('P-55', 'ecart relatif max au taux d absence de reference', `${(worstDev * 100).toFixed(1)} % (${worstField})`, worstDev <= 0.25);
+  add(
+    'P-55',
+    `taux d absence de ${presence.size} champs a +/- 25 % relatifs (${presence.skipped.length} ecarte(s) : ${presence.skipped.join(', ')})`,
+    breaches.length === 0 ? `ecart max ${(worstDev * 100).toFixed(1)} % (${worstField})` : `HORS TOLERANCE ${breaches.join(' | ')}`,
+    breaches.length === 0,
+    devNoise,
+  );
   const rates = [...presence.values()].map((v) => v.rate);
   const mu = rates.reduce((a, b) => a + b, 0) / rates.length;
   const sd = Math.sqrt(rates.reduce((a, b) => a + (b - mu) ** 2, 0) / rates.length);
@@ -438,7 +509,7 @@ export function runCheck(opts) {
   const pro = s0.filter((o) => o.seller.type === 'D');
   const ratio = (priv.filter((o) => o.equipment === undefined).length / priv.length) /
     (pro.filter((o) => o.equipment === undefined).length / pro.length);
-  add('P-58', 'absence d equipement PRIVE / PRO', ratio.toFixed(2), ratio >= 1.8);
+  add('P-58', 'absence d equipement PRIVE / PRO', ratio.toFixed(2), ratio >= 1.8, devNoise);
   const paint = s0.filter((o) => o.paintType === undefined).length / N;
   add('P-108', 'taux d absence de paintType', `${(paint * 100).toFixed(1)} %`, paint >= 0.75);
   const de47 = s0.filter((o) => o.location.postalCodePrefix2 === '47').length;
@@ -453,20 +524,80 @@ export function runCheck(opts) {
   return rows;
 }
 
-/** Taux d'absence realise par champ, sur la base ELIGIBLE (les absences structurelles sont exclues). */
+/**
+ * DR3-05 - TAUX D'ABSENCE REALISE, SUR TOUS LES CHAMPS ET SUR LEUR POPULATION ELIGIBLE.
+ *
+ * L'ancienne version ne suivait que 30 champs, tous INCONDITIONNELS, nommes dans une liste en dur :
+ * les 52 autres taux de `baseRates` n'etaient controles par personne, et c'est precisement parmi les
+ * champs CONDITIONNELS que la revue a trouve les trois ecarts de DR3-05 (jusqu'a -69 % relatifs).
+ * Toutes les cles de `baseRates` sont desormais mesurees, chacune sur la population que
+ * `missingness.json:conditionalAbsence` lui donne. Trois champs dont la population n'est pas
+ * observable depuis le fichier livre sont NOMMES et ecartes, jamais tus ; les populations de moins
+ * de 100 lignes sont ecartees pour la meme raison que dans la sonde du reviewer : a cet effectif la
+ * bande de +/- 25 % relatifs vaut moins de deux erreurs-types et ne mesure plus rien.
+ */
 function presenceRates(objects, tables) {
   const base = tables.missingness.baseRates;
-  const paths = ['makeName', 'modelVersion', 'productionYear', 'firstRegistrationDate', 'mileage', 'power',
-    'powerHp', 'gearCount', 'transmission', 'drivetrain', 'fuelCategory', 'primaryFuelType', 'fuelSourceLabel',
-    'euEmissionStandard', 'previousOwnerCount', 'hasFullServiceHistory', 'nextInspectionDate', 'wasCabOrRental',
-    'usageState', 'offerType', 'bodyType', 'doorCount', 'seatCount', 'bodyColor', 'isMetallic', 'paintType',
-    'upholsteryType', 'upholsteryColor', 'equipment', 'hasVideo'];
+  const at = (o, path) => path.split('.').reduce((acc, k) => (acc === undefined || acc === null ? undefined : acc[k]), o);
+  const elec = (o) => o.fuelCategory === 'E' || o.isPluginHybrid === true;
+  const pro = (o) => o.seller?.type === 'D';
+  const branch = (o) => (o.wltp !== undefined ? 'WLTP' : o.co2Emissions !== undefined || o.consumption !== undefined || o.efficiencyClass !== undefined ? 'NEDC' : 'NONE');
+  // `null` = population non observable depuis le fichier livre ; absent = tout le snapshot.
+  const quoted = (o) => price(o) !== undefined;
+  const ELIGIBLE = {
+    'prices.public.isTaxDeductible': (o) => pro(o) && quoted(o),
+    'prices.public.isNegotiable': quoted,
+    'prices.public.netPrice': (o) => o.prices?.public?.isTaxDeductible === true,
+    'prices.public.vatRate': (o) => o.prices?.public?.isTaxDeductible === true,
+    'prices.public.currency': (o) => o.prices?.public?.price !== undefined,
+    'prices.public.evaluation.category': null,
+    'seller.dealerBucket': pro,
+    'adProduct.tier': pro,
+    appliedSeals: pro,
+    warranty: pro,
+    hasWarranty: pro,
+    warrantyUnit: pro,
+    'consumption.electricCombined': (o) => elec(o) && branch(o) === 'NEDC',
+    'consumption.combined': (o) => o.fuelCategory !== 'E' && o.fuelCategory !== 'H' && branch(o) === 'NEDC',
+    'wltp.consumptionElectricCombined': (o) => elec(o) && branch(o) === 'WLTP',
+    'wltp.consumptionCombined': (o) => o.fuelCategory !== 'E' && o.fuelCategory !== 'H' && branch(o) === 'WLTP',
+    'wltp.co2EmissionsCombined': (o) => o.fuelCategory !== 'E' && o.fuelCategory !== 'H' && branch(o) === 'WLTP',
+    'wltp.co2Class': (o) => branch(o) === 'WLTP',
+    co2Emissions: (o) => branch(o) === 'NEDC',
+    efficiencyClass: (o) => branch(o) === 'NEDC',
+    electricRange: elec,
+    'battery.capacity': elec,
+    'battery.ownershipType': (o) => o.fuelCategory === 'E',
+    cylinderCapacity: (o) => o.fuelCategory !== 'E',
+    cylinderCount: (o) => o.fuelCategory !== 'E',
+    hasParticleFilter: (o) => o.fuelCategory === 'D' || o.fuelCategory === '3',
+    isPluginHybrid: (o) => o.fuelCategory === '2' || o.fuelCategory === '3',
+    mileageUnit: (o) => o.mileage !== undefined,
+    powerUnit: (o) => o.power !== undefined,
+    cylinderCapacityUnit: (o) => o.cylinderCapacity !== undefined,
+    co2EmissionsUnit: (o) => o.co2Emissions !== undefined,
+    'battery.capacityUnit': (o) => at(o, 'battery.capacity') !== undefined,
+    co2EmissionInGramPerKmWithFallback: null,
+    consumptionCombinedWithFallback: null,
+  };
   const out = new Map();
-  for (const key of paths) {
-    if (base[key] === undefined || base[key] <= 0) continue;
-    const missing = objects.filter((o) => o[key] === undefined).length;
-    out.set(key, { rate: missing / objects.length, base: base[key] });
+  const skipped = [];
+  for (const key of Object.keys(base)) {
+    if (base[key] <= 0) continue;
+    const rule = Object.prototype.hasOwnProperty.call(ELIGIBLE, key) ? ELIGIBLE[key] : undefined;
+    if (rule === null) {
+      skipped.push(`${key} (population non observable)`);
+      continue;
+    }
+    const pop = rule === undefined ? objects : objects.filter(rule);
+    if (pop.length < 100) {
+      skipped.push(`${key} (n=${pop.length})`);
+      continue;
+    }
+    const missing = pop.filter((o) => at(o, key) === undefined).length;
+    out.set(key, { rate: missing / pop.length, base: base[key], n: pop.length });
   }
+  out.skipped = skipped;
   return out;
 }
 

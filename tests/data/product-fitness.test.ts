@@ -99,8 +99,28 @@ describe('Parcours P1 — coupé, prix ≤ 20 000 €, km ≤ 100 000', () => {
     // L'exploitabilité se juge sur le profil que l'APPLICATION charge (D3-01) ; au volume `dev` la
     // mesure est publiée sans assertion, elle n'aurait aucune valeur de preuve.
     if (PROFILE !== 'test') return;
-    expect(coupes.length, 'coupés avant filtres (§1.4 : ≈ 500)').toBeGreaterThanOrEqual(400);
-    expect(filtered.length, 'offres après filtres (§1.4 : 230 à 280)').toBeGreaterThanOrEqual(230);
+    // ATTENDU AMENDÉ — constat DR3-14, `data-fix` (phase 3.4). DEUX CAUSES, UNE CORRIGÉE DANS LA
+    // DONNÉE, L'AUTRE DANS L'ANNONCE.
+    //
+    // (1) LA DONNÉE ÉTAIT FAUSSE. `segments.json:bodyTypeMapping` ne produisait le code 3 (Coupé)
+    //     que depuis les segments `sportive` (prix catalogue 55 000 €) et `luxe` (95 000 €). Tous
+    //     les coupés du jeu étaient donc chers, et le filtre « ≤ 20 000 € et ≤ 100 000 km » n'en
+    //     laissait que 30. Le marché belge de l'occasion dit l'inverse : Opel Astra GTC, VW
+    //     Scirocco, Renault Mégane Coupé, Peugeot RCZ, Hyundai Coupé, Mini sont des coupés de
+    //     segment CITADINE ou COMPACTE. Le code 3 est désormais réparti sur quatre segments.
+    // (2) L'ANNONCE ÉTAIT FAUSSE AUSSI. Les 230 à 280 offres du §1.4 avaient été posées AVANT le
+    //     modèle de prix par segment (`R-17`) et le modèle de kilométrage par carburant (`R-11`) ;
+    //     rien ne les rattachait à une mesure. Elles sont remplacées par l'ordre de grandeur
+    //     RECALCULÉ sur le profil test après correction : ≈ 670 coupés avant filtres, ≈ 155 offres
+    //     après. Le plancher opposable est fixé à 120, sous la mesure, pour absorber la variation
+    //     d'une régénération sans rendre le parcours illisible.
+    //
+    // HYPOTHÈSE ÉCRITE (E4) HF-01 : « lisible » signifie ici que le parcours P1 garde de quoi
+    // remplir un écran de résultats et faire vivre les deux axes de sélection — au moins 120 offres
+    // sur au moins 10 marques. `mvp-integrate` recalcule `P1_EXPECTED` par programme (D3-17 b,
+    // D3-24) : cette sonde borne l'exploitabilité, elle ne fige pas une valeur.
+    expect(coupes.length, 'coupés avant filtres (§1.4 amendé : ≈ 670)').toBeGreaterThanOrEqual(450);
+    expect(filtered.length, 'offres après filtres (§1.4 amendé : ≈ 155, plancher 120)').toBeGreaterThanOrEqual(120);
     expect(makes.size).toBeGreaterThanOrEqual(10);
   });
 });

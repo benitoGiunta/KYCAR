@@ -148,8 +148,13 @@ describe('A.1 — schéma source vs dictionnaire vs vocabulaires KYCAR', () => {
     const forbidden = Object.entries(dep?.properties ?? {})
       .filter(([, v]) => (v as unknown) === false)
       .map(([k]) => k);
+    // SONDE AMENDÉE — constat DR3-12, CORRIGÉ par `data-fix` (phase 3.4). La liste attendue était
+    // FIGÉE sur l'état livré ; `R-DATA-24`, dans ce même fichier, exigeait au contraire l'ajout de
+    // `co2EmissionsUnit`, que `emissions.json:branchRule.WLTP.interdits` nomme depuis toujours. Les
+    // deux sondes étaient mutuellement exclusives : celle-ci pinçait le défaut, celle-là demandait
+    // sa correction. La liste attendue suit maintenant la correction.
     measure('S-05', `dependentSchemas.wltp interdit : ${forbidden.join(', ')}`);
-    expect([...forbidden].sort()).toEqual(['co2Emissions', 'consumption', 'efficiencyClass']);
+    expect([...forbidden].sort()).toEqual(['co2Emissions', 'co2EmissionsUnit', 'consumption', 'efficiencyClass']);
   });
 
   it('R-DATA-24 — dependentSchemas.wltp n’interdit pas co2EmissionsUnit, que emissions.json interdit', () => {
