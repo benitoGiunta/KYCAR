@@ -84,15 +84,34 @@ Hypothèses secondaires H6, H10, H11, H12, H14 : voir le champ `source` de chaqu
 **Repris** : le PRNG `xoshiro128**` et le tirage par table ; la génération en deux phases ; le
 **tirage par hachage pur** `hashToUnit(combineKeys(seed ^ domaine, ligne))` pour les traits rares,
 qui évite de décaler le flot principal ; la concentration marque/modèle (`popularity.ts`, DR-038) ;
-la distinction M1 absolu / M2 relatif à la cellule avec le plancher à 250 € sur `M1_LOW` (sous ce
-seuil l'annonce devient une sentinelle, sort de `V_price`, et la vérité terrain devient
-infalsifiable) ; l'exclusion mutuelle sentinelle / outlier.
+la distinction M1 absolu / M2 relatif à la cellule ; l'exclusion mutuelle sentinelle / outlier.
+
+**Non repris — le plancher absolu de 250 € sur `M1_LOW` (amendement DR3-04 bis, `data-fix` 3.4).**
+La première rédaction reprenait du générateur synthétique le garde-fou « `M1_LOW` ne descend jamais
+sous 250 € ». Il est **inopérant** : `EX-DATA-19(2)` retire de `V_price(C)` tout prix inférieur à
+`0,10 × médianeRéf(C)`, soit **1 595 €** dans une cellule dont la médiane vaut 15 950 €. Mesure de
+la revue 3.3 : **32 des 50** `OUTLIER_M1_LOW` injectés portaient `PRICE_IMPLAUSIBLE_IN_CELL`,
+sortaient de la cellule et n'étaient **jamais évalués** — rappel de M1 **36 %** pour 90 % annoncés
+(`DR3-08`). Le seuil qui compte est **relatif à la cellule**, jamais absolu : voir §6.
 
 **Corrigé, avec le motif** :
 
 | # | Défaut du générateur actuel | Correction |
 |---|---|---|
-| C-1 | `priceEvaluationCategory` est tirée d'un **bruit gaussien indépendant du prix** (`evalNoise`). M3 est alors décorrélé du juste prix : le κ d'`EX-DATA-96` vaut zéro par construction et le contrôle croisé ne mesure rien. | `R-24` : la catégorie est **dérivée** de `ln(prix/juste prix)/σ_p` par seuils, puis brouillée d'un cran avec probabilité 0,12. κ attendu ∈ [0,25 ; 0,60] (`P-45`). |
+| C-1 | `priceEvaluationCategory` est tirée d'un **bruit gaussien indépendant du prix** (`evalNoise`). M3 est alors décorrélé du juste prix : le κ d'`EX-DATA-96` vaut zéro par construction et le contrôle croisé ne mesure rien. | `R-24` : la catégorie est **dérivée** de `ln(prix/juste prix)/σ_p` par seuils, puis brouillée d'un cran avec probabilité 0,12. **κ normalisé** `κ/κ_max` attendu ∈ [0,25 ; 0,60] (`P-45`, tolérance amendée — voir ci-dessous). |
+
+**Amendement DR3-04 — la tolérance de `P-45` portait sur une échelle inatteignable.** `[0,25 ; 0,60]`
+s'appliquait au κ **brut**. Or le κ de Cohen est borné par les marges des deux classements :
+`κ_max = (1 − |p_a − p_b| − p_e)/(1 − p_e)`, où `p_a = P(catégorie ∈ {1,2})` et `p_b = P(M1_LOW)`.
+Mesuré au profil test : `p_a ≈ 52,6 %` (une étiquette commerciale qui couvre la moitié du marché) et
+`p_b ≈ 2,2 %` (le bas d'une barrière de Tukey, c'est-à-dire la queue d'une log-normale), d'où
+**`κ_max ≈ 0,040`**. La borne basse de 0,25 est **six fois** au-dessus du maximum arithmétique :
+aucune donnée ne peut rendre la sonde verte, quelle que soit la qualité de la corrélation. La
+tolérance porte donc désormais sur le **κ normalisé** `κ/κ_max` — la mesure usuelle d'accord corrigée
+du plafond marginal — avec les **mêmes bornes numériques**, ce qui conserve mot pour mot l'intention
+de `R-24` : un κ nul (le défaut C-1 lui-même) donne un rapport nul et la sonde reste rouge. Mesure
+après correction : `κ = 0,0136`, `κ_max = 0,0402`, **rapport 0,337**. La sonde n'est pas opposable au
+profil `dev`, où `M1_LOW` ne compte qu'une quinzaine d'annonces (EG-12 étendue, `DR3-19`).
 | C-2 | Marque et modèle sont tirés **multinomialement** : les effectifs par marque dérivent d'un tirage à l'autre et d'un profil à l'autre. | `R-02` : **apportionnement au plus fort reste** sur les parts. Les effectifs sont exacts (`P-08` : ±1) et proportionnels au volume du profil. |
 | C-3 | Aucune **fenêtre de production** : un VW T-Roc de 1998 est généré. | `R-10` : l'âge est tiré conditionnellement à `[yearFrom, yearTo+1]` du modèle (curaté ou dérivé par hachage). Sonde `P-12` = 0 violation. |
 | C-4 | Le kilométrage attendu est `âge × 14 000` **quel que soit le carburant** ; un diesel très kilométré est donc pénalisé comme un essence. | `R-11` : médiane `m_f · âge^0,90`, `m_f` par carburant (essence 12 500, diesel 19 000, PHEV diesel 25 500 km/an — S7, S8). |
@@ -112,7 +131,14 @@ infalsifiable) ; l'exclusion mutuelle sentinelle / outlier.
 ### 1.1 Marché et volumes (`R-01`)
 
 `marketplace = be`, un seul pays. Trois profils, trois snapshots chacun,
-`snapshotId = be-fixture-<profil>-<AAAAMMJJ>-<graine hex>`.
+`snapshotId = be-<AAAAMMJJ>T<hhmmss>Z` (**amendement DR3-01**).
+
+La première rédaction annonçait `be-fixture-<profil>-<AAAAMMJJ>-<graine hex>`. Cette forme n'a jamais
+été émise : `snapshot-manifest.schema.json` borne `snapshotId` à 32 caractères sur un **motif fermé**
+que seule la forme horodatée satisfait, et le nom du répertoire livré **est** l'identifiant. La forme
+livrée est donc le contrat **validé** ; c'est l'annonce qui était fausse. L'identifiant de
+**conception** (profil + graine, lisible) survit sous `profiles.json:designSnapshotIdPattern` et est
+publié dans `generation.json` (`designSnapshotId`).
 
 | Profil | Annonces / snapshot | Commité | Budget gz | Marques distinctes | Cellules `(mq, md, an)` n ≥ 12 | Cellules `(mq, md)` n ≥ 30 |
 |---|---:|---|---:|---:|---:|---:|
@@ -143,11 +169,25 @@ interdit (`P-107`).
 - **Entrées** : autant que de sorties, **marque par marque** (`R-52`). L'effectif par marque est donc
   **identique sur les trois snapshots** (`P-66`) — les valeurs attendues du parcours P1 ne dérivent
   pas. Le modèle d'une entrante est retiré dans la marque : les effectifs par modèle fluctuent
-  légèrement, ce qui donne matière à l'analyse de delta. Loi d'âge des entrantes inclinée de
-  `exp(−0,02 · âge)` : les arrivées sont un peu plus récentes que le stock.
+  légèrement, ce qui donne matière à l'analyse de delta. **La composition des entrantes est celle que
+  la stationnarité impose, non une inclinaison postulée** (amendement `DR3-07`) : `R-50` énonce déjà
+  que « la composition du stock vaut le flux d'entrée multiplié par la durée moyenne d'exposition »,
+  d'où `entrées(x) ∝ stock(x)/d(x)` pour **tout** profil `x`. Le générateur tire sur la loi du stock
+  et **accepte** un candidat avec la probabilité `d_min/d(x)` (acceptation-rejet). La rédaction
+  précédente inclinait la seule loi d'âge de `exp(−0,02 · âge)`, **en plus** de la durée d'exposition
+  et **sans** compenser sa dépendance au prix : le stock rajeunissait et s'enrichissait à chaque
+  snapshot, et la médiane de prix **montait de 5,6 %** en deux semaines là où `P-69` exige un recul.
+  Après correction, elle recule de **1,43 %** au profil test.
 - **Révisions de prix** : 17 % des survivantes, 84 % à la baisse (médiane −3,5 %), 16 % à la hausse
-  (médiane +2,5 %), amplitude log-normale bornée [1 %, 22 %], repassée par l'arrondi commercial.
-  Effet agrégé : la médiane recule d'environ 0,5 %/semaine (`P-69`).
+  (médiane +2,5 %), amplitude log-normale bornée [1 %, 22 %], repassée par l'arrondi commercial. **Une
+  révision qui ne déplace pas le prix affiché n'est pas une révision** (amendement `DR3-06`) : le
+  tirage était compté **avant** l'arrondi commercial, et environ 40 % des tirages retombaient sur la
+  même valeur de grille — 10,2 % des survivantes voyaient réellement leur prix bouger, pour 17,1 %
+  déclarées au manifest et une tolérance `P-68` de [14 %, 20 %]. Le générateur retire tant que
+  l'arrondi n'a pas mordu, à direction constante ; `manifest.delta.priceRevisedCount` compte
+  désormais les révisions **effectives**. Mesure : 16,3 % et 16,2 %, dont 83,8 % et 83,5 % à la
+  baisse. Effet agrégé : la médiane des **survivantes** recule (−0,52 % en deux semaines) et la
+  médiane globale suit (−1,43 %), `P-69`.
 - **Stables** (contrainte 4) : une annonce reconduite garde son `id`, son `createdAt` et son
   `firstActivatedDate` ; **seuls** `prices.public.price`, `lastUpdatedAt` et `imageCount` peuvent
   bouger. Tout autre champ modifié est un défaut, pas une variante (`P-70`).
@@ -168,9 +208,30 @@ interdit (`P-107`).
 ### 1.4 Effet attendu sur les parcours cibles
 
 Ordres de grandeur au profil `test`, à confirmer par `mvp-integrate` : P1 (`body=3` + `priceto=20000`
-+ `kmto=100000`) ≈ **500 coupés** avant filtres, ≈ **230–280 offres** après, sur ≈ 45 marques. P2 :
-**Opel Corsa ≈ 505** (dont ≈ 59 en 2021, ≈ 50 en 2019), VW Golf ≈ 748, BMW 320 ≈ 197, famille
-Série 3 ≈ 437.
++ `kmto=100000`) ≈ **670 coupés** avant filtres, ≈ **155 offres** après, sur ≈ 35 marques. P2 :
+**Opel Corsa ≈ 355**, VW Golf ≈ 590, BMW 320 ≈ 205, famille Série 3 ≈ 419.
+
+**Amendement DR3-14 — deux erreurs, une dans la donnée, une dans l'annonce.**
+
+1. *La donnée était fausse.* `segments.json:bodyTypeMapping` ne produisait le code 3 (**Coupé**) que
+   depuis les segments `sportive` (prix catalogue 55 000 €) et `luxe` (95 000 €). Tous les coupés du
+   jeu étaient donc chers, et le filtre « ≤ 20 000 € et ≤ 100 000 km » n'en laissait que **30** — le
+   parcours cible restait exerçable mais vide, et l'effectif frôlait le `|F| ≥ 30` d'`EX-DATA-90`. Le
+   marché belge de l'occasion dit l'inverse : Opel Astra GTC, VW Scirocco, Renault Mégane Coupé,
+   Peugeot RCZ, Hyundai Coupé, Mini sont des coupés de segment **citadine** ou **compacte**, à prix
+   d'occasion courant. Le code 3 est désormais réparti sur **quatre** segments (citadine 7,0 %,
+   compacte 6,5 %, sportive 25 %, luxe 4 %), ce qui laisse la part de coupés à **3,4 %** — dans la
+   tolérance de `P-24` [2,0 % ; 3,5 %] — et rend **156 offres** au parcours P1.
+2. *L'annonce était fausse aussi.* Les « 230 à 280 offres » avaient été posées **avant** le modèle de
+   prix par segment (`R-17`) et le modèle de kilométrage par carburant (`R-11`) ; aucune mesure ne
+   les soutenait. Elles sont remplacées par l'ordre de grandeur **recalculé** après correction. Le
+   plancher opposable de la sonde `R-DATA-28` est fixé à **120** offres et 10 marques, sous la mesure,
+   pour absorber la variation d'une régénération sans rendre le parcours illisible. `mvp-integrate`
+   recalcule `P1_EXPECTED` et `P2_EXPECTED` **par programme** (D3-17 b, D3-24) : cette section donne
+   un ordre de grandeur, jamais une valeur figée.
+
+Les effectifs P2 sont ceux d'EG-01 / D3-19 (dette ratifiée : la composition segment × année prime sur
+les effectifs cibles par modèle).
 
 ---
 
@@ -210,10 +271,28 @@ sportive, luxe. Parts **par année d'immatriculation** interpolées entre 2005, 
 citadines ×0,85.
 
 Le segment détermine ensuite, par tables : `bodyType` (+ 1 % de code `7 Autres`), `doorCount`,
-`seatCount`, `drivetrain`, `upholsteryType`. La **boîte** suit
+`seatCount`, `drivetrain`, `upholsteryType`. Le code 3 (**Coupé**) est servi par **quatre** segments
+et non deux — voir l'amendement `DR3-14` au §1.4. La **boîte** suit
 `p_auto = σ(−0,85 + 0,155·(année−2015) + a_segment)`, toute motorisation électrique étant **forcée**
 en automatique (`P-26`). Couleurs : noir 23,5 %, gris 20,5 %, blanc 16,5 %, argent 11,5 % — cumul
 72 % (`P-27`).
+
+**Amendement DR3-03 — `P-25` comptait des inversions que la loi ne peut pas éviter.** La rédaction
+d'origine exigeait **au plus une** inversion de la part de boîtes automatiques sur les seize couples
+d'années consécutives de 2010 à 2026. La part est une **proportion binomiale** estimée sur 294 à
+2 236 annonces par année : pour deux années voisines, la probabilité d'observer une inversion vaut
+`Φ(−δ / se_δ)` avec `se_δ = √(se_y² + se_{y+1}²)`. Mesurée au profil test sur les seize couples, la
+**somme de ces probabilités vaut 1,93** — l'espérance du nombre d'inversions est donc *presque deux*,
+au-dessus de la tolérance d'*une*, et `P(inversions ≤ 1) ≈ 0,42` : la sonde échoue une fois sur deux
+sur une donnée parfaitement conforme à la loi. Quatre couples y contribuent presque à eux seuls
+(2012→2013 `δ = −0,04 pt` pour `se_δ = 2,60 pt` ; 2015→2016 `−2,08` pour `2,18` ; 2018→2019 `−1,50`
+pour `1,68` ; 2021→2022 `+0,25` pour `1,51`) : la loi elle-même n'y sépare pas les deux années plus
+que le bruit d'échantillonnage. Ce que la spécification veut dire est une **croissance**, pas une
+monotonie exacte d'estimateur. La tolérance ne compte donc plus que les inversions
+**significatives** — celles qui dépassent **deux erreurs-types** de la différence de deux proportions
+— toujours au plus une. Une vraie rupture de tendance reste détectée ; le bruit ne l'est plus. Les
+deux extrémités (2010 ≤ 30 %, 2024 ≥ 60 %) sont inchangées. Mesure après amendement : **3 inversions
+brutes, 0 significative** (0,02, 0,96 et 0,89 erreur-type).
 
 ### 2.4 Matrice segment × énergie × année (`R-13` … `R-16`)
 
@@ -456,12 +535,40 @@ systématique ferait passer une hypothèse pour un fait — `P-108`). Sondes `P-
 `P-56` (écart-type des taux > 0,15 : la non-uniformité est **mesurée**), `P-58` (l'équipement manque
 1,8 fois plus souvent chez les particuliers).
 
+**Amendement DR3-05 — le calibrage porte sur la population que le champ concerne.** Le produit
+`p_champ · g(c) · h · k` est écrêté à 0,98, ce qui retire de la masse aux champs à taux élevé ; un
+facteur `scale[champ]`, résolu par dichotomie, rétablit l'espérance exactement. Ce facteur était
+résolu sur un échantillon **global** des multiplicateurs, y compris pour les champs à population
+**conditionnelle**, dont le multiplicateur moyen n'a aucune raison d'égaler celui du stock.
+Conséquence mesurée par `P-55` : `consumption.electricCombined` (branche NEDC, donc annonces
+**anciennes**, donc `k(âge)` élevé) sortait à 24,1 % pour 15 % de référence (+60,9 %), tandis
+qu'`isPluginHybrid` (hybrides rechargeables, donc annonces **récentes**) sortait à 4,6 % (−69,4 %).
+L'échantillon de résolution est désormais celui des annonces **éligibles** au champ, parcouru à pas
+constant sur toute la population (les slots sont ordonnés par marque : les premières lignes ne sont
+pas un échantillon). Deux corrections d'écriture l'accompagnent, sans lesquelles le taux **mesurable**
+resterait faux :
+
+- `isPluginHybrid` était écrit **inconditionnellement** dès que l'annonce est rechargeable : seules
+  les hybrides **non** rechargeables (30 % de la population éligible) pouvaient le perdre, et le taux
+  d'absence plafonnait à 4,6 % ;
+- une annonce électrique ou rechargeable de branche WLTP ne porte que **deux** champs WLTP ; quand le
+  modèle retirait les deux, le bloc `wltp` disparaissait et la ligne devenait indiscernable d'une
+  annonce **sans** branche de mesure. La classe de CO₂ porte désormais la branche quand tous les
+  autres champs sont partis.
+
+Mesure après correction, profil test : **78 champs mesurés, 0 hors tolérance**, écart relatif maximal
+24,3 %. Au profil `dev`, `P-55` reste dans le bruit d'échantillonnage (EG-12, `DR3-19`) : à
+n = 5 000, la bande de ±25 % relatifs vaut moins de deux erreurs-types pour plusieurs champs.
+`consumption.electricCombined` n'a que **96** lignes éligibles au profil test et reste **sous le
+plancher n ≥ 100** de la sonde : sa mesure n'est pas opposable (voir la dette proposée D3-27).
+
 Les taux sont choisis pour qu'**aucune branche de repli atteignable ne reste inexercée** :
 `EX-DATA-5` (unité non gérée), `EX-DATA-10` (repli création → recherche), `EX-DATA-11` (hybride non
 résolu), `EX-DATA-18` (prix absent non déclaré), `EX-DATA-32` (prix sur demande), `EX-DATA-52`
 (préfixe non résolu), `EX-DATA-72` (modèle non identifié) reçoivent chacune au moins 20 annonces au
 profil `test`. Les branches **inatteignables** depuis une ligne conforme au schéma
-(`FIRST_REG_UNPARSEABLE`, `LISTING_URL_MISSING`, `MARKETPLACE_UNMAPPED`) ne sont **pas** exercées ici
+(`FIRST_REG_UNPARSEABLE`, `LISTING_URL_MISSING`, `MARKETPLACE_UNMAPPED`, et `POWER_OUT_OF_RANGE`
+depuis `DR3-16`) ne sont **pas** exercées ici
 et ne figurent pas au manifest (contrainte 23, `P-101`).
 
 ---
@@ -478,8 +585,8 @@ une annonce porte au plus une anomalie **de prix**.
 | A-01 | prix sentinelle (1, 11, 99, 111, 123, 150, 199, 249 €) | `PRICE_SENTINEL_ABSOLUTE` | 0,10 % | drapeau à l'ingestion, exclusion de `V_price` |
 | A-02 | prix hors domaine (> 5 000 000 €) | `PRICE_OUT_OF_RANGE` | 0,02 % | valeur mise à INCONNU |
 | A-03 | 0 km alors que `offerType ∉ {N, S, D}` | `SUSPECT_ZERO_MILEAGE` | 0,25 % | exclusion de `V_mileage` (contrainte 21) |
-| A-04 | kilométrage implausible pour l'âge (deux formes) | `MILEAGE_IMPLAUSIBLE_FOR_AGE` | 0,30 % | borne `km·12/âge_mois ≤ 200 000` (contrainte 22) |
-| A-04b | kilométrage hors domaine (> 2 000 000 km) | `MILEAGE_OUT_OF_RANGE` | 0,03 % | valeur mise à INCONNU |
+| A-04 | kilométrage implausible pour l'âge (**une seule forme**, cf. `DR3-02`) | `MILEAGE_IMPLAUSIBLE_FOR_AGE` | 0,30 % | borne `km·12/âge_mois ≤ 200 000` (contrainte 22) |
+| A-04b | kilométrage hors domaine (> 2 000 000 km) | `MILEAGE_OUT_OF_RANGE` | **0,04 %** | valeur mise à INCONNU |
 | A-05 | 1ʳᵉ immatriculation hors bornes (année + 2, ou 1899-12) | `FIRST_REG_OUT_OF_RANGE` | 0,08 % | valeur INCONNUE, aucune cellule de rang 1 |
 | ~~A-06~~ | ~~date non analysable~~ | — | — | **retirée** : inatteignable (contrainte 23) |
 | A-07 | même `id` écrit deux fois | `DUPLICATE_LISTING_ID` | 0,10 % | unicité violée volontairement (contrainte 26) |
@@ -487,10 +594,10 @@ une annonce porte au plus une anomalie **de prix**.
 | A-08 | quasi-doublon inter-vendeurs (prix ±2–9 %, km ±0–400) | `CROSS_SELLER_DUPLICATE` | 0,80 % | paire à `dealerBucket` **différents** + `peerListingId` |
 | A-09 | version entièrement dépouillée au nettoyage | `VERSION_FULLY_STRIPPED` | 0,40 % | `modelVersionClean` vide |
 | A-09b | version ambiguë (autre marque ; puissance contredite) | `VERSION_AMBIGUOUS` | 1,10 % | recherche par mots-clés, sonde version/puissance |
-| A-10 | **outlier M1** (haut 500 k–3 M€ ; bas 260–480 €) | `OUTLIER_M1_LOW/HIGH` | 0,25 % | barrières de Tukey, rappel ≥ 90 % |
-| A-11 | **outlier M2** (facteur 0,30–0,50 ou 2,0–3,2 ; `\|z\| ≥ 3,5`) | `OUTLIER_M2_LOW/HIGH` | 0,35 % | écart robuste au modèle, rappel ≥ 85 % |
+| A-10 | **outlier M1** — valeur choisie **dans la cellule** (`DR3-08`) | `OUTLIER_M1_LOW/HIGH` | 0,25 % | barrières de Tukey, rappel ≥ 90 % |
+| A-11 | **outlier M2** — valeur à `k = 3,4` écarts robustes `s` **mesurés dans la cellule** (`DR3-09`) | `OUTLIER_M2_LOW/HIGH` | 0,35 % | écart robuste au modèle, rappel ≥ 85 % |
 | A-12 | annonce incomplète (≥ 6 champs optionnels absents) | `OTHER` | 2,00 % | rapport d'ingestion, aucune exclusion |
-| A-13 | puissance hors domaine (1 ou 9999) | `POWER_OUT_OF_RANGE` | 0,05 % | valeur mise à INCONNU |
+| A-13 | puissance **implausible** (1 ou 9999), signal de vraisemblance (`DR3-16`) | `POWER_OUT_OF_RANGE` | **0,06 %** | **aucune** : le domaine du schéma est celui de l'annexe A |
 | A-13b | `powerHp` s'écarte de 6 à 25 % de `power / 0,7355` | `POWER_UNIT_MISMATCH` | 0,06 % | sonde d'`EX-DATA-36` (contrainte 16) |
 | A-14 | CO₂ nul sur thermique | `CO2_ZERO_NON_BEV` | 0,12 % | drapeau, valeur écartée des moyennes |
 | A-15 | `isPluginHybrid` avec `fuelCategory ∉ {2, 3, O}` | `HYBRID_INCONSISTENT` | 0,08 % | **pas de correction silencieuse** (contrainte 19) |
@@ -498,7 +605,7 @@ une annonce porte au plus une anomalie **de prix**.
 | A-17 | `mileageUnit = mi` | `UNIT_UNSUPPORTED` | 0,45 % | conversion **refusée** |
 | ~~A-18~~ | ~~annonce sans deeplink~~ | — | — | **retirée** : `webPage` requis par le schéma |
 | A-19 | `location.countryCode ≠ BE` | `REGION_UNRESOLVED` | 0,05 % | `regionCode` INCONNU (`EX-DATA-55`) |
-| A-20 | prix sur demande **avec** montant | `PRICE_ON_REQUEST_WITH_AMOUNT` | 0,04 % | montant non retenu (contrainte 5) |
+| A-20 | prix sur demande **avec** montant | `PRICE_ON_REQUEST_WITH_AMOUNT` | **1,3 % des annonces sur demande** | statut canonique **QUOTED** + drapeau (`EX-DATA-32`, `DR3-18`) |
 | A-21 | préfixe postal `00`–`09` | `REGION_UNRESOLVED` | 0,40 % | seul chemin par le préfixe (contrainte 13) |
 | A-22 | champ `model` absent | `MODEL_UNRESOLVED` | 1,20 % | zone `modelId = 0` (`EX-DATA-72`) |
 | A-23 | prix sur demande (décision de vendeur, déclarée) | `PRICE_ON_REQUEST` | 3,00 % | compte dans l'effectif, jamais dans `V_price` |
@@ -515,10 +622,61 @@ cohérence est licite **à la seule condition** d'être déclarée dans `manifes
 code. Les codes de l'énumération du manifest sont tous couverts, **sauf** `FIRST_REG_UNPARSEABLE` et
 `MARKETPLACE_UNMAPPED`, inatteignables (`P-101`).
 
-Deux garde-fous hérités du générateur actuel et conservés : `M1_LOW` ne descend **jamais** sous
-250 € (sinon l'annonce devient une sentinelle, sort de `V_price` et la vérité terrain devient
-invérifiable) ; les M1 et les M2 injectés sont **disjoints**, ce qui rend mesurable le taux d'accord
+**Garde-fous de la vérité terrain de prix (rédaction amendée, `DR3-08` / `DR3-09`).** Le garde-fou
+hérité du générateur synthétique — « `M1_LOW` ne descend jamais sous 250 € » — est **retiré** : il
+protégeait d'une sentinelle **absolue** alors que la règle qui écarte l'annonce est **relative à la
+cellule** (`EX-DATA-19(2)`, `prix < 0,10 × médianeRéf(C)`), et 32 des 50 M1 injectés tombaient dans
+la tranche qu'il croyait couvrir. Les deux valeurs injectées sont désormais choisies **dans le
+référentiel du détecteur**, que le générateur rejoue exactement (`tools/dataset/cells.mjs`, statistiques
+**gelées** au premier snapshot pour qu'une survivante non révisée garde son prix, `P-70`) :
+
+| Anomalie | Fenêtre d'injection | Pourquoi |
+|---|---|---|
+| `A-10` bas | `[1,10 × seuil relatif de la cellule ; 0,70 × barrière basse de Tukey]` | au-dessus, l'annonce reste **dans** `V_price(C)` ; en dessous, elle est **signalée**. La marge de 30 % sous la barrière absorbe le déplacement des quantiles que l'injection provoque dans une cellule de douze annonces. Quand la fenêtre est vide (cellule trop dispersée, ou cellule `C₃ = Σ` dont le seuil relatif est **au-dessus** de sa propre barrière basse), l'injection bascule sur la forme haute. |
+| `A-10` haut | `[1,6 ; 3,0] × barrière haute de Tukey`, plafonné à 4,9 M€ | au-dessus de la barrière, sous la borne `PRICE_OUT_OF_RANGE` de 5 M€ (`A-02`) |
+| `A-11` | `prix attendu × exp(± 3,4 · s)`, `s = 1,4826 × MAD` des résidus de la régression de cellule, plancher `1,10 × seuil relatif`, plafond 4,9 M€ | `z` vaut ±3,4 par construction pour un seuil à 2,5 : 36 % de marge, qui couvre le déplacement de `m_r` et de la MAD provoqué par l'injection elle-même. La rédaction précédente calibrait les facteurs sur `σ_p = 0,20`, le résidu du **modèle de prix** — or M2 régresse `ln(prix) ~ année + km` **dans la cellule**, où subsistent les variances de carburant, de puissance et de type de vendeur : `s` y est bien supérieur, et un facteur 2,0 ne franchissait pas `|z| ≥ 2,5`. |
+
+Rappels mesurés après correction, au profil test : **M1 48/48 (100 %)**, **M2 61/67 (91,0 %)**.
+
+Les M1 et les M2 injectés restent **disjoints**, ce qui rend mesurable le taux d'accord
 `M1_M2_AGREE_*`.
+
+**Anomalies dont la conséquence canonique n'existe pas (`DR3-02`, `DR3-16`).** Une anomalie déclarée
+qu'aucune règle du dictionnaire ne peut retrouver n'est pas une vérité terrain (contrainte 23,
+classe D3-16). Trois décisions en découlent :
+
+- la **forme (b)** d'`A-04` (« kilométrage trop faible pour l'âge ») est **retirée** : la contrainte 22
+  ne borne que le **haut** du rythme annuel ; 13 des 60 déclarations n'avaient aucune conséquence
+  canonique ;
+- la forme (a) d'`A-04` est plafonnée à **1 450 000 km** (sous la borne dure de 1 500 000 du champ #59)
+  et son vivier borné à **72 mois d'âge**, faute de quoi le kilométrage devient INCONNU et le signal
+  attendu est remplacé par `MILEAGE_OUT_OF_RANGE` ;
+- `A-04`, `A-03` et `A-04b` ne se cumulent plus avec `A-05` (date hors bornes : l'âge n'est plus
+  calculable) ni avec `A-17` (unité `mi` : le kilométrage devient INCONNU dès l'ingestion). Mesure
+  après correction : **60/60** déclarations produisent le signalement attendu ;
+- `A-13` (`POWER_OUT_OF_RANGE`) est **requalifiée en signal de vraisemblance** : le schéma borne
+  `power` à `[1, 9999]` et l'annexe A valide **exactement** le même domaine, bornes incluses — une
+  ligne conforme au schéma ne peut pas porter une puissance hors domaine. Le code reste au vocabulaire
+  du manifest pour les adaptateurs de sources **réelles** ; aucun drapeau n'est attendu des fixtures.
+
+**Vérité terrain retrouvable (`DR3-11`).** Le modèle de complétude (`R-43`) s'applique **après**
+l'injection et pouvait retirer le champ **porteur** de l'anomalie : 61 valeurs injectées, dont 49
+`VERSION_*`, ne se retrouvaient plus dans la ligne. Tout champ porteur d'une anomalie déclarée — et
+les champs dont M1/M2 ont besoin pour évaluer l'annonce (`firstRegistrationDate`, `mileage`) — est
+désormais **protégé** de l'absence de complétude, le tirage restant **consommé** pour ne pas décaler
+le motif d'absence des autres champs (contrainte 4, `P-70`). Mesure : **0** valeur introuvable sur
+7 083 déclarations au profil test.
+
+**Base des taux d'anomalie (`DR3-10`).** `anomalies.json` nomme, anomalie par anomalie, la population
+de référence du taux (champ `base`) ; le générateur appliquait **tous** les taux à l'effectif total du
+snapshot. Cinq groupes en sortaient : `A-07`/`A-07b`/`A-08` (base « annonces professionnelles »)
+de **+46 %**, `A-16` de **+658 %**, `A-20` de **+3 189 %**. Le taux est désormais appliqué à la base
+déclarée. Deux tables sont corrigées avec lui : `A-16` déclare la base « toutes » et le **vivier**
+« annonces hybrides » (son `aRetrouver` exige 20 annonces au profil test, ce que 0,1 % des hybrides ne
+donnerait jamais) ; `A-20` conserve son effectif et voit son **taux** réécrit sur la base qu'il
+déclare (1,3 % des annonces à prix sur demande). Les taux des anomalies rares sont par ailleurs
+choisis pour que `taux × base` soit **entier** aux deux profils commités : à `A-04b` 0,03 % l'effectif
+attendu valait 1,5 au profil dev, et **aucun** entier n'était alors à ±20 % de l'attendu.
 
 ---
 

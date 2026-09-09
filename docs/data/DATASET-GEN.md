@@ -30,8 +30,9 @@ npm run data:check    -- --profile dev|test|perf [--out data/fixtures] [--no-reg
 | `data/fixtures/<profil>/<snapshotId>/generation.json` | rapport latéral : version de la spec, hachage des quinze tables et des deux schémas, calibrages, effectifs visés par anomalie, filtres non alimentés, mesures (voir écart **EG-04**) |
 
 `snapshotId` suit le **schéma du manifest** (`^[a-z]{2}-[0-9]{8}T[0-9]{6}Z$`), soit
-`be-20260907T060000Z`. L'identifiant de conception de `profiles.json`
-(`be-fixture-test-20260907-4b594341`) est publié dans `generation.json` (écart **EG-02**).
+`be-20260907T060000Z`. L'identifiant de conception (`be-fixture-test-20260907-4b594341`) est publié
+dans `generation.json` sous `designSnapshotId` (écart **EG-02**, **clos** par `DR3-01` : c'est
+désormais `profiles.json` qui annonce la forme livrée).
 
 - Graine par défaut **`0x4B594341` = 1 264 141 121** (`profiles.json.defaultSeed`).
 - `perf` n'est **jamais commité** : `.gitignore` porte `data/fixtures/perf/`.
@@ -179,7 +180,7 @@ identiques aux deux autres snapshots par construction (§2.1).
 | A-01 | `PRICE_SENTINEL_ABSOLUTE` | 20 | 20 | prix remplacé par une valeur de `{1, 11, 99, 111, 123, 150, 199, 249}` ; `expected = { flag, injected, fair }` |
 | A-02 | `PRICE_OUT_OF_RANGE` | 4 | 4 | prix porté à 5 123 456 ou 9 999 999 ; `{ injected, fair }` |
 | A-03 | `SUSPECT_ZERO_MILEAGE` | 50 | 50 | `mileage = 0` sur `offerType ∈ {U, J, O}` ; `{ fair, offerType }` |
-| A-04 | `MILEAGE_IMPLAUSIBLE_FOR_AGE` | 60 | 60 | forme (a) rythme 260 000–360 000 km/an (voir **EG-09**), forme (b) 200–900 km sur 6 ans et plus ; `{ fair, injected, form, ageMonths }` |
+| A-04 | `MILEAGE_IMPLAUSIBLE_FOR_AGE` | 60 | 60 | **forme (a) seule** : rythme 260 000–360 000 km/an plafonné à 1 450 000 km, vivier borné à 72 mois d'âge (voir **EG-09** amendé et **EG-15**) ; `{ fair, injected, form, ageMonths, perYearKm }` |
 | A-04b | `MILEAGE_OUT_OF_RANGE` | 6 | 6 | `mileage` porté au-delà de 2 000 000 km, multiple de 100 |
 | A-05 | `FIRST_REG_OUT_OF_RANGE` | 16 | 16 | `2028-04` ou `1899-12`, variante choisie pour rester du bon côté du seuil WLTP (voir **EG-10**) |
 | A-07 | `DUPLICATE_LISTING_ID` | 20 | 20 | la **même ligne** est écrite deux fois ; `peerListingId` = le même identifiant, `{ occurrences: 2 }` |
@@ -220,29 +221,41 @@ familles. Mesure : 0 annonce à deux anomalies de prix (`P-74`).
 ### 5.1 Hachages et volumes des fixtures commitées
 
 Graine `1264141121` (`0x4B594341`), générateur `kycar-dataset-gen 1.0.0`, `schemaVersion 1.0.0`,
-validateur `ajv 8.20.0`, spécification `DATASET-SPEC.md` sha256 `1fe1a07fa7577538…`, hachage combiné
-des 15 tables et des 2 schémas `adb5a528a096d31d…`.
+validateur `ajv 8.20.0`, spécification `DATASET-SPEC.md` sha256 `001d15659eab6567…`, hachage combiné
+des 15 tables et des 2 schémas `280828cd2e015ad2…`.
+
+**Régénération de la phase 3.4 (`data-fix`)** — les six snapshots commités ont été **entièrement
+régénérés** après les corrections `DR3-02`, `DR3-05` … `DR3-11`, `DR3-14` et `DR3-18`. Les hachages
+ci-dessous **remplacent** ceux de la phase 3.2.
 
 | Profil | Snapshot | Lignes | `sha256` (octets non compressés) | gz | brut |
 |---|---|---:|---|---:|---:|
-| dev | `be-20260907T060000Z` | 5 000 | `d39cda8a1058fcc874e9234abfd8ed67ee8dcc4e59f08014e7be1dc9c28f5e6f` | 688 425 | 7 432 599 |
-| dev | `be-20260914T060000Z` | 5 000 | `62ec40bab848625c274a72ae40d320880961a969c4cfec7086df27a9faa5731f` | 695 106 | 7 430 788 |
-| dev | `be-20260921T060000Z` | 5 000 | `4d0dc9598b7af0ee54c55a74e61b4e9f291382680b5b79b30e59e0210fae8644` | 697 968 | 7 437 390 |
-| test | `be-20260907T060000Z` | 20 000 | `a32412b671ec393b2d9afd145f61fd18f6f43adfd6cc187733f5378741ccfa9e` | 2 700 910 | 29 689 712 |
-| test | `be-20260914T060000Z` | 20 000 | `81f2d33523d5df8aaa68197de54d3ededa1dfe0048b55d0fc1e67702be892c98` | 2 725 327 | 29 696 814 |
-| test | `be-20260921T060000Z` | 20 000 | `d523412bcee34eb5d3417acee09e174435d201ac57910e3eed67163bfd337ea8` | 2 741 424 | 29 710 613 |
+| dev | `be-20260907T060000Z` | 5 000 | `86b438064ac104ad2cd386e95132a59100b8af671168330e5b0b80ef88e0716c` | 689 428 | 7 426 430 |
+| dev | `be-20260914T060000Z` | 5 000 | `3729fe12dbe422186a5c81275f92cb97f212da90076fe184370d086bf80161cb` | 695 885 | 7 420 828 |
+| dev | `be-20260921T060000Z` | 5 000 | `ded7b11d7ae4a0ba79730a1839e96c94d749b23bcbb7da1cca2b05ccc695e281` | 698 077 | 7 421 244 |
+| test | `be-20260907T060000Z` | 20 000 | `33d88a12ecb7ba7a6e4d1698b1e5b222ebadf808aa4056f7b4d1a79d12862245` | 2 706 393 | 29 718 361 |
+| test | `be-20260914T060000Z` | 20 000 | `4e88738ec38c0e5200dd30886e28de0f353748efe9cc8624b6c8075a2d81e46c` | 2 729 865 | 29 702 986 |
+| test | `be-20260921T060000Z` | 20 000 | `a7d893657ea7e4f4bb9748748e02baeae067080fa79a66999f23d5a10ac9cf9b` | 2 743 742 | 29 710 934 |
 
 | Profil | Total gz | Budget | Marge | Octets/ligne gz | Budget/ligne |
 |---|---:|---:|---:|---:|---:|
-| dev | **2 081 499** (1,985 Mio) | 2 097 152 | 0,7 % | 138,8 | 139,8 |
-| test | **8 167 661** (7,789 Mio) | 8 388 608 | **2,6 %** | 136,1 | 139,8 |
+| dev | **2 083 390** (1,987 Mio) | 2 097 152 | 0,7 % | 138,9 | 139,8 |
+| test | **8 180 000** (7,801 Mio) | 8 388 608 | **2,5 %** | 136,3 | 139,8 |
 | perf | 39 951 498 (38,10 Mio) | 41 943 040 | 4,7 % | 133,2 | — |
+
+**Déterminisme après régénération** : deux générations consécutives des deux profils donnent des
+`listings.ndjson.gz` **octet à octet identiques** (`md5sum -c` sur les six fichiers) ; `git status`
+est vide après une seconde exécution.
 
 Poids ajouté au dépôt : `data/fixtures/dev` 2,4 Mio, `data/fixtures/test` 9,3 Mio (dont 1,5 Mio de
 manifests, qui n'entrent pas dans le budget gz de la spécification). `perf` n'est pas commité.
 
-**Delta inter-snapshots (profil test)** : S0→S1 2 094 sorties / 2 094 entrées / 3 055 révisions ;
-S1→S2 2 020 / 2 020 / 3 052. Taux de sortie 10,5 % puis 10,1 % (`P-65` ∈ [8 %, 12 %]).
+**Delta inter-snapshots (profil test)** : S0→S1 2 090 sorties / 2 090 entrées / 3 056 révisions
+**effectives** ; S1→S2 2 019 / 2 019 / 3 054. Taux de sortie 10,5 % puis 10,1 % (`P-65` ∈ [8 %, 12 %]).
+Profil dev : 517 / 517 / 787 puis 530 / 530 / 748. Depuis `DR3-06`, `priceRevisedCount` compte les
+révisions dont le **prix affiché** change réellement ; la part observable vaut donc 16,3 % et 16,2 %
+des survivantes au profil test, contre 10,2 % avant correction. `delta` compte des **lignes**, pas
+des identifiants distincts (`DR3-17 c`, table `snapshot-dynamics.json:deltaUnitOfCount`).
 
 ### 5.2 Budget de taille : leviers appliqués
 
@@ -273,8 +286,19 @@ seuil de 60 s du critère S5, validation comprise.
 
 ### 5.4 Autocontrôle `npm run data:check`
 
-**70 sondes rejouées.** Profil `test` : **0 écart**, 3 dettes consignées au §6 (`P-10` et `P-11` → **EG-01**, `P-57` → **EG-11**). Profil `dev` : 3 écarts supplémentaires, tous imputables au **bruit d'échantillonnage** du
-volume réduit (voir **EG-11**).
+**71 sondes rejouées** (`P-69` ajoutée par `DR3-07`). Profil `test` : **0 écart**, 3 dettes consignées
+au §6 (`P-10` et `P-11` → **EG-01**, `P-57` → **EG-11**). Profil `dev` : **0 écart**, 4 dettes
+(`P-23`, `P-55` et `P-58` → **EG-12**, `P-57` → **EG-11**) — les écarts de bruit d'échantillonnage du
+volume réduit sont désormais **affichés comme dettes**, jamais comptés en écart (`DR3-19`).
+
+Trois contrôles ne prouvaient pas ce que leur nom annonçait, et la revue 3.3 les a pris en défaut
+(`DATA-REVIEW` §7.4). Ils sont corrigés :
+
+| Contrôle | Ce qu'il faisait | Ce qu'il fait |
+|---|---|---|
+| `P-68` | `add('P-68', …, true)` — **aucune** tolérance évaluée, et comptait « prix **ou** images » | mesure la part de survivantes dont le **prix affiché** change et la part de baisses, avec les tolérances [14 %, 20 %] et [80 %, 88 %] |
+| `P-55` | **30** champs **inconditionnels** nommés dans une liste en dur, sur les 82 de `baseRates` | **58** champs mesurés au profil test, chacun sur sa population **éligible** ; les non observables et les populations de moins de 100 lignes sont **nommées** et écartées |
+| `P-72` | effectif attendu = `taux × N` pour **toutes** les anomalies | effectif attendu = `taux × base déclarée`, les effectifs de base étant recomptés sur les **lignes livrées** |
 
 Relevé du profil `test`, snapshot S0 :
 
@@ -396,6 +420,12 @@ Le critère S2 impose la conformité au schéma : `snapshotId = be-20260907T0600
 `manifest.note`. Le nom du **répertoire** reprend `snapshotId`, le profil étant déjà porté par le
 répertoire parent.
 
+**CLOS par `DR3-01` (phase 3.4).** L'écart n'en était pas un : la forme livrée est la seule que le
+schéma **valide**, donc la seule qui soit un contrat. C'est `profiles.json` qui annonçait une forme
+jamais émise. Il publie désormais `snapshotIdPattern` = `be-<AAAAMMJJ>T<hhmmss>Z`, son expression
+régulière `snapshotIdPatternRegex` — que la sonde `R-DATA-01` **lit** au lieu de la recopier — et
+`designSnapshotIdPattern` pour l'identifiant de conception.
+
 ### EG-03 — segment d'un modèle **non curaté** : tiré par annonce, pas par hachage de modèle
 
 `R-04` prescrit un segment « tiré par hachage stable dans la loi `P(segment | année)` ». L'année
@@ -460,6 +490,25 @@ annoncée (« 100 % des formes (a) dépassent la borne ») serait **impossible**
 rythme à **260 000–360 000 km/an**, borné à 1 900 000 km pour rester sous le seuil de `A-04b`.
 Mesure : 100 % des formes (a) au-dessus de la borne, `P-100` à 0 écart.
 
+**AMENDÉ par `DR3-02` (phase 3.4).** Le plafond de 1 900 000 km était encore trop haut : la borne
+**dure** du champ canonique `mileageKm` vaut **1 500 000** (annexe A # 59). Au-delà, l'adaptateur
+rend le kilométrage INCONNU et pose `MILEAGE_OUT_OF_RANGE` — l'anomalie « change de nom » et le
+signalement annoncé ne tombe pas. Et sous ce plafond, un rythme supérieur à 200 000 km/an n'est
+atteignable que sous **90 mois d'âge**. La revue a mesuré **37/50** formes (a) au-dessus de la borne,
+pas 100 %, et **13/60** déclarations sans aucune conséquence canonique. Trois corrections :
+
+1. le vivier d'`A-04` est borné à **72 mois** d'âge (marge de 21 % sur la borne des 200 000 km/an) et
+   le rythme plafonné pour que le kilométrage reste sous **1 450 000 km** ;
+2. la **forme (b)** est retirée — la contrainte 22 ne borne que le haut, aucun drapeau d'`EX-DATA-45`
+   ne nomme le cas inverse, l'anomalie était indétectable par construction ;
+3. `A-04`, `A-03` et `A-04b` rejoignent `A-05` et `A-17` dans la **même famille de champ** : une date
+   hors bornes rend l'âge incalculable, et l'unité `mi` rend le kilométrage INCONNU dès l'ingestion.
+   Cumulées, elles effaçaient la conséquence canonique de l'anomalie de kilométrage.
+
+Mesure après correction, profil test : **60/60** formes (a) au-dessus de la borne, **60/60**
+déclarations portant le signalement `MILEAGE_IMPLAUSIBLE_FOR_AGE`, **0** absorbée par
+`MILEAGE_OUT_OF_RANGE`, **0** sans conséquence.
+
 ### EG-10 — `A-05` : une date hors bornes contamine trois autres sondes
 
 Une date de première immatriculation hors bornes fausse mécaniquement l'âge, donc la branche de
@@ -496,18 +545,53 @@ sonde est donc inatteignable **avec les paramètres de la spécification elle-m�
 demanderait soit une autre loi latente, soit un couple de champs à taux plus élevés. Consigné, non
 contourné.
 
-### EG-12 — profil `dev` : trois sondes dans le bruit d'échantillonnage
+### EG-12 — profil `dev` : **sept** sondes dans le bruit d'échantillonnage (étendue par `DR3-19`)
 
-À 5 000 annonces, `P-23` (36,9 % contre un plancher à 38 % pour une valeur de conception à 38,1 % —
+À 5 000 annonces, `P-23` (36,6 % contre un plancher à 38 % pour une valeur de conception à 38,1 % —
 tout écart d'échantillonnage la fait basculer), `P-55` (`offerType` 1,3 % contre 1,0 %, soit 65
-absences observées pour 50 attendues, 2 σ) et `P-58` (1,75 contre 1,8) sortent de leur tolérance. Ce
+absences observées pour 50 attendues, 2,1 σ) et `P-58` (1,73 contre 1,8) sortent de leur tolérance. Ce
 ne sont **pas** des défauts du générateur : les mêmes sondes sont vertes au profil `test`, qui est le
 profil que l'application charge (D3-01). Les tolérances relatives de `P-55` sont structurellement
 inatteignables au volume `dev` pour les champs dont le taux de référence est inférieur à 1 %.
 
+**Extension `DR3-19`.** La revue 3.3 en a mesuré **cinq**, pas trois : `P-18` (diesel 2024 4,65 %
+contre ≤ 4,5 %), `P-37` (prime électrique 0,93) et `P-38` (prime professionnelle 0,99) relèvent de la
+même cause. `P-45` s'y ajoute après la correction `DR3-04` : au volume `dev`, `M1_LOW` ne compte
+qu'une quinzaine d'annonces dans les cellules à `n_price ≥ 30` et l'erreur-type du κ y dépasse sa
+propre valeur. La liste est donc **`P-18`, `P-23`, `P-37`, `P-38`, `P-45`, `P-55`, `P-58`**, et elle
+n'est plus seulement écrite ici : chacune de ces sondes porte désormais `"portee": "snapshot test"`
+dans `probes.json`, `npm run data:check` les affiche en **DETTE `EG-12`** au profil `dev` au lieu de
+les compter en écart, et la suite `tests/data/` les marque avec le même dispositif
+(`IS_TEST_PROFILE ? it : it.fails`). Au profil `test` elles restent **opposables**, et vertes.
+
+### EG-13 … EG-20 — écarts ouverts par la phase 3.4 (`data-fix`)
+
+Les correctifs des dix-neuf constats `DR3-nn` de la revue 3.3 ont ouvert huit écarts nouveaux à la
+première rédaction de `DATASET-SPEC.md`. Tous sont **amendés dans la spécification elle-même**, avec
+leur démonstration ; ils sont récapitulés ici parce que `DATASET-GEN.md` est le journal du générateur.
+
+| # | Écart | Constat | Ce qui a changé |
+|---|---|---|---|
+| **EG-13** | Le plancher absolu de **250 €** sur `M1_LOW` est **retiré** : la règle qui écarte l'annonce est relative à la cellule (`0,10 × médianeRéf(C)`), pas absolue. | `DR3-08` | La valeur injectée est choisie dans `[1,10 × seuil relatif ; 0,70 × barrière basse]`, calculé par une **réplique du moteur** (`tools/dataset/cells.mjs`) gelée au premier snapshot. Rappel M1 : 36 % → **100 %**. |
+| **EG-14** | Les facteurs d'`A-11` (0,30–0,50 / 2,0–3,2) étaient calibrés sur `σ_p = 0,20`, le résidu du **modèle de prix**, pas sur la dispersion que **M2 mesure dans la cellule**. | `DR3-09` | La valeur est placée à `k = 3,4` écarts robustes `s = 1,4826 × MAD` des résidus de la régression de cellule, pour un seuil à 2,5. Rappel M2 : 51 % → **91 %**. |
+| **EG-15** | La **forme (b)** d'`A-04` est retirée et le vivier de la forme (a) borné à 72 mois ; `A-04`/`A-03`/`A-04b` ne se cumulent plus avec `A-05` ni `A-17`. | `DR3-02` | La contrainte 22 ne borne que le **haut** du rythme annuel : la forme (b) était indétectable (13 déclarations sans conséquence canonique). 60/60 déclarations produisent désormais le signalement. |
+| **EG-16** | Les taux d'anomalie s'appliquent à la **base déclarée**, pas à `N` ; `A-16` déclare la base « toutes » et le **vivier** « hybrides » ; le taux d'`A-20` est réécrit sur sa base (1,3 %) ; les taux rares sont choisis pour que `taux × base` soit **entier** aux deux profils commités. | `DR3-10` | Cinq groupes sortaient de ±20 % sur leur base (jusqu'à +3 189 %). `data:check` recompte les bases sur les **lignes livrées**, indépendamment du générateur. |
+| **EG-17** | Un champ **porteur** d'une anomalie déclarée est **protégé** du modèle de complétude (le tirage restant consommé, contrainte 4). | `DR3-11` | 61 valeurs injectées, dont 49 `VERSION_*`, ne se retrouvaient plus dans la ligne. Mesure : **0** sur 7 083 déclarations. |
+| **EG-18** | La composition des **entrantes** est déduite de la stationnarité (`entrées ∝ stock/d`, acceptation-rejet), l'inclinaison d'âge `exp(−0,02 a)` est retirée ; une **révision** de prix n'est comptée que si elle déplace le prix **affiché**. | `DR3-07`, `DR3-06` | La médiane montait de 5,6 % là où `P-69` exige un recul ; elle recule de **1,43 %**. Les révisions observables passent de 10,2 % à **16,3 %**. |
+| **EG-19** | Le calibrage de complétude porte sur la population **éligible** du champ ; `isPluginHybrid` est soumis au modèle pour ses **deux** valeurs ; la classe de CO₂ porte la branche WLTP quand elle est le dernier champ du bloc. | `DR3-05` | Trois champs conditionnels sortaient de ±25 % (jusqu'à −69 %). Mesure : **78 champs, 0 hors tolérance** au profil test. |
+| **EG-20** | Le code 3 (**Coupé**) est servi par quatre segments, non deux ; les attendus du parcours P1 du §1.4 sont **recalculés**. | `DR3-14` | Tous les coupés relevaient de `sportive` (55 000 €) et `luxe` (95 000 €) : le parcours P1 rendait 30 offres pour 230–280 annoncées. Mesure : **672 coupés → 156 offres**, part de coupés 3,4 % (`P-24` ∈ [2,0 % ; 3,5 %]). |
+
+Trois écarts de **documentation** les accompagnent, sans effet sur la donnée : `snapshotIdPattern` de
+`profiles.json` corrigé et l'identifiant de conception déplacé sous `designSnapshotIdPattern`
+(`DR3-01`, qui **remplace** EG-02) ; `dependentSchemas.wltp` complété de `co2EmissionsUnit`
+(`DR3-12`) ; `conditionalAbsence`, le vocabulaire de finition et l'unité de compte de `delta`
+publiés (`DR3-17`, voir HG-05 ci-dessous). `A-13` est requalifiée en **signal de vraisemblance**
+(`DR3-16`) et les deux situations de `REGION_UNRESOLVED` sont séparées par un `detail` **normé**
+(`DR3-18`, avec le statut canonique d'`A-20` porté à `QUOTED` conformément à `EX-DATA-32`).
+
 ### Hypothèses ajoutées par le générateur (E4)
 
-Trois valeurs manquaient aux tables ; elles sont **assumées, chiffrées et localisées** :
+Cinq valeurs manquaient aux tables ; elles sont **assumées, chiffrées et localisées** :
 
 | # | Hypothèse | Valeur | Où |
 |---|---|---|---|
@@ -515,6 +599,9 @@ Trois valeurs manquaient aux tables ; elles sont **assumées, chiffrées et loca
 | HG-02 | Loi de `upholsteryColor` (aucune table dans la spécification) | 11 codes, noir dominant à 0,45 | `listing.mjs:UPHOLSTERY_COLOR` |
 | HG-03 | Cylindrée et nombre de cylindres (aucune formule dans la spécification) | `12,5 × kW` en essence, `14,5 × kW` en diesel, log-normale σ 0,16, bornes [700, 6 500] ccm ; cylindres par seuils de cylindrée | `listing.mjs` |
 | HG-04 | `publication.accurateState` : ensemble fixe de 4 chaînes, jamais inventées ligne à ligne (exigé par `sellers.json`) | `active`, `activeMarketable`, `activeReserved`, `activeHighlighted` | publié dans `generation.json` |
+| **HG-05** (`DR3-17 b`) | **Vocabulaire de finition par langue** de `modelVersion`, qu'aucune table de la spécification ne publie — sans lui, `P-54` (classement de langue) n'est vérifiable qu'en reconstruisant un classifieur (hypothèse `HR-03` du reviewer). Le niveau de finition est choisi par `tier = clamp(⌊(année − 2004)/3⌋ + U{−1,0,1,2}, 0, 8)`, donc **croissant avec l'année**. | **fr** : Access, Active, Confort, Elegance, Allure, Business, Exec, Sport, Premium · **nl** : Base, Trend, Comfort, Style, Business, Highline, Elegance, Sport, Excl · **de** : Basis, Trend, Comfort, Style, Business, Ambiente, Elegance, Sport, Exklusiv. Jetons **non ambigus** (une seule langue) : `Access`, `Confort`, `Allure`, `Exec`, `Premium` (fr) ; `Base`, `Highline`, `Excl` (nl) ; `Basis`, `Ambiente`, `Exklusiv` (de). Les cinq autres sont **communs à deux langues ou plus** et ne classent rien. | `listing.mjs:TRIM_WORDS` |
+| **HG-06** (`DR3-08`, `DR3-09`) | Les cellules d'homogénéité que le générateur rejoue pour calibrer `A-10` et `A-11` sont bâties sur le prix plausible de **toutes** les annonces du snapshot, alors que le moteur ne voit que `V_price` (96,4 %). L'écart porte sur moins de 4 % de l'effectif ; les marges retenues (facteur 0,70 sous la barrière, `k = 3,4` contre un seuil à 2,5) le couvrent d'un ordre de grandeur, et la preuve est la mesure de rappel de `P-75`/`P-76` sur la sortie **réelle** du moteur. | — | `tools/dataset/cells.mjs` |
+| **HF-01** (`DR3-14`) | « Parcours P1 **lisible** » signifie : au moins **120 offres** sur au moins **10 marques** après les filtres du parcours, de quoi remplir un écran de résultats et faire vivre les deux axes de sélection. | plancher opposable 120 ; mesure 156 | `tests/data/product-fitness.test.ts` |
 
 ### Constat hors périmètre — `npm run lint` n'était **pas** vert à la prise en main
 

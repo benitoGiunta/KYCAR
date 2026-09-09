@@ -17,11 +17,15 @@
  */
 
 import {
+  ageMonthsOf,
   applyAnomalies,
   assignAnomalySlots,
   assignCloneRoles,
+  baseCount,
   rateOf,
+  structuralCounts,
 } from './anomalies.mjs';
+import { freezeCellStats } from './cells.mjs';
 import { assignDealers, bucketKey } from './dealers.mjs';
 import { buildContext, commercialRound, generateListing, normalFromUnit } from './listing.mjs';
 import {
@@ -36,8 +40,10 @@ import {
   assignDates,
   calibrateMissingness,
   derivePriceFields,
+  expectedPresence,
   makeListingId,
   missingnessFields,
+  protectedKeysFor,
   serializeNdjson,
   sortRows,
   toAs24,
@@ -47,6 +53,7 @@ const DOM_EXIT = 0x6e0000;
 const DOM_REVISE = 0x6f0000;
 const DOM_CLONE = 0x700000;
 const DOM_ENTRANT = 0x710000;
+const DOM_ACCEPT = 0x720000;
 
 const clamp = (x, lo, hi) => (x < lo ? lo : x > hi ? hi : x);
 
@@ -55,17 +62,43 @@ export function snapshotIdOf(marketplace, isoDate) {
   return `${marketplace}-${isoDate.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')}`;
 }
 
-/** Loi d'age des entrantes : loi du stock inclinee de exp(-0,02 a), renormalisee (R-52). */
-function entrantAgeLaw(ageLaw) {
-  const w = new Float64Array(ageLaw.pmf.length);
-  for (let i = 0; i < w.length; i += 1) w[i] = ageLaw.pmf[i] * Math.exp(-0.02 * (ageLaw.min + i));
-  const cumulative = new Float64Array(w.length);
-  let acc = 0;
-  for (let i = 0; i < w.length; i += 1) {
-    acc += w[i];
-    cumulative[i] = acc;
-  }
-  return { cumulative, total: acc };
+/**
+ * DR3-07 - COMPOSITION DES ENTRANTES : STATIONNARITE, PAS UNE INCLINAISON POSTULEE.
+ *
+ * `R-52` inclinait la loi d'AGE des entrantes de `exp(-0,02 a)` « pour que les arrivees soient un
+ * peu plus recentes que le stock ». Cette inclinaison etait posee EN PLUS de la duree d'exposition,
+ * alors que `R-50` enonce deja que les deux gouvernent la meme chose : « la composition du stock
+ * vaut le flux d'entree multiplie par la duree moyenne d'exposition ». La chaine n'etait donc pas
+ * stationnaire. Deux mecanismes la faisaient deriver dans le MEME sens :
+ *
+ *   - l'inclinaison d'age rajeunissait le flux entrant a chaque snapshot ;
+ *   - la duree d'exposition croit avec le prix (`(prix/15000)^0,18`, R-50), donc les annonces BON
+ *     MARCHE sortent plus vite ; un flux entrant tire sur la loi du STOCK ne les remplace pas
+ *     assez vite, et le stock s'enrichit.
+ *
+ * Resultat mesure par la revue : la mediane de prix MONTAIT de 5,6 % en deux semaines, quand `P-69`
+ * exige un recul. Sur les seules survivantes elle baissait bien (-0,3 %) : le defaut etait
+ * entierement dans le renouvellement, pas dans les revisions.
+ *
+ * LA CORRECTION. La condition de stationnarite s'ecrit, pour TOUT profil `x` d'annonce (age, prix,
+ * segment, vendeur - toutes les variables dont `d` depend) :
+ *
+ *     stock(x) = entrees(x) x d(x)      =>      entrees(x) proportionnel a stock(x) / d(x)
+ *
+ * `generateListing` tire deja sur la loi du STOCK. Il suffit donc d'ACCEPTER un candidat avec une
+ * probabilite proportionnelle a `1 / d(x)`, ce que fait `acceptAsEntrant` : la loi d'entree devient
+ * exactement `stock / d`, sur toutes les dimensions a la fois, et le stock cesse de deriver. Un seul
+ * mecanisme remplace les deux, et l'inclinaison d'age postulee disparait - son signe n'etait meme
+ * pas le bon.
+ *
+ * La borne basse de `d` (35 jours, R-50) sert de constante de normalisation : le taux d'acceptation
+ * moyen vaut environ 0,5, et 24 tirages suffisent (probabilite d'echec inferieure a 1e-7).
+ */
+const DWELL_MIN_DAYS = 35;
+
+function acceptAsEntrant(listing, seed, rowIndex, attempt) {
+  const d = Math.max(DWELL_MIN_DAYS, listing.dwellDays);
+  return pureUnit(seed, DOM_ACCEPT + attempt, rowIndex) < DWELL_MIN_DAYS / d;
 }
 
 /** Prepare tout ce qui ne depend que du profil et de la graine. */
@@ -79,7 +112,9 @@ export function prepareProfile(tables, profileName, seed) {
   const calibration = calibrateSegments(tables, catalog, makeShares);
   const ctx = buildContext(tables, catalog, calibration, capturedYear);
   ctx.ageLaw = buildAgeLaw(tables.ageMileage);
-  ctx.entrantTilt = entrantAgeLaw(ctx.ageLaw);
+  // DR3-07 : plus d'inclinaison d'age postulee ; la composition des entrantes est obtenue par
+  // acceptation-rejet en `1 / d` (voir `acceptAsEntrant`), donc la loi de tirage reste celle du stock.
+  ctx.entrantTilt = null;
   const labelBySlug = new Map(tables.taxonomy.makes.map((m) => [m.slug, m.label]));
   const { counts, makes, movedForPresenceFloor } = apportionMakes(profile.listingsPerSnapshot, tables.makes);
   const slotMakes = [];
@@ -103,6 +138,10 @@ function makeOccupant(prep, slotIndex, rowIndex, constraints, tilt) {
       forceSellerType: constraints.forceSellerType,
     });
     if (constraints.requireFuel && !constraints.requireFuel.includes(l.fuelCategory)) continue;
+    if (constraints.maxAgeMonths !== undefined && ageMonthsOf(l) > constraints.maxAgeMonths) continue;
+    if (constraints.requireBranch !== undefined && l.branch !== constraints.requireBranch) continue;
+    // DR3-07 : acceptation-rejet en `1 / d` - c'est ce qui rend la chaine stationnaire.
+    if (!acceptAsEntrant(l, prep.seed, rowIndex, attempt)) continue;
     return finalizeConstraints(l, constraints);
   }
   const prng = new Prng((prep.seed ^ DOM_ENTRANT ^ (rowIndex * 0x9e3779b1)) | 0);
@@ -130,8 +169,14 @@ function constraintsOf(slotAnoms, role, s0Listing) {
   for (const a of slotAnoms) {
     if (a.id === 'A-16') c.requireFuel = ['2', '3'];
     if (a.id === 'A-14') c.requireFuel = ['B', 'D', '2', '3'];
-    if (a.id === 'A-15') c.requireFuel = ['B', 'D'];
+    if (a.id === 'A-15') {
+      c.requireFuel = ['B', 'D'];
+      c.requireBranch = 'WLTP'; // DR3-05, voir `eligibleFor` dans anomalies.mjs
+    }
     if (a.id === 'A-03') c.requireUsedOffer = true;
+    // DR3-02 : le vivier d'A-04 est borne en age ; un slot A-04 doit rester occupe par une annonce
+    // assez jeune, sinon l'anomalie redeviendrait indetectable au renouvellement du stock.
+    if (a.id === 'A-04') c.maxAgeMonths = 72;
     if (a.id === 'A-11' && s0Listing) c.pinModelId = s0Listing.modelId;
   }
   return c;
@@ -178,7 +223,15 @@ export function generateProfile(tables, profileName, seed) {
   let nextRow = N;
 
   /* ---- Proprietes de slot : clonage, concessionnaires, anomalies ---------------------------------- */
-  const roles = assignCloneRoles(occupants, tables, seed, N);
+  // DR3-10 : les taux d'anomalie s'appliquent a la base que `anomalies.json` DECLARE. Les effectifs
+  // de base structurels se mesurent sur les occupants ; l'esperance de presence de `powerHp` apres
+  // le modele de completude exige que le calibrage soit fait AVANT le tirage des anomalies (il n'en
+  // depend pas : il ne lit que le facteur latent, le type de vendeur et l'age).
+  const missCalib = calibrateMissingness(occupants, fields, tables);
+  const normalizer = missCalib.normalizer;
+  const counts = structuralCounts(occupants, expectedPresence(occupants, fields, tables, missCalib, 'powerHp'));
+
+  const roles = assignCloneRoles(occupants, tables, seed, counts);
   assignDealers(occupants, ctx, profileName, seed);
   applyAdTierPremium(occupants, tables);
   applyClonesAtOrigin(occupants, roles, tables, seed, profileName);
@@ -187,16 +240,16 @@ export function generateProfile(tables, profileName, seed) {
     const k = `${l.makeId}|${l.modelId}`;
     cellCount.set(k, (cellCount.get(k) ?? 0) + 1);
   }
-  const slotAnoms = assignAnomalySlots(occupants, roles, tables, seed, N, cellCount);
+  // DR3-08 / DR3-09 : statistiques de cellule du moteur, mesurees UNE fois sur le premier snapshot
+  // et gelees (voir `cells.mjs`). Elles conditionnent le vivier d'A-10 et d'A-11 et la valeur
+  // injectee ; les geler est ce qui garantit qu'une survivante non revisee garde son prix (P-70).
+  const cellStats = freezeCellStats(occupants);
+  const slotAnoms = assignAnomalySlots(occupants, roles, tables, seed, counts, cellCount, cellStats);
   const slotSeller = occupants.map((l) => l.sellerType);
   const slotBucket = occupants.map((l) => l.dealerBucket);
   const slotBucketRank = occupants.map((l) => l.bucketRank ?? null);
   const slotAdTier = occupants.map((l) => l.adTier);
   const slotConstraints = occupants.map((l, j) => constraintsOf(slotAnoms[j], roles[j], l));
-
-  /* ---- Calibrage du modele de completude : mesure UNE fois, puis gele (R-43) ---------------------- */
-  const missCalib = calibrateMissingness(occupants, fields, tables);
-  const normalizer = missCalib.normalizer;
 
   /* ---- Chaine des trois snapshots ---------------------------------------------------------------- */
   const results = [];
@@ -255,13 +308,53 @@ export function generateProfile(tables, profileName, seed) {
         const l = occupants[j];
         const u = pureUnit(seed, DOM_REVISE + k * 3, l.rowIndex);
         if (u < pr.shareOfSurvivors) {
+          // DR3-06 - UNE REVISION QUI NE CHANGE PAS LE PRIX AFFICHE N'EST PAS UNE REVISION.
+          //
+          // Le tirage etait compte comme revision AVANT l'arrondi commercial (R-25) ; environ 40 %
+          // des tirages retombaient sur la MEME valeur de grille, si bien que 10,2 % seulement des
+          // survivantes voyaient leur prix affiche bouger pour 17,1 % declares au manifest, sous le
+          // plancher de 14 % de `P-68`. On retire tant que l'arrondi ne mord pas, en gardant la
+          // DIRECTION (la part a la baisse de `P-68` doit rester dans [80 %, 88 %]) et en
+          // augmentant l'amplitude a chaque tentative ; a defaut, on saute d'un cran de grille.
           const dir = pureUnit(seed, DOM_REVISE + k * 3 + 1, l.rowIndex) < pr.direction.down ? -1 : 1;
           const med = dir < 0 ? pr.amplitude.medianDown : pr.amplitude.medianUp;
-          const z = pureUnit(seed, DOM_REVISE + k * 3 + 2, l.rowIndex);
-          const amp = clamp(med * Math.exp(pr.amplitude.sigma * inverseNormal(z)), pr.amplitude.clamp[0], pr.amplitude.clamp[1]);
-          l.basePrice = commercialRound(l.basePrice * (1 + dir * amp), tables.priceModel.commercialRounding.bands, l.uRound, l.uGrid);
-          l.revisedAt = capturedAtMs;
-          revisedCount += 1;
+          const before = l.basePrice;
+          let next = before;
+          for (let attempt = 0; attempt < 8 && next === before; attempt += 1) {
+            const z = pureUnit(seed, DOM_REVISE + k * 3 + 2 + attempt * 97, l.rowIndex);
+            // L'amplitude reste bornee a la moitie du prix : au-dela, une revision a la baisse
+            // produirait un prix nul ou negatif, que l'arrondi commercial ramenerait a 1 EUR - une
+            // SENTINELLE non declaree (sonde R-DATA-18, la reciproque de la verite terrain).
+            const amp = clamp(
+              med * Math.exp(pr.amplitude.sigma * inverseNormal(z)) * (1 + attempt * 0.6),
+              pr.amplitude.clamp[0],
+              Math.min(0.5, pr.amplitude.clamp[1] * (1 + attempt * 0.6)),
+            );
+            next = commercialRound(before * (1 + dir * amp), tables.priceModel.commercialRounding.bands, l.uRound, l.uGrid);
+          }
+          if (next === before) {
+            // Dernier recours : un pas de grille dans la direction tiree. Le prix RESTE une valeur
+            // commerciale (P-39) et le mouvement est effectif.
+            let step = Math.max(50, Math.round(before * 0.01));
+            for (let g = 0; g < 12 && next === before; g += 1) {
+              const candidate = commercialRound(
+                Math.max(300, before + dir * step),
+                tables.priceModel.commercialRounding.bands,
+                l.uRound,
+                l.uGrid,
+              );
+              if (candidate !== before) next = candidate;
+              step *= 2;
+            }
+          }
+          // Jamais sous 300 EUR : le domaine des prix revises ne doit pas croiser celui des
+          // sentinelles absolues d'EX-DATA-19(1), qui sont une VERITE TERRAIN declaree.
+          if (next < 300) next = before;
+          if (next !== before) {
+            l.basePrice = next;
+            l.revisedAt = capturedAtMs;
+            revisedCount += 1;
+          }
         }
         if (pureUnit(seed, DOM_REVISE + k * 3 + 2, l.rowIndex + 7) < pr.imageCountDrift.shareOfSurvivors) {
           l.imageCount = Math.min(50, l.imageCount + 1 + Math.floor(pureUnit(seed, DOM_REVISE + k, l.rowIndex + 11) * 4));
@@ -285,9 +378,11 @@ export function generateProfile(tables, profileName, seed) {
 
       const l = workingCopy(src);
       l.isNew = isNewFlag[j];
-      const gt = applyAnomalies(l, slotAnoms[j], ctx, seed, cellCount);
+      const gt = applyAnomalies(l, slotAnoms[j], ctx, seed, cellCount, cellStats);
       derivePriceFields(l, ctx, seed);
-      const absent = applyMissingness(l, fields, tables, seed, missCalib);
+      // DR3-11 : un champ PORTEUR d'une anomalie declaree ne peut pas etre retire par le modele de
+      // completude - la vérité terrain deviendrait invérifiable (DATASET-SPEC §6).
+      const absent = applyMissingness(l, fields, tables, seed, missCalib, protectedKeysFor(l));
       rows[j] = { o: toAs24(l, absent, ctx, { capturedAtMs }), slot: j };
       for (const g of gt) groundTruth.push({ listingId: l.listingId, ...g });
       src.working = l;
@@ -366,8 +461,18 @@ export function generateProfile(tables, profileName, seed) {
     roles,
     slotAnoms,
     cellCount,
+    counts,
     anomalyTargets: Object.fromEntries(
-      tables.anomalies.anomalies.filter((a) => a.rate > 0).map((a) => [a.id, Math.round(rateOf(tables, a.id) * N)]),
+      tables.anomalies.anomalies
+        .filter((a) => a.rate > 0)
+        .map((a) => [
+          a.id,
+          {
+            base: a.base,
+            baseCount: baseCount(a.base, counts),
+            target: Math.round(rateOf(tables, a.id) * baseCount(a.base, counts)),
+          },
+        ]),
     ),
   };
 }

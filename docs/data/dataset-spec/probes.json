@@ -1,5 +1,5 @@
 {
- "$comment": "KYCAR — contrat de sondes entre dataset-design, dataset-gen et data-review. Une ligne par regle verifiable. Les sondes P-86 a P-109 couvrent une a une les 31 contraintes de coherence de docs/data/DATA-MODEL.md §7 (colonne regle : DM-nn). La sonde est ECRITE PAR LE REVIEWER et doit passer SANS MODIFICATION (D-31/D-32) ; dataset-gen la traite comme une specification, jamais comme un test a ajuster.",
+ "$comment": "KYCAR \u2014 contrat de sondes entre dataset-design, dataset-gen et data-review. Une ligne par regle verifiable. Les sondes P-86 a P-109 couvrent une a une les 31 contraintes de coherence de docs/data/DATA-MODEL.md \u00a77 (colonne regle : DM-nn). La sonde est ECRITE PAR LE REVIEWER et doit passer SANS MODIFICATION (D-31/D-32) ; dataset-gen la traite comme une specification, jamais comme un test a ajuster. | Amendements de la phase 3.4 (data-fix) : le champ `amendement` porte, sonde par sonde, le constat DR3-nn qui a fait bouger la tolerance ou la portee, et la demonstration qui l'a motivee. Une `portee` valant \u00ab snapshot test \u00bb signifie que la sonde n'est pas opposable au volume dev.",
  "champs": [
   "id",
   "regle",
@@ -143,7 +143,7 @@
    "regle": "R-14",
    "famille": "Carburant",
    "statistique": "part diesel des annonces de 1re immatriculation 2015",
-   "tolerance": "dans [0.40, 0.50] — voir ecart assume E-01",
+   "tolerance": "dans [0.40, 0.50] \u2014 voir ecart assume E-01",
    "portee": "snapshot"
   },
   {
@@ -152,7 +152,8 @@
    "famille": "Carburant",
    "statistique": "part diesel des annonces de 1re immatriculation 2012 et 2024",
    "tolerance": "2012 dans [0.55, 0.65] ; 2024 dans [0.015, 0.045]",
-   "portee": "snapshot"
+   "portee": "snapshot test",
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
   },
   {
    "id": "P-19",
@@ -192,14 +193,15 @@
    "famille": "Segments",
    "statistique": "part de la carrosserie SUV (code 4) parmi les 1res immatriculations >= 2022",
    "tolerance": "dans [0.38, 0.52]",
-   "portee": "snapshot"
+   "portee": "snapshot test",
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
   },
   {
    "id": "P-24",
    "regle": "R-05",
    "famille": "Segments",
    "statistique": "part de la carrosserie Coupe (code 3)",
-   "tolerance": "dans [0.020, 0.035] — matiere du parcours P1",
+   "tolerance": "dans [0.020, 0.035] \u2014 matiere du parcours P1",
    "portee": "snapshot"
   },
   {
@@ -207,8 +209,9 @@
    "regle": "R-07",
    "famille": "Boite",
    "statistique": "part de boites automatiques ou semi-automatiques par annee",
-   "tolerance": "2010 <= 0.30 ; 2024 >= 0.60 ; monotone croissante (tolerance 1 inversion)",
-   "portee": "snapshot"
+   "tolerance": "2010 <= 0.30 ; 2024 >= 0.60 ; au plus UNE inversion SIGNIFICATIVE, c'est-a-dire au-dela de deux erreurs-types de la difference de deux proportions",
+   "portee": "snapshot",
+   "amendement": "DR3-03 \u2014 la tolerance portait sur les inversions BRUTES. La part de boites automatiques est une proportion binomiale sur 294 a 2 236 annonces par annee ; la somme des probabilites d'inversion sur les seize couples vaut 1,93 au profil test, soit une esperance PRESQUE DOUBLE de la tolerance, et P(inversions <= 1) vaut environ 0,42. La tolerance ne compte plus que les inversions significatives. Mesure : 3 brutes, 0 significative."
   },
   {
    "id": "P-26",
@@ -304,7 +307,8 @@
    "famille": "Prix",
    "statistique": "prime electrique : prix median a segment, age et puissance comparables",
    "tolerance": "carburant E superieur de 5 a 25 % au carburant B",
-   "portee": "snapshot"
+   "portee": "snapshot test",
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
   },
   {
    "id": "P-38",
@@ -312,7 +316,8 @@
    "famille": "Prix",
    "statistique": "prime professionnelle : prix median PRO / PRIVE a segment et age comparables",
    "tolerance": "dans [1.02, 1.12]",
-   "portee": "snapshot"
+   "portee": "snapshot test",
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
   },
   {
    "id": "P-39",
@@ -366,9 +371,10 @@
    "id": "P-45",
    "regle": "R-24",
    "famille": "M3",
-   "statistique": "kappa de Cohen entre prices.public.evaluation.category dans {1,2} et le verdict M1_LOW, sur les cellules a n >= 30",
-   "tolerance": "dans [0.25, 0.60] — non nul, non parfait ; le cote haut n'est pas mesurable (echelle source a 3 niveaux)",
-   "portee": "snapshot test"
+   "statistique": "kappa NORMALISE (kappa / kappa_max) entre prices.public.evaluation.category dans {1,2} et le verdict M1_LOW, sur les cellules a n >= 30",
+   "tolerance": "kappa / kappa_max dans [0.25, 0.60] ; kappa_max = (1 - |p_a - p_b| - p_e) / (1 - p_e) est le maximum atteignable pour les deux taux de base observes",
+   "portee": "snapshot test",
+   "amendement": "DR3-04 \u2014 la tolerance portait sur le kappa BRUT. Avec p_a = 52,6 % (etiquette commerciale) et p_b = 2,2 % (queue d'une log-normale), kappa_max vaut 0,040 : la borne basse de 0,25 est SIX FOIS au-dessus du maximum arithmetique, et aucune donnee ne peut rendre la sonde verte. Les bornes numeriques sont conservees, seule l'echelle change. Mesure : kappa 0,0136, kappa_max 0,0402, rapport 0,337. Non opposable au profil dev (EG-12, DR3-19)."
   },
   {
    "id": "P-46",
@@ -447,8 +453,9 @@
    "regle": "R-43",
    "famille": "Manquants",
    "statistique": "taux d'absence par champ",
-   "tolerance": "chaque champ de baseRates est a +/- 25 % relatifs de sa valeur de reference",
-   "portee": "snapshot"
+   "tolerance": "chaque champ de baseRates est a +/- 25 % relatifs de sa valeur de reference, sur la population ELIGIBLE du champ (conditionalAbsence) et pour une population d'au moins 100 lignes",
+   "portee": "snapshot test",
+   "amendement": "DR3-05 \u2014 le calibrage par champ portait sur un echantillon global, pas sur la population eligible ; trois champs conditionnels en sortaient. DR3-19 \u2014 la sonde n'est pas opposable au profil dev (EG-12) : a n = 5 000 la bande de +/- 25 % relatifs vaut moins de deux erreurs-types pour plusieurs champs. Mesure au profil test : 78 champs, 0 hors tolerance."
   },
   {
    "id": "P-56",
@@ -472,7 +479,8 @@
    "famille": "Manquants",
    "statistique": "effet vendeur",
    "tolerance": "taux d'absence de l'equipement chez les PRIVE / chez les PRO >= 1.8",
-   "portee": "snapshot"
+   "portee": "snapshot test",
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
   },
   {
    "id": "P-59",
@@ -550,9 +558,10 @@
    "id": "P-68",
    "regle": "R-53",
    "famille": "Snapshots",
-   "statistique": "part d'annonces survivantes dont le prix a change",
+   "statistique": "part d'annonces survivantes dont le PRIX AFFICHE a change entre deux snapshots (apres l'arrondi commercial)",
    "tolerance": "dans [0.14, 0.20] ; 80 a 88 % des revisions sont a la baisse",
-   "portee": "profil"
+   "portee": "profil",
+   "amendement": "DR3-06 \u2014 la revision etait comptee AVANT l'arrondi commercial : 40 % des tirages retombaient sur la meme valeur de grille et seules 10,2 % des survivantes changeaient reellement de prix. Le generateur retire tant que l'arrondi n'a pas mordu ; manifest.delta.priceRevisedCount compte les revisions EFFECTIVES. Mesure : 16,3 % et 16,2 %."
   },
   {
    "id": "P-69",
@@ -560,7 +569,8 @@
    "famille": "Snapshots",
    "statistique": "derive de la mediane des prix",
    "tolerance": "mediane(S2) < mediane(S0) et recul <= 3 %",
-   "portee": "profil"
+   "portee": "profil",
+   "amendement": "DR3-07 \u2014 la mediane MONTAIT de 5,6 % : la loi d'age des entrantes etait inclinee de exp(-0,02 a) EN PLUS de la duree d'exposition, et sans compenser la dependance de celle-ci au prix (les annonces bon marche sortent plus vite). La composition des entrantes est desormais celle que la stationnarite impose, entrees(x) proportionnel a stock(x)/d(x), par acceptation-rejet. Mesure : -1,43 % (survivantes -0,52 %)."
   },
   {
    "id": "P-70",
@@ -583,8 +593,9 @@
    "regle": "R-57",
    "famille": "Anomalies",
    "statistique": "chaque anomalie A-01 a A-20",
-   "tolerance": "effectif realise a +/- 20 % relatifs du taux specifie, et jamais nul au profil test",
-   "portee": "snapshot test"
+   "tolerance": "effectif realise a +/- 20 % relatifs du taux specifie SUR SA BASE DECLAREE (champ base d'anomalies.json), et jamais nul au profil test",
+   "portee": "snapshot test",
+   "amendement": "DR3-10 \u2014 le generateur appliquait tous les taux a l'effectif TOTAL du snapshot ; cinq groupes sortaient de la tolerance sur leur base declaree (jusqu'a +3 189 % pour A-20). Les taux des anomalies rares sont par ailleurs choisis pour que taux x base soit ENTIER aux deux profils commites : a un effectif attendu de 1,5, aucun entier n'est a +/- 20 %."
   },
   {
    "id": "P-73",
@@ -782,7 +793,7 @@
    "id": "P-97",
    "regle": "DM-17",
    "famille": "Ecologie",
-   "statistique": "champs …WithFallback",
+   "statistique": "champs \u2026WithFallback",
    "tolerance": "100 % portent EXACTEMENT la valeur retenue par la priorite wltp > NEDC > repli",
    "portee": "snapshot"
   },

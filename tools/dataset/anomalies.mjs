@@ -21,6 +21,7 @@
  * et une survivante non revisee est identique champ a champ (contrainte 4, sonde P-70).
  */
 
+import { m1CellFor } from './cells.mjs';
 import { pureUnit } from './prng.mjs';
 
 const DOM_BASE = 0x4a0000;
@@ -46,6 +47,74 @@ export function rateOf(tables, id) {
   return a ? a.rate : 0;
 }
 
+/** Population de reference du taux, telle qu'`anomalies.json` la NOMME (champ `base`). */
+export function baseOf(tables, id) {
+  const a = tables.anomalies.anomalies.find((x) => x.id === id);
+  return a ? a.base : 'toutes';
+}
+
+const THERMAL_CATEGORIES = new Set(['B', 'D', '2', '3', 'L', 'C', 'M', 'O']);
+
+/**
+ * DR3-10 - EFFECTIF VISE D'UNE ANOMALIE, SUR SA BASE DECLAREE.
+ *
+ * Le generateur appliquait TOUS les taux a l'effectif TOTAL du snapshot (`round(taux x N)`) alors
+ * qu'`anomalies.json` nomme, anomalie par anomalie, la population de reference du taux. Cinq
+ * groupes en sortaient : `A-07` / `A-07b` / `A-08` (base « annonces professionnelles », 68,7 % du
+ * stock) de +46 %, `A-16` de +658 %, `A-20` de +3 189 %. Le champ `base` annoncait une chose, le
+ * fichier en produisait une autre.
+ *
+ * `counts` porte les effectifs que le generateur connait au moment du tirage :
+ *   - `total`       effectif du snapshot ;
+ *   - `pro`         annonces professionnelles ;
+ *   - `usedOffer`   annonces d'`offerType` U, J ou O ;
+ *   - `thermal`     annonces thermiques ;
+ *   - `hybrid`      annonces hybrides (categories 2 et 3) ;
+ *   - `quoted`      annonces a prix affiche - connu des que A-23, A-20 et A-24 sont tires, parce
+ *                   que ce sont EXACTEMENT les trois anomalies qui retirent le prix affiche ;
+ *   - `onRequest`   annonces a prix sur demande (A-23 + A-20) ;
+ *   - `withPowerHp` esperance du nombre d'annonces portant `powerHp` apres le modele de completude.
+ */
+export function baseCount(base, counts) {
+  if (base.startsWith('annonces a prix affiche')) return counts.quoted;
+  if (base === 'annonces professionnelles') return counts.pro;
+  if (base === "annonces d'offerType U, J ou O") return counts.usedOffer;
+  if (base === 'annonces thermiques') return counts.thermal;
+  if (base === 'annonces hybrides') return counts.hybrid;
+  if (base === 'annonces portant powerHp') return counts.withPowerHp;
+  if (base === 'annonces a prix sur demande') return counts.onRequest;
+  return counts.total;
+}
+
+/** Effectif vise = `round(taux x base declaree)`. */
+export function targetOf(tables, id, counts) {
+  return Math.round(rateOf(tables, id) * baseCount(baseOf(tables, id), counts));
+}
+
+/** Effectifs de base mesures sur les occupants du snapshot (hors bases dependant du prix). */
+export function structuralCounts(listings, withPowerHp) {
+  let pro = 0;
+  let usedOffer = 0;
+  let thermal = 0;
+  let hybrid = 0;
+  for (const l of listings) {
+    if (l.sellerType === 'D') pro += 1;
+    if (l.offerType === 'U' || l.offerType === 'J' || l.offerType === 'O') usedOffer += 1;
+    if (THERMAL_CATEGORIES.has(l.fuelCategory)) thermal += 1;
+    if (l.fuelCategory === '2' || l.fuelCategory === '3') hybrid += 1;
+  }
+  return {
+    total: listings.length,
+    pro,
+    usedOffer,
+    thermal,
+    hybrid,
+    withPowerHp: Math.round(withPowerHp ?? listings.length),
+    quoted: listings.length,
+    onRequest: 0,
+  };
+}
+
 /**
  * Selectionne exactement `target` elements du vivier, par course exponentielle sur un hachage pur.
  * @param {number[]} pool indices de slot eligibles
@@ -68,7 +137,7 @@ function selectExact(pool, target, seed, domain, rowOf, weightOf) {
  * source, dans la meme marque : les effectifs par marque restent exacts (P-08) et le nombre de
  * lignes du fichier reste celui du profil (P-01).
  */
-export function assignCloneRoles(listings, tables, seed, total) {
+export function assignCloneRoles(listings, tables, seed, counts) {
   const roles = new Array(listings.length).fill(null);
   const eligible = [];
   for (let j = 1; j < listings.length; j += 1) {
@@ -81,7 +150,8 @@ export function assignCloneRoles(listings, tables, seed, total) {
   }
   const taken = new Set();
   for (const id of CLONE_ANOMALIES) {
-    const target = Math.round(rateOf(tables, id) * total);
+    // DR3-10 : les trois anomalies de doublon declarent la base « annonces professionnelles ».
+    const target = targetOf(tables, id, counts);
     const pool = eligible.filter((j) => !taken.has(j) && !taken.has(j - 1) && roles[j - 1] === null);
     const picked = selectExact(pool, target, seed, domainOf(id), (i) => i, null);
     for (const j of picked) {
@@ -97,7 +167,7 @@ export function assignCloneRoles(listings, tables, seed, total) {
  * Attribue les anomalies de prix puis les autres aux slots (hors slots de clonage, qui portent deja
  * la leur). Retourne un tableau `slotAnomalies[j] = [{ id, params }]`.
  */
-export function assignAnomalySlots(listings, roles, tables, seed, total, cellCount) {
+export function assignAnomalySlots(listings, roles, tables, seed, counts, cellCount, stats) {
   const slots = listings.map(() => []);
   const isClone = (j) => roles[j] !== null;
   const rowOf = (j) => listings[j].rowIndex;
@@ -112,23 +182,66 @@ export function assignAnomalySlots(listings, roles, tables, seed, total, cellCou
     if (l.sellerType !== 'D') return 0.005;
     return l.segment === 'luxe' || l.justPrice > 80000 ? 0.22 : 0.035;
   };
+  // DR3-10 : les bases « annonces a prix affiche » et « annonces a prix sur demande » ne sont
+  // connues qu'une fois tirees les TROIS anomalies qui deplacent le statut de prix (A-23, A-20,
+  // A-24). L'ordre de `PRICE_ANOMALIES` les place en tete ; les compteurs sont tenus a jour au fur
+  // et a mesure, et la base d'A-20 - qui est elle-meme une annonce a prix sur demande - se resout
+  // par un point fixe de deux iterations (le taux vaut 1,3 %, la suite converge immediatement).
+  const live = { ...counts };
+  const onRequestBase = (extra) => live.onRequest + extra;
   for (const id of PRICE_ANOMALIES) {
-    const target = Math.round(rateOf(tables, id) * total);
+    let target;
+    if (id === 'A-20') {
+      let t = 0;
+      for (let it = 0; it < 4; it += 1) t = Math.round(rateOf(tables, id) * onRequestBase(t));
+      target = t;
+    } else {
+      target = targetOf(tables, id, live);
+    }
     let pool = base.filter((j) => !used.has(j));
     let weight = null;
     if (id === 'A-23' || id === 'A-20') weight = onRequestWeight;
-    if (id === 'A-11') pool = pool.filter((j) => (cellCount.get(`${listings[j].makeId}|${listings[j].modelId}`) ?? 0) >= 30);
+    if (id === 'A-11') {
+      pool = pool.filter((j) => {
+        if ((cellCount.get(`${listings[j].makeId}|${listings[j].modelId}`) ?? 0) < 30) return false;
+        // DR3-09 : la cellule doit porter un ajustement M2 EXPLOITABLE, sinon l'annonce injectee
+        // n'est pas evaluee et le rappel annonce est inatteignable par construction.
+        const fit = stats?.fitC2.get(`${listings[j].makeId}|${listings[j].modelId}`);
+        return fit !== undefined && fit.ok;
+      });
+    }
+    if (id === 'A-10') {
+      // DR3-08 : M1 n'evalue que les annonces dont une cellule de la cascade atteint 12 prix.
+      pool = pool.filter((j) => m1CellFor(stats, listings[j]).chosen !== null);
+    }
     const picked = selectExact(pool, target, seed, domainOf(id), rowOf, weight);
     for (const j of picked) {
       used.add(j);
       slots[j].push({ id });
     }
+    if (id === 'A-23' || id === 'A-20') {
+      live.onRequest += picked.length;
+      live.quoted -= picked.length;
+    }
+    if (id === 'A-24') live.quoted -= picked.length;
   }
+  // Les effectifs de base realises (prix affiche, prix sur demande) sont rendus a l'appelant : le
+  // rapport lateral publie l'attendu de chaque anomalie SUR SA BASE, pas sur N (DR3-10).
+  counts.quoted = live.quoted;
+  counts.onRequest = live.onRequest;
 
   /* ---- Autres anomalies : bases conditionnelles, cumulables avec une anomalie de prix ------------ */
   const eligibleFor = (id, j) => {
     const l = listings[j];
     switch (id) {
+      case 'A-04':
+        // DR3-02 : la forme (a) doit franchir la borne de la contrainte 22 (200 000 km/an) SANS
+        // franchir la borne dure du champ (#59, 1 500 000 km), qui rendrait le kilometrage INCONNU
+        // et remplacerait le signal attendu par `MILEAGE_OUT_OF_RANGE`. Les deux bornes ne sont
+        // conciliables que sous 90 mois d'age : au-dela, `1 500 000 / (mois/12)` tombe sous
+        // 200 000 km/an et AUCUN kilometrage licite n'est implausible. Le vivier est donc borne en
+        // age - c'est la seule facon de tenir le « 100 % des formes (a) » d'`aRetrouver`.
+        return ageMonthsOf(l) <= A04_MAX_AGE_MONTHS;
       case 'A-03':
         return l.offerType === 'U' || l.offerType === 'J' || l.offerType === 'O';
       case 'A-13b':
@@ -136,7 +249,14 @@ export function assignAnomalySlots(listings, roles, tables, seed, total, cellCou
       case 'A-14':
         return l.fuelCategory === 'B' || l.fuelCategory === 'D' || l.fuelCategory === '2' || l.fuelCategory === '3';
       case 'A-15':
-        return l.fuelCategory === 'B' || l.fuelCategory === 'D';
+        // DR3-05 : l'anomalie pose `isPluginHybrid = true` sur une annonce thermique. Toute sonde
+        // qui definit la population « electrique ou rechargeable » par ce champ (c'est le cas de la
+        // table d'eligibilite de P-55) ramasse alors des lignes dont la consommation electrique est
+        // STRUCTURELLEMENT absente. En bornant le vivier a la branche WLTP, la contamination porte
+        // sur une population de 2 000 lignes au lieu des 100 lignes electriques de branche NEDC,
+        // ou elle deplacait le taux mesure de 6 points. Le vivier reste par ailleurs le plus
+        // realiste : `isPluginHybrid` est un champ des annonces RECENTES.
+        return (l.fuelCategory === 'B' || l.fuelCategory === 'D') && l.branch === 'WLTP';
       case 'A-16':
         return l.fuelCategory === '2' || l.fuelCategory === '3';
       case 'A-05':
@@ -151,7 +271,7 @@ export function assignAnomalySlots(listings, roles, tables, seed, total, cellCou
   };
   const usedField = new Map();
   for (const id of OTHER_ANOMALIES) {
-    const target = Math.round(rateOf(tables, id) * total);
+    const target = targetOf(tables, id, live);
     const family = FIELD_FAMILY[id];
     const pool = base.filter((j) => {
       if (!eligibleFor(id, j)) return false;
@@ -175,6 +295,25 @@ export function assignAnomalySlots(listings, roles, tables, seed, total, cellCou
   return slots;
 }
 
+/** Age en mois d'une annonce a la capture, au sens de la contrainte 22 (au moins 6 mois). */
+export function ageMonthsOf(l) {
+  return Math.max(l.age * 12 + (12 - l.month), 6);
+}
+
+/**
+ * DR3-02 - age maximal du vivier d'`A-04`. A 84 mois, le rythme maximal compatible avec la borne
+ * dure de 1 450 000 km vaut `1 450 000 x 12 / 84 = 207 143 km/an` : la marge sur les 200 000 km/an
+ * de la contrainte 22 n'est plus que de 3,6 %, que l'arrondi au centieme de kilometre pourrait
+ * manger. A 72 mois elle vaut 20,8 %, ce qui est sûr.
+ */
+const A04_MAX_AGE_MONTHS = 72;
+
+/** DR3-02 - plafond de kilometrage de la forme (a) : sous la borne dure #59 (1 500 000 km). */
+const A04_MILEAGE_CAP = 1450000;
+
+/** DR3-09 - nombre d'ecarts robustes `s` entre le prix attendu de la cellule et la valeur injectee. */
+const M2_INJECTION_K = 3.4;
+
 /** A-05 : la variante "annee + 2" n'est licite que sur une annonce WLTP (ou sans branche) peu roulee. */
 export function futureVariantOk(l) {
   return l.branch !== 'NEDC' && l.mileage <= 95000 && l.offerType !== 'O';
@@ -188,9 +327,18 @@ function firstRegVariant(l, u) {
 
 /** Familles de champ : deux anomalies de la meme famille ne se cumulent pas sur une annonce. */
 const FIELD_FAMILY = {
+  // DR3-02 : A-05 rejoint la famille du kilometrage. Le rythme annuel de la contrainte 22 se calcule
+  // a partir de la DATE de premiere immatriculation : sur une annonce dont la date est deliberement
+  // hors bornes (A-05), l'age n'est pas calculable, l'adaptateur ne pose aucun signalement, et la
+  // declaration A-04 reste sans consequence canonique (constat C-P3-9, 1 cas sur 60 mesure).
   'A-03': 'mileage',
   'A-04': 'mileage',
   'A-04b': 'mileage',
+  'A-05': 'mileage',
+  // DR3-02 : A-17 (unite `mi`) rend le kilometrage INCONNU des l'ingestion (`UNIT_UNSUPPORTED`,
+  // EX-DATA-5). Cumulee a A-03 ou A-04, elle EFFACE leur consequence canonique : le rythme annuel
+  // n'est plus calculable et aucun signalement ne tombe. Meme famille, donc jamais cumulees.
+  'A-17': 'mileage',
   'A-13': 'power',
   'A-13b': 'power',
   'A-09': 'version',
@@ -212,6 +360,7 @@ export function slotConstraints(slotAnoms, role) {
     if (a.id === 'A-16' || a.id === 'A-14') out.forceThermalOrHybrid = a.id;
     if (a.id === 'A-15') out.forceFuel = 'BD';
     if (a.id === 'A-03') out.forceUsedOffer = true;
+    if (a.id === 'A-04') out.maxAgeMonths = A04_MAX_AGE_MONTHS;
     if (a.id === 'A-11') out.pinModel = true;
   }
   return out;
@@ -221,7 +370,7 @@ export function slotConstraints(slotAnoms, role) {
  * Applique les anomalies a une annonce et produit ses entrees de verite terrain.
  * @returns {object[]} entrees `groundTruth` (sans `listingId`, ajoute par l'appelant)
  */
-export function applyAnomalies(listing, slotAnoms, ctx, seed, cellCount) {
+export function applyAnomalies(listing, slotAnoms, ctx, seed, cellCount, stats) {
   const out = [];
   const T = ctx.tables;
   const row = listing.rowIndex;
@@ -237,9 +386,13 @@ export function applyAnomalies(listing, slotAnoms, ctx, seed, cellCount) {
         break;
       case 'A-20':
         listing.priceStatus = 'ON_REQUEST_WITH_AMOUNT';
+        // DR3-18 : `EX-DATA-32` est NORMATIF et l'adaptateur le suit deja - un montant servi AVEC le
+        // drapeau « sur demande » donne le statut canonique QUOTED plus le drapeau
+        // `PRICE_ON_REQUEST_WITH_AMOUNT`, jamais ON_REQUEST. Le manifest annoncait l'inverse : il
+        // attendait de l'ingestion une chose que le dictionnaire lui interdit (constat C-P3-8).
         out.push({
           anomaly: 'PRICE_ON_REQUEST_WITH_AMOUNT',
-          expected: { status: 'ON_REQUEST', amount: listing.displayPrice },
+          expected: { status: 'QUOTED', flag: 'PRICE_ON_REQUEST_WITH_AMOUNT', amount: listing.displayPrice },
         });
         break;
       case 'A-24':
@@ -262,30 +415,91 @@ export function applyAnomalies(listing, slotAnoms, ctx, seed, cellCount) {
         break;
       }
       case 'A-10': {
+        // DR3-08 - M1 SE MESURE DANS LA CELLULE, PAS EN EUROS ABSOLUS.
+        //
+        // L'ancienne injection basse tirait 260-480 EUR « pour ne jamais descendre sous la
+        // sentinelle absolue de 250 EUR ». Ce garde-fou etait INOPERANT : `EX-DATA-19(2)` retire de
+        // `V_price(C)` tout prix sous `0,10 x medianeRef(C)`, soit 1 595 EUR dans une cellule a
+        // 15 950 EUR. 32 des 50 M1 injectes tombaient dans cette tranche, portaient
+        // `PRICE_IMPLAUSIBLE_IN_CELL` et n'etaient JAMAIS evalues : rappel mesure 36 % pour 90 %
+        // annonces. La valeur est desormais choisie dans la fenetre ou M1 peut la voir :
+        //   plancher  = 1,10 x seuil relatif de la cellule (au-dessus, donc dans `V_price`) ;
+        //   plafond   = 0,70 x barriere basse de Tukey     (en dessous, donc SIGNALEE).
+        // La marge de 30 % sous la barriere absorbe le deplacement des quantiles que l'injection
+        // elle-meme provoque dans une cellule de douze annonces.
         const fair = listing.displayPrice;
-        const high = u(3) < 0.5;
-        listing.displayPrice = high
-          ? Math.round(500000 + u(4) * 2500000)
-          : Math.round(260 + u(4) * 220); // jamais sous 250 : sinon l'annonce devient une sentinelle
+        const cell = m1CellFor(stats, listing);
+        // On ne contraint que par les cellules `C1` et `C2` : `C3 = Sigma` n'est retenue par le
+        // moteur qu'a defaut des deux autres, et son seuil relatif (0,10 x mediane globale) y est
+        // PLUS HAUT que sa propre barriere basse - aucune valeur basse n'y est signalable.
+        const bounded = cell.candidates.filter((c) => c.scope !== 'SELECTION');
+        let high = u(3) < 0.5;
+        let injected = null;
+        if (!high && bounded.length > 0) {
+          const floor = Math.max(260, ...bounded.map((c) => 1.1 * (c.threshold ?? 0)));
+          const ceil = 0.7 * Math.min(...bounded.map((c) => c.lowFence));
+          if (floor < ceil) injected = Math.round(floor + (0.15 + u(4) * 0.7) * (ceil - floor));
+        }
+        if (injected === null) high = true;
+        if (high) {
+          const fence = Math.max(fair, ...cell.candidates.map((c) => c.highFence));
+          injected = Math.min(4900000, Math.round(fence * (1.6 + u(4) * 1.4)));
+        }
+        listing.displayPrice = injected;
         out.push({
           anomaly: high ? 'OUTLIER_M1_HIGH' : 'OUTLIER_M1_LOW',
-          expected: { method: 'M1', injected: listing.displayPrice, fair, factor: Math.round((listing.displayPrice / fair) * 1000) / 1000 },
+          expected: {
+            method: 'M1',
+            injected: listing.displayPrice,
+            fair,
+            factor: Math.round((listing.displayPrice / fair) * 1000) / 1000,
+            cellMedian: cell.chosen === null ? null : Math.round(cell.chosen.median),
+            cellN: cell.chosen === null ? 0 : cell.chosen.n,
+          },
         });
         break;
       }
       case 'A-11': {
+        // DR3-09 - LE SIGMA DU MODELE DE PRIX N'EST PAS CELUI QUE M2 MESURE.
+        //
+        // Les facteurs 0,30-0,50 et 2,0-3,2 etaient calibres sur `sigma_p = 0,20`, le residu du
+        // MODELE DE PRIX du generateur. M2 (`EX-DATA-90/92`) regresse `ln(prix) ~ annee + km` dans
+        // la cellule `(marque, modele)`, ou subsistent les variances de carburant, de puissance et
+        // de type de vendeur : l'ecart robuste `s` y est nettement superieur a 0,20, et un facteur
+        // 2,0 ne franchit pas `|z| >= 2,5`. Rappel mesure 51 % pour 85 % annonces, 25 injectes
+        // evalues et NON signales.
+        //
+        // Le generateur mesure desormais `s` par le MEME calcul que le moteur (`cells.mjs`, gele au
+        // premier snapshot) et place la valeur a `k = 3,4` ecarts robustes du prix ATTENDU par la
+        // regression de la cellule : `z` vaut alors +/- 3,4 par construction, pour un seuil a 2,5 -
+        // 36 % de marge, qui couvre le deplacement de `m_r` et de la MAD provoque par l'injection.
         const fair = listing.displayPrice;
-        const high = u(5) < 0.5;
-        const factor = high ? 2.0 + u(6) * 1.2 : 0.3 + u(6) * 0.2;
-        listing.displayPrice = Math.max(250, Math.round(fair * factor));
+        const key = `${listing.makeId}|${listing.modelId}`;
+        const fit = stats?.fitC2.get(key);
+        const sample = stats?.sampleC2.get(key);
+        const s = fit !== undefined && fit.ok ? fit.s : 0.2;
+        const expectedPrice = fit !== undefined && fit.ok ? fit.expectedFor(listing.year, listing.mileage) : fair;
+        let high = u(5) < 0.5;
+        let injected = Math.round(expectedPrice * Math.exp((high ? 1 : -1) * M2_INJECTION_K * s));
+        // Rester DANS `V_price(C2)` : sous `0,10 x medianeRef`, l'annonce serait ecartee de la
+        // cellule et M2 ne l'evaluerait pas davantage que M1.
+        const floor = Math.max(260, 1.1 * (sample?.threshold ?? 0));
+        if (!high && injected < floor) {
+          high = true;
+          injected = Math.round(expectedPrice * Math.exp(M2_INJECTION_K * s));
+        }
+        injected = Math.min(4900000, Math.max(260, injected));
+        listing.displayPrice = injected;
         out.push({
           anomaly: high ? 'OUTLIER_M2_HIGH' : 'OUTLIER_M2_LOW',
           expected: {
             method: 'M2',
             injected: listing.displayPrice,
             fair,
-            factor: Math.round(factor * 1000) / 1000,
-            cell: cellCount.get(`${listing.makeId}|${listing.modelId}`) ?? 0,
+            factor: Math.round((listing.displayPrice / fair) * 1000) / 1000,
+            robustSigma: Math.round(s * 1000) / 1000,
+            zTarget: high ? M2_INJECTION_K : -M2_INJECTION_K,
+            cell: cellCount.get(key) ?? 0,
           },
         });
         break;
@@ -297,23 +511,33 @@ export function applyAnomalies(listing, slotAnoms, ctx, seed, cellCount) {
         break;
       }
       case 'A-04': {
+        // DR3-02 - UNE SEULE FORME, PARCE QU'UNE SEULE EST DETECTABLE.
+        //
+        // La forme (b) (« kilometrage trop faible pour l'age ») n'a AUCUNE consequence canonique :
+        // la contrainte 22 ne borne que le HAUT du rythme annuel, et aucun drapeau d'`EX-DATA-45`
+        // ne nomme le cas inverse. Elle etait declaree au manifest sans etre retrouvable - meme
+        // classe que les drapeaux inatteignables de D3-16. Elle est RETIREE : A-04 n'emet plus que
+        // la forme (a), et son effectif entier est detectable.
+        //
+        // Le rythme est plafonne pour que le kilometrage reste SOUS la borne dure du champ
+        // (1 450 000 km < 1 500 000, #59) : au-dela, l'adaptateur rendrait le kilometrage INCONNU
+        // et poserait `MILEAGE_OUT_OF_RANGE` a la place du signalement attendu. Le vivier est borne
+        // a 72 mois d'age (voir `A04_MAX_AGE_MONTHS`) pour que les deux bornes soient conciliables.
         const fair = listing.mileage;
-        const months = Math.max(listing.age * 12 + (12 - listing.month), 6);
-        const formA = listing.age < 6 || u(7) < 0.6;
-        if (formA) {
-          // La borne de la contrainte 22 est 200 000 km/an : 65 000 a 95 000 km/an ne la franchit
-          // PAS (voir DATASET-GEN.md §6, ecart EG-02). Le generateur porte le rythme a
-          // 260 000-360 000 km/an pour que la detection annoncee soit effectivement possible.
-          const perYear = 260000 + u(8) * 100000;
-          listing.mileage = Math.min(1900000, Math.round(((months / 12) * perYear) / 100) * 100);
-          if (listing.mileage * 12 <= 200000 * months) listing.mileage = Math.min(1900000, 200000 * Math.ceil(months / 12) + 100000);
-        } else {
-          listing.mileage = Math.round((200 + u(8) * 700) / 100) * 100;
-        }
+        const months = ageMonthsOf(listing);
+        const perYearCap = (A04_MILEAGE_CAP * 12) / months;
+        const perYear = Math.min(260000 + u(8) * 100000, perYearCap);
+        listing.mileage = Math.min(A04_MILEAGE_CAP, Math.round(((months / 12) * perYear) / 100) * 100);
         out.push({
           anomaly: 'MILEAGE_IMPLAUSIBLE_FOR_AGE',
-          detail: formA ? 'forme (a) rythme annuel hors borne' : 'forme (b) kilometrage trop faible pour l age',
-          expected: { fair, injected: listing.mileage, form: formA ? 'a' : 'b', ageMonths: months },
+          detail: 'forme (a) rythme annuel hors borne',
+          expected: {
+            fair,
+            injected: listing.mileage,
+            form: 'a',
+            ageMonths: months,
+            perYearKm: Math.round((listing.mileage * 12) / months),
+          },
         });
         break;
       }
@@ -407,13 +631,15 @@ export function applyAnomalies(listing, slotAnoms, ctx, seed, cellCount) {
       case 'A-19': {
         const fair = listing.countryCode;
         listing.countryCode = ['LU', 'FR', 'NL'][Math.floor(u(19) * 3)];
-        out.push({ anomaly: 'REGION_UNRESOLVED', detail: 'pays hors marche', expected: { fair, injected: listing.countryCode } });
+        // DR3-18 : `detail` est la SEULE facon de separer les deux situations que DATA-MODEL §3.1
+        // distingue ; ses deux valeurs sont normees par `anomalies.json:detailNorme`.
+        out.push({ anomaly: 'REGION_UNRESOLVED', detail: 'pays hors marche', expected: { fair, injected: listing.countryCode, flagExpected: false } });
         break;
       }
       case 'A-21': {
         const fair = listing.prefix;
         listing.prefix = `0${Math.floor(u(20) * 10)}`;
-        out.push({ anomaly: 'REGION_UNRESOLVED', detail: 'prefixe postal non resolu', expected: { fair, injected: listing.prefix } });
+        out.push({ anomaly: 'REGION_UNRESOLVED', detail: 'prefixe postal non resolu', expected: { fair, injected: listing.prefix, flagExpected: true } });
         break;
       }
       case 'A-22':
