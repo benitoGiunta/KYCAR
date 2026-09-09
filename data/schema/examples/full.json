@@ -23,7 +23,9 @@
   "drivetrain": "F",
   "fuelCategory": "2",
   "primaryFuelType": 5,
-  "additionalFuelTypes": [12],
+  "additionalFuelTypes": [
+    12
+  ],
   "fuelSourceLabel": "Super E10 95 / Electrique",
   "isPluginHybrid": true,
   "battery": {
@@ -43,7 +45,6 @@
   "co2EmissionInGramPerKmWithFallback": 27,
   "consumptionCombinedWithFallback": 1.2,
   "euEmissionStandard": "6",
-  "efficiencyClass": 2,
   "electricRange": 62,
   "hasParticleFilter": true,
   "bodyType": 6,
@@ -54,8 +55,22 @@
   "paintType": "M",
   "upholsteryType": "CL",
   "upholsteryColor": 1,
-  "equipment": [1, 2, 4, 15, 23, 41, 112, 137, 210, 249],
-  "appliedSeals": [112, 249],
+  "equipment": [
+    1,
+    2,
+    4,
+    15,
+    23,
+    41,
+    112,
+    137,
+    210,
+    249
+  ],
+  "appliedSeals": [
+    112,
+    249
+  ],
   "offerType": "U",
   "usageState": "U",
   "condition": {

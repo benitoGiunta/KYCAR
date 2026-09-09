@@ -15,8 +15,9 @@
  * sont pas resolvables, le script bascule sur un validateur INTERNE qui couvre exactement le
  * sous-ensemble de JSON Schema employe par les deux schemas (type, enum, const, required,
  * additionalProperties, properties, items, $ref local, $defs, minimum/maximum, minLength/maxLength,
- * pattern, uniqueItems, maxItems, allOf/if/then, format uuid/date-time/uri). Le repli est signale
- * dans la sortie : il ne dispense jamais de la validation ajv en integration.
+ * pattern, uniqueItems, maxItems, allOf/if/then, dependentRequired, dependentSchemas, schema `false`,
+ * format uuid/date-time/uri). Le repli est signale dans la sortie : il ne dispense jamais de la
+ * validation ajv en integration.
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
@@ -104,6 +105,10 @@ function deref(schema, root) {
 function validateNode(schema, data, root, path, errors) {
   const s = deref(schema, root);
   if (s === true || s === undefined) return;
+  if (s === false) {
+    errors.push(`${path} interdit par le schema`);
+    return;
+  }
 
   if (s.const !== undefined && data !== s.const) {
     errors.push(`${path} doit valoir ${JSON.stringify(s.const)}`);
@@ -166,6 +171,11 @@ function validateNode(schema, data, root, path, errors) {
   }
 
   for (const sub of s.allOf ?? []) validateNode(sub, data, root, path, errors);
+  if (typeOf(data) === 'object') {
+    for (const [trigger, sub] of Object.entries(s.dependentSchemas ?? {})) {
+      if (Object.prototype.hasOwnProperty.call(data, trigger)) validateNode(sub, data, root, path, errors);
+    }
+  }
   if (s.if) {
     const probe = [];
     validateNode(s.if, data, root, path, probe);

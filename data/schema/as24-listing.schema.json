@@ -7,6 +7,16 @@
   "type": "object",
   "additionalProperties": false,
   "required": ["id", "webPage", "marketplace", "vehicleType", "make", "location"],
+  "dependentSchemas": {
+    "wltp": {
+      "description": "Exclusion NEDC / WLTP imposee par l'OpenAPI : le bloc wltp est interdit des lors qu'une valeur NEDC est servie, et l'OpenAPI range consumption, co2Emissions ET efficiencyClass du cote NEDC. Une annonce declare donc UNE SEULE branche de mesure, ce qui est aussi la condition de derivation de co2Source / consumptionSource (EX-DATA-35).",
+      "properties": {
+        "consumption": false,
+        "co2Emissions": false,
+        "efficiencyClass": false
+      }
+    }
+  },
   "properties": {
     "id": {
       "type": "string",

@@ -88,7 +88,11 @@ draft 2020-12 · `additionalProperties: false` sur l'objet racine et sur les **1
 (dont `location.countryCode`). Trois obligations **conditionnelles** (`dependentRequired`) s'y
 ajoutent : un `prices.public.price` exige sa `currency`, un `netPrice` et un `vatRate` exigent le
 `price` auquel ils se rapportent — une annonce à prix sur demande n'a, elle, ni montant ni devise à
-déclarer. Ce sont exactement les champs dont le dictionnaire dit **REJET**
+déclarer. Une **exclusion** (`dependentSchemas`) complète le dispositif : la présence du bloc
+`wltp` interdit `consumption`, `co2Emissions` **et** `efficiencyClass`, que l'OpenAPI range tous
+les trois du côté NEDC (« Forbidden if NEDC consumption values are set »). Une annonce déclare donc
+**une seule branche de mesure**, ce qui est aussi la condition de dérivation de `co2Source` et de
+`consumptionSource` (`EX-DATA-35`). Ce sont exactement les champs dont le dictionnaire dit **REJET**
 quand ils manquent (`EX-DATA` # 1, 2, 5, 6, 16, 74). Tout le reste est optionnel : une annonce
 réelle a des trous, et la colonne « Obl. » du dictionnaire — non l'inverse — fixe la nullabilité.
 
@@ -172,7 +176,7 @@ créé par le projet.
 | `co2EmissionInGramPerKmWithFallback` | nombre 0..1 000 | non | LECTURE | — norme **non déclarée** | 49 + 50=UNKNOWN |
 | `consumptionCombinedWithFallback` | nombre 0..99,9 | non | LECTURE | — norme **non déclarée** | 51 + 53=UNKNOWN |
 | `euEmissionStandard` | chaîne | non | OAS | `KYCAR_EU_EMISSION_STANDARD` (11) | 54 |
-| `efficiencyClass` | entier | non | OAS | `KYCAR_EFFICIENCY_CLASS` (10) | 56 |
+| `efficiencyClass` | entier | non | OAS (**branche NEDC**, C-13) | `KYCAR_EFFICIENCY_CLASS` (10) | 56 |
 | `electricRange` | entier 1..10 000 | non | OAS | — km | 57 |
 | `hasParticleFilter` | booléen | non | OAS | — | 58 |
 
@@ -382,6 +386,7 @@ touchent une interface gelée, un vocabulaire gelé ou un énoncé du dictionnai
 | **C-10** | MINEUR | `paintType` (# 69) est sourcé sur `filters.json → ptype`, c'est-à-dire un **paramètre de recherche**, pas un champ d'annonce : ni l'OpenAPI ni le relevé d'annonce ne portent la couleur de peinture. Le champ n'a donc, en toute rigueur, **aucune source**. | Conservé dans la couche source, marqué **H-01 : hypothèse** (E4) — « champ supposé exister sur l'annonce parce qu'un filtre l'expose ». | Contrainte §7 : `dataset-design` renseigne `paintType` sur une **minorité** d'annonces et le déclare, pour que l'hypothèse reste visible dans les taux d'inconnu plutôt que masquée par un remplissage systématique. |
 | **C-11** | MINEUR | `EX-DATA-54` exige `data/reference/postal-regions-be.json` (plages + exceptions) et le champ # 76 cite `data/reference/regions-be.json` : **ni l'un ni l'autre n'existe** dans le dépôt. Les deux contenus vivent en dur dans `src/types/vocabularies.ts` (`BE_POSTAL_RANGES`, `REGION_VALUES`). | L'adaptateur consomme les constantes du code, qui sont conformes à la table `EX-DATA-52`. | Dette de référentiel, à joindre à `D8-18` (confrontation Statbel/bpost, dette externe déjà admise). Aucun effet sur les fixtures. |
 | **C-12** | INFO | `EX-DATA-105` écrit « quatorze entités » et `PLAN-3` / `ARCHITECTURE` disent « treize » ; `entities.ts` en type quatorze. | Je compte **14** entités et les confirme toutes couvertes (§ ci-dessous). | Déjà signalé en 2.4 ; correction documentaire. |
+| **C-13** | MINEUR — **contraignant pour la génération** | L'OpenAPI range `efficiencyClass` du **côté NEDC** : le bloc `wltp` est « Forbidden if NEDC consumption values are set (`consumption`, `co2Emissions` **or `efficiencyClass`**) ». Le dictionnaire présente # 55 `co2Class` et # 56 `efficiencyClass` comme deux champs optionnels indépendants, sans dire qu'ils appartiennent à **deux branches exclusives** : une annonce mesurée WLTP porte `wltp.co2Class`, une annonce mesurée NEDC porte `efficiencyClass`. | Le schéma source **encode l'exclusion** (`dependentSchemas.wltp`) : les deux exemples complets sont donc complémentaires, `full.json` pour la branche WLTP, `full-nedc.json` pour la branche NEDC. | Aucune décision : contrainte de génération §7-17, désormais vérifiée par le schéma. |
 | **E-07** | **MAJEUR — à trancher** | **42 des 82 champs du dictionnaire ne traversent pas `ListingColumnBatch`** : l'interface gelée compte 33 colonnes typées et 5 champs textuels (38 descripteurs), dont **37 seulement** portent un champ numéroté du dictionnaire — `booleanFlags` n'en porte aucun — auxquels s'ajoutent `snapshotId`, `observedAt` et `marketplace` portés par `SnapshotDescriptor`, soit **40 champs sur 82**. Parmi les absents, **10 sont des booléens** (# 9, 12, 27, 29, 46, 58, 61, 63, 68, 81) et la colonne `booleanFlags` (`Uint16Array`, 16 bits) **existe déjà, vide** : `generate.ts` y écrit `0` avec le commentaire « sémantique réservée à un lot ultérieur ». | Arithmétique : 4 de ces booléens ont un `DÉFAUT` documenté (# 9, 12, 29, 81 → `false`) et tiennent sur **1 bit** ; les 6 autres valent `INCONNU` si absents (# 27, 46, 58, 61, 63, 68) et exigent **2 bits** (valeur + connu). Total **4 × 1 + 6 × 2 = 16 bits exactement** : les dix booléens du dictionnaire tiennent dans `booleanFlags` **sans aucune modification de l'interface gelée**. | **D3-10** : définir dans `src/types` une table `BOOLEAN_FLAG_BIT` sur le modèle d'`INGEST_FLAG_BIT` (source unique du couple bit ↔ champ, comme l'a exigé DR-013), et la faire honorer par le provider fixture. Sinon, écrire la dette : dix champs du dictionnaire restent inaccessibles aux écrans alors que leur place physique est allouée et inutilisée. |
 | **E-08** | MINEUR | Le dictionnaire ne définit **aucune date de publication d'annonce** (§3.3 E-01), alors que `PLAN-3` demande trois snapshots hebdomadaires avec un delta de 8–12 % d'entrées/sorties et des prix révisés. Sans champ canonique, « annonce récente » se réduit au booléen # 29 `isNewListing`. | Les trois dates OpenAPI sont dans la couche source ; le delta est déclaré dans le manifest (`delta`, `previousSnapshotId`) et vérifiable sur le NDJSON. | **D3-11** : accepter que le delta reste **vérifiable en couche source et manifest**, sans champ canonique en v1 ; ou ouvrir un champ `listedSinceYearMonth` au dictionnaire. Je recommande la première branche : aucune exigence d'écran ne réclame la date. |
 
@@ -581,12 +586,15 @@ seule condition d'être déclarée dans `manifest.groundTruth` avec le code d'an
 16. `powerHp = arrondi(power / 0,7355)` quand `powerUnit = "kW"` (soit `power × 1,35962`, mêmes
     six premiers chiffres). Un écart **> 2 %** est licite mais doit être déclaré
     `POWER_UNIT_MISMATCH` — c'est la sonde d'`EX-DATA-36`.
-17. **Une seule branche de mesure par annonce** : soit le bloc `wltp.*`, soit le couple
-    (`co2Emissions`, `consumption.*`), **jamais les deux** — l'OpenAPI l'interdit explicitement
-    (« Forbidden if NEDC consumption values are set ») et `EX-DATA-35` en fait la condition de
-    `co2Source`. Les champs `…WithFallback`, s'ils sont présents en même temps qu'une branche,
-    doivent porter **exactement** la valeur retenue par la priorité `wltp > NEDC > fallback`, sinon
-    deux chiffres différents décriraient la même annonce.
+17. **Une seule branche de mesure par annonce** : soit le bloc `wltp.*`, soit le triplet
+    (`co2Emissions`, `consumption.*`, `efficiencyClass`), **jamais les deux** — l'OpenAPI l'interdit
+    explicitement (« Forbidden if NEDC consumption values are set (`consumption`, `co2Emissions` or
+    `efficiencyClass`) ») et `EX-DATA-35` en fait la condition de `co2Source`. **Cette contrainte
+    est la seule de cette liste que le schéma sait exprimer** : elle est encodée en
+    `dependentSchemas` et une ligne qui la viole est rejetée à la génération. Les champs
+    `…WithFallback`, s'ils accompagnent une branche, doivent porter **exactement** la valeur retenue
+    par la priorité `wltp > NEDC > fallback`, sinon deux chiffres différents décriraient la même
+    annonce — cela, en revanche, reste une sonde.
 18. `fuelCategory = "E"` (électrique) ⇒ CO₂ = 0 porté par `co2Emissions` **ou** par
     `co2EmissionInGramPerKmWithFallback`, **jamais** par `wltp.co2EmissionsCombined`, dont le
     minimum OpenAPI est 1 (C-06). Un CO₂ à 0 sur une autre catégorie doit être déclaré
@@ -636,7 +644,7 @@ seule condition d'être déclarée dans `manifest.groundTruth` avec le code d'an
 | Critère | Verdict | Preuve |
 |---|---|---|
 | **S1** — `DATA-MODEL.md` couvre 100 % des champs du dictionnaire (champ → source AS24 → canonique, ou « sans équivalent, justifié ») | **ATTEINT** | Table §3.1 : **82 lignes numérotées de 1 à 82**, une par champ du dictionnaire, chacune avec son chemin source ou la mention **DÉRIVÉ**. Table §3.2 : les 21 champs sans chemin source, classés par motif. Table §3.3 : le symétrique (champs source sans équivalent canonique). Contrôle : `grep -cE '^\| *[0-9]+ \| ' docs/data/DATA-MODEL.md` → 82. |
-| **S2** — JSON Schema valide (ajv, devDep) sur un exemple minimal et un exemple complet | **ATTEINT** | `node data/schema/validate.mjs` → `moteur : ajv 8.20.0` ; `minimal.json` **valide**, `full.json` **valide**, `full-nedc.json` **valide** (branche NEDC, exclusive de la branche WLTP par C-06/§7-17), `manifest.json` **valide** contre le schéma de manifest ; `invalid-r3.json` **rejeté** (`/seller must NOT have additional properties`), `invalid-date.json` **rejeté** (motif `firstRegistrationDate`). Le script **sort en erreur** si un cas « valide » échoue ou si un cas « invalide » passe. Le même script tourne sans ajv (`KYCAR_SCHEMA_VALIDATOR=fallback`, validateur interne) et rend le **même verdict** sur les six cas. |
+| **S2** — JSON Schema valide (ajv, devDep) sur un exemple minimal et un exemple complet | **ATTEINT** | `node data/schema/validate.mjs` → `moteur : ajv 8.20.0` ; `minimal.json` **valide**, `full.json` **valide**, `full-nedc.json` **valide** (branche NEDC, exclusive de la branche WLTP par C-13 : les deux exemples se partagent les champs, `full.json` couvrant `wltp.*` et `full-nedc.json` couvrant `co2Emissions`, `consumption.*` et `efficiencyClass`), `manifest.json` **valide** contre le schéma de manifest ; `invalid-r3.json` **rejeté** (`/seller must NOT have additional properties`), `invalid-date.json` **rejeté** (motif `firstRegistrationDate`). Le script **sort en erreur** si un cas « valide » échoue ou si un cas « invalide » passe. Le même script tourne sans ajv (`KYCAR_SCHEMA_VALIDATOR=fallback`, validateur interne) et rend le **même verdict** sur les six cas. |
 | **S3** — `DATASET-SPEC.md` : chaque distribution a une formule, des paramètres chiffrés, une justification et une sonde | **hors périmètre** | Livrable de `dataset-design`. Ce document lui fournit les 31 contraintes de cohérence de §7 et les codes d'anomalie du manifest. |
 | **S4** — zéro champ R3 dans la couche source | **ATTEINT** | §5. Preuve exécutable dans `validate.mjs` : `R3 schema source : 100 noms de propriete declares, 0 interdit(s)` et `R3 exemples valides : 124 cles distinctes, 0 interdite(s)`, confrontés à la liste `R3_FORBIDDEN_FIELD_NAMES` de `src/types/validation.ts` (E1–E17, formes aplaties comprises). La barrière est **structurelle** : `additionalProperties: false` sur les 13 objets du schéma, et `seller` / `location` réduits à deux propriétés chacun. |
 
