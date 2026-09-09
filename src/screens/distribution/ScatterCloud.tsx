@@ -36,6 +36,11 @@ import { formatPrice, formatKm, formatYear } from './format';
 import { bin, binIndexOf, PRICE_BIN_PARAMS } from '../../engine/bin';
 import { SCATTER_MAX_POINTS } from './scatter-sample';
 
+/** `EX-SCR-181` (ACC-03) — durée d'appui qui vaut « appui long » (≥ 500 ms, valeur de l'exigence). */
+export const LONG_PRESS_MS = 500;
+/** Tolérance de déplacement du doigt pendant l'appui : au-delà, le geste est un défilement. */
+export const LONG_PRESS_MOVE_PX = 8;
+
 /** Rayon de tolérance (px) du survol/clic sur un point (DR-084, index spatial simple). */
 const HIT_RADIUS_PX = 8;
 
@@ -278,6 +283,43 @@ export function ScatterCloud(props: ScatterCloudProps) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
 
+  /**
+   * `EX-SCR-181` (ACC-03) — APPUI LONG en régime compact. Le brossage y est impraticable au doigt et
+   * un clic direct sur un point de 6 px ouvrirait des liens sortants par erreur : la seule
+   * interaction tactile prévue par l'exigence est un appui maintenu sur un point, qui ouvre
+   * l'infobulle en FEUILLE BASSE avec un bouton `Ouvrir l'annonce` explicite. Le geste est annulé
+   * dès que le doigt se déplace (`LONG_PRESS_MOVE_PX`) ou se lève avant l'échéance.
+   */
+  const [sheetRow, setSheetRow] = useState<number | null>(null);
+  const longPressRef = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
+  const cancelLongPress = (): void => {
+    if (longPressRef.current === null) return;
+    clearTimeout(longPressRef.current.timer);
+    longPressRef.current = null;
+  };
+  const onLongPressStart = (e: PointerEvent): void => {
+    if (props.degraded !== true) return;
+    const { x, y } = eventPos(e as unknown as MouseEvent);
+    const p = nearestPoint(x, y);
+    if (p === undefined) return;
+    cancelLongPress();
+    longPressRef.current = {
+      x,
+      y,
+      timer: setTimeout(() => {
+        longPressRef.current = null;
+        setSheetRow(p.row);
+      }, LONG_PRESS_MS),
+    };
+  };
+  const onLongPressMove = (e: PointerEvent): void => {
+    const lp = longPressRef.current;
+    if (lp === null) return;
+    const { x, y } = eventPos(e as unknown as MouseEvent);
+    if (Math.abs(x - lp.x) > LONG_PRESS_MOVE_PX || Math.abs(y - lp.y) > LONG_PRESS_MOVE_PX) cancelLongPress();
+  };
+  useEffect(() => cancelLongPress, []);
+
   const eventPos = (e: MouseEvent): { x: number; y: number } => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     return { x: ((e.clientX - rect.left) / rect.width) * vp.width, y: ((e.clientY - rect.top) / rect.height) * vp.height };
@@ -418,6 +460,12 @@ export function ScatterCloud(props: ScatterCloudProps) {
           onMouseMove={onPointerMove}
           onMouseUp={onPointerUp}
           onMouseLeave={onPointerLeave}
+          // `EX-SCR-181` (ACC-03) — appui long tactile, actif dans le seul régime compact.
+          onPointerDown={onLongPressStart}
+          onPointerMove={onLongPressMove}
+          onPointerUp={cancelLongPress}
+          onPointerCancel={cancelLongPress}
+          onPointerLeave={cancelLongPress}
           onKeyDown={onKeyDown}
         />
         {/* Graduations (EX-SCR-153) — calque SVG au-dessus du canvas, sans interception d'événement.
@@ -541,6 +589,34 @@ export function ScatterCloud(props: ScatterCloudProps) {
             ? ` ${props.sampleInfo.outlierCount - props.sampleInfo.outlierPlottedCount} annonces signalées non tracées.`
             : ''}
         </p>
+      ) : null}
+
+      {/* `EX-SCR-181` (ACC-03) — feuille basse ouverte par l'appui long : les six lignes d'infobulle
+          d'`EX-SCR-158`, puis le bouton `Ouvrir l'annonce` EXPLICITE (jamais un lien sortant posé au
+          doigt par accident) et une sortie sans effet. */}
+      {sheetRow !== null ? (
+        <div class="kycar-scatter-sheet" role="dialog" aria-modal="false" aria-label="Annonce sélectionnée">
+          <ul class="kycar-scatter-sheet__lines">
+            {(props.resolveTooltip?.(sheetRow) ?? []).map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+          <div class="kycar-scatter-sheet__actions">
+            <button
+              type="button"
+              onClick={() => {
+                const row = sheetRow;
+                setSheetRow(null);
+                props.onOpenListing?.(row);
+              }}
+            >
+              Ouvrir l’annonce
+            </button>
+            <button type="button" onClick={() => setSheetRow(null)}>
+              Fermer
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {selectedCount > 0 ? (

@@ -15,7 +15,10 @@
  * est un point d'intégration D8 (le modèle expose déjà `selectedRows`). Idem `ET-*` d'écran (D8).
  */
 
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
+
+/** `EX-SCR-25` (ACC-13) — budget d'un recalcul local : au-delà, et alors seulement, `ET-CHARGE-MAJ`. */
+export const RECALC_INDICATOR_DELAY_MS = 150;
 import type { JSX } from 'preact';
 import type { ListingColumnBatch, SelectionInput } from '../../types/index';
 import { MODEL_ID_UNRESOLVED } from '../../types/index';
@@ -33,6 +36,7 @@ import {
   computeBrushSelection,
   brushAccessorFor,
   brushToIntervalFilters,
+  brushToSelRestriction,
   intervalFiltersToSelectionInput,
   selectedCountsByBucket,
 } from './brush-model';
@@ -67,6 +71,7 @@ import {
   type DistributionUiState,
   type G4Variant,
   type BrushRange,
+  type SelRestriction,
 } from './url-state';
 import { formatPrice, formatKm, formatYear, formatPower, formatMonthYear } from './format';
 import './distribution.css';
@@ -116,8 +121,10 @@ export interface DistributionScreenProps {
    * nouvelle URL — voir le rapport de lot, § « Câblage attendu de fix-app ». */
   readonly onApplyFilters?: (patch: SelectionInput) => void;
   /** `EX-SCR-158`/`184`, `D-12`/`D-26` — « Voir ces annonces » : navigue vers l'écran D restreint à
-   * la sélection brossée (`sel=<lo>-<hi>` sur le prix, restriction d'affichage, Σ INCHANGÉE). */
-  readonly onViewBrushedListings?: (sel: { readonly from: number; readonly to: number }) => void;
+   * la sélection brossée (`sel`, restriction d'affichage, Σ INCHANGÉE). Depuis 2.10 (ACC-06) la
+   * charge porte les DEUX axes brossés (`SelRestriction`), pas seulement l'intervalle de prix : la
+   * coquille la repose telle quelle dans l'état d'interface, elle n'a rien à en connaître. */
+  readonly onViewBrushedListings?: (sel: SelRestriction) => void;
   /** `EX-SCR-142` ligne 3 (DR-078) — « Voir les <n> annonces » : écran D SANS restriction. */
   readonly onViewListings?: () => void;
   /** `EX-SCR-142` ligne 3 (DR-078) — « Comparer » : écran C. */
@@ -244,12 +251,44 @@ export function DistributionScreen(props: DistributionScreenProps) {
   const labels = props.labels ?? {};
   const degraded = props.degraded ?? defaultDegradedFromViewport();
 
+  /**
+   * `EX-SCR-25` (ACC-13) — un recalcul LOCAL n'admet AUCUN indicateur tant qu'il tient dans son
+   * budget de 150 ms ; au-delà seulement, l'état bascule sur `ET-CHARGE-MAJ`. La coquille pose
+   * `recalculating` dès le premier tick : mesuré en recette, l'indicateur apparaissait dès 105 ms,
+   * pour un seul tick de 5 ms. On le TEMPORISE ici : il n'est monté que si le recalcul dure plus de
+   * `RECALC_INDICATOR_DELAY_MS`, et il disparaît immédiatement à la fin du recalcul.
+   */
+  const [recalcVisible, setRecalcVisible] = useState(false);
+  useEffect(() => {
+    if (props.recalculating !== true) {
+      setRecalcVisible(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setRecalcVisible(true), RECALC_INDICATOR_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [props.recalculating]);
+
   const onToggleLog = (n: number): void => props.onUiChange(toggleLogHistogram(ui, n));
   const onBrushChange = (brushX: BrushRange | null, brushY: BrushRange | null): void =>
     props.onUiChange({ ...ui, brushX, brushY });
   const onVariantChange = (v: G4Variant): void => props.onUiChange({ ...ui, g4Variant: v });
 
   const price = stats.price;
+
+  /**
+   * `EX-SCR-178` (ACC-07) — les exclusions de `G1` doivent CLORE l'effectif : mesuré en recette,
+   * G1 annonçait 1 246 offres pour Σ = 1 352 en ne nommant que 87 exclusions (prix sur demande,
+   * prix absent) — 19 annonces disparaissaient sans motif. Ce sont les annonces à prix VALIDE mais
+   * hors des bornes de classes du binning (au-delà du plafond, `EX-DATA-76`) : elles ne sont
+   * comptées dans aucun motif publié. On les nomme, comme un motif à part entière, et la somme
+   * « G1 + exclusions » vaut alors exactement Σ.
+   */
+  const priceOutOfClasses = useMemo(() => {
+    let inBuckets = 0;
+    for (const b of recalc.priceHistogram) inBuckets += b.count;
+    const named = stats.priceOnRequestCount + stats.priceMissingCount;
+    return Math.max(0, selectionCount - inBuckets - named);
+  }, [recalc.priceHistogram, stats.priceOnRequestCount, stats.priceMissingCount, selectionCount]);
 
   // `EX-SCR-142` ligne 2 (DR-077) — part de particuliers, calculée depuis le batch (aucune donnée
   // équivalente sur `SelectionStats`, hors périmètre fix-screens de l'étendre) : le libellé exact
@@ -309,8 +348,12 @@ export function DistributionScreen(props: DistributionScreenProps) {
     props.onUiChange({ ...ui, brushX: null, brushY: null }); // `sel`/`selx`/`sely` retirés (D-26)
   };
   const onViewBrushedListings = (): void => {
-    if (!brushInterval) return;
-    props.onViewBrushedListings?.({ from: brushInterval.priceFrom, to: brushInterval.priceTo });
+    // ACC-06 — `sel` porte les DEUX axes réellement brossés (`brushToSelRestriction`), et non la
+    // seule bande de prix : sans le second axe, l'écran D montrait plus de lignes que brossées.
+    if (!selectedRows) return;
+    const sel = brushToSelRestriction(scatter.points, selectedRows);
+    if (sel === null) return;
+    props.onViewBrushedListings?.(sel);
   };
 
   // `EX-SCR-158` (DR-084) — infobulle de survol du nuage, 6 lignes, CONTENU TEXTUEL (`ARB-62`).
@@ -369,32 +412,55 @@ export function DistributionScreen(props: DistributionScreenProps) {
 
   return (
     <div
-      class={props.recalculating === true ? 'kycar-screen-b kycar-screen-b--recalculating' : 'kycar-screen-b'}
-      aria-busy={props.recalculating === true ? 'true' : undefined}
-      data-recalculating={props.recalculating === true ? 'true' : undefined}
+      class={recalcVisible ? 'kycar-screen-b kycar-screen-b--recalculating' : 'kycar-screen-b'}
+      aria-busy={recalcVisible ? 'true' : undefined}
+      data-recalculating={recalcVisible ? 'true' : undefined}
     >
       {/* `ET-CHARGE-MAJ` (D8-24, EX-SCR-24) — barre de progression indéterminée + mention explicite :
           les figures ci-dessous portent encore le périmètre précédent (EX-SCR-39, jamais muet). */}
-      {props.recalculating === true ? (
+      {recalcVisible ? (
         <div class="kycar-recalc-notice" role="status">
           <progress class="kycar-recalc-progress" aria-label="Recalcul en cours" />
           <span>Recalcul en cours — les figures affichées portent encore le périmètre précédent.</span>
         </div>
       ) : null}
-      {/* Bloc 1 — en-tête statistique (EX-SCR-142) */}
-      <header class="kycar-stat-header">
-        <div class="kycar-stat-line">
-          <strong>{props.makeModelName ?? 'Modèle'}</strong>
-          {/* `EX-SCR-174` : à zéro, l'en-tête dit `aucune offre` — jamais « 0 offres ». */}
-          <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
-          <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
-          <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
-          <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
-          <span title={`n = ${price.n}`}>
-            min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
-            <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
-          </span>
-        </div>
+      {/* Bloc 1 — en-tête statistique (EX-SCR-142). `EX-SCR-181` (ACC-03) : en régime COMPACT il
+          passe de 3 à 5 lignes — le nom et l'effectif, les trois quartiles, l'étendue, les
+          médianes secondaires, puis la rangée d'actions (défilable horizontalement). Aucune donnée
+          n'est retirée : les mêmes valeurs sont réparties sur cinq lignes au lieu de trois. */}
+      <header class="kycar-stat-header" data-regime={degraded ? 'compact' : 'large'}>
+        {degraded ? (
+          <>
+            <div class="kycar-stat-line">
+              <strong>{props.makeModelName ?? 'Modèle'}</strong>
+              <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
+            </div>
+            <div class="kycar-stat-line">
+              <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
+              <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
+              <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
+            </div>
+            <div class="kycar-stat-line">
+              <span title={`n = ${price.n}`}>
+                min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
+                <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
+              </span>
+            </div>
+          </>
+        ) : (
+          <div class="kycar-stat-line">
+            <strong>{props.makeModelName ?? 'Modèle'}</strong>
+            {/* `EX-SCR-174` : à zéro, l'en-tête dit `aucune offre` — jamais « 0 offres ». */}
+            <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
+            <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>
+              min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
+              <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
+            </span>
+          </div>
+        )}
         <div class="kycar-stat-line">
           <span title={`n = ${stats.mileage.n}`}>km médian {statOrDash(stats.mileage.p50, formatKm)}</span>
           <span title={`n = ${stats.year.n}`}>1ʳᵉ immat. médiane {statOrDash(stats.year.p50, formatYear)}</span>
@@ -507,9 +573,9 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <>
         {/* Bloc 2 — histogrammes G1–G3 */}
         <section class="kycar-hist-row" aria-label="Distributions">
-          <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
-          <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
-          <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }, { count: priceOutOfClasses, reason: 'hors des classes affichées' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
         </section>
 
         {/* Bloc 3 — nuage G4 */}
@@ -547,9 +613,10 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <section class="kycar-graph-grid" aria-label="Graphes additionnels">
           {!isUnresolvedModel ? <YearMedianChart points={yearMedian} dataSelection={stats.selectionHash} /> : null}
           {!isUnresolvedModel ? <DepreciationChart model={depreciation} dataSelection={stats.selectionHash} /> : null}
-          <DensityHeatmap density={density} log={ui.logHistograms.has(7)} onToggleLog={() => onToggleLog(7)} dataSelection={stats.selectionHash} />
+          <DensityHeatmap compact={degraded} density={density} log={ui.logHistograms.has(7)} onToggleLog={() => onToggleLog(7)} dataSelection={stats.selectionHash} />
           {!isUnresolvedModel ? (
             <OutlierLollipopChart
+              compact={degraded}
               items={lollipops}
               perimeter={{ makeModel: props.makeModelName }}
               onOpen={props.onOpenListing}

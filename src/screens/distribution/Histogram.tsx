@@ -14,6 +14,15 @@ import type { DistributionBucket } from '../../types/index';
 
 const VIEW_W = 520;
 const VIEW_H = 240;
+/**
+ * `EX-SCR-181` (ACC-03) — hauteur de boîte de vue du régime COMPACT. Le SVG est servi en
+ * `width: 100%` : sa hauteur rendue vaut `largeur × VIEW_H / VIEW_W`. À 360 px de viewport la zone
+ * de tracé mesure ~300 px, d'où 138 px de haut avec la boîte de vue large — l'exigence en demande
+ * 200. Une boîte de 520 × 347 (rapport 1,499) rendue dans une boîte de 300 × 200 (rapport 1,5) la
+ * remplit exactement : la hauteur est celle de l'exigence ET le tracé n'est ni déformé ni cerné de
+ * blanc (`distribution.css` fixe la hauteur à 200 px, ceci lui donne le bon rapport).
+ */
+const VIEW_H_COMPACT = 347;
 const PAD_L = 40;
 const PAD_R = 12;
 const PAD_T = 12;
@@ -46,6 +55,9 @@ export interface HistogramProps {
   readonly selectedCounts?: ReadonlyMap<number, number>;
   /** `EX-SCR-176` (D8-06/FV-18) — empreinte du jeu de filtres, transmise telle quelle à `GraphFrame`. */
   readonly dataSelection?: string;
+  /** `EX-SCR-181` (ACC-03) — régime COMPACT (< 768 px) : boîte de vue plus haute (200 px rendus) et
+   * une étiquette d'axe sur trois. Absent : régime `large`/`intermédiaire`, rendu inchangé. */
+  readonly compact?: boolean;
 }
 
 /**
@@ -61,8 +73,9 @@ const ctrlSelectionByGraph = new Map<string, Set<number>>();
 
 export function Histogram(props: HistogramProps) {
   const model: HistogramModel = buildHistogram(props.metric, props.buckets, { log: props.log });
+  const viewH = props.compact === true ? VIEW_H_COMPACT : VIEW_H;
   const plotW = VIEW_W - PAD_L - PAD_R;
-  const plotH = VIEW_H - PAD_T - PAD_B;
+  const plotH = viewH - PAD_T - PAD_B;
   const gap = 2; // EX-SCR-148
 
   const table = histogramTable(model, formatMetric);
@@ -161,7 +174,7 @@ export function Histogram(props: HistogramProps) {
         // EX-SCR-150 (DR-073) : n_m = 0, cadre de MÊME dimension que le SVG normal, jamais vide.
         <div
           class="kycar-hist-empty"
-          style={{ width: `${VIEW_W}px`, height: `${VIEW_H}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: `${VIEW_W}px`, height: `${viewH}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           role="img"
           aria-label={ariaLabel}
         >
@@ -176,7 +189,7 @@ export function Histogram(props: HistogramProps) {
           ) : null}
 
           <svg
-            viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+            viewBox={`0 0 ${VIEW_W} ${viewH}`}
             class="kycar-hist"
             role="img"
             aria-label={ariaLabel}
@@ -267,10 +280,14 @@ export function Histogram(props: HistogramProps) {
               : null}
 
             {/* EX-SCR-145 (DR-074) : étiquettes de borne d'axe X — une sur deux si < 48 px par
-                étiquette, pour rester lisible sans survol ni ouverture de la table. */}
+                étiquette, pour rester lisible sans survol ni ouverture de la table.
+                `EX-SCR-181` (ACC-03) : en régime COMPACT, une sur TROIS, sans condition de largeur —
+                à 360 px de viewport les 14 étiquettes de G1 se chevauchaient comme à 1280. */}
             {model.bars.map((b, i) => {
               const barWidthPx = b.widthFrac * plotW;
-              if (barWidthPx < 48 && i % 2 !== 0) return null;
+              const skipped =
+                props.compact === true ? i % 3 !== 0 : barWidthPx < 48 && i % 2 !== 0;
+              if (skipped) return null;
               const x = PAD_L + b.xFrac * plotW + (b.widthFrac * plotW) / 2;
               return (
                 <text key={`xl-${i}`} x={x} y={PAD_T + plotH + 14} text-anchor="middle" font-size="9" fill="var(--color-text-muted)">

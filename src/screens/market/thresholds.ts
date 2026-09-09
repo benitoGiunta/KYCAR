@@ -41,6 +41,20 @@ export const MODEL_SEARCH_FIELD_THRESHOLD = 12;
  * virtualisé (au plus ce nombre de nœuds de zone existent simultanément dans le DOM par carte). */
 export const MODEL_LIST_VIRTUALIZATION_THRESHOLD = 30;
 
+/** `EX-SCR-122`/`127` — hauteur REPLIÉE de référence d'une carte-marque, en px. Sert d'estimation
+ * initiale à la virtualisation de la grille (« hauteur de conteneur estimée depuis la hauteur
+ * repliée (588 px) puis corrigée à la mesure réelle », `EX-SCR-127`). */
+export const COLLAPSED_CARD_HEIGHT_PX = 588;
+
+/** `EX-SCR-124` règle 1 — hauteur MAXIMALE d'une carte, dépliée comprise. */
+export const CARD_MAX_HEIGHT_PX = 636;
+
+/** `EX-SCR-124` règle 1 — hauteur maximale de la liste de zones dépliée (6,6 zones de 72 px). */
+export const MODEL_LIST_MAX_HEIGHT_PX = 480;
+
+/** `EX-SCR-112` — hauteur d'une zone-modèle en régime large : pas de la fenêtre de virtualisation. */
+export const MODEL_ZONE_HEIGHT_PX = 72;
+
 /** `EX-SCR-128` — un modèle est « à moins de 3 offres » (masquable par la case dédiée) pour un
  * effectif strictement inférieur à ce seuil. */
 export const SPARSE_MODEL_MAX_LISTING_COUNT = 2;

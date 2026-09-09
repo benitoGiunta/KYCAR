@@ -7,10 +7,11 @@
  * simple (pas de ré-appel du moteur), cohérent avec le fait que tous les modèles de la marque sont
  * déjà en mémoire (`card.modelZones`).
  */
-import { useMemo, useState } from 'preact/hooks';
+import { useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 
 import { ModelZone } from './ModelZone';
+import { MODEL_LIST_VIRTUALIZATION_THRESHOLD, MODEL_ZONE_HEIGHT_PX } from './thresholds';
 import type { MakeCardViewModel } from './view-model';
 
 export interface MakeCardProps {
@@ -42,6 +43,31 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
     const needle = normalizeForSearch(searchQuery);
     return card.modelZones.filter((z) => normalizeForSearch(z.label).includes(needle));
   }, [props.isExpanded, card, searchQuery]);
+
+  /**
+   * `EX-SCR-124` règle 3 (ACC-09) — VIRTUALISATION de la liste dépliée au-delà de 30 zones : « au
+   * plus 30 nœuds de zone existent simultanément dans le DOM par carte ». Mesuré en recette :
+   * Mercedes-Benz, 355 modèles, 356 nœuds montés — le drapeau `needsVirtualizedModelList` existait
+   * sans consommateur.
+   *
+   * Fenêtre glissante sur le DÉFILEMENT INTERNE de la liste (`max-height: 480px`), avec deux cales
+   * de hauteur proportionnelle au nombre de zones hors fenêtre : la barre de défilement garde donc
+   * la course de la liste ENTIÈRE, et aucune zone n'est rendue inaccessible.
+   */
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const [windowStart, setWindowStart] = useState(0);
+  const virtualized = props.isExpanded && card.needsVirtualizedModelList;
+  const onListScroll = (e: JSX.TargetedEvent<HTMLDivElement>): void => {
+    if (!virtualized) return;
+    const first = Math.floor(e.currentTarget.scrollTop / MODEL_ZONE_HEIGHT_PX);
+    const maxStart = Math.max(0, displayedZones.length - MODEL_LIST_VIRTUALIZATION_THRESHOLD);
+    setWindowStart(Math.max(0, Math.min(maxStart, first)));
+  };
+  const mountedZones = virtualized
+    ? displayedZones.slice(windowStart, windowStart + MODEL_LIST_VIRTUALIZATION_THRESHOLD)
+    : displayedZones;
+  const zonesAbove = virtualized ? windowStart : 0;
+  const zonesBelow = virtualized ? Math.max(0, displayedZones.length - windowStart - mountedZones.length) : 0;
 
   return (
     <div class="kycar-market-card">
@@ -110,8 +136,15 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
         </div>
       ) : (
         <>
-          <div class={`kycar-market-zone-list${props.isExpanded ? ' kycar-market-zone-list--expanded' : ''}`}>
-            {displayedZones.map((zone) => (
+          <div
+            ref={listRef}
+            class={`kycar-market-zone-list${props.isExpanded ? ' kycar-market-zone-list--expanded' : ''}`}
+            onScroll={onListScroll}
+          >
+            {zonesAbove > 0 ? (
+              <div style={{ height: `${zonesAbove * MODEL_ZONE_HEIGHT_PX}px`, flex: '0 0 auto' }} aria-hidden="true" />
+            ) : null}
+            {mountedZones.map((zone) => (
               <ModelZone
                 key={zone.modelId}
                 zone={zone}
@@ -121,6 +154,9 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
                 compareAtCapacity={props.compareAtCapacity}
               />
             ))}
+            {zonesBelow > 0 ? (
+              <div style={{ height: `${zonesBelow * MODEL_ZONE_HEIGHT_PX}px`, flex: '0 0 auto' }} aria-hidden="true" />
+            ) : null}
           </div>
 
           {props.isExpanded && card.needsModelSearchField ? (

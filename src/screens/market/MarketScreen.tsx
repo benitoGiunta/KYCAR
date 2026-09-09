@@ -21,7 +21,7 @@
  * l'état de sélection complet des 77 filtres — seul `mmmv` l'intéresse), et `onApply(mmmv)` qui
  * relaie la chaîne sérialisée à l'hôte (qui met à jour l'URL/le filtre réel, hors périmètre D6).
  */
-import { useMemo } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 
 import { ScreenG, type ScreenGReferenceData } from '../../components/filters/ScreenG';
@@ -37,6 +37,9 @@ import {
   MODELS_VISIBLE_BEFORE_COLLAPSE,
   NO_FILTER_TEASER_MAKE_COUNT,
   GRID_LOAD_BATCH_SIZE,
+  GRID_VIRTUALIZATION_MOUNTED_CARDS,
+  COLLAPSED_CARD_HEIGHT_PX,
+  shouldVirtualizeGrid,
 } from './thresholds';
 import { sortMakeRows, type MakeSortField, type SortDirection, type SortableMakeRow } from './sort';
 import { SummaryBar } from './SummaryBar';
@@ -198,6 +201,49 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
         });
       });
   }, [loadedData, props.referenceData, props.sortField, props.sortDirection, props.hideSparseModels, props.expandedMakeIds, regime]);
+
+  /**
+   * `EX-SCR-127` (ACC-10) — RENDU VIRTUALISÉ de la grille au-delà de 40 cartes : « au plus 12 cartes
+   * montées simultanément, hauteur de conteneur estimée depuis la hauteur repliée (588 px) puis
+   * corrigée à la mesure réelle », et « la virtualisation ne plafonne JAMAIS le nombre de cartes
+   * accessibles ». Mesuré en recette : 180 cartes montées, 15 677 nœuds DOM — `shouldVirtualizeGrid`
+   * existait sans effet de rendu, le chargement par lots (`EX-SCR-129`) en tenait lieu.
+   *
+   * La fenêtre glisse sur le défilement du DOCUMENT (la grille n'a pas de défilement propre). Deux
+   * cales, en pleine largeur de grille, portent la hauteur des rangées hors fenêtre : la barre de
+   * défilement décrit donc toujours la grille entière. Le nombre de colonnes et la hauteur de rangée
+   * sont RELUS sur le rendu réel à chaque mesure ; 588 px n'est que l'estimation d'amorçage.
+   */
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [gridWindowStart, setGridWindowStart] = useState(0);
+  const gridMetricsRef = useRef({ columns: 1, rowHeight: COLLAPSED_CARD_HEIGHT_PX });
+  useEffect(() => {
+    const measureAndPlace = (): void => {
+      const grid = gridRef.current;
+      if (grid === null || typeof window === 'undefined') return;
+      const cards0 = grid.querySelectorAll<HTMLElement>('.kycar-market-card');
+      const first = cards0[0];
+      if (first !== undefined) {
+        const style = window.getComputedStyle(grid);
+        const columns = Math.max(1, style.gridTemplateColumns.split(' ').filter((t) => t !== '').length);
+        const gap = Number.parseFloat(style.rowGap) || 0;
+        const rowHeight = Math.max(1, Math.round(first.getBoundingClientRect().height + gap));
+        gridMetricsRef.current = { columns, rowHeight };
+      }
+      const { columns, rowHeight } = gridMetricsRef.current;
+      const gridTop = grid.getBoundingClientRect().top + window.scrollY;
+      const rowsAbove = Math.max(0, Math.floor((window.scrollY - gridTop) / rowHeight));
+      setGridWindowStart(rowsAbove * columns);
+    };
+    measureAndPlace();
+    if (typeof window === 'undefined') return undefined;
+    window.addEventListener('scroll', measureAndPlace, { passive: true });
+    window.addEventListener('resize', measureAndPlace);
+    return () => {
+      window.removeEventListener('scroll', measureAndPlace);
+      window.removeEventListener('resize', measureAndPlace);
+    };
+  }, [cards.length]);
 
   switch (state.kind) {
     case 'loading':
@@ -389,22 +435,45 @@ export function MarketScreen(props: MarketScreenProps): JSX.Element {
             Choisir une marque et un modèle
           </button>
 
-          <div class="kycar-market-grid">
-            {visibleCards.map((card) => (
-              <MakeCard
-                key={card.makeId}
-                card={card}
-                isExpanded={props.expandedMakeIds.has(card.makeId)}
-                onSelectMake={props.onSelectMake}
-                onSelectModel={props.onSelectModel}
-                onToggleExpand={props.onToggleExpand}
-                onToggleCompare={props.onToggleCompare}
-                compareSelection={props.compareSelection}
-                compareAtCapacity={props.compareAtCapacity}
-                onRetryModels={props.onRetryMakeModels}
-              />
-            ))}
-          </div>
+          {/* `EX-SCR-127` (ACC-10) — fenêtre de rendu de la grille. */}
+          {(() => {
+            const virtualizeGrid = shouldVirtualizeGrid(visibleCards.length);
+            const { columns, rowHeight } = gridMetricsRef.current;
+            const start = virtualizeGrid
+              ? Math.max(0, Math.min(gridWindowStart, Math.max(0, visibleCards.length - GRID_VIRTUALIZATION_MOUNTED_CARDS)))
+              : 0;
+            const mounted = virtualizeGrid
+              ? visibleCards.slice(start, start + GRID_VIRTUALIZATION_MOUNTED_CARDS)
+              : visibleCards;
+            const rowsAbove = virtualizeGrid ? Math.floor(start / columns) : 0;
+            const rowsBelow = virtualizeGrid
+              ? Math.max(0, Math.ceil((visibleCards.length - start - mounted.length) / columns))
+              : 0;
+            return (
+              <div class="kycar-market-grid" ref={gridRef} data-virtualized={virtualizeGrid ? 'true' : undefined}>
+                {rowsAbove > 0 ? (
+                  <div class="kycar-market-grid-spacer" style={{ height: `${rowsAbove * rowHeight}px` }} aria-hidden="true" />
+                ) : null}
+                {mounted.map((card) => (
+                  <MakeCard
+                    key={card.makeId}
+                    card={card}
+                    isExpanded={props.expandedMakeIds.has(card.makeId)}
+                    onSelectMake={props.onSelectMake}
+                    onSelectModel={props.onSelectModel}
+                    onToggleExpand={props.onToggleExpand}
+                    onToggleCompare={props.onToggleCompare}
+                    compareSelection={props.compareSelection}
+                    compareAtCapacity={props.compareAtCapacity}
+                    onRetryModels={props.onRetryMakeModels}
+                  />
+                ))}
+                {rowsBelow > 0 ? (
+                  <div class="kycar-market-grid-spacer" style={{ height: `${rowsBelow * rowHeight}px` }} aria-hidden="true" />
+                ) : null}
+              </div>
+            );
+          })()}
 
           {!isNoFilter ? (
             <GridFooter

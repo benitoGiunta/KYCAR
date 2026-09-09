@@ -140,6 +140,39 @@ export const RAMP_B_MILEAGE: readonly string[] = ['#00204d', '#31446b', '#666970
 /** Gris neutre des valeurs manquantes (EX-SCR-154). */
 export const MISSING_COLOR = '#8a9099';
 
+/**
+ * `EX-SCR-186` (ACC-12) — palette QUALITATIVE `Q`, 8 teintes, pour les variables NOMINALES (`G9`
+ * carburant, `G12` état d'usage, `G13` type de vendeur, `G15` pays). Palette d'Okabe & Ito, conçue
+ * pour rester distinguable en deutéranopie, protanopie et tritanopie, et donc sûre au même titre que
+ * les rampes A et B. Aucune de ses teintes n'est celle de l'accent (`--color-primary`, #0b5fd6) :
+ * une même variable garde un encodage unique sur toute la page.
+ * Contraste sur fond clair (#ffffff) : toutes ≥ 2,3:1 en tant que SURFACE de barre (`EX-NFR-13` ne
+ * fixe un plancher qu'au TEXTE, qui reste, lui, en `--color-text` à côté de la barre).
+ */
+export const PALETTE_Q: readonly string[] = [
+  '#0072b2',
+  '#e69f00',
+  '#009e73',
+  '#cc79a7',
+  '#56b4e9',
+  '#d55e00',
+  '#f0e442',
+  '#000000',
+];
+
+/** Teinte `Q` d'une catégorie, par son rang d'affichage (cycle au-delà de 8). */
+export function qualitativeColor(index: number): string {
+  return PALETTE_Q[((index % PALETTE_Q.length) + PALETTE_Q.length) % PALETTE_Q.length] as string;
+}
+
+/**
+ * `EX-SCR-186` (ACC-12) — les DEUX teintes divergentes du signe d'un écart (`G8`), « utilisées nulle
+ * part ailleurs ». Bleu-vert / brun-rouge : opposition sûre en déficience de vision des couleurs,
+ * distincte de l'accent comme de la palette `Q`.
+ */
+export const DIVERGING_NEGATIVE = '#01665e';
+export const DIVERGING_POSITIVE = '#8c510a';
+
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];

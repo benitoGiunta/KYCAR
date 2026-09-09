@@ -214,17 +214,42 @@
   text-align: left;
 }
 
-/* Régime intermédiaire (768–1279 px) : 2 colonnes (EX-SCR-180). */
-@media (max-width: 1279px) {
+/* Régime intermédiaire (768–1279 px) : 2 colonnes (EX-SCR-180).
+   ACC-04 : `G3` occupe SEUL la seconde rangée, en PLEINE LARGEUR (mesuré 344 / 704 px avant) ;
+   `G4` conserve la pleine largeur, sa hauteur tombe à 400 px et ses légendes passent SOUS la zone
+   de tracé ; les graphes additionnels restent sur 2 colonnes SAUF `G8`, en pleine largeur (ses
+   libellés d'annonce exigent de la largeur). */
+@media (min-width: 768px) and (max-width: 1279px) {
   .kycar-hist-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kycar-hist-row > [data-graph='G3'] {
+    grid-column: 1 / -1;
   }
   .kycar-graph-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .kycar-graph-grid > [data-graph='G8'] {
+    grid-column: 1 / -1;
+  }
+  .kycar-scatter-canvas {
+    height: 400px;
+    width: 100%;
+  }
+  .kycar-scatter-legend {
+    position: static;
+    margin-top: var(--space-1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
 }
 
-/* Régime compact (< 768 px) : 1 colonne, tout empilé (EX-SCR-181). */
+/* Régime compact (< 768 px) : 1 colonne, tout empilé (EX-SCR-181).
+   ACC-03 : hauteurs normatives — histogrammes 200 px, `G4` 320 px, graphes additionnels 240 px —
+   mesurées avant à 129 / 148 / 122 px. Les histogrammes reçoivent AUSSI une boîte de vue plus
+   haute (`Histogram.tsx`, `VIEW_H_COMPACT`) pour que le tracé remplisse la hauteur au lieu d'être
+   cerné de blanc. */
 @media (max-width: 767px) {
   .kycar-hist-row,
   .kycar-graph-grid {
@@ -234,6 +259,72 @@
     position: static;
     margin-top: var(--space-1);
   }
+  .kycar-hist {
+    height: 200px;
+  }
+  .kycar-scatter-canvas {
+    height: 320px;
+    width: 100%;
+  }
+  .kycar-graph-grid .kycar-graph-body {
+    height: 240px;
+    overflow-y: auto;
+  }
+  /* `EX-SCR-181` — la rangée de boutons de l'en-tête statistique devient défilable
+     horizontalement (elle se repliait sur trois lignes et poussait l'en-tête hors de vue). */
+  .kycar-stat-header[data-regime='compact'] .kycar-stat-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .kycar-stat-header[data-regime='compact'] .kycar-stat-actions > * {
+    flex: 0 0 auto;
+  }
+}
+
+/* `EX-SCR-181` (ACC-03) — feuille basse de l'appui long sur un point de `G4`. */
+.kycar-scatter-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: var(--space-3);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 12px rgb(0 0 0 / 18%);
+}
+.kycar-scatter-sheet__lines {
+  list-style: none;
+  margin: 0 0 var(--space-2) 0;
+  padding: 0;
+  font-size: 0.9rem;
+}
+.kycar-scatter-sheet__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.kycar-scatter-sheet__actions button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kycar-scatter-sheet__actions button:first-child {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+
+/* `EX-SCR-181` (ACC-03) — repli des 10 dernières sucettes de `G8` en régime compact. */
+.kycar-lollipops-more > summary {
+  cursor: pointer;
+  padding: var(--space-1) 0;
+  font-size: 0.85rem;
+  color: var(--color-primary);
 }
 
 /* `EX-SCR-153` (D8-31) — calque des graduations de G4, superposé au canvas : couleur de texte

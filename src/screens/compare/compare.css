@@ -14,3 +14,27 @@
   min-height: 44px;
   min-width: 44px;
 }
+
+/* ================================================================================================
+ * ACC-14 — `EX-SCR-199` : responsive de l'écran C
+ * ==============================================================================================
+ * Mesuré en recette : en régime intermédiaire les `th` étaient `position: static` — la rangée
+ * défile horizontalement sans repère de colonne ; en compact les mini-graphes mesuraient 112 × 34 px
+ * là où l'exigence en demande 60 × 24 (« à moins de 396 px de largeur, un histogramme complet n'est
+ * pas lisible, et une sparkline au moins situe la forme de la distribution »).
+ */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .kycar-compare-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-bg);
+  }
+}
+
+@media (max-width: 767px) {
+  .kycar-compare-table svg {
+    width: 60px;
+    height: 24px;
+  }
+}

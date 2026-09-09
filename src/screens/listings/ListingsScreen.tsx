@@ -34,6 +34,7 @@ import {
   formatConsumption,
   formatCo2,
 } from '../distribution/format';
+import { selMatches, type SelRestriction } from '../distribution/url-state';
 import './listings.css';
 
 /** Résolveurs de libellés de l'écran D (surensemble des résolveurs d'export). */
@@ -56,10 +57,12 @@ export interface ListingsScreenProps {
    * lot). Absente : l'écran garde un `useState` interne (comportement inchangé, usage autonome). */
   readonly page?: number;
   readonly onPageChange?: (page: number) => void;
-  /** `EX-SCR-202` (D-12, DR-067) — restriction d'AFFICHAGE (paramètre `sel`, bornes de prix,
+  /** `EX-SCR-202` (D-12, DR-067, ACC-06) — restriction d'AFFICHAGE (paramètre `sel`,
    * `url-state.ts::readListingsSel`) : ne filtre que les LIGNES MONTRÉES, Σ (`selectionCount`) reste
-   * celui de la sélection entière. `null`/absent : aucune restriction. */
-  readonly sel?: { readonly from: number; readonly to: number } | null;
+   * celui de la sélection entière. Depuis 2.10 elle porte les DEUX axes du brossage (prix + 1ʳᵉ
+   * immatriculation ou kilométrage) : une bande de prix seule laissait passer, à l'écran D, des
+   * annonces hors du rectangle brossé (ACC-06). `null`/absent : aucune restriction. */
+  readonly sel?: SelRestriction | null;
   /** `EX-SCR-209` (D8-15) — régime responsive courant, détecté par l'hôte (seul propriétaire du
    * viewport). Absent : repli par `matchMedia` (voir `defaultRegimeFromViewport`, plus bas). */
   readonly regime?: 'compact' | 'intermediate' | 'large';
@@ -126,11 +129,17 @@ export function ListingsScreen(props: ListingsScreenProps) {
     const out: ListingRow[] = [];
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i] as number;
-      // `EX-SCR-202` (DR-067) — `sel` restreint l'AFFICHAGE (pas Σ) : les bornes portent sur le
-      // prix, l'axe commun aux deux projections du nuage (cf. `url-state.ts::readListingsSel`).
+      // `EX-SCR-202` (DR-067, ACC-06) — `sel` restreint l'AFFICHAGE (pas Σ) sur les DEUX axes du
+      // brossage : le prix (ancre commune aux trois projections) et, quand la projection en porte un,
+      // la 1ʳᵉ immatriculation ou le kilométrage (`url-state.ts::selMatches`).
       if (props.sel) {
-        const p = batch.priceEur[row] as number;
-        if (p < props.sel.from || p > props.sel.to) continue;
+        const ok = selMatches(
+          props.sel,
+          batch.priceEur[row] as number,
+          batch.firstRegistrationYearMonth[row] as number,
+          batch.mileageKm[row] as number,
+        );
+        if (!ok) continue;
       }
       out.push(buildListingRow(batch, row, index));
     }

@@ -38,6 +38,47 @@ export interface BrushRange {
   readonly to: number;
 }
 
+/**
+ * `sel` (`EX-SCR-202`, `EX-NAV-10bis`, ACC-06) — restriction d'AFFICHAGE de l'écran D, sur DEUX axes.
+ *
+ * `EX-NAV-10bis` décrit `sel` comme « deux bornes PAR AXE, même format que `selx`/`sely` » ; la
+ * recette 2.9b (ACC-06) a montré qu'une seule paire de bornes — le prix — perd l'axe X du brossage
+ * et montre à l'écran D plus de lignes que l'utilisateur n'en a brossées.
+ *
+ * Le PRIX est l'ancre : il est l'un des deux axes des trois projections du nuage (G4a : X = prix ;
+ * G4b : Y = prix ; dégradé `EX-NFR-19` : Y = prix). Le SECOND axe, quand il en existe un, est nommé
+ * par sa métrique — et non par « X »/« Y » — pour que la restriction soit reproductible quelle que
+ * soit la projection en vigueur à la réouverture de l'URL (`EX-NAV-18` : le rendu est une fonction
+ * pure de l'URL).
+ *
+ * Forme canonique sur le fil, dans cet ordre exact (`EX-NAV-9` — l'URL est canonique) :
+ *   - `sel=<plo>-<phi>`                        — prix seul (forme d'avant 2.10, toujours valide) ;
+ *   - `sel=<plo>-<phi>_r<lo>-<hi>`             — + 1ʳᵉ immatriculation (`firstRegistrationYearMonth`) ;
+ *   - `sel=<plo>-<phi>_k<lo>-<hi>`             — + kilométrage ;
+ *   - `sel=<plo>-<phi>_r<lo>-<hi>_k<lo>-<hi>`  — les trois métriques du nuage.
+ * `_`, `r`, `k` et `-` appartiennent tous aux caractères « unreserved » de la RFC 3986 : la valeur
+ * n'est jamais percent-encodée, l'URL reste lisible et canonique.
+ *
+ * Pourquoi TROIS métriques et non les deux seuls axes brossés : une annonce que le nuage NE TRACE
+ * PAS (`EX-DATA-99` — kilométrage absent, prix suspect) ne peut appartenir à aucune sélection de
+ * brossage, mais son prix et son année peuvent tomber dans le rectangle. Mesuré au rendu (2.10,
+ * Corsa, projection prix × année) : 674 annonces brossées, 684 lignes à l'écran D sur deux axes.
+ * Les bornes de la métrique restante — toujours calculées sur les annonces RÉELLEMENT sélectionnées,
+ * donc toujours satisfaites par elles — écartent ces lignes SANS règle implicite : la sentinelle
+ * `NUMERIC_UNKNOWN` (`-1`, `src/types/sentinels.ts`) est hors de toute borne de valeur réelle.
+ */
+export type SelAxisMetric = 'reg' | 'km';
+
+/** Bornes d'un axe secondaire de `sel`, nommées par leur métrique. */
+export interface SelAxisRange extends BrushRange {
+  readonly metric: SelAxisMetric;
+}
+
+/** Restriction d'affichage de l'écran D : bornes de prix, plus les axes secondaires connus. */
+export interface SelRestriction extends BrushRange {
+  readonly axes?: readonly SelAxisRange[];
+}
+
 /** État d'interface de l'écran B extrait de l'URL. */
 export interface DistributionUiState {
   /** Variante explicite si présente dans l'URL, sinon `undefined` (→ défaut selon effectif). */
@@ -50,8 +91,9 @@ export interface DistributionUiState {
   readonly brushY: BrushRange | null;
   /** `page` (D-12, DR-066) — pagination 1-based de l'écran D. Défaut `1`, jamais émis (EX-NAV-8). */
   readonly page?: number;
-  /** `sel` (D-12, DR-067, EX-SCR-202) — restriction d'AFFICHAGE de l'écran D (bornes de prix). */
-  readonly sel?: BrushRange | null;
+  /** `sel` (D-12, DR-067, `EX-SCR-202`, ACC-06) — restriction d'AFFICHAGE de l'écran D : bornes de
+   * prix, plus le SECOND axe du brossage quand la projection en porte un. */
+  readonly sel?: SelRestriction | null;
 }
 
 /** Défaut vide (aucun paramètre D7 dans l'URL). */
@@ -81,6 +123,66 @@ function parseRange(raw: string | null | undefined): BrushRange | null {
   const to = Number(m[2]);
   if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
   return from <= to ? { from, to } : { from: to, to: from };
+}
+
+/** Second axe de `sel` : `<tag><lo>-<hi>`, `r` = 1ʳᵉ immatriculation, `k` = kilométrage (ACC-06). */
+const SEL_AXIS_TAG: Readonly<Record<string, SelAxisMetric>> = { r: 'reg', k: 'km' };
+const SEL_TAG_OF: Readonly<Record<SelAxisMetric, string>> = { reg: 'r', km: 'k' };
+
+/** Ordre canonique des axes secondaires sur le fil (`EX-NAV-9`). */
+const SEL_AXIS_ORDER: readonly SelAxisMetric[] = ['reg', 'km'];
+
+/**
+ * `sel` (`EX-SCR-202`, ACC-06) : `<plo>-<phi>` puis 0 à 2 segments `_<tag><lo>-<hi>`. TOLÉRANT — un
+ * segment illisible ou de métrique inconnue est IGNORÉ (la restriction de prix, elle, tient) plutôt
+ * que de rendre la page vide : la même règle que `parseRange`, jamais une erreur bloquante.
+ */
+function parseSel(raw: string | null | undefined): SelRestriction | null {
+  if (raw == null) return null;
+  const parts = raw.split('_');
+  const price = parseRange(parts[0]);
+  if (price === null) return null;
+  const axes: SelAxisRange[] = [];
+  for (const part of parts.slice(1)) {
+    const metric = SEL_AXIS_TAG[part.slice(0, 1)];
+    if (metric === undefined) continue;
+    if (axes.some((a) => a.metric === metric)) continue;
+    const range = parseRange(part.slice(1));
+    if (range === null) continue;
+    axes.push({ metric, from: range.from, to: range.to });
+  }
+  if (axes.length === 0) return price;
+  axes.sort((a, b) => SEL_AXIS_ORDER.indexOf(a.metric) - SEL_AXIS_ORDER.indexOf(b.metric));
+  return { from: price.from, to: price.to, axes };
+}
+
+/** Sérialisation canonique de `sel` (ACC-06) — réciproque exacte de `parseSel`. */
+function formatSel(sel: SelRestriction): string {
+  let out = `${sel.from}-${sel.to}`;
+  for (const metric of SEL_AXIS_ORDER) {
+    const axis = sel.axes?.find((a) => a.metric === metric);
+    if (axis !== undefined) out += `_${SEL_TAG_OF[metric]}${axis.from}-${axis.to}`;
+  }
+  return out;
+}
+
+/**
+ * `EX-SCR-202` (ACC-06) — une ligne est-elle DANS la restriction d'affichage ? Bornes INCLUSIVES sur
+ * les deux axes, exactement comme le brossage (`computeBrushSelection`). `sel` nul : tout passe.
+ */
+export function selMatches(
+  sel: SelRestriction | null | undefined,
+  priceEur: number,
+  regYearMonth: number,
+  mileageKm: number,
+): boolean {
+  if (sel == null) return true;
+  if (priceEur < sel.from || priceEur > sel.to) return false;
+  for (const axis of sel.axes ?? []) {
+    const v = axis.metric === 'reg' ? regYearMonth : mileageKm;
+    if (v < axis.from || v > axis.to) return false;
+  }
+  return true;
 }
 
 /** `page` (D-12) : entier 1-based ; toute autre forme retombe sur la page 1 (jamais une erreur). */
@@ -131,7 +233,7 @@ export function readDistributionUiState(params: {
     brushX: parseRange(params.get('selx')),
     brushY: parseRange(params.get('sely')),
     page: parsePage(params.get('page')),
-    sel: parseRange(params.get('sel')),
+    sel: parseSel(params.get('sel')),
   };
 }
 
@@ -172,7 +274,7 @@ export function writeDistributionUiState(state: DistributionUiState): readonly (
   if (state.brushY) out.push(['sely', `${state.brushY.from}-${state.brushY.to}`]);
   // `page` (D-12) : défaut 1 JAMAIS émis (EX-NAV-8). `sel` : absent = rien.
   if (state.page !== undefined && state.page > 1) out.push(['page', String(state.page)]);
-  if (state.sel) out.push(['sel', `${state.sel.from}-${state.sel.to}`]);
+  if (state.sel) out.push(['sel', formatSel(state.sel)]);
   return out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 }
 
@@ -216,8 +318,9 @@ export function readListingsPage(params: { get(key: string): string | null }): n
   return parsePage(params.get('page'));
 }
 
-/** Restriction d'affichage `sel` (`EX-SCR-202`, bornes de PRIX — axe commun aux deux projections du
- * nuage). Ce n'est PAS un filtre : Σ ne change jamais, seules les LIGNES MONTRÉES sont restreintes. */
-export function readListingsSel(params: { get(key: string): string | null }): BrushRange | null {
-  return parseRange(params.get('sel'));
+/** Restriction d'affichage `sel` (`EX-SCR-202`, ACC-06 : bornes de PRIX — ancre commune aux trois
+ * projections du nuage — plus le SECOND axe brossé quand il existe). Ce n'est PAS un filtre : Σ ne
+ * change jamais, seules les LIGNES MONTRÉES sont restreintes. */
+export function readListingsSel(params: { get(key: string): string | null }): SelRestriction | null {
+  return parseSel(params.get('sel'));
 }

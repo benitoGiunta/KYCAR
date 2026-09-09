@@ -9,7 +9,7 @@
  * sélectionnées, et fournit le comptage par bucket pour la surimpression des histogrammes.
  */
 
-import type { BrushRange, G4Variant } from './url-state';
+import type { BrushRange, G4Variant, SelAxisRange, SelRestriction } from './url-state';
 import type { ScatterPoint } from './scatter-model';
 import type { SelectionInput } from '../../types/index';
 
@@ -142,6 +142,50 @@ export function intervalFiltersToSelectionInput(f: IntervalFilters): SelectionIn
     mileageTo: f.mileageTo,
     ...(hasYear ? { dateOfRegistrationFrom: f.yearFrom, dateOfRegistrationTo: f.yearTo } : {}),
   };
+}
+
+/**
+ * `EX-SCR-158`/`EX-SCR-202` (ACC-06) — traduit la sélection brossée en RESTRICTION D'AFFICHAGE de
+ * l'écran D (`sel`), sur les métriques d'annonce du nuage.
+ *
+ * La recette 2.9b (ACC-06) a montré qu'une restriction de PRIX seule laisse passer, à l'écran D, les
+ * annonces qui partagent la bande de prix sans appartenir au rectangle brossé (« 280 lignes » pour
+ * 262 annonces sélectionnées). On borne donc AUSSI les autres métriques d'annonce que le nuage
+ * connaît : la 1ʳᵉ immatriculation (`regYearMonth`) et le kilométrage.
+ *
+ * Les bornes rendues sont celles de la BOÎTE ENGLOBANTE des lignes sélectionnées. Elle est donc
+ * satisfaite par toutes ces lignes — aucune annonce brossée n'est jamais écartée — et, sur les axes
+ * réellement brossés, elle est incluse dans le rectangle : tout point qu'elle contient était brossé.
+ * Les métriques hors brossage ferment le dernier écart mesuré au rendu (674 brossées, 684 lignes) :
+ * une annonce que le nuage ne trace pas (`EX-DATA-99`) porte la sentinelle `NUMERIC_UNKNOWN` (`-1`)
+ * sur la métrique qui l'a fait rejeter, valeur hors de toute borne réelle.
+ *
+ * `stack` (G4a) contraint le seul axe des prix ; `scatter` (G4b) prix × immatriculation ; le régime
+ * dégradé (`EX-NFR-19`) prix × kilométrage. Dans les trois cas la boîte englobante est calculée sur
+ * les trois métriques, ce qui rend la restriction indépendante de la projection en vigueur à la
+ * réouverture de l'URL (`EX-NAV-18` : le rendu est une fonction pure de l'URL).
+ */
+export function brushToSelRestriction(
+  points: readonly ScatterPoint[],
+  selectedRows: ReadonlySet<number>,
+): SelRestriction | null {
+  const box = brushToIntervalFilters(points, selectedRows);
+  if (box === null) return null;
+  let rMin = Infinity;
+  let rMax = -Infinity;
+  for (const p of points) {
+    if (!selectedRows.has(p.row)) continue;
+    if (p.regYearMonth < rMin) rMin = p.regYearMonth;
+    if (p.regYearMonth > rMax) rMax = p.regYearMonth;
+  }
+  const axes: SelAxisRange[] = [];
+  if (Number.isFinite(rMin) && Number.isFinite(rMax)) axes.push({ metric: 'reg', from: rMin, to: rMax });
+  if (Number.isFinite(box.mileageFrom) && Number.isFinite(box.mileageTo)) {
+    axes.push({ metric: 'km', from: box.mileageFrom, to: box.mileageTo });
+  }
+  return axes.length === 0
+    ? { from: box.priceFrom, to: box.priceTo }
+    : { from: box.priceFrom, to: box.priceTo, axes };
 }
 
 /** Bornes minimales d'un bucket (sous-ensemble de `DistributionBucket` utile ici). */
