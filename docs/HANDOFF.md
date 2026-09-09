@@ -1,6 +1,6 @@
 # HANDOFF — reprise du projet KYCAR par un nouvel agent
 
-**Mis à jour le 2026-09-09 (clôture 2.9 : toutes les phases du plan 2 sont closes) par l'agent coordinateur.** Ce fichier suffit à reprendre le travail sans
+**Mis à jour le 2026-09-09 (clôture de session pendant le plan 3, phases 3.4/3.5 ; plan 2 clos) par l'agent coordinateur.** Ce fichier suffit à reprendre le travail sans
 aucun contexte conversationnel. Lis-le en entier, puis lis `docs/EXECUTION-LOG.md` (source de vérité
 de l'avancement).
 
@@ -37,25 +37,60 @@ de l'avancement).
   (3) levée d'AC-01 (juridique 2dehands) avant tout câblage du provider réel ; (4) v2 de l'interface
   `DataProvider` (dettes D8-32, D8-36, composante T complète vers `fetchListingColumns`).
 
-### 0bis. Plan 3 en cours (données fictives AutoScout24-conformes, ouvert le 2026-09-09)
+### 0bis. Plan 3 — données fictives AutoScout24-conformes : ÉTAT À LA CLÔTURE DU 2026-09-09 et REPRISE
 
-Plan : `docs/plans/PLAN-3-fixture-data-mvp.md` · décisions D3-00…D3-20 : `reports/data/DATA-LEAD-DECISIONS.md`.
+Plan : `docs/plans/PLAN-3-fixture-data-mvp.md` · décisions D3-00…D3-32 : `reports/data/DATA-LEAD-DECISIONS.md`
+(lire D3-31 et D3-32 en premier) · organisation : `CLAUDE.md` §4.7.
 
-- ✅ 3.1 conception : `docs/data/DATA-MODEL.md` + `data/schema/` (90 champs source, JSON Schema strict,
-  R3 par construction) ; `docs/data/DATASET-SPEC.md` + `docs/data/dataset-spec/*.json` (61 règles,
-  26 anomalies à vérité terrain, 110 sondes).
-- ✅ 3.2 générateur : `tools/dataset/`, `npm run data:gen|data:validate|data:check` ; fixtures commitées
-  `data/fixtures/dev` (3 × 5 000) et `test` (3 × 20 000, 8,17 Mio gz) ; **porte G9a franchie**.
-- ✅ 3.3 provider : `src/providers/adapters/as24/`, `src/providers/fixture/`, `src/providers/registry.ts`
-  (bascule `?provider=fixture:test|fixture:dev|synthetic`, défaut `fixture:test`), `npm run test:contract`
-  (50 cas × 3 providers) — fusionné ; finalisation sur fixtures réelles en cours (worktree `fixture-provider`).
-- ⏳ 3.3 revue indépendante `data-review` (worktree `data-review`, Opus/high) → `tests/data/`,
-  `reports/data/DATA-REVIEW.md`, porte G9b.
-- ⏳ 2.10 finition visuelle (worktree `visual`, dette D8-43) → fusionnée à 3.5.
-- À venir : 3.4 `data-fix` si revue rouge ; 3.5 `mvp-integrate` (étiquette `FIXTURE` dans l'UI et
-  `/mentions` — **absente aujourd'hui**, `P1_EXPECTED` recalculé depuis les manifests, E2E complets)
-  puis `acceptance` rev 3 (Fable/max), porte G9.
-- Décomptes à `c973a6e` : unitaires 752, sondes de revue 1 097, contrat 50, bundle 129,15 Kio gzip.
+**Fait et fusionné sur `claude/kycar-project-ffcplk`** (tout est poussé, arbre propre, aucun worktree) :
+- ✅ 3.1 `docs/data/DATA-MODEL.md` + `data/schema/` (JSON Schema `As24Listing`, manifest, `validate.mjs`) ;
+  `docs/data/DATASET-SPEC.md` + `docs/data/dataset-spec/*.json` ; 2.10 finition visuelle (12/13 ACC).
+- ✅ 3.2 `tools/dataset/` (`npm run data:gen|data:validate|data:check`), fixtures `data/fixtures/dev` (3 × 5 000)
+  et `test` (3 × 20 000) commitées, **porte G9a franchie**.
+- ✅ 3.3 `src/providers/adapters/as24/`, `src/providers/fixture/`, `src/providers/registry.ts` (bascule
+  `?provider=fixture:test|fixture:dev|synthetic`, défaut `fixture:test`), `npm run test:contract` (83 cas) ;
+  revue indépendante `reports/data/DATA-REVIEW.md` (19 constats, 0 BLOQUANT) + `tests/data/` (152 sondes,
+  `npm run test:data`, `KYCAR_DATA_PROFILE=test` pour le profil complet).
+- ✅ 3.4 `data-fix` : 12/13 MAJEURS + 6/6 MINEURS corrigés, fixtures **régénérées**, 9 sondes amendées avec
+  justification (`reports/data/data-fix.md` §5), dettes D3-26/27/28. **Fusionné sans re-revue** (D3-32).
+- ◐ 3.5 `mvp-integrate` : étiquette `FIXTURE` partout, bascule visible, liste d'arrêt R3 chargée (D3-21),
+  câblage 2.10 (ACC-13/16), attendus E2E **dérivés des fixtures par programme** (`tests/e2e/_helpers.ts`),
+  docs — commits `a4663d2`, `aaf287f` + WIP `reports/remediation-2.8/mvp-integrate.md`. **Sa suite E2E
+  complète a été interrompue** ; son constat `C-3.5-01` est bloquant pour `EX-NFR-9` (D3-31).
+
+**Décomptes rejoués par le coordinateur à la clôture** (HEAD de la branche) : tsc ×5 vert, lint vert,
+build 0/0, bundle 131,8 / 300 Kio gzip, unitaires 757, contrat 83, `test:data` dev 152, `data:validate`
+test conforme. **Non rejoués** : `npm test` complet (sondes de revue ≈ 1 108, attendues vertes), `test:data`
+profil test, **`npm run test:e2e` complet** (dernier état connu : rouge avant `mvp-integrate`, réaligné
+par lui mais non revalidé de bout en bout).
+
+**Procédure de reprise (dans cet ordre)** :
+1. `git checkout claude/kycar-project-ffcplk && git pull`, `npm ci` si `node_modules` absent ; lire
+   D3-31/D3-32, `reports/remediation-2.8/mvp-integrate.md` §7, `reports/data/data-fix.md` §5–§6.
+2. **Rejouer les portes complètes** : `npm test`, `KYCAR_DATA_PROFILE=test npm run test:data`,
+   `npm run test:contract`, puis `npm run test:e2e` (port 4180 libre, `reuseExistingServer: false`).
+   Objectif E2E : 0 échec inattendu, 3 `test.fail()` D8-15. Tout échec = constat à traiter avant la suite.
+3. **Re-revue delta `data-review`** (Opus/high, nouvel agent, lecture seule sauf `reports/data/DATA-REVIEW.md`
+   §10) : rejouer `tests/data/` dev + test, juger une à une les 9 sondes amendées par `data-fix`, statuer
+   **G9b**. Si rouge : `data-fix` (Opus/high) sur la sonde concernée, puis delta.
+4. **`fixture-perf`** (Opus/high, D3-31) : agrégats mode 1 précalculés au manifest + lecture par le provider,
+   mode 2 différé, référentiels et snapshot en parallèle ; mesure `EX-NFR-9` au **premier chiffre** (le jalon
+   2.9 mesurait le squelette) ≤ 2 000 ms en 4G sur `fixture:test` ; sonde de contrat.
+5. **`acceptance` rev 3** (Fable/max) sur le build fixture : E2E 3 projets, axe, budgets (NFR-6/7/8/9),
+   P1/P2 sur données fictives, statut des ACC et des DR3 → `reports/ACCEPTANCE.md` rev 3, **porte G9**.
+6. Clôture : `EXECUTION-LOG.md` (chantier 3), ce handoff, `CLAUDE.md` §5 (décomptes), push. Livraison
+   (fusion `main`, tag) = décision explicite du commanditaire.
+
+**Dettes ouvertes du plan 3** : D3-19 (P-10/P-11 effectifs par modèle vs mix segment), D3-20 (EG-08/09/11),
+D3-26 (renommage `DUPLICATE_VALUE_CONFLICT`, v2), D3-27 (P-55 petites populations), D3-28 (A-13 non
+retrouvable), D3-31 (`EX-NFR-9`, à corriger), ACC-16 partiel (libellés du bandeau : câblé par mvp-integrate,
+à vérifier en recette), D8-43 résiduel (ACC non couverts par 2.10 : aucun, sauf vérification en recette).
+
+**Pièges rencontrés dans ce plan** : `git add -A` dans un worktree ajoute le lien `node_modules` (désormais
+ignoré) ; `npm run lint | tail -1` masque un échec (vérifier le code de sortie) ; un agent qui installe une
+devDependency doit le faire depuis la racine et copier `package.json`/`package-lock.json` dans son worktree ;
+la suite E2E dure 30 min au lieu de 10 quand un autre agent charge la machine ; les attendus E2E qui
+dépendent des données doivent être **dérivés**, jamais figés (D3-24).
 
 ## 1. Ce qu'est le projet
 

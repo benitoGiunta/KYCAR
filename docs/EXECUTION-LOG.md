@@ -3,7 +3,7 @@
 État d'avancement des deux chantiers. Ce fichier est la **source de vérité de l'avancement** :
 il doit permettre de reprendre le travail sans aucun contexte conversationnel.
 
-Dernière mise à jour : 2026-09-09 — **Chantier 1 CLOS. Chantier 2 : 2.0→2.9 VALIDÉ, portes G5–G8 franchies (branche `claude/kycar-project-ffcplk`). Livraison (fusion `main` + tag) = décision du commanditaire.** Ancienne mention : reste 2.7 (vérification finale), non lancée — attend feu vert commanditaire**
+Dernière mise à jour : 2026-09-09 — **Chantier 1 CLOS. Chantier 2 : 2.0→2.9 VALIDÉ (G5–G8). Chantier 3 (données fictives AS24) : 3.1–3.3 validés, G9a franchie, 3.4/3.5 en cours à la clôture de session (reprise : `docs/HANDOFF.md` §0bis).** Ancienne mention : reste 2.7 (vérification finale), non lancée — attend feu vert commanditaire**
 
 ## Conventions
 
@@ -80,11 +80,11 @@ agents : `docs/plans/PLAN-3-fixture-data-mvp.md` ; décisions : `reports/data/DA
 | Phase | Agent(s) | Modèle / effort | Livrable | Statut |
 |---|---|---|---|---|
 | 3.0 Cadrage | coordinateur | Fable / high | PLAN-3, D3-00…05, CLAUDE.md §4.7 | ✅ fait le 2026-09-09 |
-| 3.1 Conception (∥) | `data-model`, `dataset-design`, `visual-2.10` | Opus/high · Opus/high · Opus/high→Sonnet/high | `docs/data/DATA-MODEL.md` + `data/schema/`, `docs/data/DATASET-SPEC.md`, `reports/remediation-2.10/visual.md` | À FAIRE |
-| 3.2 Générateur et fixtures | `dataset-gen` | Opus / high | `tools/dataset/`, `data/fixtures/dev|test` (commités), G9a | À FAIRE |
-| 3.3 Revue ∥ provider | `data-review` (indépendant), `fixture-provider` | Opus/high · Opus/high | `tests/data/`, `reports/data/DATA-REVIEW.md` ; `src/providers/fixture/`, registre, `tests/contract/` | À FAIRE |
-| 3.4 Correction, re-revue | `data-fix`, `data-review` | Opus/high (Sonnet/high si spécifié) | fixtures régénérées, G9b | À FAIRE si rouge |
-| 3.5 Intégration MVP, recette | `mvp-integrate`, `acceptance` rev 3 | Opus/high · Fable/max | provider fixture par défaut, `ACCEPTANCE.md` rev 3, porte G9 | À FAIRE |
+| 3.1 Conception (∥) | `data-model`, `dataset-design`, `visual-2.10` | Opus/high · Opus/high · Opus/high→Sonnet/high | `docs/data/DATA-MODEL.md` + `data/schema/`, `docs/data/DATASET-SPEC.md`, `reports/remediation-2.10/visual.md` | ✅ VALIDÉ le 2026-09-09 (90 champs source, 82/82 du dictionnaire ; 61 règles, 26 anomalies, 110 sondes ; 12/13 ACC) |
+| 3.2 Générateur et fixtures | `dataset-gen` | Opus / high | `tools/dataset/`, `data/fixtures/dev|test` (commités), G9a | ✅ VALIDÉ — **G9a franchie** (déterminisme, 100 % conformes, 8,18 Mio gz test) |
+| 3.3 Revue ∥ provider | `data-review` (indépendant), `fixture-provider` | Opus/high · Opus/high | `tests/data/`, `reports/data/DATA-REVIEW.md` ; `src/providers/fixture/`, registre, `tests/contract/` | ✅ VALIDÉ — revue : 19 constats, 0 BLOQUANT, 152 sondes ; provider : contrat 83/83, ouverture test 1,86 s |
+| 3.4 Correction, re-revue | `data-fix`, `data-review` | Opus/high (Sonnet/high si spécifié) | fixtures régénérées, G9b | ◐ `data-fix` LIVRÉ et fusionné (12/13 MAJEURS, 6/6 MINEURS, `test:data` 152/152) ; **re-revue delta NON RENDUE, G9b NON STATUÉE** (clôture de session, D3-32) |
+| 3.5 Intégration MVP, recette | `mvp-integrate`, `acceptance` rev 3 | Opus/high · Fable/max | provider fixture par défaut, `ACCEPTANCE.md` rev 3, porte G9 | ◐ `mvp-integrate` : 2 lots commités (étiquette FIXTURE, bascule, liste d'arrêt, attendus E2E dérivés), **E2E complet interrompu**, constat `C-3.5-01` `EX-NFR-9` ×3,9 (D3-31) ; `acceptance` rev 3 NON LANCÉE |
 
 ## Décisions prises
 
