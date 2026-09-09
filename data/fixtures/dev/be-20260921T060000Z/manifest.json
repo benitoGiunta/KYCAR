@@ -11,10 +11,10 @@
  },
  "file": "listings.ndjson.gz",
  "listingCount": 5000,
- "sha256": "4d0dc9598b7af0ee54c55a74e61b4e9f291382680b5b79b30e59e0210fae8644",
- "sha256Gz": "3811b043c7cc96e19a0461f486a45801316c0b3f2b8b8de440519171d19ea1d3",
- "uncompressedBytes": 7437390,
- "compressedBytes": 697968,
+ "sha256": "ded7b11d7ae4a0ba79730a1839e96c94d749b23bcbb7da1cca2b05ccc695e281",
+ "sha256Gz": "64751501c0d445329bcf9a54dd52b150bbc4397a7da8218d342af24ae38b000a",
+ "uncompressedBytes": 7421244,
+ "compressedBytes": 698077,
  "previousSnapshotId": "be-20260914T060000Z",
  "groundTruth": [
   {
@@ -42,19 +42,19 @@
    }
   },
   {
-   "listingId": "25eb4887-b46b-b148-05d8-ba812b6a3693",
+   "listingId": "4eaa5ae8-800a-629b-42cb-de044cf548b0",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.202
+    "latent": 0.149
    }
   },
   {
-   "listingId": "a60a664a-710c-b108-15a4-d7649fe4292e",
+   "listingId": "c78ba6f9-382b-a704-72de-3d5ff02eb3db",
    "anomaly": "VERSION_FULLY_STRIPPED",
    "expected": {
-    "fair": "1.2 VTi Sport",
-    "injected": "*** *** ***"
+    "fair": "1.7 TSI Business",
+    "injected": "... ..."
    }
   },
   {
@@ -113,7 +113,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "35",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -129,9 +130,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 5362,
-    "fair": 11990,
-    "factor": 0.447,
+    "injected": 3733,
+    "fair": 8990,
+    "factor": 0.415,
+    "robustSigma": 0.316,
+    "zTarget": -3.4,
     "cell": 106
    }
   },
@@ -140,10 +143,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 31239,
+    "injected": 43329,
     "fair": 13950,
-    "factor": 2.239,
-    "cell": 159
+    "factor": 3.106,
+    "robustSigma": 0.31,
+    "zTarget": 3.4,
+    "cell": 160
    }
   },
   {
@@ -160,7 +165,7 @@
    "expected": {
     "flag": "PRICE_SENTINEL_ABSOLUTE",
     "injected": 111,
-    "fair": 13000
+    "fair": 12000
    }
   },
   {
@@ -246,13 +251,27 @@
    }
   },
   {
+   "listingId": "a572454d-d4cb-a760-8af1-5e22a47104e8",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 14400,
+    "injected": 966100,
+    "form": "a",
+    "ageMonths": 43,
+    "perYearKm": 269609
+   }
+  },
+  {
    "listingId": "f190eaaf-ee36-84be-d6ac-5ea823603892",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 346,
+    "injected": 321433,
     "fair": 7990,
-    "factor": 0.043
+    "factor": 40.229,
+    "cellMedian": 12745,
+    "cellN": 12
    }
   },
   {
@@ -270,10 +289,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 5469,
+    "injected": 4205,
     "fair": 15928,
-    "factor": 0.343,
-    "cell": 159
+    "factor": 0.264,
+    "robustSigma": 0.31,
+    "zTarget": -3.4,
+    "cell": 160
    }
   },
   {
@@ -294,12 +315,14 @@
   },
   {
    "listingId": "6dfab1c7-bfa3-7aba-1166-b6250169d3dc",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 371,
+    "injected": 344725,
     "fair": 3262,
-    "factor": 0.114
+    "factor": 105.679,
+    "cellMedian": 8990,
+    "cellN": 160
    }
   },
   {
@@ -424,29 +447,29 @@
    }
   },
   {
-   "listingId": "5d18e3f2-8176-8030-c590-a8bdfee123d9",
+   "listingId": "1193ad86-8a0d-62ee-6425-a889f147dd0d",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
    "expected": {
-    "fair": "1.5 TDI Base",
-    "injected": "1.5 TDI Base Clio",
+    "fair": "1.9 Hybrid Highline",
+    "injected": "1.9 Hybrid Highline Megane",
     "form": "a"
    }
   },
   {
-   "listingId": "0e1f9fe5-6ab1-87ef-7006-5339aeb620c4",
+   "listingId": "ea4bbe6c-f6a1-8727-4b8c-1d9d555bdd18",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 12280
+    "fair": 5254
    }
   },
   {
-   "listingId": "8c199eaa-b9f5-89dd-522b-4da4498c692a",
+   "listingId": "0e1f9fe5-6ab1-87ef-7006-5339aeb620c4",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.249
+    "latent": 0.167
    }
   },
   {
@@ -507,19 +530,19 @@
    }
   },
   {
-   "listingId": "36e86c2c-dc6e-08e0-8eb5-2ae7ae9e3c38",
+   "listingId": "ecd77be6-9a1f-2122-c637-19d8d303117c",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 18312
+    "fair": 15454
    }
   },
   {
-   "listingId": "fcefdd23-2f22-a05d-8e61-2a7bf27ab049",
+   "listingId": "a3d3faaa-c848-456a-da2c-4d85a6f358a5",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.084
+    "latent": 0.158
    }
   },
   {
@@ -613,11 +636,11 @@
    }
   },
   {
-   "listingId": "a329c092-557b-e9e0-0582-cff6f6350ded",
+   "listingId": "92d7efce-5a6c-a98a-82c7-5540325073aa",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.171
+    "latent": 0.066
    }
   },
   {
@@ -637,12 +660,13 @@
    }
   },
   {
-   "listingId": "d9ba701b-375a-a1a7-b84a-9fdec1118067",
+   "listingId": "39b8279e-b034-e26e-8673-7c44f1891876",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
-    "fair": "70",
-    "injected": "06"
+    "fair": "74",
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -654,11 +678,11 @@
    }
   },
   {
-   "listingId": "6569d38d-cc07-2381-b085-0cc116b0c41d",
+   "listingId": "50504bee-8a01-e193-94b4-61edd1fe2935",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.187
+    "latent": 0.138
    }
   },
   {
@@ -692,7 +716,7 @@
    "listingId": "bd20252a-f035-27db-fd40-0e404e78e563",
    "anomaly": "POWER_OUT_OF_RANGE",
    "expected": {
-    "fair": 127,
+    "fair": 89,
     "injected": 1
    }
   },
@@ -709,7 +733,7 @@
    "anomaly": "UNIT_UNSUPPORTED",
    "expected": {
     "unit": "mi",
-    "value": 18700
+    "value": 82300
    }
   },
   {
@@ -729,12 +753,13 @@
    }
   },
   {
-   "listingId": "b4d5e509-eef5-3f2a-2935-6c66c23008d8",
+   "listingId": "35ee0297-7adf-fbab-9517-c2daa640c0ed",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
-    "fair": "30",
-    "injected": "04"
+    "fair": "62",
+    "injected": "02",
+    "flagExpected": true
    }
   },
   {
@@ -813,18 +838,18 @@
    }
   },
   {
-   "listingId": "0dece367-c415-9dab-04f5-cbfcde3d284b",
+   "listingId": "78d16690-f6ac-e4fc-4570-1a4000747941",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 69316
+    "fair": 48736
    }
   },
   {
-   "listingId": "36f40801-11c7-ee08-1991-b7c76cef7620",
+   "listingId": "05e80773-5db3-307b-f543-f7c9b4d0da4d",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
-    "fair": 1641
+    "fair": 1642
    }
   },
   {
@@ -833,7 +858,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "NL"
+    "injected": "NL",
+    "flagExpected": false
    }
   },
   {
@@ -864,9 +890,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1349531,
+    "injected": 310632,
     "fair": 15950,
-    "factor": 84.61
+    "factor": 19.475,
+    "cellMedian": 28086,
+    "cellN": 32
    }
   },
   {
@@ -886,11 +914,11 @@
    }
   },
   {
-   "listingId": "5fe09c31-f77a-1db2-9957-97266050ab4f",
+   "listingId": "36f40801-11c7-ee08-1991-b7c76cef7620",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.124
+    "latent": 0.186
    }
   },
   {
@@ -910,21 +938,15 @@
    }
   },
   {
-   "listingId": "776b36a0-d5dd-9328-a4b2-b87de2cfbf5d",
-   "anomaly": "SUSPECT_ZERO_MILEAGE",
-   "expected": {
-    "fair": 31400,
-    "offerType": "J"
-   }
-  },
-  {
    "listingId": "15f35779-2822-435b-a08c-70945c59965f",
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 13901,
+    "injected": 6102,
     "fair": 28000,
-    "factor": 0.496,
+    "factor": 0.218,
+    "robustSigma": 0.473,
+    "zTarget": -3.4,
     "cell": 32
    }
   },
@@ -947,7 +969,7 @@
    "listingId": "9b11872f-8679-b717-ad54-44e49ce3bbeb",
    "anomaly": "FIRST_REG_OUT_OF_RANGE",
    "expected": {
-    "fair": "2007-03",
+    "fair": "2005-03",
     "injected": "1899-12"
    }
   },
@@ -967,13 +989,15 @@
    }
   },
   {
-   "listingId": "519405e1-91ac-c696-8e11-10ea4c02b272",
+   "listingId": "60d2b5d1-4c2f-3d86-c34c-f45484ea7678",
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1736032,
-    "fair": 4500,
-    "factor": 385.785
+    "injected": 365887,
+    "fair": 10950,
+    "factor": 33.414,
+    "cellMedian": 20900,
+    "cellN": 29
    }
   },
   {
@@ -987,13 +1011,13 @@
    }
   },
   {
-   "listingId": "695f5e93-752c-a18d-db31-e81b209ab1db",
+   "listingId": "63c9c320-8563-5b86-b85f-44b0e45cddf9",
    "anomaly": "VERSION_AMBIGUOUS",
-   "detail": "forme (a) modele d une autre marque",
+   "detail": "forme (b) puissance contredite",
    "expected": {
-    "fair": "1.0 HDi Allure",
-    "injected": "1.0 HDi Allure Astra",
-    "form": "a"
+    "fair": "1.0 T Sport",
+    "injected": "1.0 T Sport 220 ch",
+    "form": "b"
    }
   },
   {
@@ -1034,17 +1058,19 @@
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
-    "fair": "35",
-    "injected": "06"
+    "fair": "92",
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
-   "listingId": "adae80e6-6bc1-7ccb-ca63-9d7612f83fbc",
+   "listingId": "695f5e93-752c-a18d-db31-e81b209ab1db",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
-    "fair": "36",
-    "injected": "03"
+    "fair": "62",
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -1064,6 +1090,18 @@
    }
   },
   {
+   "listingId": "ec4dc24b-ee23-ebf0-78d2-cd891330d94a",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 74900,
+    "injected": 1257000,
+    "form": "a",
+    "ageMonths": 54,
+    "perYearKm": 279333
+   }
+  },
+  {
    "listingId": "6b45161e-1561-7c17-af2b-d294a9297ccb",
    "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
    "detail": "branche EX-DATA-10 (repli creation vers recherche)",
@@ -1073,10 +1111,10 @@
    }
   },
   {
-   "listingId": "6cd8e946-891c-11af-5a08-d177494c5597",
+   "listingId": "838c3c52-2b01-a48f-43d6-b36c077dbd27",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
-    "fair": 2147
+    "fair": 1859
    }
   },
   {
@@ -1085,14 +1123,6 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 118907
-   }
-  },
-  {
-   "listingId": "97c5fcce-8c27-e040-35a2-65056e0cbc4b",
-   "anomaly": "PRICE_ON_REQUEST",
-   "expected": {
-    "status": "ON_REQUEST",
-    "fair": 5187
    }
   },
   {
@@ -1142,8 +1172,8 @@
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
    "expected": {
-    "fair": "1.6 TSI Highline",
-    "injected": "1.6 TSI Highline Clio",
+    "fair": "1.8 T Business",
+    "injected": "1.8 T Business Clio",
     "form": "a"
    }
   },
@@ -1152,8 +1182,8 @@
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
    "expected": {
-    "fair": "1.7 T Elegance",
-    "injected": "1.7 T Elegance Punto",
+    "fair": "1.6 dCi Elegance",
+    "injected": "1.6 dCi Elegance Punto",
     "form": "a"
    }
   },
@@ -1170,6 +1200,18 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 102408
+   }
+  },
+  {
+   "listingId": "1505d1b4-d8d4-e67e-e847-82b00cef2549",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 71900,
+    "injected": 1391700,
+    "form": "a",
+    "ageMonths": 53,
+    "perYearKm": 315102
    }
   },
   {
@@ -1241,22 +1283,11 @@
    }
   },
   {
-   "listingId": "05d849ff-fea1-73eb-ee8a-8ee1c9ae7b71",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 361300,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 209
-   }
-  },
-  {
-   "listingId": "023418ca-7646-331b-23bb-121aa455372d",
+   "listingId": "6d1cbdc9-d43a-659c-695f-38c790542afd",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 5806
+    "fair": 4927
    }
   },
   {
@@ -1274,7 +1305,7 @@
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 24816
+    "fair": 14637
    }
   },
   {
@@ -1327,11 +1358,11 @@
    }
   },
   {
-   "listingId": "59e6cd10-2723-dd1e-c122-89e4d942be2b",
+   "listingId": "d716c82c-3925-8255-87e9-08ffe1f617d9",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 10150
+    "fair": 10500
    }
   },
   {
@@ -1339,10 +1370,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 62682,
+    "injected": 48245,
     "fair": 25990,
-    "factor": 2.412,
-    "cell": 86
+    "factor": 1.856,
+    "robustSigma": 0.271,
+    "zTarget": 3.4,
+    "cell": 85
    }
   },
   {
@@ -1358,9 +1391,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 13363,
+    "injected": 12643,
     "fair": 4900,
-    "factor": 2.727,
+    "factor": 2.58,
+    "robustSigma": 0.281,
+    "zTarget": 3.4,
     "cell": 30
    }
   },
@@ -1368,8 +1403,9 @@
    "listingId": "9b17cc41-b3e0-57f0-2450-63abe66e02b7",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
-    "amount": 4950
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
+    "amount": 2950
    }
   },
   {
@@ -1413,9 +1449,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1300938,
-    "fair": 13899,
-    "factor": 93.599
+    "injected": 306560,
+    "fair": 34990,
+    "factor": 8.761,
+    "cellMedian": 16450,
+    "cellN": 38
    }
   },
   {
@@ -1462,9 +1500,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 78889,
+    "injected": 80378,
     "fair": 32990,
-    "factor": 2.391,
+    "factor": 2.436,
+    "robustSigma": 0.285,
+    "zTarget": 3.4,
     "cell": 38
    }
   },
@@ -1486,20 +1526,17 @@
   },
   {
    "listingId": "f4971551-30f9-3677-92fd-008c3404859f",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 179800,
-    "injected": 600,
-    "form": "b",
-    "ageMonths": 189
-   }
-  },
-  {
-   "listingId": "f4971551-30f9-3677-92fd-008c3404859f",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 15867
+   }
+  },
+  {
+   "listingId": "4b550dd4-4f97-de89-c36f-983403aac7e5",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
    }
   },
   {
@@ -1544,10 +1581,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 3721,
-    "fair": 7990,
-    "factor": 0.466,
-    "cell": 86
+    "injected": 1515,
+    "fair": 2990,
+    "factor": 0.507,
+    "robustSigma": 0.2,
+    "zTarget": -3.4,
+    "cell": 2
    }
   },
   {
@@ -1556,6 +1595,18 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 15287
+   }
+  },
+  {
+   "listingId": "7c05ba86-3429-78aa-bbbc-5d7f69f14ef9",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 72800,
+    "injected": 1349000,
+    "form": "a",
+    "ageMonths": 57,
+    "perYearKm": 284000
    }
   },
   {
@@ -1572,15 +1623,16 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "10",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
-   "listingId": "02d7799a-c624-0b24-2b7f-78eb69b5228c",
+   "listingId": "9252e5b4-09db-8812-b123-43f0f8361c2a",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 14572
+    "fair": 13057
    }
   },
   {
@@ -1611,9 +1663,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 3025,
-    "fair": 9500,
-    "factor": 0.318,
+    "injected": 3576,
+    "fair": 6500,
+    "factor": 0.55,
+    "robustSigma": 0.203,
+    "zTarget": -3.4,
     "cell": 95
    }
   },
@@ -1632,9 +1686,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 12840,
+    "injected": 17500,
     "fair": 29950,
-    "factor": 0.429,
+    "factor": 0.584,
+    "robustSigma": 0.232,
+    "zTarget": -3.4,
     "cell": 42
    }
   },
@@ -1659,9 +1715,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 5581,
+    "injected": 4022,
     "fair": 1990,
-    "factor": 2.805,
+    "factor": 2.021,
+    "robustSigma": 0.203,
+    "zTarget": 3.4,
     "cell": 95
    }
   },
@@ -1676,26 +1734,26 @@
    }
   },
   {
-   "listingId": "2833c04e-2efe-8f8d-e179-7fbe048a51ec",
+   "listingId": "06b5d8ca-81ea-c7b3-6e07-bd0fdab17cc8",
    "anomaly": "SUSPECT_ZERO_MILEAGE",
    "expected": {
-    "fair": 153200,
+    "fair": 70700,
     "offerType": "U"
    }
   },
   {
-   "listingId": "a794a768-8dac-8303-fa0f-41cd21c8efeb",
+   "listingId": "2833c04e-2efe-8f8d-e179-7fbe048a51ec",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 37211
+    "fair": 7303
    }
   },
   {
-   "listingId": "a794a768-8dac-8303-fa0f-41cd21c8efeb",
+   "listingId": "2833c04e-2efe-8f8d-e179-7fbe048a51ec",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
-    "fair": 74532
+    "fair": 1918
    }
   },
   {
@@ -1704,7 +1762,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "37",
-    "injected": "06"
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -1720,9 +1779,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 22166,
+    "injected": 19523,
     "fair": 52900,
-    "factor": 0.419,
+    "factor": 0.369,
+    "robustSigma": 0.232,
+    "zTarget": -3.4,
     "cell": 42
    }
   },
@@ -1761,14 +1822,6 @@
    }
   },
   {
-   "listingId": "d8dcb57c-c7ce-687b-702c-177593a91538",
-   "anomaly": "PRICE_MISSING_UNDECLARED",
-   "expected": {
-    "status": "MISSING",
-    "fair": 8702
-   }
-  },
-  {
    "listingId": "2aff6a98-ac61-0b65-2e9d-e8ba340b4d73",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -1798,7 +1851,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "FR"
+    "injected": "FR",
+    "flagExpected": false
    }
   },
   {
@@ -1820,13 +1874,13 @@
    }
   },
   {
-   "listingId": "d5a3e168-d63b-4e49-dab6-e5fc1b905553",
+   "listingId": "60b03046-dd02-4abc-1c1b-3696176a9608",
    "anomaly": "VERSION_AMBIGUOUS",
-   "detail": "forme (b) puissance contredite",
+   "detail": "forme (a) modele d une autre marque",
    "expected": {
-    "fair": "0.9 dCi Trend",
-    "injected": "0.9 dCi Trend 130 ch",
-    "form": "b"
+    "fair": "0.9 HEV Business",
+    "injected": "0.9 HEV Business Megane",
+    "form": "a"
    }
   },
   {
@@ -1886,10 +1940,10 @@
    }
   },
   {
-   "listingId": "3ce5d574-b1e8-4c84-ae8e-30e515c903cb",
+   "listingId": "20320093-041c-5781-ab91-582b0bce87f6",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
-    "fair": 1628
+    "fair": 19083
    }
   },
   {
@@ -1950,21 +2004,15 @@
    }
   },
   {
-   "listingId": "6df9ebc0-3315-ada2-498f-88cda24e89a7",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "D",
-    "isPluginHybrid": true
-   }
-  },
-  {
    "listingId": "32f35eb3-8d5c-748d-1839-d1cf3b7213f6",
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1080008,
+    "injected": 288045,
     "fair": 27349,
-    "factor": 39.49
+    "factor": 10.532,
+    "cellMedian": 16900,
+    "cellN": 4916
    }
   },
   {
@@ -1983,7 +2031,8 @@
     "fair": 34600,
     "injected": 1089000,
     "form": "a",
-    "ageMonths": 44
+    "ageMonths": 44,
+    "perYearKm": 297000
    }
   },
   {
@@ -2002,12 +2051,28 @@
    }
   },
   {
-   "listingId": "c9c8c09f-18c3-b519-0d71-f8f1f5af739c",
+   "listingId": "898d7fcf-e1ab-e84f-a158-1cc57e4f2c02",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 4556
+   }
+  },
+  {
+   "listingId": "898d7fcf-e1ab-e84f-a158-1cc57e4f2c02",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.077
+   }
+  },
+  {
+   "listingId": "9423e434-fcde-4c17-d7a0-dc477e8f109d",
    "anomaly": "PRICE_SENTINEL_ABSOLUTE",
    "expected": {
     "flag": "PRICE_SENTINEL_ABSOLUTE",
-    "injected": 123,
-    "fair": 19990
+    "injected": 99,
+    "fair": 26950
    }
   },
   {
@@ -2015,7 +2080,19 @@
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 17166
+    "fair": 22703
+   }
+  },
+  {
+   "listingId": "1b47c4b1-26c3-ef5b-6012-d1f1f92bc425",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 98100,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 68,
+    "perYearKm": 255882
    }
   },
   {
@@ -2059,11 +2136,11 @@
    }
   },
   {
-   "listingId": "2dde1b62-5ef2-c069-ebcd-2ce40c4d186c",
+   "listingId": "63411fc4-efdc-3476-e198-67746af5319d",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 4930
+    "fair": 7776
    }
   },
   {
@@ -2112,7 +2189,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "90",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -2239,10 +2317,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 52528,
+    "injected": 46191,
     "fair": 17950,
-    "factor": 2.926,
-    "cell": 43
+    "factor": 2.573,
+    "robustSigma": 0.308,
+    "zTarget": 3.4,
+    "cell": 44
    }
   },
   {
@@ -2250,9 +2330,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 70292,
+    "injected": 47471,
     "fair": 24455,
-    "factor": 2.874,
+    "factor": 1.941,
+    "robustSigma": 0.201,
+    "zTarget": 3.4,
     "cell": 51
    }
   },
@@ -2270,23 +2352,25 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "92",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
-   "listingId": "5f05a38d-5957-685e-77b6-1f120b3be7fe",
+   "listingId": "d5ff50af-1c8a-7efb-fe23-d2f4c255c0c5",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "LU"
+    "injected": "NL",
+    "flagExpected": false
    }
   },
   {
-   "listingId": "8809eeb9-1869-52ec-8dd5-a8fd865585b1",
+   "listingId": "f03840af-88bb-6221-1d0a-d0c9bb563364",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
-    "fair": 14786
+    "fair": 1965
    }
   },
   {
@@ -2355,17 +2439,6 @@
    }
   },
   {
-   "listingId": "d89422d8-ad1b-fa92-d9af-30b65d4153fb",
-   "anomaly": "OUTLIER_M2_LOW",
-   "expected": {
-    "method": "M2",
-    "injected": 5495,
-    "fair": 11990,
-    "factor": 0.458,
-    "cell": 43
-   }
-  },
-  {
    "listingId": "1edf219c-0ae8-6757-848c-c6ebb2366153",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -2382,12 +2455,13 @@
    }
   },
   {
-   "listingId": "7ac61221-6e13-c37b-3c06-be563be59179",
+   "listingId": "ed5a5d02-5ee0-148b-cf6f-fce8a39db9f4",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
-    "fair": "90",
-    "injected": "09"
+    "fair": "22",
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
@@ -2400,11 +2474,11 @@
    }
   },
   {
-   "listingId": "913b50c6-aa1e-a493-46c8-c482b0dab120",
+   "listingId": "01686723-bf36-d782-c569-20aecfcb5663",
    "anomaly": "VERSION_FULLY_STRIPPED",
    "expected": {
-    "fair": "1.4 dCi Elegance",
-    "injected": "--- PROMO ---"
+    "fair": "1.9 dCi Active",
+    "injected": "!!! !!!"
    }
   },
   {
@@ -2440,7 +2514,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "83",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -2495,9 +2570,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 593672,
+    "injected": 247288,
     "fair": 27990,
-    "factor": 21.21
+    "factor": 8.835,
+    "cellMedian": 15425,
+    "cellN": 16
    }
   },
   {
@@ -2540,18 +2617,8 @@
     "fair": 28400,
     "injected": 1206800,
     "form": "a",
-    "ageMonths": 47
-   }
-  },
-  {
-   "listingId": "eb68a621-2a6f-b268-97cb-636f0cbf0f83",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 210100,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 106
+    "ageMonths": 47,
+    "perYearKm": 308119
    }
   },
   {
@@ -2614,9 +2681,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 107000,
-    "injected": 1754700,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 69
+    "ageMonths": 69,
+    "perYearKm": 252174
    }
   },
   {
@@ -2643,20 +2711,20 @@
    }
   },
   {
-   "listingId": "49ca7708-b2ce-ccc3-0e27-a23385a5bf15",
+   "listingId": "69619e11-8acb-70fc-d040-56822c8e4a80",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.218
+    "latent": 0.179
    }
   },
   {
-   "listingId": "d2e5cab0-0a96-f817-6230-b8f9c97ca4a9",
+   "listingId": "c9e8e560-689d-73fe-607a-cdffd519f4f3",
    "anomaly": "PRICE_SENTINEL_ABSOLUTE",
    "expected": {
     "flag": "PRICE_SENTINEL_ABSOLUTE",
-    "injected": 249,
-    "fair": 14798
+    "injected": 99,
+    "fair": 21990
    }
   },
   {
@@ -2693,11 +2761,11 @@
    }
   },
   {
-   "listingId": "3a70960f-f26e-bb94-c735-1002a6be7c75",
+   "listingId": "49ca7708-b2ce-ccc3-0e27-a23385a5bf15",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.123
+    "latent": 0.218
    }
   },
   {
@@ -2705,8 +2773,8 @@
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
    "expected": {
-    "fair": "0.9 GDI Premium",
-    "injected": "0.9 GDI Premium Astra",
+    "fair": "1.9 CDI Highline",
+    "injected": "1.9 CDI Highline Astra",
     "form": "a"
    }
   },
@@ -2714,7 +2782,7 @@
    "listingId": "39cc0d34-20e6-6565-e0f9-057d87c1d69c",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
-    "fair": 19072
+    "fair": 15537
    }
   },
   {
@@ -2759,22 +2827,14 @@
   },
   {
    "listingId": "76339d3b-17c1-50e9-1c91-2b170c85c2e3",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 264,
+    "injected": 242979,
     "fair": 8950,
-    "factor": 0.029
-   }
-  },
-  {
-   "listingId": "2c8c015e-2633-dc7c-0327-483162dff236",
-   "anomaly": "OUTLIER_M1_LOW",
-   "expected": {
-    "method": "M1",
-    "injected": 281,
-    "fair": 7000,
-    "factor": 0.04
+    "factor": 27.148,
+    "cellMedian": 16900,
+    "cellN": 4916
    }
   },
   {
@@ -2791,9 +2851,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 88100,
-    "injected": 1673700,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 56
+    "ageMonths": 56,
+    "perYearKm": 310714
    }
   },
   {
@@ -2833,10 +2894,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 6663,
+    "injected": 8682,
     "fair": 18990,
-    "factor": 0.351,
-    "cell": 37
+    "factor": 0.457,
+    "robustSigma": 0.248,
+    "zTarget": -3.4,
+    "cell": 38
    }
   },
   {
@@ -2886,7 +2949,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "53",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -2912,7 +2976,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "17",
-    "injected": "08"
+    "injected": "08",
+    "flagExpected": true
    }
   },
   {
@@ -3040,12 +3105,12 @@
    }
   },
   {
-   "listingId": "4831f5c5-eb6c-e18c-7805-0ecd0bc69094",
+   "listingId": "05f5ffba-a633-8bbc-c0ec-9a84329acc55",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
    "expected": {
-    "fair": "1.4 GDI Elegance",
-    "injected": "1.4 GDI Elegance Astra",
+    "fair": "1.5 GDI Business",
+    "injected": "1.5 GDI Business Golf",
     "form": "a"
    }
   },
@@ -3075,13 +3140,25 @@
    }
   },
   {
-   "listingId": "70557ad8-1362-c573-fe72-7dda10c8f39e",
+   "listingId": "597b421b-7981-7489-c051-bc483d5b539a",
    "anomaly": "VERSION_AMBIGUOUS",
-   "detail": "forme (b) puissance contredite",
+   "detail": "forme (a) modele d une autre marque",
    "expected": {
-    "fair": "1.5 VTi Business",
-    "injected": "1.5 VTi Business 260 ch",
-    "form": "b"
+    "fair": "0.7 T Business",
+    "injected": "0.7 T Business Punto",
+    "form": "a"
+   }
+  },
+  {
+   "listingId": "3e5a5623-02df-7e5c-f988-1d387bf83cd1",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 20400,
+    "injected": 756100,
+    "form": "a",
+    "ageMonths": 32,
+    "perYearKm": 283538
    }
   },
   {
@@ -3105,9 +3182,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 36822,
+    "injected": 70727,
     "fair": 14990,
-    "factor": 2.456,
+    "factor": 4.718,
+    "robustSigma": 0.254,
+    "zTarget": 3.4,
     "cell": 90
    }
   },
@@ -3124,7 +3203,7 @@
    "anomaly": "PRICE_MISSING_UNDECLARED",
    "expected": {
     "status": "MISSING",
-    "fair": 14238
+    "fair": 46064
    }
   },
   {
@@ -3132,9 +3211,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 9327,
+    "injected": 8308,
     "fair": 2990,
-    "factor": 3.119,
+    "factor": 2.779,
+    "robustSigma": 0.254,
+    "zTarget": 3.4,
     "cell": 90
    }
   },
@@ -3179,10 +3260,10 @@
    }
   },
   {
-   "listingId": "8843ee88-cb67-263d-e06e-dc2e36a9dc39",
+   "listingId": "7d8a32cb-78f2-ccb5-7569-c0a29fb163e5",
    "anomaly": "SUSPECT_ZERO_MILEAGE",
    "expected": {
-    "fair": 132900,
+    "fair": 211000,
     "offerType": "U"
    }
   },
@@ -3199,7 +3280,7 @@
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 38289
+    "fair": 43496
    }
   },
   {
@@ -3242,11 +3323,11 @@
    }
   },
   {
-   "listingId": "076b82e8-2f13-8ede-593e-256d56b25021",
+   "listingId": "5572c2d4-52c6-7201-9260-c5e660b8eb08",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 14684
+    "fair": 2294
    }
   },
   {
@@ -3266,22 +3347,23 @@
    }
   },
   {
-   "listingId": "2b7ad4c1-e57b-88ce-2957-aa5d7cc25a37",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 101400,
-    "injected": 800,
-    "form": "b",
-    "ageMonths": 156
-   }
-  },
-  {
    "listingId": "44f0891d-be56-1188-39ad-528507245cda",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
     "fair": 14578
+   }
+  },
+  {
+   "listingId": "24347d82-f49e-b68f-f137-71fdbbf0d36e",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 36700,
+    "injected": 667300,
+    "form": "a",
+    "ageMonths": 26,
+    "perYearKm": 307985
    }
   },
   {
@@ -3327,18 +3409,19 @@
    }
   },
   {
-   "listingId": "c98b976d-2a70-7ebf-f928-27d285eb90eb",
+   "listingId": "5d7f25f1-d264-cfaa-acbf-4e650bbee834",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 1535
+    "fair": 10170
    }
   },
   {
    "listingId": "aaf677c1-4f4d-54e8-005d-880f7519043b",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 41950
    }
   },
@@ -3400,6 +3483,14 @@
    }
   },
   {
+   "listingId": "d1cad62e-c001-862b-6917-b1d0e0efd572",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 4745
+   }
+  },
+  {
    "listingId": "311a4d5e-39e2-799f-95ed-909cb2963ee3",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
@@ -3445,7 +3536,7 @@
    "listingId": "73ed8c36-2c92-3367-538d-241cfb4b30b0",
    "anomaly": "SUSPECT_ZERO_MILEAGE",
    "expected": {
-    "fair": 84900,
+    "fair": 166000,
     "offerType": "U"
    }
   },
@@ -3454,7 +3545,7 @@
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 10515
+    "fair": 5123
    }
   },
   {
@@ -3484,19 +3575,19 @@
    }
   },
   {
-   "listingId": "1b34c69f-5271-20c7-e50b-21375203b1b0",
+   "listingId": "9c61d4b7-2250-122f-1761-a5d32a9e8b70",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.193
+    "latent": 0.13
    }
   },
   {
-   "listingId": "59850e39-93bf-615a-e6b3-7fe061ffa3df",
+   "listingId": "1b34c69f-5271-20c7-e50b-21375203b1b0",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 12225
+    "fair": 7645
    }
   },
   {
@@ -3505,6 +3596,14 @@
    "expected": {
     "fair": "2.0 dCi Business",
     "injected": "*** *** ***"
+   }
+  },
+  {
+   "listingId": "d16447b0-15f2-fc16-72fa-c04975e7efda",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
    }
   },
   {
@@ -3550,7 +3649,7 @@
    "listingId": "7a51561b-80aa-a3dd-4a4b-c71b1db7d47b",
    "anomaly": "SUSPECT_ZERO_MILEAGE",
    "expected": {
-    "fair": 72100,
+    "fair": 138600,
     "offerType": "U"
    }
   },
@@ -3567,8 +3666,9 @@
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
-    "fair": "90",
-    "injected": "06"
+    "fair": "26",
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -3579,7 +3679,8 @@
     "fair": 98200,
     "injected": 1309400,
     "form": "a",
-    "ageMonths": 60
+    "ageMonths": 60,
+    "perYearKm": 261880
    }
   },
   {
@@ -3596,7 +3697,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "46",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -3604,8 +3706,8 @@
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (b) puissance contredite",
    "expected": {
-    "fair": "1.1 HEV Exec",
-    "injected": "1.1 HEV Exec 150 ch",
+    "fair": "0.7 GDI Elegance",
+    "injected": "0.7 GDI Elegance 115 ch",
     "form": "b"
    }
   },
@@ -3630,9 +3732,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 273,
-    "fair": 16990,
-    "factor": 0.016
+    "injected": 1984,
+    "fair": 15990,
+    "factor": 0.124,
+    "cellMedian": 17470,
+    "cellN": 34
    }
   },
   {
@@ -3698,17 +3802,6 @@
    }
   },
   {
-   "listingId": "4905a936-9e4b-3361-2316-a1787234ee5e",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 62500,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 85
-   }
-  },
-  {
    "listingId": "1ce7d7f5-689f-b08c-47b4-89c90b2f3953",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -3717,11 +3810,11 @@
    }
   },
   {
-   "listingId": "afd19629-fb00-c0ab-6c83-4d80b611538d",
+   "listingId": "44d95b03-4376-9eef-72bd-d64a87dc2696",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
-    "latent": 0.095
+    "latent": 0.237
    }
   },
   {
@@ -3746,18 +3839,7 @@
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 12550
-   }
-  },
-  {
-   "listingId": "a1b28736-63a3-ac92-57a5-b160deb8e8ff",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 50700,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 87
+    "fair": 5585
    }
   },
   {
@@ -3782,9 +3864,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 70400,
-    "injected": 1608500,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 63
+    "ageMonths": 63,
+    "perYearKm": 276190
    }
   },
   {
@@ -3823,12 +3906,14 @@
   },
   {
    "listingId": "2c52383a-4deb-980c-2ecf-d139412d51db",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 447,
+    "injected": 417969,
     "fair": 11881,
-    "factor": 0.038
+    "factor": 35.18,
+    "cellMedian": 9900,
+    "cellN": 25
    }
   },
   {
@@ -3836,8 +3921,8 @@
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (b) puissance contredite",
    "expected": {
-    "fair": "0.9 dCi Elegance",
-    "injected": "0.9 dCi Elegance 145 ch",
+    "fair": "1.2 TDI Basis",
+    "injected": "1.2 TDI Basis 155 ch",
     "form": "b"
    }
   },
@@ -3847,7 +3932,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "30",
-    "injected": "05"
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
@@ -3856,7 +3942,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "10",
-    "injected": "07"
+    "injected": "07",
+    "flagExpected": true
    }
   },
   {
@@ -3894,10 +3981,10 @@
    }
   },
   {
-   "listingId": "6c37e47c-26db-213f-ed3d-5dd4eb017dd9",
+   "listingId": "756fd2d9-8d56-755f-bcc8-1e74964e7d19",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
-    "fair": 18499
+    "fair": 19129
    }
   },
   {
@@ -3909,10 +3996,10 @@
    }
   },
   {
-   "listingId": "499829d3-9315-eaf2-63cc-c536a178119c",
+   "listingId": "49f80c11-a851-a375-8abc-df24a9f00c23",
    "anomaly": "VERSION_FULLY_STRIPPED",
    "expected": {
-    "fair": "1.5 GDI Business",
+    "fair": "1.3 Hybrid Sport",
     "injected": "--- PROMO ---"
    }
   },
@@ -3924,11 +4011,11 @@
    }
   },
   {
-   "listingId": "49f80c11-a851-a375-8abc-df24a9f00c23",
+   "listingId": "84bcdf7d-69f2-26d3-10dc-b297c37921ba",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 40783
+    "fair": 32567
    }
   },
   {
@@ -3966,7 +4053,7 @@
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 8063
+    "fair": 14000
    }
   },
   {
@@ -4048,7 +4135,8 @@
     "fair": 24200,
     "injected": 865700,
     "form": "a",
-    "ageMonths": 29
+    "ageMonths": 29,
+    "perYearKm": 358221
    }
   },
   {
@@ -4077,12 +4165,12 @@
    }
   },
   {
-   "listingId": "c8da9269-468a-a5d3-c470-16e5d9f3935b",
+   "listingId": "d2809408-319b-0504-d906-88fb0184cf7b",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (b) puissance contredite",
    "expected": {
-    "fair": "1.6 VTi Allure",
-    "injected": "1.6 VTi Allure 240 ch",
+    "fair": "1.2 VTi Highline",
+    "injected": "1.2 VTi Highline 205 ch",
     "form": "b"
    }
   },
@@ -4106,8 +4194,8 @@
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
    "expected": {
-    "fair": "5.0 T Style",
-    "injected": "5.0 T Style Serie 3",
+    "fair": "2.7 VTi Elegance",
+    "injected": "2.7 VTi Elegance Serie 3",
     "form": "a"
    }
   },
@@ -4116,9 +4204,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 2882159,
+    "injected": 1032811,
     "fair": 27900,
-    "factor": 103.303
+    "factor": 37.018,
+    "cellMedian": 120500,
+    "cellN": 15
    }
   },
   {
@@ -4169,14 +4259,6 @@
    }
   },
   {
-   "listingId": "8910c20a-ddb8-5a70-e240-dc7add8122b5",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "B",
-    "isPluginHybrid": true
-   }
-  },
-  {
    "listingId": "061ee7ed-c300-b9aa-960e-f7a791f4c166",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -4221,7 +4303,7 @@
    "anomaly": "UNIT_UNSUPPORTED",
    "expected": {
     "unit": "mi",
-    "value": 54500
+    "value": 130900
    }
   },
   {
@@ -4276,9 +4358,18 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 70500,
-    "injected": 1579300,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 66
+    "ageMonths": 66,
+    "perYearKm": 263636
+   }
+  },
+  {
+   "listingId": "35386bab-0744-d2a7-9e63-888b8be8c650",
+   "anomaly": "FIRST_REG_OUT_OF_RANGE",
+   "expected": {
+    "fair": "2021-05",
+    "injected": "2028-04"
    }
   },
   {
@@ -4298,13 +4389,15 @@
    }
   },
   {
-   "listingId": "dba10561-4a68-2632-60d9-679a35a45177",
+   "listingId": "939ae6bc-b37c-3244-7987-d5f0bc2b1ae8",
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 816632,
-    "fair": 3990,
-    "factor": 204.67
+    "injected": 267176,
+    "fair": 35950,
+    "factor": 7.432,
+    "cellMedian": 16900,
+    "cellN": 4916
    }
   },
   {
@@ -4339,15 +4432,16 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "79",
-    "injected": "05"
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
-   "listingId": "8cebf438-8b6d-6d81-9219-bbd7a1f6d983",
+   "listingId": "827dfa9e-467c-a2bb-9569-1012695ad427",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 48432
+    "fair": 26428
    }
   },
   {
@@ -4359,7 +4453,7 @@
    }
   },
   {
-   "listingId": "827dfa9e-467c-a2bb-9569-1012695ad427",
+   "listingId": "6e540778-0613-d2bf-e9f6-55c05ecba0b1",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 75205
@@ -4398,14 +4492,11 @@
    }
   },
   {
-   "listingId": "731b49b7-a660-8851-339b-565abc7fc0ab",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
+   "listingId": "5ee8b3b8-3c62-57b1-1b0d-e085e9a0ece0",
+   "anomaly": "MILEAGE_OUT_OF_RANGE",
    "expected": {
-    "fair": 89300,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 99
+    "fair": 223200,
+    "injected": 2681700
    }
   },
   {
@@ -4425,11 +4516,11 @@
    }
   },
   {
-   "listingId": "71380783-a7c4-bc90-c430-3ba27c88baa1",
+   "listingId": "da0feeb8-416b-8c18-63b0-04622c33c124",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
-    "fair": 26816
+    "fair": 61996
    }
   },
   {
@@ -4497,12 +4588,13 @@
    }
   },
   {
-   "listingId": "da0feeb8-416b-8c18-63b0-04622c33c124",
+   "listingId": "b3d363e5-609c-142f-5fb2-73a0915f13e2",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
-    "fair": "61",
-    "injected": "00"
+    "fair": "37",
+    "injected": "07",
+    "flagExpected": true
    }
   },
   {
@@ -4534,14 +4626,6 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.084
-   }
-  },
-  {
-   "listingId": "d2b73b60-3456-e7f0-3a25-315055e38db4",
-   "anomaly": "OTHER",
-   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
-   "expected": {
-    "latent": 0.087
    }
   },
   {
@@ -4628,14 +4712,6 @@
    }
   },
   {
-   "listingId": "1fa0719f-45f1-1139-38d7-46bee13de212",
-   "anomaly": "FIRST_REG_OUT_OF_RANGE",
-   "expected": {
-    "fair": "2024-05",
-    "injected": "2028-04"
-   }
-  },
-  {
    "listingId": "85aea5da-4b97-d81d-b4c2-b3b4f48fd1c7",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
@@ -4666,7 +4742,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "19",
-    "injected": "06"
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -4678,20 +4755,6 @@
     "dealerBucket": "9108162a",
     "price": 56900,
     "peerPrice": 54900
-   }
-  },
-  {
-   "listingId": "352afe8c-4a25-7143-113b-4a87b016b54f",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "021b4dea-078e-3d59-bcc9-c157a820aa3b",
-   "expected": {
-    "price": 49990,
-    "peerPrice": 51990,
-    "mileage": 64400,
-    "peerMileage": 64300,
-    "dealerBucket": "708d9e3c",
-    "peerDealerBucket": "9108162a"
    }
   },
   {
@@ -4714,7 +4777,7 @@
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "6510f935-2fbc-3bcc-dc7f-9952a83108b0",
    "expected": {
-    "price": 8950,
+    "price": 9950,
     "peerPrice": 9950,
     "mileage": 197600,
     "peerMileage": 197400,
@@ -4765,7 +4828,7 @@
    "peerListingId": "3ab6c1e3-f26b-6214-1deb-3b1ca98ce3fe",
    "expected": {
     "dealerBucket": "ed16647d",
-    "price": 16950,
+    "price": 17950,
     "peerPrice": 16950
    }
   },
@@ -4798,20 +4861,6 @@
    }
   },
   {
-   "listingId": "6b5735a9-84b4-ce4a-4d5f-cbf153f8c469",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "48c6117a-5b45-7ce4-10c9-c0d5378ec293",
-   "expected": {
-    "price": 84950,
-    "peerPrice": 81950,
-    "mileage": 72500,
-    "peerMileage": 72300,
-    "dealerBucket": "7ceaec3d",
-    "peerDealerBucket": "e35162ce"
-   }
-  },
-  {
    "listingId": "bd10d1db-7285-78db-689a-7aa9112cbd9e",
    "anomaly": "DUPLICATE_VALUE_CONFLICT",
    "detail": "republication intra-vendeur, prix different",
@@ -4824,27 +4873,16 @@
   },
   {
    "listingId": "d9ac2ca4-4aa5-2c2d-26e0-2d4b1f731d21",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "295168c0-7151-5b11-3ebd-ca0d104e682a",
-   "expected": {
-    "dealerBucket": "763be146",
-    "price": 56950,
-    "peerPrice": 54950
-   }
-  },
-  {
-   "listingId": "4a2be976-5bd4-4fa2-8c20-64e017c2f94a",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "33c5e488-34de-e4cb-a2db-febbdb0042be",
+   "peerListingId": "295168c0-7151-5b11-3ebd-ca0d104e682a",
    "expected": {
-    "price": 16891,
-    "peerPrice": 15431,
-    "mileage": 64400,
-    "peerMileage": 64200,
-    "dealerBucket": "90ee6d32",
-    "peerDealerBucket": "aeb31df8"
+    "price": 57950,
+    "peerPrice": 54950,
+    "mileage": 35400,
+    "peerMileage": 35300,
+    "dealerBucket": "247a162f",
+    "peerDealerBucket": "763be146"
    }
   },
   {
@@ -4853,26 +4891,12 @@
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "e73cb406-f015-01b7-2cea-dab4c3bc1453",
    "expected": {
-    "price": 8950,
-    "peerPrice": 8950,
+    "price": 7950,
+    "peerPrice": 7950,
     "mileage": 118400,
     "peerMileage": 118300,
     "dealerBucket": "18be7966",
     "peerDealerBucket": "aeb31df8"
-   }
-  },
-  {
-   "listingId": "5a43d93c-3e68-9802-afde-58aa9d93de15",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "cd905c4f-1ea2-0fa0-db95-c17e494d89e9",
-   "expected": {
-    "price": 28957,
-    "peerPrice": 27260,
-    "mileage": 62100,
-    "peerMileage": 61800,
-    "dealerBucket": "ca0db892",
-    "peerDealerBucket": "1c181589"
    }
   },
   {
@@ -4881,26 +4905,12 @@
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "15710059-3881-b775-2235-5e67f47cc79f",
    "expected": {
-    "price": 17000,
+    "price": 16000,
     "peerPrice": 17000,
     "mileage": 115100,
     "peerMileage": 114700,
     "dealerBucket": "b4ee6cae",
     "peerDealerBucket": "1c181589"
-   }
-  },
-  {
-   "listingId": "7c6017d4-ce8f-0f05-4b50-4c306dfdce8f",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "2bd549d1-860d-be39-dc6f-e7e564256825",
-   "expected": {
-    "price": 8076,
-    "peerPrice": 8461,
-    "mileage": 247200,
-    "peerMileage": 246800,
-    "dealerBucket": "18be7966",
-    "peerDealerBucket": "8b07855f"
    }
   },
   {
@@ -4910,7 +4920,7 @@
    "peerListingId": "8b6417c7-3bf9-00ec-971c-826f64e4db29",
    "expected": {
     "price": 11500,
-    "peerPrice": 11500,
+    "peerPrice": 10500,
     "mileage": 51400,
     "peerMileage": 51100,
     "dealerBucket": "95887af7",
@@ -4923,7 +4933,7 @@
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "4c1565cf-a7bf-1e81-1629-ab99be68a6e7",
    "expected": {
-    "price": 15990,
+    "price": 14990,
     "peerPrice": 16990,
     "mileage": 65400,
     "peerMileage": 65400,
@@ -4932,40 +4942,17 @@
    }
   },
   {
-   "listingId": "da3d6d8c-06a1-8215-61f2-eaa7d6e6809a",
-   "anomaly": "DUPLICATE_LISTING_ID",
-   "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "da3d6d8c-06a1-8215-61f2-eaa7d6e6809a",
-   "expected": {
-    "occurrences": 2
-   }
-  },
-  {
-   "listingId": "898d7fcf-e1ab-e84f-a158-1cc57e4f2c02",
+   "listingId": "d8dcb57c-c7ce-687b-702c-177593a91538",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "1c66992c-bb5b-dc23-a5e5-c7aa74886832",
+   "peerListingId": "b101f5d6-80c4-05a4-63d0-dfc4c9f57c74",
    "expected": {
-    "price": 10000,
-    "peerPrice": 9000,
-    "mileage": 188900,
-    "peerMileage": 188700,
-    "dealerBucket": "ab6d88a3",
-    "peerDealerBucket": "22d9f2ee"
-   }
-  },
-  {
-   "listingId": "ec049d62-79aa-4124-8f4d-06fa54b4b1f7",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "4f877b52-6505-787a-25ff-942f46f49cdb",
-   "expected": {
-    "price": 35990,
-    "peerPrice": 36990,
-    "mileage": 37600,
-    "peerMileage": 37500,
-    "dealerBucket": "763be146",
-    "peerDealerBucket": "90ee6d32"
+    "price": 15950,
+    "peerPrice": 13950,
+    "mileage": 112600,
+    "peerMileage": 112200,
+    "dealerBucket": "245a4666",
+    "peerDealerBucket": "e84a2d54"
    }
   },
   {
@@ -4975,7 +4962,7 @@
    "peerListingId": "a05b124e-d57c-1a34-04c9-29138508466d",
    "expected": {
     "price": 9900,
-    "peerPrice": 9900,
+    "peerPrice": 6900,
     "mileage": 150000,
     "peerMileage": 149900,
     "dealerBucket": "7d64115a",
@@ -5017,25 +5004,11 @@
    "peerListingId": "6aacf2c8-1b3e-5e2c-412c-01778c395c9f",
    "expected": {
     "price": 12950,
-    "peerPrice": 13950,
+    "peerPrice": 11950,
     "mileage": 174600,
     "peerMileage": 174500,
     "dealerBucket": "6b030d45",
     "peerDealerBucket": "7ceaec3d"
-   }
-  },
-  {
-   "listingId": "78349a70-aa16-08da-6d7f-282150c5adad",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "0c7dc248-714e-68c6-7610-6403e889c46c",
-   "expected": {
-    "price": 1990,
-    "peerPrice": 1990,
-    "mileage": 295200,
-    "peerMileage": 294900,
-    "dealerBucket": "83755fa9",
-    "peerDealerBucket": "6c918300"
    }
   },
   {
@@ -5064,28 +5037,14 @@
    }
   },
   {
-   "listingId": "59f95abe-e0ba-3456-7bdb-f08ab2fd1a4d",
+   "listingId": "b02c76c7-f45e-7bc5-f6ec-dad6926449f6",
    "anomaly": "DUPLICATE_VALUE_CONFLICT",
    "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "44a58668-fc68-2e4c-2fc2-8fe73bc4f077",
+   "peerListingId": "db73a00f-ce88-09cb-23f4-fc569127fb87",
    "expected": {
     "dealerBucket": "a1e5d5dd",
-    "price": 13990,
-    "peerPrice": 13990
-   }
-  },
-  {
-   "listingId": "22ac5f18-8072-2bf6-6d64-04facaed1816",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "4b14eb4f-3a79-43eb-a9a1-570d7af71dd9",
-   "expected": {
-    "price": 37990,
-    "peerPrice": 41990,
-    "mileage": 75400,
-    "peerMileage": 75300,
-    "dealerBucket": "09429b91",
-    "peerDealerBucket": "18be7966"
+    "price": 42950,
+    "peerPrice": 41950
    }
   },
   {
@@ -5103,24 +5062,13 @@
    }
   },
   {
-   "listingId": "64c8091d-acba-3d8b-92fd-e5c484747869",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "125510ec-eadc-490c-da26-050a0ccfdb63",
-   "expected": {
-    "dealerBucket": "763be146",
-    "price": 20950,
-    "peerPrice": 19950
-   }
-  },
-  {
    "listingId": "36d7ac4f-ef83-075e-52d6-ffc7d7ce1b38",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "1ddf4e98-0afb-89e1-9cee-97875a256c90",
    "expected": {
-    "price": 7990,
-    "peerPrice": 8990,
+    "price": 6990,
+    "peerPrice": 7990,
     "mileage": 32600,
     "peerMileage": 32300,
     "dealerBucket": "e529c887",
@@ -5128,87 +5076,45 @@
    }
   },
   {
-   "listingId": "52e0224e-5a57-d807-bd2f-1409aa50b430",
+   "listingId": "b1937276-8a92-eb3f-97c8-b314719595f0",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "d6238c4d-56cc-dc02-2904-1c80327a9a9c",
+   "peerListingId": "96bcb49d-0d8e-3aab-6ef3-bef0c77df963",
    "expected": {
-    "price": 13990,
-    "peerPrice": 13990,
-    "mileage": 100700,
-    "peerMileage": 100500,
-    "dealerBucket": "9108162a",
-    "peerDealerBucket": "ed16647d"
-   }
-  },
-  {
-   "listingId": "c1b297da-52d9-6077-5580-2999a0811cea",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "19b24e03-9657-9be7-b0f3-1e043ef52c6e",
-   "expected": {
-    "price": 6950,
-    "peerPrice": 6950,
-    "mileage": 165600,
-    "peerMileage": 165500,
-    "dealerBucket": "247a162f",
-    "peerDealerBucket": "ed16647d"
-   }
-  },
-  {
-   "listingId": "eb150804-e5e5-e705-1dda-4d3a94f5b0ee",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "fcf2e48a-e790-6558-f3ee-51c28b8d5632",
-   "expected": {
-    "price": 9500,
-    "peerPrice": 8500,
-    "mileage": 222100,
-    "peerMileage": 222000,
+    "price": 3500,
+    "peerPrice": 3500,
+    "mileage": 301600,
+    "peerMileage": 301300,
     "dealerBucket": "8487f935",
     "peerDealerBucket": "e6465740"
    }
   },
   {
-   "listingId": "8567d9b2-7ebd-23dd-5fb4-e79a69e49e77",
+   "listingId": "fd8dc1b0-eaf4-f5d7-9443-0889cea7a9cd",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "bfad54c2-43ac-4063-8cb3-31d9369123d2",
+   "peerListingId": "7df4b6f9-e815-dbb8-f12b-f729e3b80446",
    "expected": {
-    "price": 16604,
-    "peerPrice": 17106,
-    "mileage": 233200,
-    "peerMileage": 232800,
+    "price": 15412,
+    "peerPrice": 14715,
+    "mileage": 86900,
+    "peerMileage": 86700,
     "dealerBucket": "b4f8040d",
     "peerDealerBucket": "e6465740"
    }
   },
   {
-   "listingId": "282fe98c-2a05-f3b0-1c76-88921d836e47",
+   "listingId": "7c6017d4-ce8f-0f05-4b50-4c306dfdce8f",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "29e1f090-15fa-5fac-3bc4-b70909d9cf6b",
    "expected": {
-    "price": 32950,
-    "peerPrice": 32950,
-    "mileage": 115200,
-    "peerMileage": 115000,
+    "price": 19950,
+    "peerPrice": 19950,
+    "mileage": 109300,
+    "peerMileage": 108900,
     "dealerBucket": "b721023f",
     "peerDealerBucket": "708d9e3c"
-   }
-  },
-  {
-   "listingId": "4eaa5ae8-800a-629b-42cb-de044cf548b0",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "4764449d-f2bd-5552-64e1-c0257dcf0ac8",
-   "expected": {
-    "price": 34769,
-    "peerPrice": 33033,
-    "mileage": 61900,
-    "peerMileage": 61700,
-    "dealerBucket": "b4f8040d",
-    "peerDealerBucket": "5e51d27c"
    }
   },
   {
@@ -5223,32 +5129,12 @@
    }
   },
   {
-   "listingId": "c78ba6f9-382b-a704-72de-3d5ff02eb3db",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "0656e9e6-8071-66c5-34aa-4a63e4add96c",
-   "expected": {
-    "dealerBucket": "763be146",
-    "price": 6990,
-    "peerPrice": 6990
-   }
-  },
-  {
-   "listingId": "b66036d2-28c1-fa44-7143-3f7f68cc4f13",
-   "anomaly": "DUPLICATE_LISTING_ID",
-   "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "b66036d2-28c1-fa44-7143-3f7f68cc4f13",
-   "expected": {
-    "occurrences": 2
-   }
-  },
-  {
    "listingId": "1278b55e-9341-97af-0fe4-39319bed448d",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "decb904e-636f-b78b-e7b5-e451c2bc106c",
    "expected": {
-    "price": 34950,
+    "price": 31950,
     "peerPrice": 36950,
     "mileage": 43300,
     "peerMileage": 43100,
@@ -5263,7 +5149,7 @@
    "peerListingId": "1278b55e-9341-97af-0fe4-39319bed448d",
    "expected": {
     "price": 31950,
-    "peerPrice": 34950,
+    "peerPrice": 31950,
     "mileage": 43700,
     "peerMileage": 43300,
     "dealerBucket": "e0fe31f7",
@@ -5277,7 +5163,7 @@
    "peerListingId": "952dd0e8-ab0a-82ff-57de-07ffe20f43ed",
    "expected": {
     "price": 17990,
-    "peerPrice": 273,
+    "peerPrice": 1984,
     "mileage": 181900,
     "peerMileage": 181800,
     "dealerBucket": "b721023f",
@@ -5285,21 +5171,7 @@
    }
   },
   {
-   "listingId": "520e9312-180c-85f0-47b6-0344f9338d31",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "4175bedb-1f38-ba6e-bcd6-39c1e53b221f",
-   "expected": {
-    "price": 7990,
-    "peerPrice": 7990,
-    "mileage": 63300,
-    "peerMileage": 63100,
-    "dealerBucket": "e84a2d54",
-    "peerDealerBucket": "3b8319e9"
-   }
-  },
-  {
-   "listingId": "12930f90-c82d-8914-58c3-7414a7aa6327",
+   "listingId": "78349a70-aa16-08da-6d7f-282150c5adad",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "8b7919c7-8dc4-f855-1278-513796802405",
@@ -5347,37 +5219,12 @@
    }
   },
   {
-   "listingId": "d2809408-319b-0504-d906-88fb0184cf7b",
+   "listingId": "83226548-037a-8ecd-f71d-1d5279c981e2",
    "anomaly": "DUPLICATE_LISTING_ID",
    "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "d2809408-319b-0504-d906-88fb0184cf7b",
+   "peerListingId": "83226548-037a-8ecd-f71d-1d5279c981e2",
    "expected": {
     "occurrences": 2
-   }
-  },
-  {
-   "listingId": "39794363-df8d-c0f3-1a7e-4bbd417ad57a",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "05e62fcd-45cb-8120-46a9-b9337b253f5e",
-   "expected": {
-    "price": 88500,
-    "peerPrice": 84500,
-    "mileage": 81300,
-    "peerMileage": 81000,
-    "dealerBucket": "8bc7cbb1",
-    "peerDealerBucket": "83755fa9"
-   }
-  },
-  {
-   "listingId": "35386bab-0744-d2a7-9e63-888b8be8c650",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "71658c91-1a45-8d6f-233a-49d0cacf768d",
-   "expected": {
-    "dealerBucket": "b7476bcd",
-    "price": 10044,
-    "peerPrice": 10408
    }
   },
   {
@@ -5387,20 +5234,6 @@
    "peerListingId": "1e9ac677-8d06-b6da-2369-c1d84e050213",
    "expected": {
     "occurrences": 2
-   }
-  },
-  {
-   "listingId": "d6777bcb-c275-f111-81e1-d3455d4854c2",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "bfa147b0-8ec3-6eca-1380-e0f8a1ba6dfd",
-   "expected": {
-    "price": 43000,
-    "peerPrice": 44000,
-    "mileage": 73300,
-    "peerMileage": 73300,
-    "dealerBucket": "7f0e1920",
-    "peerDealerBucket": "09429b91"
    }
   },
   {
@@ -5418,11 +5251,11 @@
    }
   }
  ],
- "note": "generateur kycar-dataset-gen 1.0.0, graine 1264141121, profil dev. specification DATASET-SPEC.md sha256 1fe1a07fa7577538, hachage combine des 15 tables et des 2 schemas adb5a528a096d31d. identifiant de conception (profiles.json) be-fixture-dev-20260921-4b594341. 612 entrees de verite terrain sur 5000 lignes. 15 filtres non alimentes sur 53 retenus de classe enumeree ou bornee (atype financeratefrom financerateto leasingratefrom leasingrateto lsdufrom lsduto lsyeinmifrom lstagr powertype ensticker zipr ocs_listing sort desc). Parametres complets, mesures et correspondances : generation.json depose a cote.",
+ "note": "generateur kycar-dataset-gen 1.0.0, graine 1264141121, profil dev. specification DATASET-SPEC.md sha256 001d15659eab6567, hachage combine des 15 tables et des 2 schemas 280828cd2e015ad2. identifiant de conception (profiles.json) be-fixture-dev-20260921-4b594341. 591 entrees de verite terrain sur 5000 lignes. 15 filtres non alimentes sur 53 retenus de classe enumeree ou bornee (atype financeratefrom financerateto leasingratefrom leasingrateto lsdufrom lsduto lsyeinmifrom lstagr powertype ensticker zipr ocs_listing sort desc). Parametres complets, mesures et correspondances : generation.json depose a cote.",
  "delta": {
-  "enteredCount": 522,
-  "exitedCount": 522,
-  "priceRevisedCount": 749,
-  "carriedOverCount": 4478
+  "enteredCount": 530,
+  "exitedCount": 530,
+  "priceRevisedCount": 748,
+  "carriedOverCount": 4470
  }
 }

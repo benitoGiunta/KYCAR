@@ -11,10 +11,10 @@
  },
  "file": "listings.ndjson.gz",
  "listingCount": 20000,
- "sha256": "a32412b671ec393b2d9afd145f61fd18f6f43adfd6cc187733f5378741ccfa9e",
- "sha256Gz": "74c31c9d9a9cf196da191ff8505a15c0dbce099609db3d162b6ad29700569e4a",
- "uncompressedBytes": 29689712,
- "compressedBytes": 2700910,
+ "sha256": "33d88a12ecb7ba7a6e4d1698b1e5b222ebadf808aa4056f7b4d1a79d12862245",
+ "sha256Gz": "96b03c4d284455f9241b5887344cb025a8a21108cf6096af7bb43e829b4f6ee6",
+ "uncompressedBytes": 29718361,
+ "compressedBytes": 2706393,
  "previousSnapshotId": null,
  "groundTruth": [
   {
@@ -70,9 +70,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 6937,
+    "injected": 4145,
     "fair": 14900,
-    "factor": 0.466,
+    "factor": 0.278,
+    "robustSigma": 0.428,
+    "zTarget": -3.4,
     "cell": 58
    }
   },
@@ -147,7 +149,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "35",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -171,10 +174,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 12245,
+    "injected": 14062,
     "fair": 27500,
-    "factor": 0.445,
-    "cell": 449
+    "factor": 0.511,
+    "robustSigma": 0.269,
+    "zTarget": -3.4,
+    "cell": 447
    }
   },
   {
@@ -277,13 +282,15 @@
    }
   },
   {
-   "listingId": "f190eaaf-ee36-84be-d6ac-5ea823603892",
-   "anomaly": "OUTLIER_M1_LOW",
+   "listingId": "a572454d-d4cb-a760-8af1-5e22a47104e8",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
    "expected": {
-    "method": "M1",
-    "injected": 346,
-    "fair": 7990,
-    "factor": 0.043
+    "fair": 14400,
+    "injected": 966100,
+    "form": "a",
+    "ageMonths": 43,
+    "perYearKm": 269609
    }
   },
   {
@@ -301,9 +308,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 5469,
+    "injected": 4566,
     "fair": 15928,
-    "factor": 0.343,
+    "factor": 0.287,
+    "robustSigma": 0.296,
+    "zTarget": -3.4,
     "cell": 602
    }
   },
@@ -325,12 +334,14 @@
   },
   {
    "listingId": "6dfab1c7-bfa3-7aba-1166-b6250169d3dc",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 371,
+    "injected": 370572,
     "fair": 3262,
-    "factor": 0.114
+    "factor": 113.603,
+    "cellMedian": 9900,
+    "cellN": 599
    }
   },
   {
@@ -508,9 +519,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 65140,
+    "injected": 62557,
     "fair": 24464,
-    "factor": 2.663,
+    "factor": 2.557,
+    "robustSigma": 0.32,
+    "zTarget": 3.4,
     "cell": 43
    }
   },
@@ -593,18 +606,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 46992,
+    "injected": 72163,
     "fair": 18900,
-    "factor": 2.486,
-    "cell": 80
-   }
-  },
-  {
-   "listingId": "eea8ebe4-3e09-ee78-d5a5-139355b05b5f",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "B",
-    "isPluginHybrid": true
+    "factor": 3.818,
+    "robustSigma": 0.327,
+    "zTarget": 3.4,
+    "cell": 81
    }
   },
   {
@@ -672,6 +679,18 @@
    }
   },
   {
+   "listingId": "9e67b5c3-6560-42f1-d315-55f1e7f098dd",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 35200,
+    "injected": 1136000,
+    "form": "a",
+    "ageMonths": 49,
+    "perYearKm": 278204
+   }
+  },
+  {
    "listingId": "f77e638b-d669-ff1f-9ebd-52aca0178cf6",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
@@ -709,10 +728,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 2996,
+    "injected": 4416,
     "fair": 9950,
-    "factor": 0.301,
-    "cell": 390
+    "factor": 0.444,
+    "robustSigma": 0.299,
+    "zTarget": -3.4,
+    "cell": 389
    }
   },
   {
@@ -729,7 +750,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "21",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -797,7 +819,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "37",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -871,7 +894,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "NL"
+    "injected": "NL",
+    "flagExpected": false
    }
   },
   {
@@ -898,13 +922,27 @@
    }
   },
   {
+   "listingId": "921defdd-04ea-ce13-725d-83a9938c6244",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 57200,
+    "injected": 1371400,
+    "form": "a",
+    "ageMonths": 58,
+    "perYearKm": 283738
+   }
+  },
+  {
    "listingId": "a28944eb-3e63-6d49-c2db-2e4469ee9075",
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1349531,
+    "injected": 335391,
     "fair": 64126,
-    "factor": 21.045
+    "factor": 5.23,
+    "cellMedian": 53950,
+    "cellN": 19
    }
   },
   {
@@ -1006,9 +1044,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1169436,
+    "injected": 317698,
     "fair": 7950,
-    "factor": 147.099
+    "factor": 39.962,
+    "cellMedian": 10990,
+    "cellN": 63
    }
   },
   {
@@ -1078,7 +1118,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "30",
-    "injected": "06"
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -1087,7 +1128,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "28",
-    "injected": "08"
+    "injected": "08",
+    "flagExpected": true
    }
   },
   {
@@ -1111,10 +1153,24 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 46573,
+    "injected": 42737,
     "fair": 17990,
-    "factor": 2.589,
-    "cell": 390
+    "factor": 2.376,
+    "robustSigma": 0.299,
+    "zTarget": 3.4,
+    "cell": 389
+   }
+  },
+  {
+   "listingId": "ed8f4eb8-830b-cf67-7b80-c20256a87065",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 31800,
+    "injected": 1439800,
+    "form": "a",
+    "ageMonths": 50,
+    "perYearKm": 345552
    }
   },
   {
@@ -1129,9 +1185,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 21022,
+    "injected": 39231,
     "fair": 10500,
-    "factor": 2.002,
+    "factor": 3.736,
+    "robustSigma": 0.296,
+    "zTarget": 3.4,
     "cell": 602
    }
   },
@@ -1194,6 +1252,18 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 2089
+   }
+  },
+  {
+   "listingId": "65a6bde2-7132-331e-6f9c-9bdaf657e9ab",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 17100,
+    "injected": 587500,
+    "form": "a",
+    "ageMonths": 26,
+    "perYearKm": 271154
    }
   },
   {
@@ -1278,9 +1348,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 68600,
-    "injected": 1622700,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 67
+    "ageMonths": 67,
+    "perYearKm": 259701
    }
   },
   {
@@ -1305,7 +1376,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "41",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -1358,6 +1430,18 @@
    }
   },
   {
+   "listingId": "aadf295d-ec57-16c8-337b-307be8cf32c6",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 34900,
+    "injected": 594300,
+    "form": "a",
+    "ageMonths": 24,
+    "perYearKm": 297150
+   }
+  },
+  {
    "listingId": "8ac37a67-d053-228f-31cf-7ca515dab630",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -1386,9 +1470,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 10431,
+    "injected": 6640,
     "fair": 21500,
-    "factor": 0.485,
+    "factor": 0.309,
+    "robustSigma": 0.296,
+    "zTarget": -3.4,
     "cell": 602
    }
   },
@@ -1405,10 +1491,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 128035,
+    "injected": 101047,
     "fair": 46950,
-    "factor": 2.727,
-    "cell": 449
+    "factor": 2.152,
+    "robustSigma": 0.269,
+    "zTarget": 3.4,
+    "cell": 447
    }
   },
   {
@@ -1467,9 +1555,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1620124,
+    "injected": 358299,
     "fair": 27250,
-    "factor": 59.454
+    "factor": 13.149,
+    "cellMedian": 9945,
+    "cellN": 50
    }
   },
   {
@@ -1540,21 +1630,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 26950,
+    "injected": 69860,
     "fair": 12900,
-    "factor": 2.089,
+    "factor": 5.416,
+    "robustSigma": 0.354,
+    "zTarget": 3.4,
     "cell": 61
-   }
-  },
-  {
-   "listingId": "f4971551-30f9-3677-92fd-008c3404859f",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 129600,
-    "injected": 600,
-    "form": "b",
-    "ageMonths": 116
    }
   },
   {
@@ -1598,6 +1679,18 @@
   },
   {
    "listingId": "5b0ca1db-06b3-1f8d-0cd2-bbbe77635cfb",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 69000,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 67,
+    "perYearKm": 259701
+   }
+  },
+  {
+   "listingId": "5b0ca1db-06b3-1f8d-0cd2-bbbe77635cfb",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
@@ -1623,9 +1716,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 18327,
+    "injected": 30584,
     "fair": 8990,
-    "factor": 2.039,
+    "factor": 3.402,
+    "robustSigma": 0.296,
+    "zTarget": 3.4,
     "cell": 602
    }
   },
@@ -1658,7 +1753,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "77",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -1686,6 +1782,18 @@
    }
   },
   {
+   "listingId": "7851a2ac-a030-48d9-1d1e-c92540e9fa7a",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 83600,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 53,
+    "perYearKm": 328302
+   }
+  },
+  {
    "listingId": "9371913f-f9a7-aae7-cc05-22fa48b66936",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
@@ -1697,9 +1805,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 2850,
+    "injected": 3296,
     "fair": 8950,
-    "factor": 0.318,
+    "factor": 0.368,
+    "robustSigma": 0.296,
+    "zTarget": -3.4,
     "cell": 602
    }
   },
@@ -1734,10 +1844,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 2190,
+    "injected": 2474,
     "fair": 5108,
-    "factor": 0.429,
-    "cell": 449
+    "factor": 0.484,
+    "robustSigma": 0.269,
+    "zTarget": -3.4,
+    "cell": 447
    }
   },
   {
@@ -1745,9 +1857,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 30851,
+    "injected": 29198,
     "fair": 11000,
-    "factor": 2.805,
+    "factor": 2.654,
+    "robustSigma": 0.296,
+    "zTarget": 3.4,
     "cell": 602
    }
   },
@@ -1790,7 +1904,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "38",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -1920,14 +2035,6 @@
   },
   {
    "listingId": "371555a7-cb9d-25aa-e777-ec3de2d18602",
-   "anomaly": "SUSPECT_ZERO_MILEAGE",
-   "expected": {
-    "fair": 246600,
-    "offerType": "U"
-   }
-  },
-  {
-   "listingId": "371555a7-cb9d-25aa-e777-ec3de2d18602",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
@@ -1983,6 +2090,18 @@
    }
   },
   {
+   "listingId": "2fba722a-82d0-7a5b-e0af-e6f93fa0634a",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 48400,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 70,
+    "perYearKm": 248571
+   }
+  },
+  {
    "listingId": "5800c820-af69-d3c5-49cc-558fbb34e2c0",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
@@ -2028,9 +2147,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 24522,
+    "injected": 67624,
     "fair": 11900,
-    "factor": 2.061,
+    "factor": 5.683,
+    "robustSigma": 0.428,
+    "zTarget": 3.4,
     "cell": 58
    }
   },
@@ -2066,21 +2187,15 @@
    }
   },
   {
-   "listingId": "6df9ebc0-3315-ada2-498f-88cda24e89a7",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "B",
-    "isPluginHybrid": true
-   }
-  },
-  {
    "listingId": "32f35eb3-8d5c-748d-1839-d1cf3b7213f6",
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1080008,
+    "injected": 309642,
     "fair": 8990,
-    "factor": 120.134
+    "factor": 34.443,
+    "cellMedian": 20950,
+    "cellN": 111
    }
   },
   {
@@ -2089,17 +2204,6 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.114
-   }
-  },
-  {
-   "listingId": "3e897908-e6f3-a906-bd9e-1ce1f32796c4",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 94300,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 105
    }
   },
   {
@@ -2115,6 +2219,22 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.207
+   }
+  },
+  {
+   "listingId": "898d7fcf-e1ab-e84f-a158-1cc57e4f2c02",
+   "anomaly": "PRICE_MISSING_UNDECLARED",
+   "expected": {
+    "status": "MISSING",
+    "fair": 12630
+   }
+  },
+  {
+   "listingId": "898d7fcf-e1ab-e84f-a158-1cc57e4f2c02",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.077
    }
   },
   {
@@ -2191,14 +2311,6 @@
    }
   },
   {
-   "listingId": "fb696314-0c81-e65f-c457-c5bad33b50c8",
-   "anomaly": "OTHER",
-   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
-   "expected": {
-    "latent": 0.053
-   }
-  },
-  {
    "listingId": "df9e552a-01cf-2df3-92c0-c38d91490fae",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
@@ -2235,20 +2347,24 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 11892,
+    "injected": 7057,
     "fair": 24794,
-    "factor": 0.48,
+    "factor": 0.285,
+    "robustSigma": 0.352,
+    "zTarget": -3.4,
     "cell": 69
    }
   },
   {
    "listingId": "2b4aa9f2-09aa-739f-52a5-4f08a9ddef3b",
-   "anomaly": "OUTLIER_M2_LOW",
+   "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 600,
+    "injected": 9360,
     "fair": 1950,
-    "factor": 0.308,
+    "factor": 4.8,
+    "robustSigma": 0.337,
+    "zTarget": 3.4,
     "cell": 113
    }
   },
@@ -2258,7 +2374,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "87",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -2369,7 +2486,8 @@
    "listingId": "ec9d4158-4877-0422-10f6-152bfcbf4005",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 26900
    }
   },
@@ -2409,10 +2527,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 3997,
+    "injected": 2612,
     "fair": 8950,
-    "factor": 0.447,
-    "cell": 100
+    "factor": 0.292,
+    "robustSigma": 0.303,
+    "zTarget": -3.4,
+    "cell": 98
    }
   },
   {
@@ -2442,9 +2562,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 15809,
+    "injected": 11814,
     "fair": 5500,
-    "factor": 2.874,
+    "factor": 2.148,
+    "robustSigma": 0.243,
+    "zTarget": 3.4,
     "cell": 84
    }
   },
@@ -2462,7 +2584,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "FR"
+    "injected": "FR",
+    "flagExpected": false
    }
   },
   {
@@ -2575,7 +2698,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "78",
-    "injected": "05"
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
@@ -2643,7 +2767,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "37",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -2682,9 +2807,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 593672,
+    "injected": 265829,
     "fair": 5990,
-    "factor": 99.111
+    "factor": 44.379,
+    "cellMedian": 15500,
+    "cellN": 98
    }
   },
   {
@@ -2712,28 +2839,6 @@
    }
   },
   {
-   "listingId": "568079ed-e163-7dc3-222d-adae703f7755",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 97300,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 101
-   }
-  },
-  {
-   "listingId": "ecd60ec1-7c1e-83c7-d420-6854719c1118",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 44800,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 118
-   }
-  },
-  {
    "listingId": "0ea65251-89a9-fe9b-d18e-b49644029bba",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
@@ -2757,6 +2862,18 @@
    }
   },
   {
+   "listingId": "001aabcc-bc63-a866-b749-0d298d698b3d",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 30800,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 65,
+    "perYearKm": 267692
+   }
+  },
+  {
    "listingId": "b32c0d57-e242-2dcb-b5e8-831688f8c233",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
@@ -2777,9 +2894,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 22800,
-    "injected": 1602100,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 63
+    "ageMonths": 63,
+    "perYearKm": 276190
    }
   },
   {
@@ -2938,12 +3056,14 @@
   },
   {
    "listingId": "76339d3b-17c1-50e9-1c91-2b170c85c2e3",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 264,
+    "injected": 261197,
     "fair": 24990,
-    "factor": 0.011
+    "factor": 10.452,
+    "cellMedian": 24456,
+    "cellN": 12
    }
   },
   {
@@ -2960,17 +3080,6 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.237
-   }
-  },
-  {
-   "listingId": "dcfd6fa7-eade-4735-3187-c96c6a41ef31",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 141200,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 107
    }
   },
   {
@@ -3003,9 +3112,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 10172,
+    "injected": 9080,
     "fair": 28990,
-    "factor": 0.351,
+    "factor": 0.313,
+    "robustSigma": 0.323,
+    "zTarget": -3.4,
     "cell": 152
    }
   },
@@ -3048,7 +3159,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "26",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -3082,7 +3194,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "47",
-    "injected": "08"
+    "injected": "08",
+    "flagExpected": true
    }
   },
   {
@@ -3299,10 +3412,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 149724,
+    "injected": 157257,
     "fair": 48000,
-    "factor": 3.119,
-    "cell": 206
+    "factor": 3.276,
+    "robustSigma": 0.363,
+    "zTarget": 3.4,
+    "cell": 207
    }
   },
   {
@@ -3369,6 +3484,18 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.238
+   }
+  },
+  {
+   "listingId": "de5fb96d-93ab-4d8a-84c2-16bdf8d1a3da",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 29200,
+    "injected": 576600,
+    "form": "a",
+    "ageMonths": 25,
+    "perYearKm": 276768
    }
   },
   {
@@ -3507,7 +3634,8 @@
     "fair": 29400,
     "injected": 1190400,
     "form": "a",
-    "ageMonths": 42
+    "ageMonths": 42,
+    "perYearKm": 340114
    }
   },
   {
@@ -3532,6 +3660,18 @@
    "expected": {
     "status": "MISSING",
     "fair": 17994
+   }
+  },
+  {
+   "listingId": "24347d82-f49e-b68f-f137-71fdbbf0d36e",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 129600,
+    "injected": 1437200,
+    "form": "a",
+    "ageMonths": 56,
+    "perYearKm": 307971
    }
   },
   {
@@ -3617,6 +3757,18 @@
    }
   },
   {
+   "listingId": "fb92121f-905c-bd30-ed85-0b5e204d3599",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 30800,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 53,
+    "perYearKm": 328302
+   }
+  },
+  {
    "listingId": "c160bb7b-22ff-1b41-e50b-d5a3b53914fe",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -3663,10 +3815,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 44005,
+    "injected": 37549,
     "fair": 14950,
-    "factor": 2.943,
-    "cell": 100
+    "factor": 2.512,
+    "robustSigma": 0.303,
+    "zTarget": 3.4,
+    "cell": 98
    }
   },
   {
@@ -3834,6 +3988,18 @@
    }
   },
   {
+   "listingId": "80b5b8cb-c0dc-697e-ea8d-f25069893656",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 52800,
+    "injected": 1357500,
+    "form": "a",
+    "ageMonths": 53,
+    "perYearKm": 307358
+   }
+  },
+  {
    "listingId": "eedf87f2-448d-afb3-02de-11bc06381b94",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -3870,18 +4036,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "10",
-    "injected": "00"
-   }
-  },
-  {
-   "listingId": "0b175a38-03b3-fc15-5ed5-a22e0900e77e",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 191100,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 184
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -3890,7 +4046,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "96",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -3924,9 +4081,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 273,
+    "injected": 2932,
     "fair": 21000,
-    "factor": 0.013
+    "factor": 0.14,
+    "cellMedian": 22950,
+    "cellN": 37
    }
   },
   {
@@ -3992,24 +4151,15 @@
    }
   },
   {
-   "listingId": "4905a936-9e4b-3361-2316-a1787234ee5e",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 96400,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 127
-   }
-  },
-  {
    "listingId": "1ce7d7f5-689f-b08c-47b4-89c90b2f3953",
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 55567,
+    "injected": 59550,
     "fair": 25396,
-    "factor": 2.188,
+    "factor": 2.345,
+    "robustSigma": 0.242,
+    "zTarget": 3.4,
     "cell": 48
    }
   },
@@ -4045,7 +4195,8 @@
     "fair": 42900,
     "injected": 663500,
     "form": "a",
-    "ageMonths": 28
+    "ageMonths": 28,
+    "perYearKm": 284357
    }
   },
   {
@@ -4070,9 +4221,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 167600,
-    "injected": 1838300,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 72
+    "ageMonths": 72,
+    "perYearKm": 241667
    }
   },
   {
@@ -4119,12 +4271,14 @@
   },
   {
    "listingId": "2c52383a-4deb-980c-2ecf-d139412d51db",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 447,
+    "injected": 449307,
     "fair": 5406,
-    "factor": 0.083
+    "factor": 83.113,
+    "cellMedian": 14861,
+    "cellN": 68
    }
   },
   {
@@ -4132,9 +4286,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 2455,
+    "injected": 3308,
     "fair": 7500,
-    "factor": 0.327,
+    "factor": 0.441,
+    "robustSigma": 0.33,
+    "zTarget": -3.4,
     "cell": 50
    }
   },
@@ -4154,7 +4310,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "90",
-    "injected": "08"
+    "injected": "08",
+    "flagExpected": true
    }
   },
   {
@@ -4163,7 +4320,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "28",
-    "injected": "07"
+    "injected": "07",
+    "flagExpected": true
    }
   },
   {
@@ -4197,6 +4355,14 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 18487
+   }
+  },
+  {
+   "listingId": "dd52f236-b062-568a-c023-57789cefb686",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
    }
   },
   {
@@ -4269,6 +4435,14 @@
    }
   },
   {
+   "listingId": "5af6e5c1-012e-6ea6-6524-c48f89f7cf40",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 12838
+   }
+  },
+  {
    "listingId": "b029b1c7-da49-049b-321f-ad43616bfcc6",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
@@ -4331,17 +4505,6 @@
    }
   },
   {
-   "listingId": "29c9b578-3887-dff6-7e7f-62e8a999c9b4",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 166800,
-    "injected": 900,
-    "form": "b",
-    "ageMonths": 144
-   }
-  },
-  {
    "listingId": "e2a719ed-26ba-b5cb-9fff-e92db494799d",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
@@ -4389,10 +4552,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 51333,
+    "injected": 40473,
     "fair": 16990,
-    "factor": 3.021,
-    "cell": 177
+    "factor": 2.382,
+    "robustSigma": 0.309,
+    "zTarget": 3.4,
+    "cell": 178
    }
   },
   {
@@ -4400,6 +4565,18 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 75193
+   }
+  },
+  {
+   "listingId": "235fd662-5e74-9c97-f01d-7b43e946d97e",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 39900,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 53,
+    "perYearKm": 328302
    }
   },
   {
@@ -4417,9 +4594,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 2882159,
+    "injected": 471991,
     "fair": 50900,
-    "factor": 56.624
+    "factor": 9.273,
+    "cellMedian": 24425,
+    "cellN": 50
    }
   },
   {
@@ -4540,17 +4719,6 @@
    }
   },
   {
-   "listingId": "7bd4f3c8-3168-383e-9748-bc724d325944",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 208800,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 95
-   }
-  },
-  {
    "listingId": "3d1a3bfa-eb98-fccf-0e20-a39b0f945bde",
    "anomaly": "PRICE_OUT_OF_RANGE",
    "expected": {
@@ -4560,12 +4728,14 @@
   },
   {
    "listingId": "d773100c-9b17-6d19-4861-7f259fef0194",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 369,
+    "injected": 368559,
     "fair": 1990,
-    "factor": 0.185
+    "factor": 185.206,
+    "cellMedian": 16950,
+    "cellN": 19719
    }
   },
   {
@@ -4600,7 +4770,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "19",
-    "injected": "05"
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
@@ -4683,18 +4854,11 @@
    }
   },
   {
-   "listingId": "c4335de0-d222-42bb-23d8-745ab5fed7b8",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "D",
-    "isPluginHybrid": true
-   }
-  },
-  {
    "listingId": "43b4cb74-3a17-7ee8-91ab-c257f4bb7b1e",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 16900
    }
   },
@@ -4720,9 +4884,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 101500,
-    "injected": 1703100,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 71
+    "ageMonths": 71,
+    "perYearKm": 245070
    }
   },
   {
@@ -4731,6 +4896,14 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 179790
+   }
+  },
+  {
+   "listingId": "5ee8b3b8-3c62-57b1-1b0d-e085e9a0ece0",
+   "anomaly": "MILEAGE_OUT_OF_RANGE",
+   "expected": {
+    "fair": 258800,
+    "injected": 2681700
    }
   },
   {
@@ -4771,7 +4944,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "86",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -4919,7 +5093,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "10",
-    "injected": "06"
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -4930,17 +5105,6 @@
     "fair": "1.8 VTi Style",
     "injected": "1.8 VTi Style 365 ch",
     "form": "b"
-   }
-  },
-  {
-   "listingId": "624e5f13-c0f3-4feb-f99f-c8ae2e024d62",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 343600,
-    "injected": 400,
-    "form": "b",
-    "ageMonths": 119
    }
   },
   {
@@ -4988,9 +5152,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 27992,
+    "injected": 90692,
     "fair": 12500,
-    "factor": 2.239,
+    "factor": 7.255,
+    "robustSigma": 0.355,
+    "zTarget": 3.4,
     "cell": 37
    }
   },
@@ -5025,9 +5191,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 2007507,
+    "injected": 393197,
     "fair": 24000,
-    "factor": 83.646
+    "factor": 16.383,
+    "cellMedian": 45990,
+    "cellN": 65
    }
   },
   {
@@ -5084,17 +5252,6 @@
    }
   },
   {
-   "listingId": "dd73b273-32d0-d031-4cec-8c51a464a857",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 52800,
-    "injected": 1849700,
-    "form": "a",
-    "ageMonths": 75
-   }
-  },
-  {
    "listingId": "dcd16c2b-7d35-d10b-a43b-6a7fe38de883",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
@@ -5120,12 +5277,14 @@
   },
   {
    "listingId": "fee00a03-f123-beb5-737a-b1a6dca2bc2f",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 337,
+    "injected": 336336,
     "fair": 13950,
-    "factor": 0.024
+    "factor": 24.11,
+    "cellMedian": 19725,
+    "cellN": 50
    }
   },
   {
@@ -5133,10 +5292,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 14974,
+    "injected": 9153,
     "fair": 30990,
-    "factor": 0.483,
-    "cell": 177
+    "factor": 0.295,
+    "robustSigma": 0.309,
+    "zTarget": -3.4,
+    "cell": 178
    }
   },
   {
@@ -5152,9 +5313,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 43612,
+    "injected": 53530,
     "fair": 17900,
-    "factor": 2.436,
+    "factor": 2.991,
+    "robustSigma": 0.27,
+    "zTarget": 3.4,
     "cell": 69
    }
   },
@@ -5244,7 +5407,8 @@
     "fair": 25200,
     "injected": 1041700,
     "form": "a",
-    "ageMonths": 39
+    "ageMonths": 39,
+    "perYearKm": 320523
    }
   },
   {
@@ -5298,6 +5462,18 @@
    "expected": {
     "unit": "mi",
     "value": 90200
+   }
+  },
+  {
+   "listingId": "2d2a8401-1a5d-8569-ba6f-266d1b4e58db",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 51800,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 72,
+    "perYearKm": 241667
    }
   },
   {
@@ -5385,6 +5561,26 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 19055
+   }
+  },
+  {
+   "listingId": "0e98a79f-fd6b-ba20-fa05-4b19643c53f1",
+   "anomaly": "UNIT_UNSUPPORTED",
+   "expected": {
+    "unit": "mi",
+    "value": 193800
+   }
+  },
+  {
+   "listingId": "e5bd2950-b3a3-9d1b-d99f-06efffb54d50",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 111500,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 72,
+    "perYearKm": 241667
    }
   },
   {
@@ -5485,14 +5681,6 @@
    }
   },
   {
-   "listingId": "e9d706d7-0377-b13c-f0c9-c29bfc526cac",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "D",
-    "isPluginHybrid": true
-   }
-  },
-  {
    "listingId": "bd4d5364-be9f-e910-e6e5-23f5d0cecaa2",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (b) puissance contredite",
@@ -5552,14 +5740,6 @@
    }
   },
   {
-   "listingId": "4f2c1539-d40a-52b8-1d14-df7dad4913e5",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "D",
-    "isPluginHybrid": true
-   }
-  },
-  {
    "listingId": "45506a61-3bbc-1641-ed70-1c30613eb04b",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (b) puissance contredite",
@@ -5586,17 +5766,6 @@
    }
   },
   {
-   "listingId": "377da6d3-755d-6e45-e4df-7457febaed87",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 141600,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 73
-   }
-  },
-  {
    "listingId": "06b5d8ca-81ea-c7b3-6e07-bd0fdab17cc8",
    "anomaly": "UNIT_UNSUPPORTED",
    "expected": {
@@ -5610,7 +5779,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "43",
-    "injected": "08"
+    "injected": "08",
+    "flagExpected": true
    }
   },
   {
@@ -5737,7 +5907,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "38",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -5754,7 +5925,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "90",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -5812,6 +5984,14 @@
    "expected": {
     "fair": "0.8 TDI Confort",
     "injected": "!!! !!!"
+   }
+  },
+  {
+   "listingId": "a7d8081d-6c98-187f-f97b-39869a6bb81c",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
    }
   },
   {
@@ -5894,24 +6074,15 @@
    }
   },
   {
-   "listingId": "8eda3d89-8752-5283-3e25-6718900835da",
-   "anomaly": "OUTLIER_M2_HIGH",
-   "expected": {
-    "method": "M2",
-    "injected": 23035,
-    "fair": 7900,
-    "factor": 2.916,
-    "cell": 188
-   }
-  },
-  {
    "listingId": "71380783-a7c4-bc90-c430-3ba27c88baa1",
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 849164,
+    "injected": 288846,
     "fair": 27406,
-    "factor": 30.985
+    "factor": 10.54,
+    "cellMedian": 18995,
+    "cellN": 80
    }
   },
   {
@@ -5957,23 +6128,13 @@
    }
   },
   {
-   "listingId": "27c1fb3b-3b5c-dc84-4a6f-1c8e589b07d9",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 129200,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 78
-   }
-  },
-  {
    "listingId": "db979552-5c38-3c72-2b6b-13d0758be65f",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "71",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -5996,12 +6157,14 @@
   },
   {
    "listingId": "0527e34a-eaff-ee3f-089b-f8b52b7b7c2d",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 396,
+    "injected": 396948,
     "fair": 11931,
-    "factor": 0.033
+    "factor": 33.27,
+    "cellMedian": 27990,
+    "cellN": 29
    }
   },
   {
@@ -6009,9 +6172,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 3730,
+    "injected": 2175,
     "fair": 8022,
-    "factor": 0.465,
+    "factor": 0.271,
+    "robustSigma": 0.365,
+    "zTarget": -3.4,
     "cell": 70
    }
   },
@@ -6037,7 +6202,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "39",
-    "injected": "02"
+    "injected": "02",
+    "flagExpected": true
    }
   },
   {
@@ -6057,25 +6223,16 @@
    }
   },
   {
-   "listingId": "e20e93d2-0b5a-bab1-baa5-c58983a696b4",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 267200,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 94
-   }
-  },
-  {
    "listingId": "de9de676-fdb1-b5f2-219f-74972d50a6df",
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 50520,
+    "injected": 94953,
     "fair": 19560,
-    "factor": 2.583,
-    "cell": 71
+    "factor": 4.854,
+    "robustSigma": 0.339,
+    "zTarget": 3.4,
+    "cell": 70
    }
   },
   {
@@ -6121,9 +6278,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 15939,
+    "injected": 33109,
     "fair": 6950,
-    "factor": 2.293,
+    "factor": 4.764,
+    "robustSigma": 0.303,
+    "zTarget": 3.4,
     "cell": 292
    }
   },
@@ -6173,20 +6332,13 @@
    }
   },
   {
-   "listingId": "0b5c37ac-c2d0-27de-b982-f8dc61d917ac",
-   "anomaly": "OTHER",
-   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
-   "expected": {
-    "latent": 0.185
-   }
-  },
-  {
    "listingId": "63f7114a-ca44-cbcc-6a14-7dc1ac7eb85d",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "LU"
+    "injected": "LU",
+    "flagExpected": false
    }
   },
   {
@@ -6227,9 +6379,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 84300,
-    "injected": 1563700,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 68
+    "ageMonths": 68,
+    "perYearKm": 255882
    }
   },
   {
@@ -6246,7 +6399,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "60",
-    "injected": "08"
+    "injected": "08",
+    "flagExpected": true
    }
   },
   {
@@ -6489,17 +6643,6 @@
    }
   },
   {
-   "listingId": "89401ad0-e624-9aec-df9d-d4c9e1bd5971",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 130800,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 104
-   }
-  },
-  {
    "listingId": "e2b374bd-17a3-58e5-32d1-0d7bfb3bdc0a",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -6513,7 +6656,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "81",
-    "injected": "07"
+    "injected": "07",
+    "flagExpected": true
    }
   },
   {
@@ -6559,6 +6703,18 @@
    }
   },
   {
+   "listingId": "9ce32f24-a398-54a0-ddb7-27a1f0114a5a",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 23100,
+    "injected": 1196100,
+    "form": "a",
+    "ageMonths": 52,
+    "perYearKm": 276023
+   }
+  },
+  {
    "listingId": "27a98ce1-721c-f7e2-2133-136d7d97e5bf",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -6587,9 +6743,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 279,
+    "injected": 1088,
     "fair": 5000,
-    "factor": 0.056
+    "factor": 0.218,
+    "cellMedian": 9000,
+    "cellN": 145
    }
   },
   {
@@ -6615,20 +6773,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 307,
+    "injected": 1666,
     "fair": 14950,
-    "factor": 0.021
-   }
-  },
-  {
-   "listingId": "932e403b-fdd4-8a9b-8bb7-4fc85248fd02",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 76200,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 74
+    "factor": 0.111,
+    "cellMedian": 14842,
+    "cellN": 24
    }
   },
   {
@@ -6655,6 +6804,18 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 4329
+   }
+  },
+  {
+   "listingId": "02b4d6c8-ed7b-4537-2712-70939e05d3ea",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 63000,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 57,
+    "perYearKm": 305263
    }
   },
   {
@@ -6760,14 +6921,16 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "49",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
    "listingId": "d4f82be3-9b9f-25c8-946e-a2442311a22d",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 24950
    }
   },
@@ -6824,9 +6987,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 12730,
+    "injected": 5241,
     "fair": 27000,
-    "factor": 0.471,
+    "factor": 0.194,
+    "robustSigma": 0.456,
+    "zTarget": -3.4,
     "cell": 48
    }
   },
@@ -6901,9 +7066,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 34647,
+    "injected": 43668,
     "fair": 13950,
-    "factor": 2.484,
+    "factor": 3.13,
+    "robustSigma": 0.314,
+    "zTarget": 3.4,
     "cell": 255
    }
   },
@@ -6987,10 +7154,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 5825,
+    "injected": 10283,
     "fair": 17504,
-    "factor": 0.333,
-    "cell": 66
+    "factor": 0.587,
+    "robustSigma": 0.324,
+    "zTarget": -3.4,
+    "cell": 67
    }
   },
   {
@@ -7060,17 +7229,6 @@
    }
   },
   {
-   "listingId": "66eaea5e-751c-fe7a-0d06-75162e4f76dd",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 142000,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 107
-   }
-  },
-  {
    "listingId": "b2b798b0-274b-045c-eb1c-dd82b746652d",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
@@ -7092,9 +7250,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 268,
+    "injected": 1539,
     "fair": 19500,
-    "factor": 0.014
+    "factor": 0.079,
+    "cellMedian": 13824,
+    "cellN": 96
    }
   },
   {
@@ -7118,9 +7278,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 53682,
+    "injected": 73892,
     "fair": 19500,
-    "factor": 2.753,
+    "factor": 3.789,
+    "robustSigma": 0.314,
+    "zTarget": 3.4,
     "cell": 255
    }
   },
@@ -7163,7 +7325,8 @@
    "listingId": "f179eff8-019d-d1ee-250a-0be48e6b4153",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 7990
    }
   },
@@ -7224,12 +7387,14 @@
   },
   {
    "listingId": "1bb65278-0519-38f0-6ca9-85c486e7c9f1",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 375,
+    "injected": 375075,
     "fair": 10990,
-    "factor": 0.034
+    "factor": 34.129,
+    "cellMedian": 8950,
+    "cellN": 37
    }
   },
   {
@@ -7246,6 +7411,14 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.073
+   }
+  },
+  {
+   "listingId": "f97db814-1426-c60c-7119-e0b4dcb2c8c7",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
    }
   },
   {
@@ -7304,7 +7477,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "36",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -7342,12 +7516,14 @@
   },
   {
    "listingId": "7c71bc7a-89f4-dc8d-5f17-a54157270dfb",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 440,
+    "injected": 441476,
     "fair": 21592,
-    "factor": 0.02
+    "factor": 20.446,
+    "cellMedian": 16192,
+    "cellN": 32
    }
   },
   {
@@ -7365,6 +7541,14 @@
    }
   },
   {
+   "listingId": "080c5b3d-c150-bd8b-61c0-52bcc733a857",
+   "anomaly": "MILEAGE_OUT_OF_RANGE",
+   "expected": {
+    "fair": 216400,
+    "injected": 2757500
+   }
+  },
+  {
    "listingId": "49e52ea2-d5ca-d674-c90d-9b5194aaec5e",
    "anomaly": "PRICE_MISSING_UNDECLARED",
    "expected": {
@@ -7374,12 +7558,14 @@
   },
   {
    "listingId": "9619dd30-ebc6-ae70-49de-1afcb38fef63",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 398,
+    "injected": 398770,
     "fair": 8234,
-    "factor": 0.048
+    "factor": 48.43,
+    "cellMedian": 9900,
+    "cellN": 25
    }
   },
   {
@@ -7445,6 +7631,18 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 20148
+   }
+  },
+  {
+   "listingId": "ef83fa80-a765-dce3-682f-828a140e12e1",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 37000,
+    "injected": 973400,
+    "form": "a",
+    "ageMonths": 36,
+    "perYearKm": 324467
    }
   },
   {
@@ -7532,12 +7730,14 @@
   },
   {
    "listingId": "628c3572-b9c3-3dc8-badd-896fd69c80a0",
-   "anomaly": "OUTLIER_M2_LOW",
+   "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 893,
+    "injected": 2964,
     "fair": 1900,
-    "factor": 0.47,
+    "factor": 1.56,
+    "robustSigma": 0.314,
+    "zTarget": 3.4,
     "cell": 255
    }
   },
@@ -7579,7 +7779,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "95",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -7602,7 +7803,8 @@
    "listingId": "68dc1893-6e0e-1264-4ec0-d76d4f51ba36",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 3990
    }
   },
@@ -7706,7 +7908,8 @@
    "listingId": "6ce605c5-a781-e610-fd9f-2834dc5bd8a4",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 22900
    }
   },
@@ -7829,24 +8032,23 @@
    }
   },
   {
-   "listingId": "984800f9-f60f-c69f-4531-db6af02f30f5",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 98800,
-    "injected": 1819400,
-    "form": "a",
-    "ageMonths": 79
-   }
-  },
-  {
    "listingId": "f2f8ce8f-a4a8-8263-b533-f816a6ce44d3",
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 405,
+    "injected": 4246,
     "fair": 17900,
-    "factor": 0.023
+    "factor": 0.237,
+    "cellMedian": 34000,
+    "cellN": 30
+   }
+  },
+  {
+   "listingId": "f87de2ad-1ab2-e1f2-712e-db1cda575482",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "D",
+    "isPluginHybrid": true
    }
   },
   {
@@ -7898,17 +8100,6 @@
    }
   },
   {
-   "listingId": "c5d6c113-c7a8-2ff3-18aa-294bf7282ce2",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 177100,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 122
-   }
-  },
-  {
    "listingId": "ab9af2c4-4306-ad51-ab9d-9b337b6bca82",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -7935,23 +8126,13 @@
    }
   },
   {
-   "listingId": "cb24459f-e4d2-1b79-fb4b-382d9558d716",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 71300,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 82
-   }
-  },
-  {
    "listingId": "e4314f59-2643-b264-cdd1-c6aaa45c63e2",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "26",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -8047,9 +8228,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 307,
+    "injected": 6046,
     "fair": 43900,
-    "factor": 0.007
+    "factor": 0.138,
+    "cellMedian": 48470,
+    "cellN": 18
    }
   },
   {
@@ -8210,10 +8393,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 14926,
+    "injected": 16946,
     "fair": 42056,
-    "factor": 0.355,
-    "cell": 97
+    "factor": 0.403,
+    "robustSigma": 0.279,
+    "zTarget": -3.4,
+    "cell": 96
    }
   },
   {
@@ -8279,7 +8464,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "29",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -8288,17 +8474,6 @@
    "expected": {
     "unit": "mi",
     "value": 76000
-   }
-  },
-  {
-   "listingId": "d649f017-9738-41d7-562e-ff6b5286dd97",
-   "anomaly": "OUTLIER_M2_LOW",
-   "expected": {
-    "method": "M2",
-    "injected": 15705,
-    "fair": 42500,
-    "factor": 0.37,
-    "cell": 99
    }
   },
   {
@@ -8371,7 +8546,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "NL"
+    "injected": "NL",
+    "flagExpected": false
    }
   },
   {
@@ -8404,7 +8580,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "90",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -8523,19 +8700,23 @@
    }
   },
   {
-   "listingId": "20ff9243-1a9f-527c-1666-61613f9027a0",
-   "anomaly": "PRICE_MISSING_UNDECLARED",
-   "expected": {
-    "status": "MISSING",
-    "fair": 16925
-   }
-  },
-  {
    "listingId": "31311f75-5812-4bcb-a6c6-5d1a0edb727d",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
     "status": "ON_REQUEST",
     "fair": 27472
+   }
+  },
+  {
+   "listingId": "73b24804-8097-8b60-56b7-d0428e1b201a",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 52100,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 63,
+    "perYearKm": 276190
    }
   },
   {
@@ -8595,7 +8776,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "28",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -8695,7 +8877,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "21",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -8723,6 +8906,18 @@
    }
   },
   {
+   "listingId": "dd46b8a3-3a61-9697-7920-68805ac9fd63",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 17200,
+    "injected": 321700,
+    "form": "a",
+    "ageMonths": 13,
+    "perYearKm": 296954
+   }
+  },
+  {
    "listingId": "41558b3f-8281-2626-0f74-2c32304dccec",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -8745,9 +8940,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 42712,
+    "injected": 23875,
     "fair": 87114,
-    "factor": 0.49,
+    "factor": 0.274,
+    "robustSigma": 0.28,
+    "zTarget": -3.4,
     "cell": 122
    }
   },
@@ -8780,6 +8977,18 @@
    }
   },
   {
+   "listingId": "19d861a3-8e93-e025-3eed-8bc0b72b51f8",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 67100,
+    "injected": 1393800,
+    "form": "a",
+    "ageMonths": 47,
+    "perYearKm": 355864
+   }
+  },
+  {
    "listingId": "795ae73c-fc16-a5fa-02e7-15a7813c0d39",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (a) modele d une autre marque",
@@ -8790,23 +8999,13 @@
    }
   },
   {
-   "listingId": "a37be58f-0976-87e5-5661-a9f8b9678539",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 133400,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 237
-   }
-  },
-  {
    "listingId": "8393ef9f-ae75-296f-2f24-d4401448b666",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "10",
-    "injected": "05"
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
@@ -8815,17 +9014,6 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.156
-   }
-  },
-  {
-   "listingId": "7564b02b-f973-159a-8642-b5c2cb51b75c",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 186900,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 114
    }
   },
   {
@@ -8840,12 +9028,14 @@
   },
   {
    "listingId": "bdf74372-5851-dd8d-71e9-ffbb8853cbba",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 459,
+    "injected": 2555453,
     "fair": 12990,
-    "factor": 0.035
+    "factor": 196.725,
+    "cellMedian": 41990,
+    "cellN": 21
    }
   },
   {
@@ -8898,7 +9088,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "39",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -8982,10 +9173,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 101901,
+    "injected": 130484,
     "fair": 43165,
-    "factor": 2.361,
-    "cell": 97
+    "factor": 3.023,
+    "robustSigma": 0.279,
+    "zTarget": 3.4,
+    "cell": 96
    }
   },
   {
@@ -9137,6 +9330,18 @@
    }
   },
   {
+   "listingId": "2053e870-076b-2315-2039-5fe02eed8ad9",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 61100,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 65,
+    "perYearKm": 267692
+   }
+  },
+  {
    "listingId": "e47a7b27-893d-13f1-8401-eaf6edf84c6c",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (b) puissance contredite",
@@ -9269,14 +9474,6 @@
    }
   },
   {
-   "listingId": "3f17d427-2f3c-4a33-5613-5cba3ca3d7ed",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "D",
-    "isPluginHybrid": true
-   }
-  },
-  {
    "listingId": "f4c210b3-ed17-9a85-8fcb-2224e0b74dd1",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -9365,24 +9562,6 @@
    }
   },
   {
-   "listingId": "a7da68f0-3c54-2288-d1d1-b4fbd238633c",
-   "anomaly": "PRICE_SENTINEL_ABSOLUTE",
-   "expected": {
-    "flag": "PRICE_SENTINEL_ABSOLUTE",
-    "injected": 11,
-    "fair": 43990
-   }
-  },
-  {
-   "listingId": "93335748-cbc9-906a-ada4-bc80d717e7a9",
-   "anomaly": "CO2_ZERO_NON_BEV",
-   "expected": {
-    "fair": 117.2,
-    "branch": "NEDC",
-    "fuelCategory": "B"
-   }
-  },
-  {
    "listingId": "a332feae-09d7-7c1a-098a-a4d9e3c9b3ab",
    "anomaly": "UNIT_UNSUPPORTED",
    "expected": {
@@ -9407,17 +9586,6 @@
    }
   },
   {
-   "listingId": "2bb4a548-89c4-881d-3ef9-cb560ed5ceb6",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 219900,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 192
-   }
-  },
-  {
    "listingId": "877f367c-c17b-9eca-71b6-31c9cc83f575",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
@@ -9436,10 +9604,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 2212,
+    "injected": 3248,
     "fair": 6950,
-    "factor": 0.318,
-    "cell": 163
+    "factor": 0.467,
+    "robustSigma": 0.251,
+    "zTarget": -3.4,
+    "cell": 162
    }
   },
   {
@@ -9506,14 +9676,6 @@
    }
   },
   {
-   "listingId": "2df02ee8-bb2e-8391-49ed-12585217af23",
-   "anomaly": "PRICE_ON_REQUEST",
-   "expected": {
-    "status": "ON_REQUEST",
-    "fair": 15413
-   }
-  },
-  {
    "listingId": "c2d6501e-6eef-cecc-266e-140f8558cb7f",
    "anomaly": "PRICE_MISSING_UNDECLARED",
    "expected": {
@@ -9529,7 +9691,8 @@
     "fair": 67200,
     "injected": 1419800,
     "form": "a",
-    "ageMonths": 59
+    "ageMonths": 59,
+    "perYearKm": 288773
    }
   },
   {
@@ -9584,10 +9747,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 5809,
+    "injected": 8583,
     "fair": 18500,
-    "factor": 0.314,
-    "cell": 177
+    "factor": 0.464,
+    "robustSigma": 0.26,
+    "zTarget": -3.4,
+    "cell": 176
    }
   },
   {
@@ -9596,6 +9761,18 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 13725
+   }
+  },
+  {
+   "listingId": "6c8cab74-08fc-107e-8a72-8a39b1e282b3",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 64600,
+    "injected": 1319900,
+    "form": "a",
+    "ageMonths": 60,
+    "perYearKm": 263980
    }
   },
   {
@@ -9613,9 +9790,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 133858,
+    "injected": 79136,
     "fair": 54900,
-    "factor": 2.438,
+    "factor": 1.441,
+    "robustSigma": 0.403,
+    "zTarget": 3.4,
     "cell": 119
    }
   },
@@ -9640,7 +9819,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "90",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -9649,9 +9829,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 84200,
-    "injected": 1531900,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 70
+    "ageMonths": 70,
+    "perYearKm": 248571
    }
   },
   {
@@ -9677,15 +9858,8 @@
     "fair": 24000,
     "injected": 951700,
     "form": "a",
-    "ageMonths": 38
-   }
-  },
-  {
-   "listingId": "6e36a52f-ea50-1e71-6e4d-6217aa042b92",
-   "anomaly": "UNIT_UNSUPPORTED",
-   "expected": {
-    "unit": "mi",
-    "value": 951700
+    "ageMonths": 38,
+    "perYearKm": 300537
    }
   },
   {
@@ -9694,7 +9868,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "89",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -9716,10 +9891,24 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 68509,
+    "injected": 66142,
     "fair": 23000,
-    "factor": 2.979,
-    "cell": 177
+    "factor": 2.876,
+    "robustSigma": 0.26,
+    "zTarget": 3.4,
+    "cell": 176
+   }
+  },
+  {
+   "listingId": "bb813d08-0e27-30ad-ad16-304d383700d6",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 46200,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 66,
+    "perYearKm": 263636
    }
   },
   {
@@ -9738,17 +9927,6 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.098
-   }
-  },
-  {
-   "listingId": "1d48e30c-a443-b3e4-8dc2-dee98843334b",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 127800,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 152
    }
   },
   {
@@ -9783,16 +9961,6 @@
    "expected": {
     "unit": "mi",
     "value": 110100
-   }
-  },
-  {
-   "listingId": "14e058bf-9506-4ae6-bfb8-220f3ad32425",
-   "anomaly": "OUTLIER_M1_LOW",
-   "expected": {
-    "method": "M1",
-    "injected": 475,
-    "fair": 25500,
-    "factor": 0.019
    }
   },
   {
@@ -9892,12 +10060,14 @@
   },
   {
    "listingId": "fc5e70af-e1b8-f839-bc7f-707e5757b289",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 426,
+    "injected": 448510,
     "fair": 32950,
-    "factor": 0.013
+    "factor": 13.612,
+    "cellMedian": 36000,
+    "cellN": 19
    }
   },
   {
@@ -9936,10 +10106,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 18045,
+    "injected": 8933,
     "fair": 6419,
-    "factor": 2.811,
-    "cell": 163
+    "factor": 1.392,
+    "robustSigma": 0.251,
+    "zTarget": 3.4,
+    "cell": 162
    }
   },
   {
@@ -10022,7 +10194,20 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "26",
-    "injected": "07"
+    "injected": "07",
+    "flagExpected": true
+   }
+  },
+  {
+   "listingId": "618fa214-f6c2-d20a-e360-5269bb5b4b38",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 66500,
+    "injected": 1318400,
+    "form": "a",
+    "ageMonths": 50,
+    "perYearKm": 316416
    }
   },
   {
@@ -10197,6 +10382,14 @@
    }
   },
   {
+   "listingId": "3b8c524d-4e8d-7d11-21fd-d671c9b8781e",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.226
+   }
+  },
+  {
    "listingId": "f4094d02-0adf-2438-4c1a-471ac98276f1",
    "anomaly": "UNIT_UNSUPPORTED",
    "expected": {
@@ -10239,6 +10432,14 @@
    }
   },
   {
+   "listingId": "21511181-f417-974a-ba19-8b7fb1b0512b",
+   "anomaly": "POWER_OUT_OF_RANGE",
+   "expected": {
+    "fair": 75,
+    "injected": 9999
+   }
+  },
+  {
    "listingId": "09ca5fdf-7df9-c40a-5886-eae17632cc00",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
@@ -10252,7 +10453,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "80",
-    "injected": "05"
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
@@ -10260,10 +10462,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 85012,
+    "injected": 67458,
     "fair": 31950,
-    "factor": 2.661,
-    "cell": 48
+    "factor": 2.111,
+    "robustSigma": 0.244,
+    "zTarget": 3.4,
+    "cell": 47
    }
   },
   {
@@ -10275,24 +10479,27 @@
    }
   },
   {
-   "listingId": "92aacd86-b910-86f3-c334-72dc60298c21",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 83100,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 106
-   }
-  },
-  {
    "listingId": "419ea1fa-631e-aaff-c77d-3d00991744c1",
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 338,
+    "injected": 2056,
     "fair": 44950,
-    "factor": 0.008
+    "factor": 0.046,
+    "cellMedian": 17423,
+    "cellN": 68
+   }
+  },
+  {
+   "listingId": "535a938a-a429-ef46-8299-acd382f28be5",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 109600,
+    "injected": 1363700,
+    "form": "a",
+    "ageMonths": 50,
+    "perYearKm": 327288
    }
   },
   {
@@ -10434,17 +10641,6 @@
    }
   },
   {
-   "listingId": "9c06d39c-530e-603b-2250-9e660805b0bf",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 105500,
-    "injected": 1894200,
-    "form": "a",
-    "ageMonths": 85
-   }
-  },
-  {
    "listingId": "2cf79f04-bcfc-0a64-0f41-05c23a7b37b9",
    "anomaly": "VERSION_FULLY_STRIPPED",
    "expected": {
@@ -10517,7 +10713,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "21",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -10526,7 +10723,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "12",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -10538,29 +10736,10 @@
    }
   },
   {
-   "listingId": "968e1284-01ec-4d24-1d8b-45ea0490a544",
-   "anomaly": "PRICE_ON_REQUEST",
-   "expected": {
-    "status": "ON_REQUEST",
-    "fair": 4713
-   }
-  },
-  {
    "listingId": "754072df-cee4-3c2a-2651-65704ed2b3e5",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 18585
-   }
-  },
-  {
-   "listingId": "2ce9efb8-e49b-ffca-0fb3-45b157b9116d",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 76100,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 75
    }
   },
   {
@@ -10577,6 +10756,18 @@
    "expected": {
     "unit": "mi",
     "value": 31900
+   }
+  },
+  {
+   "listingId": "405909aa-59e4-0764-5258-10fc67b9226e",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 51200,
+    "injected": 946300,
+    "form": "a",
+    "ageMonths": 40,
+    "perYearKm": 283890
    }
   },
   {
@@ -10642,6 +10833,18 @@
    }
   },
   {
+   "listingId": "69a4905d-d12c-c3c8-937f-5af25e8bd171",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 47400,
+    "injected": 1439400,
+    "form": "a",
+    "ageMonths": 50,
+    "perYearKm": 345456
+   }
+  },
+  {
    "listingId": "604f2075-97bb-0fc2-15ba-8f4834c183d0",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -10686,7 +10889,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "39",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -10713,7 +10917,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "35",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -10722,7 +10927,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "90",
-    "injected": "06"
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -10764,9 +10970,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 6138,
+    "injected": 5448,
     "fair": 13990,
-    "factor": 0.439,
+    "factor": 0.389,
+    "robustSigma": 0.27,
+    "zTarget": -3.4,
     "cell": 113
    }
   },
@@ -10818,7 +11026,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "98",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -10925,7 +11134,8 @@
     "fair": 80200,
     "injected": 1163200,
     "form": "a",
-    "ageMonths": 50
+    "ageMonths": 50,
+    "perYearKm": 279168
    }
   },
   {
@@ -10950,6 +11160,18 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 24195
+   }
+  },
+  {
+   "listingId": "5c39215b-55da-a23c-aa73-0069e95d1c1b",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 70900,
+    "injected": 1169200,
+    "form": "a",
+    "ageMonths": 44,
+    "perYearKm": 318873
    }
   },
   {
@@ -11001,10 +11223,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 6179,
+    "injected": 3808,
     "fair": 12990,
-    "factor": 0.476,
-    "cell": 120
+    "factor": 0.293,
+    "robustSigma": 0.259,
+    "zTarget": -3.4,
+    "cell": 119
    }
   },
   {
@@ -11040,11 +11264,31 @@
    }
   },
   {
+   "listingId": "a19bf124-1556-232b-df6c-efa4c5ccc36e",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 7826
+   }
+  },
+  {
    "listingId": "29d5bb93-b741-e940-3805-63d5c1741bd0",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.186
+   }
+  },
+  {
+   "listingId": "1f0d44b6-ec82-b582-8b20-e5bac0e2fe89",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 68600,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 67,
+    "perYearKm": 259701
    }
   },
   {
@@ -11126,9 +11370,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 11629,
+    "injected": 11269,
     "fair": 24990,
-    "factor": 0.465,
+    "factor": 0.451,
+    "robustSigma": 0.284,
+    "zTarget": -3.4,
     "cell": 31
    }
   },
@@ -11257,9 +11503,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 65256,
+    "injected": 66572,
     "fair": 21959,
-    "factor": 2.972,
+    "factor": 3.032,
+    "robustSigma": 0.319,
+    "zTarget": 3.4,
     "cell": 112
    }
   },
@@ -11303,6 +11551,14 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.064
+   }
+  },
+  {
+   "listingId": "709b6c3f-f3a8-14a1-6c5f-44e3e3531198",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
    }
   },
   {
@@ -11405,9 +11661,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1281476,
+    "injected": 327791,
     "fair": 24995,
-    "factor": 51.269
+    "factor": 13.114,
+    "cellMedian": 19950,
+    "cellN": 51
    }
   },
   {
@@ -11416,7 +11674,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "34",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -11436,14 +11695,28 @@
    }
   },
   {
+   "listingId": "030064c5-31c8-3eac-0f47-9b04b0ead4d3",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 96900,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 65,
+    "perYearKm": 267692
+   }
+  },
+  {
    "listingId": "50b91b61-0953-3e6f-49f5-eef8df8e7dbb",
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 152840,
+    "injected": 93714,
     "fair": 59000,
-    "factor": 2.591,
-    "cell": 55
+    "factor": 1.588,
+    "robustSigma": 0.239,
+    "zTarget": 3.4,
+    "cell": 56
    }
   },
   {
@@ -11638,9 +11911,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1856239,
+    "injected": 379570,
     "fair": 13990,
-    "factor": 132.683
+    "factor": 27.132,
+    "cellMedian": 16950,
+    "cellN": 19719
    }
   },
   {
@@ -11734,6 +12009,18 @@
    }
   },
   {
+   "listingId": "46e2902f-1460-63a7-af5d-43ab97cda222",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 50500,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 68,
+    "perYearKm": 255882
+   }
+  },
+  {
    "listingId": "f00fa1a1-ad6b-7a7f-0a27-ddb3e86f942a",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -11770,14 +12057,6 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 15663
-   }
-  },
-  {
-   "listingId": "27c07d94-bcce-2867-bc46-2f929a0233a6",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "B",
-    "isPluginHybrid": true
    }
   },
   {
@@ -11876,9 +12155,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 15828,
+    "injected": 12615,
     "fair": 38950,
-    "factor": 0.406,
+    "factor": 0.324,
+    "robustSigma": 0.312,
+    "zTarget": -3.4,
     "cell": 128
    }
   },
@@ -12119,9 +12400,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 11330,
+    "injected": 15552,
     "fair": 28900,
-    "factor": 0.392,
+    "factor": 0.538,
+    "robustSigma": 0.312,
+    "zTarget": -3.4,
     "cell": 128
    }
   },
@@ -12191,6 +12474,18 @@
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
    "expected": {
     "latent": 0.079
+   }
+  },
+  {
+   "listingId": "5a171719-3843-86aa-73b1-23c220dfb0d2",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 82900,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 53,
+    "perYearKm": 328302
    }
   },
   {
@@ -12338,6 +12633,14 @@
    }
   },
   {
+   "listingId": "9927f4ef-d429-8377-7e80-5980ff53bdc1",
+   "anomaly": "SUSPECT_ZERO_MILEAGE",
+   "expected": {
+    "fair": 158100,
+    "offerType": "U"
+   }
+  },
+  {
    "listingId": "2db8519b-f073-48c1-0e72-738bed13c5fe",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -12359,9 +12662,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 59300,
-    "injected": 1547000,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 55
+    "ageMonths": 55,
+    "perYearKm": 316364
    }
   },
   {
@@ -12421,6 +12725,14 @@
    }
   },
   {
+   "listingId": "62400edc-c4bb-1c5d-6c79-63b42806a276",
+   "anomaly": "POWER_OUT_OF_RANGE",
+   "expected": {
+    "fair": 100,
+    "injected": 9999
+   }
+  },
+  {
    "listingId": "e6b7f196-15a1-9fdb-6bcd-9f19b7e65507",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
@@ -12457,7 +12769,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "46",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -12605,17 +12918,6 @@
    }
   },
   {
-   "listingId": "7b983dc6-81e7-490c-8d23-02aeb4f63f88",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 420000,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 184
-   }
-  },
-  {
    "listingId": "a4a8f60d-d9e0-4fc1-d476-998532037aa4",
    "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
    "detail": "branche EX-DATA-11 (hybride non resolu)",
@@ -12646,7 +12948,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "39",
-    "injected": "07"
+    "injected": "07",
+    "flagExpected": true
    }
   },
   {
@@ -12742,7 +13045,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "46",
-    "injected": "02"
+    "injected": "02",
+    "flagExpected": true
    }
   },
   {
@@ -12759,7 +13063,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "13",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -12768,7 +13073,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "84",
-    "injected": "08"
+    "injected": "08",
+    "flagExpected": true
    }
   },
   {
@@ -12804,7 +13110,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "14",
-    "injected": "05"
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
@@ -12844,9 +13151,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 63400,
-    "injected": 1709600,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 59
+    "ageMonths": 59,
+    "perYearKm": 294915
    }
   },
   {
@@ -12926,10 +13234,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 1541,
+    "injected": 2466,
     "fair": 3950,
-    "factor": 0.39,
-    "cell": 334
+    "factor": 0.624,
+    "robustSigma": 0.316,
+    "zTarget": -3.4,
+    "cell": 333
    }
   },
   {
@@ -12989,7 +13299,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "61",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -13186,7 +13497,8 @@
    "listingId": "36b87f39-475f-6185-08d1-823551718ae3",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 145000
    }
   },
@@ -13209,14 +13521,6 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 18493
-   }
-  },
-  {
-   "listingId": "81cd24c2-5ed7-0989-44e5-4639e7e8efc3",
-   "anomaly": "OTHER",
-   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
-   "expected": {
-    "latent": 0.129
    }
   },
   {
@@ -13251,24 +13555,15 @@
    }
   },
   {
-   "listingId": "f2777521-b9b2-3969-61dd-25ffe8713035",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 203400,
-    "injected": 300,
-    "form": "b",
-    "ageMonths": 185
-   }
-  },
-  {
    "listingId": "7b647657-5b27-f519-ab2b-a5f06e06da0d",
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 4790,
+    "injected": 3758,
     "fair": 10990,
-    "factor": 0.436,
+    "factor": 0.342,
+    "robustSigma": 0.417,
+    "zTarget": -3.4,
     "cell": 44
    }
   },
@@ -13311,9 +13606,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 308,
+    "injected": 3277,
     "fair": 5950,
-    "factor": 0.052
+    "factor": 0.551,
+    "cellMedian": 27995,
+    "cellN": 136
    }
   },
   {
@@ -13437,17 +13734,6 @@
    }
   },
   {
-   "listingId": "e53f63e9-e367-e1d9-5105-71281946f584",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 184900,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 107
-   }
-  },
-  {
    "listingId": "b8b49599-b662-8a36-d34f-dcee011350c5",
    "anomaly": "VERSION_AMBIGUOUS",
    "detail": "forme (b) puissance contredite",
@@ -13483,23 +13769,13 @@
    }
   },
   {
-   "listingId": "6f3f8b7f-09e5-22c4-e8f0-0e4f7df54b1b",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 191900,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 150
-   }
-  },
-  {
    "listingId": "0f338345-4a24-58bb-7351-29e0d7276ff8",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "75",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -13507,10 +13783,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 3297,
+    "injected": 3399,
     "fair": 9990,
-    "factor": 0.33,
-    "cell": 58
+    "factor": 0.34,
+    "robustSigma": 0.261,
+    "zTarget": -3.4,
+    "cell": 57
    }
   },
   {
@@ -13535,18 +13813,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "36",
-    "injected": "07"
-   }
-  },
-  {
-   "listingId": "ddf35935-d826-cff1-72e4-a823d8ebc1b6",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 162700,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 124
+    "injected": "07",
+    "flagExpected": true
    }
   },
   {
@@ -13643,7 +13911,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "10",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -13697,9 +13966,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 69112,
+    "injected": 77291,
     "fair": 31990,
-    "factor": 2.16,
+    "factor": 2.416,
+    "robustSigma": 0.335,
+    "zTarget": 3.4,
     "cell": 41
    }
   },
@@ -13756,14 +14027,6 @@
    }
   },
   {
-   "listingId": "b89d84ba-43cd-a5d1-85e6-d0d5ef405215",
-   "anomaly": "HYBRID_INCONSISTENT",
-   "expected": {
-    "fuelCategory": "D",
-    "isPluginHybrid": true
-   }
-  },
-  {
    "listingId": "896a92a0-f342-cd54-69c9-f895c8defe28",
    "anomaly": "PRICE_MISSING_UNDECLARED",
    "expected": {
@@ -13805,7 +14068,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "48",
-    "injected": "02"
+    "injected": "02",
+    "flagExpected": true
    }
   },
   {
@@ -13903,7 +14167,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "77",
-    "injected": "02"
+    "injected": "02",
+    "flagExpected": true
    }
   },
   {
@@ -13958,9 +14223,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 277,
+    "injected": 2951,
     "fair": 19950,
-    "factor": 0.014
+    "factor": 0.148,
+    "cellMedian": 22425,
+    "cellN": 12
    }
   },
   {
@@ -14110,9 +14377,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 269,
+    "injected": 3053,
     "fair": 12000,
-    "factor": 0.022
+    "factor": 0.254,
+    "cellMedian": 21990,
+    "cellN": 12
    }
   },
   {
@@ -14127,9 +14396,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 10374,
+    "injected": 8152,
     "fair": 31900,
-    "factor": 0.325,
+    "factor": 0.256,
+    "robustSigma": 0.315,
+    "zTarget": -3.4,
     "cell": 78
    }
   },
@@ -14156,10 +14427,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 19066,
+    "injected": 39978,
     "fair": 7990,
-    "factor": 2.386,
-    "cell": 118
+    "factor": 5.004,
+    "robustSigma": 0.287,
+    "zTarget": 3.4,
+    "cell": 119
    }
   },
   {
@@ -14210,7 +14483,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "45",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -14219,6 +14493,14 @@
    "expected": {
     "status": "MISSING",
     "fair": 23472
+   }
+  },
+  {
+   "listingId": "d73276e3-904e-8d91-5d9d-fa0717e665b0",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
    }
   },
   {
@@ -14239,6 +14521,14 @@
     "fair": "1.3 TSI Elegance",
     "injected": "1.3 TSI Elegance 235 ch",
     "form": "b"
+   }
+  },
+  {
+   "listingId": "df521d66-cce8-361e-cad3-c8ce08449b74",
+   "anomaly": "VERSION_FULLY_STRIPPED",
+   "expected": {
+    "fair": "1.5 dCi Elegance",
+    "injected": "*** *** ***"
    }
   },
   {
@@ -14278,9 +14568,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 2697440,
+    "injected": 455351,
     "fair": 23500,
-    "factor": 114.785
+    "factor": 19.377,
+    "cellMedian": 18990,
+    "cellN": 35
    }
   },
   {
@@ -14432,6 +14724,18 @@
    }
   },
   {
+   "listingId": "9dfe780c-8cbb-f07f-62d8-792a24ff68a3",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 63700,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 57,
+    "perYearKm": 305263
+   }
+  },
+  {
    "listingId": "1293ec99-1741-0e41-f5eb-6311c1b24f4e",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -14501,9 +14805,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 346,
+    "injected": 2781,
     "fair": 9990,
-    "factor": 0.035
+    "factor": 0.278,
+    "cellMedian": 19745,
+    "cellN": 116
    }
   },
   {
@@ -14534,10 +14840,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 21035,
+    "injected": 13105,
     "fair": 48900,
-    "factor": 0.43,
-    "cell": 63
+    "factor": 0.268,
+    "robustSigma": 0.262,
+    "zTarget": -3.4,
+    "cell": 64
    }
   },
   {
@@ -14562,7 +14870,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "LU"
+    "injected": "LU",
+    "flagExpected": false
    }
   },
   {
@@ -14689,13 +14998,31 @@
    }
   },
   {
+   "listingId": "1f59103a-aedd-55e6-da45-f62a9c8cf85d",
+   "anomaly": "PRICE_ON_REQUEST",
+   "expected": {
+    "status": "ON_REQUEST",
+    "fair": 13107
+   }
+  },
+  {
+   "listingId": "1f59103a-aedd-55e6-da45-f62a9c8cf85d",
+   "anomaly": "OTHER",
+   "detail": "annonce incomplete : au moins 6 champs optionnels absents",
+   "expected": {
+    "latent": 0.129
+   }
+  },
+  {
    "listingId": "2c55f278-daa6-23ec-24a2-5855f020b0fa",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 290,
+    "injected": 288500,
     "fair": 9471,
-    "factor": 0.031
+    "factor": 30.461,
+    "cellMedian": 16950,
+    "cellN": 19719
    }
   },
   {
@@ -14704,7 +15031,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "73",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -14736,17 +15064,6 @@
    "expected": {
     "fair": 137400,
     "offerType": "U"
-   }
-  },
-  {
-   "listingId": "1262daf0-8bed-7535-2280-eaf2890741fc",
-   "anomaly": "OUTLIER_M2_LOW",
-   "expected": {
-    "method": "M2",
-    "injected": 8693,
-    "fair": 24950,
-    "factor": 0.348,
-    "cell": 41
    }
   },
   {
@@ -14797,7 +15114,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "45",
-    "injected": "04"
+    "injected": "04",
+    "flagExpected": true
    }
   },
   {
@@ -14856,17 +15174,6 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 5414
-   }
-  },
-  {
-   "listingId": "ddc58867-1042-2ea5-310c-1ff9bb6f5c46",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 62700,
-    "injected": 900,
-    "form": "b",
-    "ageMonths": 90
    }
   },
   {
@@ -14975,7 +15282,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "FR"
+    "injected": "FR",
+    "flagExpected": false
    }
   },
   {
@@ -14991,9 +15299,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1066095,
+    "injected": 308388,
     "fair": 17990,
-    "factor": 59.26
+    "factor": 17.142,
+    "cellMedian": 13900,
+    "cellN": 96
    }
   },
   {
@@ -15010,7 +15320,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "84",
-    "injected": "07"
+    "injected": "07",
+    "flagExpected": true
    }
   },
   {
@@ -15037,9 +15348,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 43400,
-    "injected": 1506700,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 51
+    "ageMonths": 51,
+    "perYearKm": 341176
    }
   },
   {
@@ -15064,7 +15376,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "60",
-    "injected": "05"
+    "injected": "05",
+    "flagExpected": true
    }
   },
   {
@@ -15114,7 +15427,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "98",
-    "injected": "08"
+    "injected": "08",
+    "flagExpected": true
    }
   },
   {
@@ -15138,17 +15452,6 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 18357
-   }
-  },
-  {
-   "listingId": "37d1f64d-7f6b-5dce-c6fb-034eaa359eb3",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 154800,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 89
    }
   },
   {
@@ -15208,23 +15511,13 @@
    }
   },
   {
-   "listingId": "8605e88f-4a98-973c-3064-c9ec6ab2b8f8",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 268900,
-    "injected": 900,
-    "form": "b",
-    "ageMonths": 246
-   }
-  },
-  {
    "listingId": "33876ec0-28c6-1a4e-67e3-494d55f41bb0",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "FR"
+    "injected": "FR",
+    "flagExpected": false
    }
   },
   {
@@ -15242,7 +15535,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "32",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -15255,12 +15549,14 @@
   },
   {
    "listingId": "0203dcba-703e-e7b7-c6a2-8ba97e32c717",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 274,
+    "injected": 272135,
     "fair": 14950,
-    "factor": 0.018
+    "factor": 18.203,
+    "cellMedian": 13900,
+    "cellN": 96
    }
   },
   {
@@ -15428,7 +15724,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "29",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -15466,19 +15763,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 4711,
+    "injected": 3065,
     "fair": 11950,
-    "factor": 0.394,
-    "cell": 150
-   }
-  },
-  {
-   "listingId": "95dae079-759d-8257-13eb-12b532701c32",
-   "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
-   "detail": "branche EX-DATA-10 (repli creation vers recherche)",
-   "expected": {
-    "fair": "2",
-    "branch": "EX-DATA-10"
+    "factor": 0.256,
+    "robustSigma": 0.303,
+    "zTarget": -3.4,
+    "cell": 149
    }
   },
   {
@@ -15494,14 +15784,6 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 18498
-   }
-  },
-  {
-   "listingId": "bc1a98db-f312-fa45-c655-81bcb4c2de2b",
-   "anomaly": "PRICE_ON_REQUEST",
-   "expected": {
-    "status": "ON_REQUEST",
-    "fair": 8946
    }
   },
   {
@@ -15598,17 +15880,6 @@
    }
   },
   {
-   "listingId": "4dd2b9f0-3339-ad7d-37fe-66c54ae6f62e",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 260000,
-    "injected": 600,
-    "form": "b",
-    "ageMonths": 191
-   }
-  },
-  {
    "listingId": "8b3269c9-94f7-a924-5c12-bcaf98effb12",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -15681,12 +15952,14 @@
   },
   {
    "listingId": "695104b1-3fed-70b7-c7a0-7ed3dafdc639",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 393,
+    "injected": 686507,
     "fair": 19990,
-    "factor": 0.02
+    "factor": 34.343,
+    "cellMedian": 34325,
+    "cellN": 26
    }
   },
   {
@@ -15718,7 +15991,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "71",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
    }
   },
   {
@@ -15832,9 +16106,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 3271,
+    "injected": 3318,
     "fair": 9127,
-    "factor": 0.358,
+    "factor": 0.364,
+    "robustSigma": 0.323,
+    "zTarget": -3.4,
     "cell": 38
    }
   },
@@ -15859,9 +16135,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 2849871,
+    "injected": 469083,
     "fair": 7990,
-    "factor": 356.68
+    "factor": 58.709,
+    "cellMedian": 10990,
+    "cellN": 26
    }
   },
   {
@@ -15885,9 +16163,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 965408,
+    "injected": 299318,
     "fair": 5000,
-    "factor": 193.082
+    "factor": 59.864,
+    "cellMedian": 16950,
+    "cellN": 19719
    }
   },
   {
@@ -15911,10 +16191,12 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 14440,
+    "injected": 7612,
     "fair": 41900,
-    "factor": 0.345,
-    "cell": 31
+    "factor": 0.182,
+    "robustSigma": 0.297,
+    "zTarget": -3.4,
+    "cell": 30
    }
   },
   {
@@ -15930,9 +16212,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 2803,
+    "injected": 3698,
     "fair": 7900,
-    "factor": 0.355,
+    "factor": 0.468,
+    "robustSigma": 0.24,
+    "zTarget": -3.4,
     "cell": 49
    }
   },
@@ -15993,7 +16277,8 @@
     "fair": 60000,
     "injected": 1191500,
     "form": "a",
-    "ageMonths": 41
+    "ageMonths": 41,
+    "perYearKm": 348732
    }
   },
   {
@@ -16025,9 +16310,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 270,
+    "injected": 2503,
     "fair": 41990,
-    "factor": 0.006
+    "factor": 0.06,
+    "cellMedian": 20312,
+    "cellN": 49
    }
   },
   {
@@ -16052,7 +16339,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "45",
-    "injected": "02"
+    "injected": "02",
+    "flagExpected": true
    }
   },
   {
@@ -16078,7 +16366,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "10",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -16095,7 +16384,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "FR"
+    "injected": "FR",
+    "flagExpected": false
    }
   },
   {
@@ -16175,17 +16465,6 @@
    }
   },
   {
-   "listingId": "8c9b2047-b7bf-5e66-75c0-15ce3bfab284",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 204200,
-    "injected": 200,
-    "form": "b",
-    "ageMonths": 158
-   }
-  },
-  {
    "listingId": "6aed2f68-5c3a-0397-8c6a-5845452a8ad8",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -16239,7 +16518,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "10",
-    "injected": "06"
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -16269,6 +16549,18 @@
    }
   },
   {
+   "listingId": "45aa05af-c4f2-547e-a5da-a4f263984c77",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 37000,
+    "injected": 1382100,
+    "form": "a",
+    "ageMonths": 49,
+    "perYearKm": 338473
+   }
+  },
+  {
    "listingId": "645634a1-5b91-914f-b24f-f548205d1d0d",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
@@ -16281,9 +16573,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1657746,
+    "injected": 373379,
     "fair": 110237,
-    "factor": 15.038
+    "factor": 3.387,
+    "cellMedian": 55950,
+    "cellN": 22
    }
   },
   {
@@ -16316,7 +16610,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "97",
-    "injected": "00"
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -16514,9 +16809,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 627900,
+    "injected": 268913,
     "fair": 38990,
-    "factor": 16.104
+    "factor": 6.897,
+    "cellMedian": 23610,
+    "cellN": 17
    }
   },
   {
@@ -16543,13 +16840,27 @@
    }
   },
   {
+   "listingId": "7bf7ac52-90c9-8505-37bb-4b1cb04542e7",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 59100,
+    "injected": 1351900,
+    "form": "a",
+    "ageMonths": 52,
+    "perYearKm": 311977
+   }
+  },
+  {
    "listingId": "fef24a7e-81f8-3496-7b0e-d2483ec8d070",
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 473,
+    "injected": 3886,
     "fair": 35990,
-    "factor": 0.013
+    "factor": 0.108,
+    "cellMedian": 34000,
+    "cellN": 13
    }
   },
   {
@@ -16634,6 +16945,18 @@
    }
   },
   {
+   "listingId": "bfcb8e9c-578c-3d22-22b3-045e524fe746",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 61100,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 72,
+    "perYearKm": 241667
+   }
+  },
+  {
    "listingId": "2c3dbdc0-ecd8-92e8-eba8-6caf8524b306",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -16670,9 +16993,11 @@
    "anomaly": "OUTLIER_M2_LOW",
    "expected": {
     "method": "M2",
-    "injected": 3516,
+    "injected": 6938,
     "fair": 11000,
-    "factor": 0.32,
+    "factor": 0.631,
+    "robustSigma": 0.379,
+    "zTarget": -3.4,
     "cell": 31
    }
   },
@@ -16681,6 +17006,14 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 1807
+   }
+  },
+  {
+   "listingId": "906e4654-e991-13ee-58e2-8d7130970ed1",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
    }
   },
   {
@@ -16728,7 +17061,8 @@
    "listingId": "c1d4f367-4210-513b-2f51-d69c806f24cc",
    "anomaly": "PRICE_ON_REQUEST_WITH_AMOUNT",
    "expected": {
-    "status": "ON_REQUEST",
+    "status": "QUOTED",
+    "flag": "PRICE_ON_REQUEST_WITH_AMOUNT",
     "amount": 65950
    }
   },
@@ -16761,7 +17095,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "33",
-    "injected": "06"
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -16891,12 +17226,14 @@
   },
   {
    "listingId": "fe2bfb24-49ae-93af-e1c1-9fd464dd8347",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 384,
+    "injected": 384202,
     "fair": 13990,
-    "factor": 0.027
+    "factor": 27.463,
+    "cellMedian": 16950,
+    "cellN": 19719
    }
   },
   {
@@ -16923,7 +17260,8 @@
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "FR"
+    "injected": "FR",
+    "flagExpected": false
    }
   },
   {
@@ -16947,10 +17285,12 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 70354,
+    "injected": 91557,
     "fair": 22500,
-    "factor": 3.127,
-    "cell": 54
+    "factor": 4.069,
+    "robustSigma": 0.354,
+    "zTarget": 3.4,
+    "cell": 55
    }
   },
   {
@@ -16993,18 +17333,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "59",
-    "injected": "00"
-   }
-  },
-  {
-   "listingId": "841d0060-e04b-cc39-4d25-8c99c8d9b398",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 159900,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 103
+    "injected": "00",
+    "flagExpected": true
    }
   },
   {
@@ -17053,7 +17383,20 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "84",
-    "injected": "09"
+    "injected": "09",
+    "flagExpected": true
+   }
+  },
+  {
+   "listingId": "c7265e97-ef5f-b0e4-92c6-c333c875f5ed",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 64100,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 55,
+    "perYearKm": 316364
    }
   },
   {
@@ -17317,23 +17660,13 @@
    }
   },
   {
-   "listingId": "c991f44f-8b96-e3af-585a-12d368388f10",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 155600,
-    "injected": 300,
-    "form": "b",
-    "ageMonths": 123
-   }
-  },
-  {
    "listingId": "72fd4580-656e-40e2-5d40-7e92429b3aea",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "pays hors marche",
    "expected": {
     "fair": "BE",
-    "injected": "LU"
+    "injected": "LU",
+    "flagExpected": false
    }
   },
   {
@@ -17350,7 +17683,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "57",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -17387,17 +17721,6 @@
    }
   },
   {
-   "listingId": "24d67bec-6736-3cd7-0703-e8e40ef904e2",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 132300,
-    "injected": 1672400,
-    "form": "a",
-    "ageMonths": 74
-   }
-  },
-  {
    "listingId": "d314bf92-76a8-1b11-3454-be94af96a818",
    "anomaly": "OTHER",
    "detail": "annonce incomplete : au moins 6 champs optionnels absents",
@@ -17419,7 +17742,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "64",
-    "injected": "03"
+    "injected": "03",
+    "flagExpected": true
    }
   },
   {
@@ -17459,9 +17783,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1928990,
+    "injected": 386124,
     "fair": 22000,
-    "factor": 87.681
+    "factor": 17.551,
+    "cellMedian": 25950,
+    "cellN": 28
    }
   },
   {
@@ -17502,6 +17828,18 @@
    "expected": {
     "status": "ON_REQUEST",
     "fair": 32552
+   }
+  },
+  {
+   "listingId": "878fd5c7-d276-6151-d290-540c4556dffd",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 37200,
+    "injected": 1148800,
+    "form": "a",
+    "ageMonths": 45,
+    "perYearKm": 306347
    }
   },
   {
@@ -17706,6 +18044,15 @@
    }
   },
   {
+   "listingId": "d19e35bf-dab9-ef2e-8cca-d4bebebbbf18",
+   "anomaly": "HYBRID_CATEGORY_UNRESOLVED",
+   "detail": "branche EX-DATA-11 (hybride non resolu)",
+   "expected": {
+    "fair": "2",
+    "branch": "EX-DATA-11"
+   }
+  },
+  {
    "listingId": "c31bc9e8-54fd-7738-e1e5-5f82de41892e",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -17744,9 +18091,11 @@
    "anomaly": "OUTLIER_M2_HIGH",
    "expected": {
     "method": "M2",
-    "injected": 49682,
+    "injected": 50496,
     "fair": 16990,
-    "factor": 2.924,
+    "factor": 2.972,
+    "robustSigma": 0.251,
+    "zTarget": 3.4,
     "cell": 32
    }
   },
@@ -17790,9 +18139,11 @@
    "anomaly": "OUTLIER_M1_LOW",
    "expected": {
     "method": "M1",
-    "injected": 265,
+    "injected": 7140,
     "fair": 120000,
-    "factor": 0.002
+    "factor": 0.06,
+    "cellMedian": 59759,
+    "cellN": 58
    }
   },
   {
@@ -17942,20 +18293,13 @@
    }
   },
   {
-   "listingId": "98d34595-25ad-74c4-cc57-848b5536b12f",
-   "anomaly": "VERSION_FULLY_STRIPPED",
-   "expected": {
-    "fair": "1.7 dCi Style",
-    "injected": "... ..."
-   }
-  },
-  {
    "listingId": "4df1fe1f-2175-8ec9-bb46-61980714af40",
    "anomaly": "REGION_UNRESOLVED",
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "83",
-    "injected": "06"
+    "injected": "06",
+    "flagExpected": true
    }
   },
   {
@@ -17984,17 +18328,6 @@
     "fair": "1.0 Hybrid Elegance",
     "injected": "1.0 Hybrid Elegance Clio",
     "form": "a"
-   }
-  },
-  {
-   "listingId": "9c641a7e-9aee-21ea-5c77-ed8307760d06",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (b) kilometrage trop faible pour l age",
-   "expected": {
-    "fair": 277500,
-    "injected": 300,
-    "form": "b",
-    "ageMonths": 165
    }
   },
   {
@@ -18193,17 +18526,6 @@
    }
   },
   {
-   "listingId": "cba41a04-bd49-d0a2-f63e-5b6d94fa4e93",
-   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
-   "detail": "forme (a) rythme annuel hors borne",
-   "expected": {
-    "fair": 107000,
-    "injected": 1900000,
-    "form": "a",
-    "ageMonths": 136
-   }
-  },
-  {
    "listingId": "330338e9-3a87-446b-2b7a-92c2db5487d5",
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
@@ -18224,9 +18546,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 147000,
-    "injected": 1782400,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 62
+    "ageMonths": 62,
+    "perYearKm": 280645
    }
   },
   {
@@ -18249,6 +18572,18 @@
    "anomaly": "MODEL_UNRESOLVED",
    "expected": {
     "fair": 16562
+   }
+  },
+  {
+   "listingId": "5416a5ef-f99f-8df4-789a-7211815cc910",
+   "anomaly": "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+   "detail": "forme (a) rythme annuel hors borne",
+   "expected": {
+    "fair": 42600,
+    "injected": 1450000,
+    "form": "a",
+    "ageMonths": 64,
+    "perYearKm": 271875
    }
   },
   {
@@ -18300,6 +18635,14 @@
    }
   },
   {
+   "listingId": "ded6de98-5904-d5f8-3870-4aa09fa2ffe5",
+   "anomaly": "HYBRID_INCONSISTENT",
+   "expected": {
+    "fuelCategory": "B",
+    "isPluginHybrid": true
+   }
+  },
+  {
    "listingId": "9bc24e34-b757-9b84-8789-89d79d1441f5",
    "anomaly": "PRICE_ON_REQUEST",
    "expected": {
@@ -18320,9 +18663,10 @@
    "detail": "forme (a) rythme annuel hors borne",
    "expected": {
     "fair": 65600,
-    "injected": 1461200,
+    "injected": 1450000,
     "form": "a",
-    "ageMonths": 53
+    "ageMonths": 53,
+    "perYearKm": 328302
    }
   },
   {
@@ -18331,7 +18675,8 @@
    "detail": "prefixe postal non resolu",
    "expected": {
     "fair": "90",
-    "injected": "01"
+    "injected": "01",
+    "flagExpected": true
    }
   },
   {
@@ -18368,12 +18713,14 @@
   },
   {
    "listingId": "26d86464-39b8-337d-0790-97769448eebb",
-   "anomaly": "OUTLIER_M1_LOW",
+   "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 339,
+    "injected": 338576,
     "fair": 49000,
-    "factor": 0.007
+    "factor": 6.91,
+    "cellMedian": 16950,
+    "cellN": 19719
    }
   },
   {
@@ -18457,9 +18804,11 @@
    "anomaly": "OUTLIER_M1_HIGH",
    "expected": {
     "method": "M1",
-    "injected": 1172636,
+    "injected": 317986,
     "fair": 16990,
-    "factor": 69.019
+    "factor": 18.716,
+    "cellMedian": 16950,
+    "cellN": 19719
    }
   },
   {
@@ -18545,20 +18894,6 @@
    }
   },
   {
-   "listingId": "0260b2c9-4f9d-4625-77d8-2c1282d36210",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "76cb8bc9-c753-5069-80fe-568e1398f25d",
-   "expected": {
-    "price": 15000,
-    "peerPrice": 16000,
-    "mileage": 46200,
-    "peerMileage": 45900,
-    "dealerBucket": "55b84c71",
-    "peerDealerBucket": "c7c3b741"
-   }
-  },
-  {
    "listingId": "5ae287d8-7c45-3ef1-d82e-9abc960afffa",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -18570,17 +18905,6 @@
     "peerMileage": 197400,
     "dealerBucket": "83389a46",
     "peerDealerBucket": "c7c3b741"
-   }
-  },
-  {
-   "listingId": "21204835-f5bb-7e24-da5d-0449a92f56a5",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "cd2afd0d-8a5d-7556-d72c-9b991e771faa",
-   "expected": {
-    "dealerBucket": "7c964a7b",
-    "price": 6990,
-    "peerPrice": 6990
    }
   },
   {
@@ -18620,17 +18944,6 @@
    }
   },
   {
-   "listingId": "b5b3c690-28a0-06cb-146c-380f32b853ee",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "8945ae25-330f-0da1-c2ae-0660247cbb98",
-   "expected": {
-    "dealerBucket": "7c964a7b",
-    "price": 19000,
-    "peerPrice": 20000
-   }
-  },
-  {
    "listingId": "a9ffd15b-ba53-330e-edcb-6d2637c7d148",
    "anomaly": "DUPLICATE_VALUE_CONFLICT",
    "detail": "republication intra-vendeur, prix different",
@@ -18639,20 +18952,6 @@
     "dealerBucket": "3df51de8",
     "price": 6990,
     "peerPrice": 6990
-   }
-  },
-  {
-   "listingId": "f03faa0c-80ea-96c4-db35-5c89afd4efef",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "2c5d1308-89c5-fbad-a686-65c95fe930ec",
-   "expected": {
-    "price": 10990,
-    "peerPrice": 11990,
-    "mileage": 160000,
-    "peerMileage": 160000,
-    "dealerBucket": "a9d7639e",
-    "peerDealerBucket": "3df51de8"
    }
   },
   {
@@ -18729,20 +19028,6 @@
    }
   },
   {
-   "listingId": "0e763d91-8ba9-af7f-7ea6-4cbd4ca4d946",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "86910eb7-c623-8f01-a994-1c223b9c8366",
-   "expected": {
-    "price": 3950,
-    "peerPrice": 3950,
-    "mileage": 320500,
-    "peerMileage": 320300,
-    "dealerBucket": "3e07e0a1",
-    "peerDealerBucket": "1ecd7477"
-   }
-  },
-  {
    "listingId": "95ba9e1d-7fd6-ac15-e5ea-49344880d5ee",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -18753,34 +19038,6 @@
     "mileage": 102200,
     "peerMileage": 102100,
     "dealerBucket": "8d15126b",
-    "peerDealerBucket": "3901bd49"
-   }
-  },
-  {
-   "listingId": "d4560da3-04d3-8d53-3364-b916ef46a493",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "8b6417c7-3bf9-00ec-971c-826f64e4db29",
-   "expected": {
-    "price": 9990,
-    "peerPrice": 9990,
-    "mileage": 236100,
-    "peerMileage": 235800,
-    "dealerBucket": "62554db0",
-    "peerDealerBucket": "3901bd49"
-   }
-  },
-  {
-   "listingId": "df604810-3b25-76b8-2e17-b0aa4fd7afb3",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "3b4de4aa-84e7-fe65-ccaf-8be9cf5f62ac",
-   "expected": {
-    "price": 20817,
-    "peerPrice": 22401,
-    "mileage": 63000,
-    "peerMileage": 62600,
-    "dealerBucket": "73968bb2",
     "peerDealerBucket": "3901bd49"
    }
   },
@@ -18812,29 +19069,6 @@
    "anomaly": "DUPLICATE_LISTING_ID",
    "detail": "identifiant ecrit deux fois dans le fichier",
    "peerListingId": "663634f3-bd0d-92c1-9464-450779b5595b",
-   "expected": {
-    "occurrences": 2
-   }
-  },
-  {
-   "listingId": "898d7fcf-e1ab-e84f-a158-1cc57e4f2c02",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "1c66992c-bb5b-dc23-a5e5-c7aa74886832",
-   "expected": {
-    "price": 83900,
-    "peerPrice": 76900,
-    "mileage": 17400,
-    "peerMileage": 17200,
-    "dealerBucket": "19e47daa",
-    "peerDealerBucket": "d24efd89"
-   }
-  },
-  {
-   "listingId": "4f124e47-3ca3-f723-1c4a-ad186991d567",
-   "anomaly": "DUPLICATE_LISTING_ID",
-   "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "4f124e47-3ca3-f723-1c4a-ad186991d567",
    "expected": {
     "occurrences": 2
    }
@@ -18938,34 +19172,6 @@
    }
   },
   {
-   "listingId": "72377579-9cd8-fa81-1473-84f0febe0b51",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "b217b062-6470-9102-d4eb-27394288c733",
-   "expected": {
-    "price": 16900,
-    "peerPrice": 16900,
-    "mileage": 72700,
-    "peerMileage": 72500,
-    "dealerBucket": "a7dd150b",
-    "peerDealerBucket": "5471e5c7"
-   }
-  },
-  {
-   "listingId": "46df1713-5d40-ed5f-c60b-8e339b6e4685",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "a84c11a3-64f4-3131-e629-dd0a7da54498",
-   "expected": {
-    "price": 12990,
-    "peerPrice": 11990,
-    "mileage": 86400,
-    "peerMileage": 86300,
-    "dealerBucket": "37199a99",
-    "peerDealerBucket": "5471e5c7"
-   }
-  },
-  {
    "listingId": "4c8d06f8-fa04-d888-1a1c-c0130297aa0e",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -18994,17 +19200,6 @@
    }
   },
   {
-   "listingId": "64c8091d-acba-3d8b-92fd-e5c484747869",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "125510ec-eadc-490c-da26-050a0ccfdb63",
-   "expected": {
-    "dealerBucket": "5471e5c7",
-    "price": 29900,
-    "peerPrice": 28900
-   }
-  },
-  {
    "listingId": "89e764f4-385b-66d4-1c46-02edc18f77b0",
    "anomaly": "DUPLICATE_VALUE_CONFLICT",
    "detail": "republication intra-vendeur, prix different",
@@ -19013,20 +19208,6 @@
     "dealerBucket": "5471e5c7",
     "price": 53990,
     "peerPrice": 52990
-   }
-  },
-  {
-   "listingId": "52e0224e-5a57-d807-bd2f-1409aa50b430",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "d6238c4d-56cc-dc02-2904-1c80327a9a9c",
-   "expected": {
-    "price": 8057,
-    "peerPrice": 8240,
-    "mileage": 221500,
-    "peerMileage": 221300,
-    "dealerBucket": "c7c3b741",
-    "peerDealerBucket": "51388fcf"
    }
   },
   {
@@ -19072,31 +19253,6 @@
    }
   },
   {
-   "listingId": "f805d675-b357-9e43-7b32-ebed193857cf",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "807cae51-72c6-850e-bfaf-03063464de71",
-   "expected": {
-    "dealerBucket": "9218f24e",
-    "price": 30950,
-    "peerPrice": 31950
-   }
-  },
-  {
-   "listingId": "9fcd65aa-fa15-8fb6-b257-9ba666094b65",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "485a5473-2514-ecc1-113f-59aba8f8007a",
-   "expected": {
-    "price": 12900,
-    "peerPrice": 11900,
-    "mileage": 128200,
-    "peerMileage": 128000,
-    "dealerBucket": "4081e96e",
-    "peerDealerBucket": "9218f24e"
-   }
-  },
-  {
    "listingId": "1278b55e-9341-97af-0fe4-39319bed448d",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -19111,41 +19267,13 @@
    }
   },
   {
-   "listingId": "8a9642e5-6c63-7774-182f-bfee9a8088d3",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "1278b55e-9341-97af-0fe4-39319bed448d",
-   "expected": {
-    "price": 22000,
-    "peerPrice": 24000,
-    "mileage": 140300,
-    "peerMileage": 139900,
-    "dealerBucket": "9218f24e",
-    "peerDealerBucket": "bee99613"
-   }
-  },
-  {
-   "listingId": "1c0784d2-c553-ca07-7a1d-56984ef3c57d",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "7899ffec-549a-e26a-7275-b8173540517e",
-   "expected": {
-    "price": 31760,
-    "peerPrice": 29397,
-    "mileage": 53000,
-    "peerMileage": 52900,
-    "dealerBucket": "9b853ce1",
-    "peerDealerBucket": "023d742f"
-   }
-  },
-  {
    "listingId": "b40261d6-766b-51ef-a6ed-a5cdb2356401",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
    "peerListingId": "952dd0e8-ab0a-82ff-57de-07ffe20f43ed",
    "expected": {
     "price": 22000,
-    "peerPrice": 273,
+    "peerPrice": 2932,
     "mileage": 111000,
     "peerMileage": 110900,
     "dealerBucket": "b17466d7",
@@ -19183,20 +19311,6 @@
     "mileage": 51500,
     "peerMileage": 51300,
     "dealerBucket": "7f0eea0c",
-    "peerDealerBucket": "44205769"
-   }
-  },
-  {
-   "listingId": "5af6e5c1-012e-6ea6-6524-c48f89f7cf40",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "eaf5e431-0398-ef26-7586-58a4c6ab2767",
-   "expected": {
-    "price": 40950,
-    "peerPrice": 41950,
-    "mileage": 63400,
-    "peerMileage": 63200,
-    "dealerBucket": "de8329e8",
     "peerDealerBucket": "44205769"
    }
   },
@@ -19248,20 +19362,6 @@
     "peerMileage": 268300,
     "dealerBucket": "21c89da1",
     "peerDealerBucket": "a7dd150b"
-   }
-  },
-  {
-   "listingId": "f10e7b3f-ab33-c1fa-fe9b-e410c0bb2175",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "c5245e92-c32c-1a90-e125-87ab8e1efad4",
-   "expected": {
-    "price": 23500,
-    "peerPrice": 21500,
-    "mileage": 124200,
-    "peerMileage": 124200,
-    "dealerBucket": "4d839380",
-    "peerDealerBucket": "b51b885e"
    }
   },
   {
@@ -19365,15 +19465,6 @@
    }
   },
   {
-   "listingId": "36768e08-b997-257f-001b-be881b8bb5ef",
-   "anomaly": "DUPLICATE_LISTING_ID",
-   "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "36768e08-b997-257f-001b-be881b8bb5ef",
-   "expected": {
-    "occurrences": 2
-   }
-  },
-  {
    "listingId": "c8da9269-468a-a5d3-c470-16e5d9f3935b",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -19424,20 +19515,6 @@
    }
   },
   {
-   "listingId": "fa528083-e320-0533-5115-4204c24ca769",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "40f8ab92-04ee-1bc7-af9f-2bec772a4327",
-   "expected": {
-    "price": 40990,
-    "peerPrice": 43990,
-    "mileage": 63900,
-    "peerMileage": 63700,
-    "dealerBucket": "15418bf6",
-    "peerDealerBucket": "506fc090"
-   }
-  },
-  {
    "listingId": "cbc379c3-a8e1-37e8-acba-01edd74f0907",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -19477,20 +19554,6 @@
     "peerMileage": 51200,
     "dealerBucket": "9d2a5517",
     "peerDealerBucket": "b086e96b"
-   }
-  },
-  {
-   "listingId": "84dd6a7d-0326-8801-929a-30e34d883c39",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "bde2e43f-d679-a9ad-5063-6d75e9bdebd7",
-   "expected": {
-    "price": 5900,
-    "peerPrice": 5900,
-    "mileage": 105500,
-    "peerMileage": 105500,
-    "dealerBucket": "3d8abf0f",
-    "peerDealerBucket": "a7dd150b"
    }
   },
   {
@@ -19536,20 +19599,6 @@
    }
   },
   {
-   "listingId": "b2c34d19-bbf5-99be-d1a5-e98fcfd1429b",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "2c1ebf88-5e47-69ea-ada1-6c4ffb0bb0cd",
-   "expected": {
-    "price": 9950,
-    "peerPrice": 8950,
-    "mileage": 81200,
-    "peerMileage": 81100,
-    "dealerBucket": "29c9b55e",
-    "peerDealerBucket": "9584d8a1"
-   }
-  },
-  {
    "listingId": "e5f266c4-ac93-ab6d-a106-214011188aad",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -19561,20 +19610,6 @@
     "peerMileage": 93300,
     "dealerBucket": "f1ed8906",
     "peerDealerBucket": "bf78395a"
-   }
-  },
-  {
-   "listingId": "8493cd9d-ad2a-bade-43bb-c06fce6ec945",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "0d15bc2d-741f-87f8-ca5e-581805f591c9",
-   "expected": {
-    "price": 41950,
-    "peerPrice": 43950,
-    "mileage": 35000,
-    "peerMileage": 34900,
-    "dealerBucket": "f0c567d4",
-    "peerDealerBucket": "5c6e360f"
    }
   },
   {
@@ -19593,31 +19628,6 @@
    "peerListingId": "d375d385-99fc-6f64-d194-dd24a8d536e5",
    "expected": {
     "occurrences": 2
-   }
-  },
-  {
-   "listingId": "a4722f8c-657c-6a26-fa3e-9d59d1cf5049",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "f5e54d97-3fc4-522c-6e8e-29016641d295",
-   "expected": {
-    "price": 1290,
-    "peerPrice": 1390,
-    "mileage": 256300,
-    "peerMileage": 256200,
-    "dealerBucket": "9aef27e1",
-    "peerDealerBucket": "15900b86"
-   }
-  },
-  {
-   "listingId": "932dd5e6-762b-1b77-51ac-e2e5c22b5426",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "da86f7e1-d414-0901-b12a-53a58b445e0f",
-   "expected": {
-    "dealerBucket": "25ea49a6",
-    "price": 18950,
-    "peerPrice": 18950
    }
   },
   {
@@ -19669,20 +19679,6 @@
    }
   },
   {
-   "listingId": "d95e6972-6553-5b0b-1f62-d58048f07b67",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "4da4124b-400e-3fa6-e379-523ddeb0bcff",
-   "expected": {
-    "price": 33000,
-    "peerPrice": 34000,
-    "mileage": 59100,
-    "peerMileage": 59000,
-    "dealerBucket": "7272d714",
-    "peerDealerBucket": "885f1d5c"
-   }
-  },
-  {
    "listingId": "0a282343-c2fb-026b-d3ec-1b5595796be5",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -19708,20 +19704,6 @@
     "peerMileage": 147900,
     "dealerBucket": "d318373a",
     "peerDealerBucket": "ee8a9489"
-   }
-  },
-  {
-   "listingId": "beeaf5f0-8d3a-6214-ef27-49bc393a2332",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "df32d6e7-5c9f-69fb-ec2c-f3ee5867f1c0",
-   "expected": {
-    "price": 28435,
-    "peerPrice": 26719,
-    "mileage": 147700,
-    "peerMileage": 147500,
-    "dealerBucket": "b34ba7cb",
-    "peerDealerBucket": "e48d6e36"
    }
   },
   {
@@ -19784,34 +19766,6 @@
    }
   },
   {
-   "listingId": "b5a447ec-616a-1a80-371f-3a035b653a4b",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "0234205c-9eab-1d32-be80-3ee983faf1dc",
-   "expected": {
-    "price": 46990,
-    "peerPrice": 50990,
-    "mileage": 34100,
-    "peerMileage": 34000,
-    "dealerBucket": "6816ef72",
-    "peerDealerBucket": "9d2a5517"
-   }
-  },
-  {
-   "listingId": "71749f29-10b0-d825-19dd-3e02ba7898f6",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "cdc6ee6e-914d-2b6e-f383-6bcf706abeb9",
-   "expected": {
-    "price": 35990,
-    "peerPrice": 36990,
-    "mileage": 53900,
-    "peerMileage": 53800,
-    "dealerBucket": "b7eb7785",
-    "peerDealerBucket": "c525a754"
-   }
-  },
-  {
    "listingId": "94cf1c9f-879c-8b26-28ec-c8ce19f14541",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -19823,20 +19777,6 @@
     "peerMileage": 323300,
     "dealerBucket": "a3425a16",
     "peerDealerBucket": "ff4e906e"
-   }
-  },
-  {
-   "listingId": "f7930587-7f97-c7fc-bc35-de15a4589194",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "bee0b77b-3326-6b26-b380-739a960ef295",
-   "expected": {
-    "price": 4950,
-    "peerPrice": 4950,
-    "mileage": 346000,
-    "peerMileage": 345800,
-    "dealerBucket": "2deed266",
-    "peerDealerBucket": "efd4cf51"
    }
   },
   {
@@ -19910,20 +19850,6 @@
    }
   },
   {
-   "listingId": "d24cd65d-1303-a6fe-75b5-dc10d6bdc764",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "115f3b44-86cf-f69c-802f-dca1604ef5c0",
-   "expected": {
-    "price": 47950,
-    "peerPrice": 51950,
-    "mileage": 65600,
-    "peerMileage": 65400,
-    "dealerBucket": "8336e218",
-    "peerDealerBucket": "50f552c8"
-   }
-  },
-  {
    "listingId": "881e8407-fa05-1432-6d53-cb27383ba4c0",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -19935,20 +19861,6 @@
     "peerMileage": 220200,
     "dealerBucket": "8336e218",
     "peerDealerBucket": "77205f86"
-   }
-  },
-  {
-   "listingId": "b5dfed4d-a4ea-35bf-16fe-8cceb7288f22",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "085c397f-6e01-095d-b61d-a14b29471017",
-   "expected": {
-    "price": 30950,
-    "peerPrice": 29950,
-    "mileage": 83300,
-    "peerMileage": 83000,
-    "dealerBucket": "885f1d5c",
-    "peerDealerBucket": "37199a99"
    }
   },
   {
@@ -19969,20 +19881,6 @@
     "dealerBucket": "a0362c9d",
     "price": 3000,
     "peerPrice": 3000
-   }
-  },
-  {
-   "listingId": "d8ce1c6b-03f3-0cd0-e78e-f899c50d6980",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "94f73acb-7a6a-c8f3-9df8-51abeb524ef9",
-   "expected": {
-    "price": 41990,
-    "peerPrice": 40990,
-    "mileage": 15700,
-    "peerMileage": 15400,
-    "dealerBucket": "9218f24e",
-    "peerDealerBucket": "c0417365"
    }
   },
   {
@@ -20007,20 +19905,6 @@
     "mileage": 168400,
     "peerMileage": 168100,
     "dealerBucket": "b25a207e",
-    "peerDealerBucket": "1ecd7477"
-   }
-  },
-  {
-   "listingId": "3b8c524d-4e8d-7d11-21fd-d671c9b8781e",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "7633580b-6ce2-6de8-2be9-ca48c9a73a6f",
-   "expected": {
-    "price": 34990,
-    "peerPrice": 35990,
-    "mileage": 149500,
-    "peerMileage": 149300,
-    "dealerBucket": "8cc6f096",
     "peerDealerBucket": "1ecd7477"
    }
   },
@@ -20061,17 +19945,6 @@
    }
   },
   {
-   "listingId": "19ffdc80-b301-06c5-9a1d-035c57f30bc5",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "b2b8277b-09e5-a87e-9d84-ad495b40d4e5",
-   "expected": {
-    "dealerBucket": "1ecd7477",
-    "price": 3990,
-    "peerPrice": 3990
-   }
-  },
-  {
    "listingId": "fa90344d-a566-069d-37a9-da1578389708",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -20083,48 +19956,6 @@
     "peerMileage": 253300,
     "dealerBucket": "21c89da1",
     "peerDealerBucket": "125e0216"
-   }
-  },
-  {
-   "listingId": "9178f4a4-406f-2b20-4468-b74736388b94",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "d612d040-2249-4a45-723f-c33c8fd78987",
-   "expected": {
-    "price": 9900,
-    "peerPrice": 9900,
-    "mileage": 60200,
-    "peerMileage": 60000,
-    "dealerBucket": "c5c6ef45",
-    "peerDealerBucket": "49b1f21b"
-   }
-  },
-  {
-   "listingId": "a19bf124-1556-232b-df6c-efa4c5ccc36e",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "9801def4-e718-6225-46e9-80b867225271",
-   "expected": {
-    "price": 12990,
-    "peerPrice": 12990,
-    "mileage": 146400,
-    "peerMileage": 146300,
-    "dealerBucket": "252e87df",
-    "peerDealerBucket": "5838b589"
-   }
-  },
-  {
-   "listingId": "ae3c4a89-9051-fa80-6f56-75013135de87",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "e6c9dba8-eff2-5245-637c-de60a6b1d62c",
-   "expected": {
-    "price": 24990,
-    "peerPrice": 25990,
-    "mileage": 105600,
-    "peerMileage": 105400,
-    "dealerBucket": "9effb1ff",
-    "peerDealerBucket": "3d8abf0f"
    }
   },
   {
@@ -20142,15 +19973,6 @@
    }
   },
   {
-   "listingId": "e1ee563e-c6f6-f783-8f0e-5d2a1c30a7e6",
-   "anomaly": "DUPLICATE_LISTING_ID",
-   "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "e1ee563e-c6f6-f783-8f0e-5d2a1c30a7e6",
-   "expected": {
-    "occurrences": 2
-   }
-  },
-  {
    "listingId": "b5d7066c-d218-686b-f87d-eca4c88af6a2",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -20162,17 +19984,6 @@
     "peerMileage": 71100,
     "dealerBucket": "fdf70e1c",
     "peerDealerBucket": "d7039a25"
-   }
-  },
-  {
-   "listingId": "1e201680-96e9-fb75-4291-8173c3f4df7a",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "b79294f9-c8ff-2909-9e80-f686b8bbf156",
-   "expected": {
-    "dealerBucket": "c7de92cc",
-    "price": 5990,
-    "peerPrice": 5990
    }
   },
   {
@@ -20269,20 +20080,6 @@
    }
   },
   {
-   "listingId": "1fd791b0-185b-0e39-9703-3d58e8bb5d62",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "e83f414e-9c59-8d40-1f8c-a50879280d59",
-   "expected": {
-    "price": 23500,
-    "peerPrice": 21500,
-    "mileage": 128100,
-    "peerMileage": 128000,
-    "dealerBucket": "851d9b4e",
-    "peerDealerBucket": "9effb1ff"
-   }
-  },
-  {
    "listingId": "4b02dbb2-2025-7dd5-53ef-2513e9fccac9",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -20294,20 +20091,6 @@
     "peerMileage": 73500,
     "dealerBucket": "e5c0f8e6",
     "peerDealerBucket": "e074fdad"
-   }
-  },
-  {
-   "listingId": "40e3e841-89d5-887d-3667-37ee656cfe77",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "ec31801a-48da-c887-4254-fc908822908c",
-   "expected": {
-    "price": 9900,
-    "peerPrice": 9900,
-    "mileage": 116100,
-    "peerMileage": 116000,
-    "dealerBucket": "da71ed46",
-    "peerDealerBucket": "b7eb7785"
    }
   },
   {
@@ -20350,20 +20133,6 @@
    }
   },
   {
-   "listingId": "9927f4ef-d429-8377-7e80-5980ff53bdc1",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "0b17fca4-f8e4-9fbd-9c2b-dac24709624e",
-   "expected": {
-    "price": 5950,
-    "peerPrice": 5950,
-    "mileage": 173300,
-    "peerMileage": 173200,
-    "dealerBucket": "33ad7e34",
-    "peerDealerBucket": "3901bd49"
-   }
-  },
-  {
    "listingId": "72771462-8e7e-3d1c-f28c-6af29108f8d0",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -20375,17 +20144,6 @@
     "peerMileage": 78600,
     "dealerBucket": "45d294d1",
     "peerDealerBucket": "3901bd49"
-   }
-  },
-  {
-   "listingId": "a29fba8b-5e2a-d1dd-5037-7132a4f8b6cf",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "b0a880af-141f-85b5-0550-38c003a2d3f8",
-   "expected": {
-    "dealerBucket": "3901bd49",
-    "price": 12990,
-    "peerPrice": 12990
    }
   },
   {
@@ -20425,29 +20183,6 @@
     "peerMileage": 97200,
     "dealerBucket": "37e93692",
     "peerDealerBucket": "98b39a62"
-   }
-  },
-  {
-   "listingId": "26878765-1477-5bf7-5ea4-78ca5e8c3904",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "2c34040a-41d7-f1ef-8ec6-b1f49832aa74",
-   "expected": {
-    "price": 56990,
-    "peerPrice": 58990,
-    "mileage": 15100,
-    "peerMileage": 14800,
-    "dealerBucket": "acb9695d",
-    "peerDealerBucket": "51967a8c"
-   }
-  },
-  {
-   "listingId": "64b9e4c0-9528-88dd-8f66-cc2a30e6f9d4",
-   "anomaly": "DUPLICATE_LISTING_ID",
-   "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "64b9e4c0-9528-88dd-8f66-cc2a30e6f9d4",
-   "expected": {
-    "occurrences": 2
    }
   },
   {
@@ -20611,16 +20346,7 @@
    "expected": {
     "dealerBucket": "ff4e906e",
     "price": 30990,
-    "peerPrice": 69112
-   }
-  },
-  {
-   "listingId": "973771b8-d364-a269-d028-84fec1a50f69",
-   "anomaly": "DUPLICATE_LISTING_ID",
-   "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "973771b8-d364-a269-d028-84fec1a50f69",
-   "expected": {
-    "occurrences": 2
+    "peerPrice": 77291
    }
   },
   {
@@ -20638,48 +20364,6 @@
    }
   },
   {
-   "listingId": "5856d258-a848-ee85-43e3-2ecea98ae92e",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "3bce58f1-ec4b-320e-1e7c-46ac9568eb58",
-   "expected": {
-    "price": 27000,
-    "peerPrice": 25000,
-    "mileage": 57900,
-    "peerMileage": 57600,
-    "dealerBucket": "736ab34e",
-    "peerDealerBucket": "da02b514"
-   }
-  },
-  {
-   "listingId": "e3bf72ec-7ea2-f58d-d84a-3b5e1ed572ff",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "feae1f24-d86f-6fe8-9171-665aee4fe0d3",
-   "expected": {
-    "price": 9500,
-    "peerPrice": 9500,
-    "mileage": 292800,
-    "peerMileage": 292600,
-    "dealerBucket": "37199a99",
-    "peerDealerBucket": "7c964a7b"
-   }
-  },
-  {
-   "listingId": "deee2e71-f583-f2ff-5174-7cb36d3dadd4",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "48aac800-c406-a460-0f3f-f7dbf5d9e096",
-   "expected": {
-    "price": 36500,
-    "peerPrice": 34500,
-    "mileage": 81800,
-    "peerMileage": 81800,
-    "dealerBucket": "8bee0b9a",
-    "peerDealerBucket": "cdee752d"
-   }
-  },
-  {
    "listingId": "6cf71dd1-79c4-b261-7a4d-bf7dbe3e5b61",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -20690,20 +20374,6 @@
     "mileage": 270300,
     "peerMileage": 270300,
     "dealerBucket": "94493d99",
-    "peerDealerBucket": "cdee752d"
-   }
-  },
-  {
-   "listingId": "6dc5ec49-5238-91c2-aab6-b6e6b78133b9",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "b730d26d-bec7-51c6-20c4-6a17c150fa7d",
-   "expected": {
-    "price": 53950,
-    "peerPrice": 58950,
-    "mileage": 117700,
-    "peerMileage": 117600,
-    "dealerBucket": "6e16222b",
     "peerDealerBucket": "cdee752d"
    }
   },
@@ -20719,28 +20389,6 @@
     "peerMileage": 56500,
     "dealerBucket": "68ba4cfc",
     "peerDealerBucket": "e48d6e36"
-   }
-  },
-  {
-   "listingId": "df521d66-cce8-361e-cad3-c8ce08449b74",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "f90b2766-e0a5-ea8f-3fca-1f3fb1236ded",
-   "expected": {
-    "dealerBucket": "e48d6e36",
-    "price": 17990,
-    "peerPrice": 17990
-   }
-  },
-  {
-   "listingId": "740b06eb-174b-ebec-f0b3-a64d142ca3e7",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "7ec9d397-331e-532a-1437-d5833d62141d",
-   "expected": {
-    "dealerBucket": "e48d6e36",
-    "price": 6818,
-    "peerPrice": 6673
    }
   },
   {
@@ -20786,20 +20434,6 @@
    }
   },
   {
-   "listingId": "1f59103a-aedd-55e6-da45-f62a9c8cf85d",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "ac0aabd7-1ec6-9211-6b50-42e7e4519390",
-   "expected": {
-    "price": 5945,
-    "peerPrice": 5545,
-    "mileage": 144800,
-    "peerMileage": 144400,
-    "dealerBucket": "ff755b26",
-    "peerDealerBucket": "a9d7639e"
-   }
-  },
-  {
    "listingId": "7ff87c32-207e-d29d-5858-5aef8e755ad8",
    "anomaly": "DUPLICATE_VALUE_CONFLICT",
    "detail": "republication intra-vendeur, prix different",
@@ -20808,20 +20442,6 @@
     "dealerBucket": "d0ebfe4f",
     "price": 5950,
     "peerPrice": 5950
-   }
-  },
-  {
-   "listingId": "d59e084f-7f43-b7ae-5215-8befb7bbaec1",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "a878fedc-1207-ac78-59bc-0dff922579ed",
-   "expected": {
-    "price": 6950,
-    "peerPrice": 7950,
-    "mileage": 182300,
-    "peerMileage": 182100,
-    "dealerBucket": "95c09c54",
-    "peerDealerBucket": "1c25466c"
    }
   },
   {
@@ -20836,15 +20456,6 @@
     "peerMileage": 43400,
     "dealerBucket": "aa73d1e7",
     "peerDealerBucket": "015d4842"
-   }
-  },
-  {
-   "listingId": "6cc657d1-6473-2b5d-f6c2-5654235fee06",
-   "anomaly": "DUPLICATE_LISTING_ID",
-   "detail": "identifiant ecrit deux fois dans le fichier",
-   "peerListingId": "6cc657d1-6473-2b5d-f6c2-5654235fee06",
-   "expected": {
-    "occurrences": 2
    }
   },
   {
@@ -20887,31 +20498,6 @@
     "peerMileage": 108500,
     "dealerBucket": "377a36cb",
     "peerDealerBucket": "975015c6"
-   }
-  },
-  {
-   "listingId": "e46a46c9-88c8-518e-9649-f75dd197b29c",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "b1bcf960-a056-2849-f62a-f42b9f2f4c7c",
-   "expected": {
-    "dealerBucket": "7272d714",
-    "price": 12059,
-    "peerPrice": 11755
-   }
-  },
-  {
-   "listingId": "f0007821-c426-5d79-7fec-edfc907f3c03",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "501514e2-e12d-6124-bdd2-8a5b9605a294",
-   "expected": {
-    "price": 12990,
-    "peerPrice": 12990,
-    "mileage": 95700,
-    "peerMileage": 95600,
-    "dealerBucket": "1ce82bc0",
-    "peerDealerBucket": "89ed685b"
    }
   },
   {
@@ -20968,34 +20554,6 @@
    }
   },
   {
-   "listingId": "c243d88b-9b20-cb69-542d-7338e9aa99a5",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "4d055dca-b9be-ddd8-8de0-036f0c04a05c",
-   "expected": {
-    "price": 19910,
-    "peerPrice": 21355,
-    "mileage": 175900,
-    "peerMileage": 175700,
-    "dealerBucket": "31473e90",
-    "peerDealerBucket": "49b1f21b"
-   }
-  },
-  {
-   "listingId": "a37f9138-7d6e-afa7-6d87-94d373569607",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "c1c9f5d8-2e27-12c8-2e51-ec5698b04ed9",
-   "expected": {
-    "price": 44900,
-    "peerPrice": 14440,
-    "mileage": 42100,
-    "peerMileage": 41900,
-    "dealerBucket": "1cf6944c",
-    "peerDealerBucket": "49b1f21b"
-   }
-  },
-  {
    "listingId": "2dc04d56-8ed2-eca6-106e-31fbf6bfeb86",
    "anomaly": "DUPLICATE_LISTING_ID",
    "detail": "identifiant ecrit deux fois dans le fichier",
@@ -21016,17 +20574,6 @@
     "peerMileage": 93700,
     "dealerBucket": "023d742f",
     "peerDealerBucket": "51388fcf"
-   }
-  },
-  {
-   "listingId": "61b6e9a9-4872-2eee-423c-464823e0324b",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "1b970e24-3c4d-a47a-5cca-408286e6430a",
-   "expected": {
-    "dealerBucket": "51388fcf",
-    "price": 16000,
-    "peerPrice": 15000
    }
   },
   {
@@ -21066,17 +20613,6 @@
    }
   },
   {
-   "listingId": "6bfe4c67-17dd-a570-5981-abf78c3c0079",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "9c962c14-d2bb-cfb3-cdfd-c1ea3bad3e44",
-   "expected": {
-    "dealerBucket": "fd72794c",
-    "price": 12950,
-    "peerPrice": 12950
-   }
-  },
-  {
    "listingId": "f6a880ae-d6fe-acd2-19d4-281487c629fd",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -21088,17 +20624,6 @@
     "peerMileage": 106800,
     "dealerBucket": "68ba4cfc",
     "peerDealerBucket": "fd72794c"
-   }
-  },
-  {
-   "listingId": "d0924c2d-9156-a92d-e490-05ca0af0c9cc",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "ac1f0965-835b-f5b9-b83c-a68167e1ae3f",
-   "expected": {
-    "dealerBucket": "517235f5",
-    "price": 3990,
-    "peerPrice": 3990
    }
   },
   {
@@ -21141,17 +20666,6 @@
     "peerMileage": 188700,
     "dealerBucket": "cd44c997",
     "peerDealerBucket": "dbb1fa3b"
-   }
-  },
-  {
-   "listingId": "ebc3ae93-89ca-943e-4df0-02e76475b8f3",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "a97718d8-df87-1a8f-80ae-18a0ca095a4a",
-   "expected": {
-    "dealerBucket": "6c3b38b4",
-    "price": 18900,
-    "peerPrice": 19900
    }
   },
   {
@@ -21208,34 +20722,6 @@
    }
   },
   {
-   "listingId": "9f0bb18b-721e-83c7-68b3-6dc042270151",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "1b61a69f-25fc-f559-bdb9-56a20a4c3ecf",
-   "expected": {
-    "price": 20000,
-    "peerPrice": 19000,
-    "mileage": 113600,
-    "peerMileage": 113500,
-    "dealerBucket": "517235f5",
-    "peerDealerBucket": "5d4407b3"
-   }
-  },
-  {
-   "listingId": "e7b8d615-f943-3974-dd9f-ee31dbab9a92",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "c95d4b86-c138-bbac-f474-486aa3082961",
-   "expected": {
-    "price": 24698,
-    "peerPrice": 22992,
-    "mileage": 100600,
-    "peerMileage": 100500,
-    "dealerBucket": "d979565b",
-    "peerDealerBucket": "5d4407b3"
-   }
-  },
-  {
    "listingId": "0f974da2-c635-4ca5-3530-af3f4b99961e",
    "anomaly": "DUPLICATE_VALUE_CONFLICT",
    "detail": "republication intra-vendeur, prix different",
@@ -21261,20 +20747,6 @@
    }
   },
   {
-   "listingId": "eb8dc068-b514-472e-fe0d-31dedea5cf8c",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "94aa271f-bb02-ede0-798e-9a06f4d1af1f",
-   "expected": {
-    "price": 9000,
-    "peerPrice": 9000,
-    "mileage": 198800,
-    "peerMileage": 198800,
-    "dealerBucket": "a69d2d69",
-    "peerDealerBucket": "d0ebfe4f"
-   }
-  },
-  {
    "listingId": "5ffe66bc-f8d8-a580-8069-99b58cd76094",
    "anomaly": "CROSS_SELLER_DUPLICATE",
    "detail": "quasi-doublon inter-vendeurs",
@@ -21286,20 +20758,6 @@
     "peerMileage": 32700,
     "dealerBucket": "af284bc6",
     "peerDealerBucket": "8d15126b"
-   }
-  },
-  {
-   "listingId": "10e2b471-2335-d48a-be63-c2d1c20752a5",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "96daa2fc-0c5d-47e0-3d8c-0f452b1321b7",
-   "expected": {
-    "price": 6990,
-    "peerPrice": 6990,
-    "mileage": 237900,
-    "peerMileage": 237500,
-    "dealerBucket": "6909875e",
-    "peerDealerBucket": "666c9bec"
    }
   },
   {
@@ -21367,45 +20825,6 @@
     "peerMileage": 175000,
     "dealerBucket": "104ea67d",
     "peerDealerBucket": "45d294d1"
-   }
-  },
-  {
-   "listingId": "8eb8ad9a-e66b-0518-aff7-2317315e556a",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "02cb1b06-b561-244f-b991-345fd0c3d089",
-   "expected": {
-    "price": 44463,
-    "peerPrice": 45457,
-    "mileage": 31600,
-    "peerMileage": 31300,
-    "dealerBucket": "47277314",
-    "peerDealerBucket": "0b441dc2"
-   }
-  },
-  {
-   "listingId": "d19e35bf-dab9-ef2e-8cca-d4bebebbbf18",
-   "anomaly": "CROSS_SELLER_DUPLICATE",
-   "detail": "quasi-doublon inter-vendeurs",
-   "peerListingId": "e91d8380-344f-2a4b-320e-1631311a7f8b",
-   "expected": {
-    "price": 23231,
-    "peerPrice": 24262,
-    "mileage": 115100,
-    "peerMileage": 115000,
-    "dealerBucket": "b086e96b",
-    "peerDealerBucket": "3df51de8"
-   }
-  },
-  {
-   "listingId": "61ce0f59-50af-3c56-929c-09239a8dcb10",
-   "anomaly": "DUPLICATE_VALUE_CONFLICT",
-   "detail": "republication intra-vendeur, prix different",
-   "peerListingId": "084705df-96a3-d237-4b0c-fd1da017e0e9",
-   "expected": {
-    "dealerBucket": "3df51de8",
-    "price": 67989,
-    "peerPrice": 70398
    }
   },
   {
@@ -21504,5 +20923,5 @@
    }
   }
  ],
- "note": "generateur kycar-dataset-gen 1.0.0, graine 1264141121, profil test. specification DATASET-SPEC.md sha256 1fe1a07fa7577538, hachage combine des 15 tables et des 2 schemas adb5a528a096d31d. identifiant de conception (profiles.json) be-fixture-test-20260907-4b594341. 2436 entrees de verite terrain sur 20000 lignes. 15 filtres non alimentes sur 53 retenus de classe enumeree ou bornee (atype financeratefrom financerateto leasingratefrom leasingrateto lsdufrom lsduto lsyeinmifrom lstagr powertype ensticker zipr ocs_listing sort desc). Parametres complets, mesures et correspondances : generation.json depose a cote."
+ "note": "generateur kycar-dataset-gen 1.0.0, graine 1264141121, profil test. specification DATASET-SPEC.md sha256 001d15659eab6567, hachage combine des 15 tables et des 2 schemas 280828cd2e015ad2. identifiant de conception (profiles.json) be-fixture-test-20260907-4b594341. 2361 entrees de verite terrain sur 20000 lignes. 15 filtres non alimentes sur 53 retenus de classe enumeree ou bornee (atype financeratefrom financerateto leasingratefrom leasingrateto lsdufrom lsduto lsyeinmifrom lstagr powertype ensticker zipr ocs_listing sort desc). Parametres complets, mesures et correspondances : generation.json depose a cote."
 }

@@ -8,95 +8,199 @@
   "name": "kycar-dataset-gen",
   "version": "1.0.0"
  },
- "specVersionSha256": "1fe1a07fa7577538e1dd3e03d23a0f722db05e0ba5a7dad9f9978eca0dd2c68d",
+ "specVersionSha256": "001d15659eab65676cd4a258784cd803fb0937bda0dda9d6f4bb6defc3179747",
  "tableSha256": {
-  "dataset-spec/profiles.json": "d47fea77bffb0a68bbf9fe5538e7a71a20c3a95196f0f96ae49746894f2f4c39",
+  "dataset-spec/profiles.json": "1dc9887ab5c9b95262c44aa0aa8df2aa2477729cddaa7aba59345f42069bb3df",
   "dataset-spec/makes.json": "298db4f2621a594f1530249f073beadbcd5db930795f03b6307a73f4ee9cf948",
   "dataset-spec/models.json": "655474d68a2ba1b86c4cd7bde47f0a20dc5c73ad9fbbb41e35928a5cdc65f594",
-  "dataset-spec/segments.json": "92e429eb4b411029c961c6d309365b9af03270e381453f66e8fb1d0d4cc06876",
+  "dataset-spec/segments.json": "0ad6bb0f25847ed24ceb36cec2190ac5faee75f297cf050975a8efd51ea05511",
   "dataset-spec/fuel-year.json": "b63e5e48f17d18b1706ac99a0b3ff8a5b922862542376735cdf25574b332ebe3",
   "dataset-spec/age-and-mileage.json": "5bae721bc076235dcfc6812728dfefca3a49be5df42bfb1450227f9ffa62e2d7",
   "dataset-spec/price-model.json": "2e3e0d8d847d9f5b6f86c774009e1fa03e551d1f0c9057b516d28c30f2b5b2aa",
   "dataset-spec/emissions.json": "bb304eee60abbeb189d157e48ce61be5d2852bd61fbf3966dbf8d88be401ffef",
   "dataset-spec/sellers.json": "dc34dba12547eb8185c997b7d7aada778ea4051c6da25dfe20a7cdcb145e9a9c",
   "dataset-spec/geography.json": "4d9d9124ccc448ba4f209dd4b2664a276e61aeec489665984b61008bb5ba7742",
-  "dataset-spec/missingness.json": "c41f1c3c377a0db8c7222b07df48229ef0ce3ed026d85349d1f76589428ddde9",
+  "dataset-spec/missingness.json": "5823a14c66579205206b75a7b2bd8383f5efeb0a6bf9958bc2472836f0699de7",
   "dataset-spec/equipment.json": "e16e8b829cb2c358f62ee20274a4fa51dd30772b9bc40e71cb8e7c58a75db400",
-  "dataset-spec/snapshot-dynamics.json": "cb5ca39fb5a0b2a4ac94bd4db5753daffae365960156005d5778aceec128701e",
-  "dataset-spec/anomalies.json": "00fa8499d838b850ae1c56a3203bf9e271746c673763d555a7d18545b9fa7a7f",
-  "dataset-spec/probes.json": "3ab4f2831369f7ec34ac35927ad9d4537bc42ffc2ae230a9b228cf4b07d02ba7",
+  "dataset-spec/snapshot-dynamics.json": "52151bf81f447dc518747dbd9f2b69226a147f114080c4580a9bf201848b29f6",
+  "dataset-spec/anomalies.json": "bfe0ca859796e644d131b9b40458070d2f78ae43f250cc199c199e94b6494a98",
+  "dataset-spec/probes.json": "c6e4a326bd4b4098a2496ee4aaaf6ab7a0eed5fb8aa9e46708cee73c2f9ab478",
   "reference/taxonomy.json": "441ef614f5d6784496e6d71f29d018f8dd381a7bf07015ea3069cd0ef66d84b9",
   "reference/filters-scope.json": "bcbcfdb93ede61b2046bc91c4eeabea8606222471853a1ad118a2036b7dfb0ed",
-  "schema/as24-listing.schema.json": "a946cabc00fa445fb3c1f2589e201ea0b9806e4b838f79b57540b290418035b5",
+  "schema/as24-listing.schema.json": "3539259b0aec3b8b816398777f4a084462a19031b4980ecaf8939bc35569ad94",
   "schema/snapshot-manifest.schema.json": "575807e90e2ff7b89c28e76bc2a948a527c93c99f85eb0ebf4e5fcc569ed0e15",
-  "DATASET-SPEC.md": "1fe1a07fa7577538e1dd3e03d23a0f722db05e0ba5a7dad9f9978eca0dd2c68d"
+  "DATASET-SPEC.md": "001d15659eab65676cd4a258784cd803fb0937bda0dda9d6f4bb6defc3179747"
  },
- "combinedSha256": "adb5a528a096d31d1786fe4c6a8acfec534925e01de09c4b9b025cba21f7f82e",
+ "combinedSha256": "280828cd2e015ad26afcd48569ab122823fa886efd15792b932fe98f5c2a54b2",
  "schemaValidator": "ajv 8.20.0",
- "missingnessNormalizer": 0.5633133389989206,
+ "missingnessNormalizer": 0.5632821791817701,
  "apportionment": {
   "movedForPresenceFloor": 0
  },
  "anomalyTargets": {
-  "A-01": 20,
-  "A-02": 4,
-  "A-03": 50,
-  "A-04": 60,
-  "A-04b": 6,
-  "A-05": 16,
-  "A-07": 20,
-  "A-07b": 50,
-  "A-08": 160,
-  "A-09": 80,
-  "A-09b": 220,
-  "A-10": 50,
-  "A-11": 70,
-  "A-12": 400,
-  "A-13": 10,
-  "A-13b": 12,
-  "A-14": 24,
-  "A-15": 16,
-  "A-16": 20,
-  "A-17": 90,
-  "A-19": 10,
-  "A-20": 8,
-  "A-21": 80,
-  "A-22": 240,
-  "A-23": 600,
-  "A-24": 120
+  "A-01": {
+   "base": "annonces a prix affiche",
+   "baseCount": 19272,
+   "target": 19
+  },
+  "A-02": {
+   "base": "annonces a prix affiche",
+   "baseCount": 19272,
+   "target": 4
+  },
+  "A-03": {
+   "base": "annonces d'offerType U, J ou O",
+   "baseCount": 19964,
+   "target": 50
+  },
+  "A-04": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 60
+  },
+  "A-04b": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 8
+  },
+  "A-05": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 16
+  },
+  "A-07": {
+   "base": "annonces professionnelles",
+   "baseCount": 13735,
+   "target": 14
+  },
+  "A-07b": {
+   "base": "annonces professionnelles",
+   "baseCount": 13735,
+   "target": 34
+  },
+  "A-08": {
+   "base": "annonces professionnelles",
+   "baseCount": 13735,
+   "target": 110
+  },
+  "A-09": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 80
+  },
+  "A-09b": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 220
+  },
+  "A-10": {
+   "base": "annonces a prix affiche",
+   "baseCount": 19272,
+   "target": 48
+  },
+  "A-11": {
+   "base": "annonces a prix affiche de cellules (make, model) a |F| >= 30",
+   "baseCount": 19272,
+   "target": 67
+  },
+  "A-12": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 400
+  },
+  "A-13": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 12
+  },
+  "A-13b": {
+   "base": "annonces portant powerHp",
+   "baseCount": 19201,
+   "target": 12
+  },
+  "A-14": {
+   "base": "annonces thermiques",
+   "baseCount": 19111,
+   "target": 23
+  },
+  "A-15": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 16
+  },
+  "A-16": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 20
+  },
+  "A-17": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 90
+  },
+  "A-19": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 10
+  },
+  "A-20": {
+   "base": "annonces a prix sur demande",
+   "baseCount": 608,
+   "target": 8
+  },
+  "A-21": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 80
+  },
+  "A-22": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 240
+  },
+  "A-23": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 600
+  },
+  "A-24": {
+   "base": "toutes",
+   "baseCount": 20000,
+   "target": 120
+  }
  },
  "groundTruthByCode": {
   "PRICE_ON_REQUEST": 600,
   "OTHER": 400,
   "SUSPECT_ZERO_MILEAGE": 50,
   "VERSION_FULLY_STRIPPED": 80,
-  "OUTLIER_M2_LOW": 37,
+  "OUTLIER_M2_LOW": 35,
   "VERSION_AMBIGUOUS": 220,
-  "POWER_OUT_OF_RANGE": 10,
-  "MILEAGE_OUT_OF_RANGE": 6,
+  "POWER_OUT_OF_RANGE": 12,
+  "MILEAGE_OUT_OF_RANGE": 8,
   "MODEL_UNRESOLVED": 240,
   "REGION_UNRESOLVED": 90,
-  "PRICE_SENTINEL_ABSOLUTE": 20,
-  "CO2_ZERO_NON_BEV": 24,
-  "OUTLIER_M1_LOW": 33,
+  "PRICE_SENTINEL_ABSOLUTE": 19,
+  "CO2_ZERO_NON_BEV": 23,
+  "MILEAGE_IMPLAUSIBLE_FOR_AGE": 60,
+  "OUTLIER_M1_HIGH": 35,
   "PRICE_MISSING_UNDECLARED": 120,
   "UNIT_UNSUPPORTED": 90,
   "HYBRID_CATEGORY_UNRESOLVED": 20,
-  "OUTLIER_M2_HIGH": 33,
-  "HYBRID_INCONSISTENT": 16,
-  "OUTLIER_M1_HIGH": 17,
+  "OUTLIER_M2_HIGH": 32,
   "FIRST_REG_OUT_OF_RANGE": 16,
-  "MILEAGE_IMPLAUSIBLE_FOR_AGE": 60,
   "POWER_UNIT_MISMATCH": 12,
   "PRICE_ON_REQUEST_WITH_AMOUNT": 8,
+  "HYBRID_INCONSISTENT": 16,
+  "OUTLIER_M1_LOW": 13,
   "PRICE_OUT_OF_RANGE": 4,
-  "DUPLICATE_VALUE_CONFLICT": 50,
-  "CROSS_SELLER_DUPLICATE": 160,
-  "DUPLICATE_LISTING_ID": 20
+  "DUPLICATE_VALUE_CONFLICT": 34,
+  "CROSS_SELLER_DUPLICATE": 110,
+  "DUPLICATE_LISTING_ID": 14
  },
  "stats": {
   "distinctMakes": 262,
-  "distinctModelCells": 1450,
+  "distinctModelCells": 1464,
   "pricedShare": 0.964,
   "onRequestShare": 0.0304,
   "proShare": 0.68675
