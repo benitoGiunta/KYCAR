@@ -20,7 +20,8 @@
 | tsc worker | `tsc --noEmit -p tsconfig.worker.json` | **0 erreur** |
 | tsc sondes de revue | `tsc --noEmit -p tsconfig.review.json` | **0 erreur** |
 | tsc suite de contrat | `tsc --noEmit -p tsconfig.contract.json` (nouveau) | **0 erreur** |
-| lint | `eslint src/providers src/types src/main.tsx tests/contract tests/review/D2 vite.config.ts vitest.contract.config.ts` | **0 problème** |
+| lint (mon périmètre) | `eslint src/providers src/types src/main.tsx tests/contract tests/review/D2 vite.config.ts vitest.contract.config.ts` | **0 problème** |
+| lint global | `npm run lint` | **5 erreurs, PRÉEXISTANTES** — `data/schema/validate.mjs`, livrable de `data-model` (3.1) : voir **C-P3-6** |
 | unitaires du périmètre | `vitest run --no-file-parallelism src/providers src/types` | **230 / 230** |
 | suite de contrat | `npm run test:contract` | **50 / 50** |
 | sondes de revue | `vitest run --config vitest.review.config.ts tests/review/D2 D3 D9` | **258 / 258** |
@@ -339,7 +340,8 @@ imprime automatiquement, en nommant le jeu servi.
 | **4** | `EX-DATA-40` (`draft-data-dictionary.md`) énonce encore « 9ᵉ valeur non identifiée » : à aligner sur D3-07. | Documentation d'exigences, hors périmètre. |
 | **5** | C-P3-2 (divergence `fetchSelectionCount` / `fetchAggregates` sur 2dehands). | `src/providers/tweedehands` hors périmètre. |
 | **6** | C-P3-3 (deux formes de `snapshotId`) : à trancher entre `data-model` et `dataset-design`. | Décision de coordinateur. |
-| **7** | `data/fixtures/` absent de ce worktree : la suite de contrat tourne sur le mini-jeu. **À rejouer** sur le jeu réel à la fusion, et les mesures du §8 à reprendre. | Livrable de `dataset-gen` (3.2). |
+| **7** | **C-P3-6 — `npm run lint` est ROUGE sur la branche, avant mon premier commit** : `data/schema/validate.mjs` (livrable `data-model` de la phase 3.1, commit `533eae8`) déclenche 5 × `no-undef` sur `process`, le fichier n'étant couvert par aucun bloc `languageOptions.globals` de `eslint.config.js`. Remède d'une ligne, au choix de son propriétaire : ajouter `data/**/*.mjs` au bloc Node de `eslint.config.js`, ou une directive `/* global process */` en tête du script. **Non corrigé ici** : `data/schema/` et `eslint.config.js` sont hors de mon périmètre, et `eslint.config.js` est une infrastructure partagée que `data-fix` peut avoir à toucher. Vérifié préexistant : le fichier est inchangé dans mes cinq commits. | `data/schema/` et `eslint.config.js` hors périmètre. |
+| **8** | `data/fixtures/` absent de ce worktree : la suite de contrat tourne sur le mini-jeu. **À rejouer** sur le jeu réel à la fusion, et les mesures du §8 à reprendre. | Livrable de `dataset-gen` (3.2). |
 
 ---
 
