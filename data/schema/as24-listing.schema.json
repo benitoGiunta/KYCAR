@@ -1,0 +1,726 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kycar.local/schema/as24-listing/1.0.0",
+  "title": "As24Listing",
+  "description": "Couche SOURCE de KYCAR : une annonce a la forme AutoScout24, telle qu'un consommateur de LECTURE la verrait. Nommage et structure repris de l'OpenAPI Listing Creation (docs/reference/vendor/as24-listing-creation-openapi.yml) quand le champ y existe ; les champs de lecture connus des annonces publiques et absents de l'OpenAPI portent l'annotation x-kycar-provenance = LECTURE. Contrainte R3 structurelle (D3-02, EX-DATA-47) : aucun champ vendeur identifiant, aucun code postal exact, aucune ville, aucune coordonnee geographique, aucun texte libre de description, aucune URL d'image ou de video, aucun VIN ni plaque. Documentation : docs/data/DATA-MODEL.md.",
+  "x-kycar-schema-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "webPage", "marketplace", "vehicleType", "make", "location"],
+  "dependentSchemas": {
+    "wltp": {
+      "description": "Exclusion NEDC / WLTP imposee par l'OpenAPI : le bloc wltp est interdit des lors qu'une valeur NEDC est servie, et l'OpenAPI range consumption, co2Emissions ET efficiencyClass du cote NEDC. Une annonce declare donc UNE SEULE branche de mesure, ce qui est aussi la condition de derivation de co2Source / consumptionSource (EX-DATA-35).",
+      "properties": {
+        "consumption": false,
+        "co2Emissions": false,
+        "efficiencyClass": false
+      }
+    }
+  },
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "OAS:BaseSharedAllSellersNoImages.id (format guid). Identifiant d'annonce opaque, minuscules, forme canonique 8-4-4-4-12. Canonique : #1 listingId.",
+      "x-kycar-provenance": "OAS"
+    },
+    "webPage": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 512,
+      "pattern": "^https://[a-z0-9.-]*autoscout24\\.[a-z]{2,3}(/|$)",
+      "description": "Deeplink public vers l'annonce d'origine. Chemin observe : listings[].details.webPage. Aucun equivalent dans l'OpenAPI de creation. Canonique : #2 listingUrl (OBL, REJET si absent, EX-DATA-14).",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "marketplace": {
+      "$ref": "#/$defs/marketplace",
+      "description": "OAS:Marketplace. Canonique : #5 marketplace."
+    },
+    "vehicleType": {
+      "const": "C",
+      "description": "OAS:VehicleTypeId, restreint au perimetre voiture (KYCAR_VEHICLE_TYPE, 1 code). Canonique : #6 vehicleType.",
+      "x-kycar-provenance": "OAS"
+    },
+    "make": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647,
+      "description": "OAS:BaseSharedAllSellersNoImages.make. Identifiant de marque de la taxonomie AS24 (data/reference/taxonomy.json, 295 marques, ids 6..53488 : Int32 obligatoire, D-02). Canonique : #16 makeId.",
+      "x-kycar-provenance": "OAS"
+    },
+    "makeName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60,
+      "description": "Libelle de marque servi par l'annonce (make.formatted). Controle seulement : le libelle canonique de taxonomy.json prime (EX-DATA-17). Canonique : #17 makeName.",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "model": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647,
+      "description": "OAS:BaseSharedAllSellersNoImages.model. Identifiant de modele de la taxonomie AS24 (4 955 modeles, ids 1600..79983). Canonique : #18 modelId.",
+      "x-kycar-provenance": "OAS"
+    },
+    "modelName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "OAS:BaseSharedAllSellersNoImages.modelName (maxLength 50). Canonique : #19 modelName.",
+      "x-kycar-provenance": "OAS"
+    },
+    "modelVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 121,
+      "description": "OAS:BaseSharedAllSellersNoImages.modelVersion (maxLength 121). Texte libre du vendeur. Canonique : #20 modelVersionRaw, puis #21 modelVersionClean, #22 trimTokens, #23 badgeDisplacementL par le pipeline EX-DATA-29.",
+      "x-kycar-provenance": "OAS"
+    },
+    "productionYear": {
+      "type": "integer",
+      "minimum": 1900,
+      "maximum": 2100,
+      "description": "Annee-modele. OAS:BaseSharedAllSellersNoImages.productionYear est declare type string ; la donnee d'annonce observee (listings[].modelYear) sert un entier. Ce schema retient l'ENTIER (contradiction C-04 de DATA-MODEL.md §4). Canonique : #24 modelYear.",
+      "x-kycar-provenance": "OAS+LECTURE"
+    },
+    "firstRegistrationDate": {
+      "$ref": "#/$defs/yearMonth",
+      "description": "OAS:BaseSharedAllSellersNoImages.firstRegistrationDate (format year-month, exemple 2015-01). La forme MM/YYYY du vocabulaire de recherche n'est PAS acceptee dans la couche source fixture : une seule forme y circule (EX-DATA-23 reste applicable a l'adaptateur reel). Canonique : #30 firstRegistrationYearMonth.",
+      "x-kycar-provenance": "OAS"
+    },
+    "mileage": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000000,
+      "description": "OAS:BaseSharedAllSellersNoImages.mileage. Kilometrage dans l'unite de mileageUnit. Canonique : #59 mileageKm apres controle d'unite (EX-DATA-5).",
+      "x-kycar-provenance": "OAS"
+    },
+    "mileageUnit": {
+      "type": "string",
+      "enum": ["km", "mi"],
+      "description": "OAS:BaseSharedAllSellersNoImages.mileageUnit. Seule la valeur km est convertible sans perte ; toute autre valeur pose UNIT_UNSUPPORTED et mileageKm vaut INCONNU (EX-DATA-5, aucune conversion devinee).",
+      "x-kycar-provenance": "OAS"
+    },
+    "power": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9999,
+      "description": "OAS:BaseSharedAllSellersNoImages.power (1..9999), dans l'unite de powerUnit. Canonique : #35 powerKw.",
+      "x-kycar-provenance": "OAS"
+    },
+    "powerUnit": {
+      "type": "string",
+      "enum": ["kW", "hp"],
+      "description": "OAS:BaseSharedAllSellersNoImages.powerUnit. Toute unite autre que kW pose UNIT_UNSUPPORTED (EX-DATA-5).",
+      "x-kycar-provenance": "OAS"
+    },
+    "powerHp": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 13600,
+      "description": "Puissance en chevaux servie par l'annonce (engine.power.hp.raw). N'est JAMAIS stockee : #36 powerHp est derive de powerKw par EX-DATA-36 ; cette valeur ne sert qu'au controle POWER_UNIT_MISMATCH (ecart > 2 %).",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "cylinderCapacity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99999,
+      "description": "OAS:BaseSharedAllSellersNoImages.cylinderCapacity, en cm3. Canonique : #37 cylinderCapacityCcm.",
+      "x-kycar-provenance": "OAS"
+    },
+    "cylinderCapacityUnit": {
+      "type": "string",
+      "enum": ["ccm", "ci"],
+      "description": "OAS:BaseSharedAllSellersNoImages.cylinderCapacityUnit. Toute unite autre que ccm pose UNIT_UNSUPPORTED (EX-DATA-5).",
+      "x-kycar-provenance": "OAS"
+    },
+    "cylinderCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99,
+      "description": "OAS:BaseSharedAllSellersNoImages.cylinderCount. Canonique : #38 cylinderCount.",
+      "x-kycar-provenance": "OAS"
+    },
+    "gearCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9,
+      "description": "OAS:BaseSharedAllSellersNoImages.gearCount. Canonique : #39 gearCount.",
+      "x-kycar-provenance": "OAS"
+    },
+    "transmission": {
+      "$ref": "#/$defs/transmission",
+      "description": "OAS:BaseSharedAllSellersNoImages.transmission, vocabulaire KYCAR_TRANSMISSION (references/Transmission.json). Canonique : #40 transmission."
+    },
+    "drivetrain": {
+      "$ref": "#/$defs/drivetrain",
+      "description": "OAS:BaseSharedAllSellersNoImages.drivetrain, vocabulaire KYCAR_DRIVETRAIN (references/Drivetrain.json). Canonique : #41 drivetrain."
+    },
+    "fuelCategory": {
+      "$ref": "#/$defs/fuelCategory",
+      "description": "OAS:BaseSharedAllSellersNoImages.fuelCategory ; egalement observe (fuels.fuelCategory.raw = \"B\"). Vocabulaire KYCAR_FUEL_CATEGORY, 10 codes voiture (le code T, moto, est retire). Canonique : #42 fuelCategory."
+    },
+    "primaryFuelType": {
+      "$ref": "#/$defs/fuelType",
+      "description": "OAS:BaseSharedAllSellersNoImages.primaryFuelType (entier). Vocabulaire KYCAR_FUEL_TYPE, 16 codes, DISJOINT de KYCAR_FUEL_CATEGORY (EX-DATA-9). Canonique : #43 fuelTypePrimary."
+    },
+    "additionalFuelTypes": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/fuelType" },
+      "description": "OAS:BaseSharedAllSellersNoImages.additionalFuelTypes. Canonique : #44 fuelTypesAdditional (tri croissant, doublons supprimes).",
+      "x-kycar-provenance": "OAS"
+    },
+    "fuelSourceLabel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "description": "Libelle de source d'energie servi comme texte par l'annonce (fuels.primary.source), par exemple \"Super 95 / Essence 91 / Super Plus 98\". Affichage seul : il est INTERDIT de le retro-decoder vers un code (EX-DATA-37). Canonique : #45 fuelSourceLabelRaw.",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "isPluginHybrid": {
+      "type": "boolean",
+      "description": "OAS:BaseSharedAllSellersNoImages.isPluginHybrid. Canonique : #46 isPluginHybrid (coherence EX-DATA-46 : si vrai alors fuelCategory dans {2,3,O}).",
+      "x-kycar-provenance": "OAS"
+    },
+    "battery": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OAS:Battery / BatteryCommon, restreint aux deux attributs retenus par le dictionnaire.",
+      "properties": {
+        "ownershipType": {
+          "$ref": "#/$defs/batteryOwnership",
+          "description": "OAS:BatteryCommon.ownershipType, vocabulaire KYCAR_BATTERY_OWNERSHIP. Canonique : #47 batteryOwnership."
+        },
+        "capacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 999999,
+          "description": "OAS:BatteryCommon.capacity, en kWh. L'OpenAPI la declare ENTIERE (0..999999) alors que le dictionnaire #48 attend un decimal(1) borne 0,1..500,0 : contradiction C-05 de DATA-MODEL.md §4. Ce schema accepte le nombre et laisse la borne KYCAR a la validation d'ingestion. Canonique : #48 batteryCapacityKwh.",
+          "x-kycar-provenance": "OAS"
+        },
+        "capacityUnit": {
+          "type": "string",
+          "enum": ["kWh"],
+          "description": "OAS:Battery.capacityUnit.",
+          "x-kycar-provenance": "OAS"
+        }
+      }
+    },
+    "co2Emissions": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10000,
+      "description": "OAS:BaseSharedAllSellersNoImages.co2Emissions, en g/km, mesure NEDC (le bloc wltp porte la mesure WLTP). Alimente #49 co2EmissionsGPerKm avec #50 co2Source = NEDC (EX-DATA-35).",
+      "x-kycar-provenance": "OAS"
+    },
+    "co2EmissionsUnit": {
+      "type": "string",
+      "enum": ["g/km", "g/mi"],
+      "description": "OAS:BaseSharedAllSellersNoImages.co2EmissionsUnit. Toute unite autre que g/km pose UNIT_UNSUPPORTED (EX-DATA-5).",
+      "x-kycar-provenance": "OAS"
+    },
+    "consumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OAS:Consumption. Mesure NEDC : alimente #51 / #52 avec #53 consumptionSource = NEDC.",
+      "properties": {
+        "combined": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 99.9,
+          "description": "OAS:Consumption.combined, l/100 km. Canonique : #51 consumptionCombinedL100Km.",
+          "x-kycar-provenance": "OAS"
+        },
+        "electricCombined": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 99.9,
+          "description": "OAS:Consumption.electricCombined (DEPRECIE : wltp.consumptionElectricCombined prime). Canonique : #52 consumptionElectricKwh100Km.",
+          "x-kycar-provenance": "OAS"
+        }
+      }
+    },
+    "combinedUnit": {
+      "type": "string",
+      "enum": ["l/100km", "mpg", "km/l"],
+      "description": "OAS:BaseSharedAllSellersNoImages.combinedUnit. Toute unite autre que l/100km pose UNIT_UNSUPPORTED (EX-DATA-5).",
+      "x-kycar-provenance": "OAS"
+    },
+    "electricCombinedUnit": {
+      "type": "string",
+      "enum": ["kWh/100km"],
+      "description": "OAS:BaseSharedAllSellersNoImages.electricCombinedUnit.",
+      "x-kycar-provenance": "OAS"
+    },
+    "wltp": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OAS:WltpCommon, restreint aux quatre attributs retenus par le dictionnaire. Mesure WLTP : quand ce bloc porte la valeur retenue, #50 co2Source / #53 consumptionSource valent WLTP (EX-DATA-35). L'OpenAPI interdit de renseigner simultanement les valeurs NEDC et WLTP correspondantes.",
+      "properties": {
+        "co2EmissionsCombined": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "OAS:WltpCommon.co2EmissionsCombined (minimum 1 : un vehicule electrique a 0 g/km ne peut PAS etre exprime ici, contradiction C-06). Canonique : #49 co2EmissionsGPerKm.",
+          "x-kycar-provenance": "OAS"
+        },
+        "consumptionCombined": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10000,
+          "description": "OAS:WltpCommon.consumptionCombined. Canonique : #51 consumptionCombinedL100Km.",
+          "x-kycar-provenance": "OAS"
+        },
+        "consumptionElectricCombined": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10000,
+          "description": "OAS:WltpCommon.consumptionElectricCombined. Canonique : #52 consumptionElectricKwh100Km (prime sur consumption.electricCombined, depreciee).",
+          "x-kycar-provenance": "OAS"
+        },
+        "co2Class": {
+          "$ref": "#/$defs/co2Class",
+          "description": "OAS:WltpCommon.co2Class, vocabulaire KYCAR_CO2_CLASS. Canonique : #55 co2Class."
+        }
+      }
+    },
+    "co2EmissionInGramPerKmWithFallback": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "Valeur de CO2 servie par l'annonce publique, norme NON DECLAREE (champ observe co2emissionInGramPerKmWithFallback). Retenue seulement si ni wltp.co2EmissionsCombined ni co2Emissions ne sont presents ; #50 co2Source vaut alors UNKNOWN (EX-DATA-35).",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "consumptionCombinedWithFallback": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 99.9,
+      "description": "Consommation mixte servie par l'annonce publique, norme NON DECLAREE (champ observe consumption.combinedWithFallback). Meme regle de priorite que ci-dessus ; #53 consumptionSource vaut alors UNKNOWN.",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "euEmissionStandard": {
+      "$ref": "#/$defs/euEmissionStandard",
+      "description": "OAS:BaseSharedAllSellersNoImages.euEmissionStandard, vocabulaire KYCAR_EU_EMISSION_STANDARD (11 codes). Canonique : #54 euEmissionStandard."
+    },
+    "efficiencyClass": {
+      "$ref": "#/$defs/efficiencyClass",
+      "description": "OAS:BaseSharedAllSellersNoImages.efficiencyClass, vocabulaire KYCAR_EFFICIENCY_CLASS (10 codes). Canonique : #56 efficiencyClass."
+    },
+    "electricRange": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000,
+      "description": "OAS:BaseSharedAllSellersNoImages.electricRange, en km (WLTP EAER). Canonique : #57 electricRangeKm.",
+      "x-kycar-provenance": "OAS"
+    },
+    "hasParticleFilter": {
+      "type": "boolean",
+      "description": "OAS:BaseSharedAllSellersNoImages.hasParticleFilter. Canonique : #58 hasParticleFilter.",
+      "x-kycar-provenance": "OAS"
+    },
+    "bodyType": {
+      "$ref": "#/$defs/bodyType",
+      "description": "OAS:BaseSharedAllSellersNoImages.bodyType, vocabulaire KYCAR_BODY_TYPE restreint aux 9 codes voiture. Canonique : #64 bodyType."
+    },
+    "doorCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9,
+      "description": "OAS:BaseSharedAllSellersNoImages.doorCount. Canonique : #65 doorCount.",
+      "x-kycar-provenance": "OAS"
+    },
+    "seatCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99,
+      "description": "OAS:BaseSharedAllSellersNoImages.seatCount. Canonique : #66 seatCount.",
+      "x-kycar-provenance": "OAS"
+    },
+    "bodyColor": {
+      "$ref": "#/$defs/bodyColor",
+      "description": "OAS:BaseSharedAllSellersNoImages.bodyColor, vocabulaire KYCAR_BODY_COLOR (14 codes). Canonique : #67 bodyColor."
+    },
+    "isMetallic": {
+      "type": "boolean",
+      "description": "OAS:BaseSharedAllSellersNoImages.isMetallic. Canonique : #68 isMetallic.",
+      "x-kycar-provenance": "OAS"
+    },
+    "paintType": {
+      "$ref": "#/$defs/paintType",
+      "description": "Type de peinture. Absent de l'OpenAPI de creation : le domaine vient du vocabulaire de RECHERCHE (filters.json -> bodyPainting / ptype, 5 codes). Canonique : #69 paintType.",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "upholsteryType": {
+      "$ref": "#/$defs/upholsteryType",
+      "description": "OAS:BaseSharedAllSellersNoImages.upholsteryType, vocabulaire KYCAR_UPHOLSTERY_TYPE (6 codes). Canonique : #70 upholsteryType."
+    },
+    "upholsteryColor": {
+      "$ref": "#/$defs/upholsteryColor",
+      "description": "OAS:BaseSharedAllSellersNoImages.upholsteryColor, vocabulaire KYCAR_UPHOLSTERY_COLOR (11 codes). Canonique : #71 upholsteryColor."
+    },
+    "equipment": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 132,
+      "items": { "$ref": "#/$defs/equipmentCode" },
+      "description": "OAS:BaseSharedAllSellersNoImages.equipment, vocabulaire KYCAR_EQUIPMENT restreint aux 132 codes du perimetre voiture. Canonique : #72 equipmentCodes.",
+      "x-kycar-provenance": "OAS"
+    },
+    "appliedSeals": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 14,
+      "items": { "$ref": "#/$defs/sealCode" },
+      "description": "OAS:ListingSharedDealerOnly.appliedSeals, vocabulaire KYCAR_SEAL (14 codes releves cote recherche, filters.json -> seals). Canonique : #73 sealCodes.",
+      "x-kycar-provenance": "OAS"
+    },
+    "offerType": {
+      "$ref": "#/$defs/offerType",
+      "description": "OAS:Listing.offerType, vocabulaire KYCAR_OFFER_TYPE (6 codes). Canonique : #25 offerType."
+    },
+    "usageState": {
+      "$ref": "#/$defs/usageState",
+      "description": "Etat d'usage / accidente servi par l'annonce (listings[].usageState). Vocabulaire de RECHERCHE ustate, KYCAR_USAGE_STATE (A, N, U). Canonique : #26 usageState.",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OAS:Condition, restreint au seul attribut retenu : condition.description est exclue par R3 etendu (EX-DATA-47 E13).",
+      "properties": {
+        "hadAccident": {
+          "type": "boolean",
+          "description": "OAS:Condition.hadAccident. Canonique : #27 hadAccident.",
+          "x-kycar-provenance": "OAS"
+        }
+      }
+    },
+    "previousOwnerCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 99,
+      "description": "OAS:BaseSharedAllSellersNoImages.previousOwnerCount. Canonique : #60 previousOwnerCount.",
+      "x-kycar-provenance": "OAS"
+    },
+    "hasFullServiceHistory": {
+      "type": "boolean",
+      "description": "OAS:BaseSharedAllSellersNoImages.hasFullServiceHistory. Canonique : #61 hasFullServiceHistory.",
+      "x-kycar-provenance": "OAS"
+    },
+    "nextInspectionDate": {
+      "$ref": "#/$defs/yearMonth",
+      "description": "OAS:BaseSharedAllSellersNoImages.nextInspectionDate (format year-month). Canonique : #62 nextInspectionYearMonth."
+    },
+    "wasCabOrRental": {
+      "type": "boolean",
+      "description": "OAS:BaseSharedAllSellersNoImages.wasCabOrRental. Canonique : #63 wasCabOrRental.",
+      "x-kycar-provenance": "OAS"
+    },
+    "warranty": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 999,
+      "description": "OAS:ListingSharedDealerOnly.warranty : duree en mois d'une garantie offerte par le professionnel, incluse dans le prix. SANS EQUIVALENT CANONIQUE en v1 (ecart E-03 de DATA-MODEL.md §4) : conserve dans la couche source, non ingere.",
+      "x-kycar-provenance": "OAS"
+    },
+    "warrantyUnit": {
+      "type": "string",
+      "enum": ["Months"],
+      "description": "OAS:ListingSharedDealerOnly.warrantyUnit.",
+      "x-kycar-provenance": "OAS"
+    },
+    "hasWarranty": {
+      "type": "boolean",
+      "description": "OAS:ListingSharedDealerOnly.hasWarranty. Coherence imposee par l'OpenAPI : warranty = 0 interdit hasWarranty = true, warranty > 0 interdit hasWarranty = false.",
+      "x-kycar-provenance": "OAS"
+    },
+    "prices": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OAS:PricesShared. Le bloc dealer (OAS:Prices.dealer) est hors perimetre : il n'est visible que sur la place de marche professionnelle.",
+      "properties": {
+        "public": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "OAS:PublicPrice = OAS:Price + attributs de TVA. Prix affiche a l'utilisateur, TTC. La devise n'est exigee que si un montant est servi : une annonce a prix sur demande n'a pas de devise a declarer.",
+          "dependentRequired": { "price": ["currency"], "netPrice": ["price"], "vatRate": ["price"] },
+          "properties": {
+            "price": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999999,
+              "description": "OAS:Price.price (minimum 1). Prix brut. Canonique : #7 priceEur. ABSENT quand onRequestOnly vaut true (contrainte inter-champs, DATA-MODEL.md §7).",
+              "x-kycar-provenance": "OAS"
+            },
+            "currency": {
+              "type": "string",
+              "enum": ["EUR", "CAD"],
+              "description": "OAS:Price.currency. Le perimetre KYCAR n'ingere que EUR ; CAD est conserve pour rester fidele a l'OpenAPI (marketplace ca).",
+              "x-kycar-provenance": "OAS"
+            },
+            "netPrice": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999999,
+              "description": "OAS:PublicPrice.netPrice, doit etre inferieur a price. Canonique : #13 netPriceEur.",
+              "x-kycar-provenance": "OAS"
+            },
+            "vatRate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "OAS:PublicPrice.vatRate, une seule decimale acceptee (troncature au-dela). Canonique : #14 vatRatePercent.",
+              "x-kycar-provenance": "OAS"
+            },
+            "isTaxDeductible": {
+              "type": "boolean",
+              "description": "OAS:PublicPrice.isTaxDeductible ; egalement observe (prices.public.taxDeductible). Canonique : #10 isTaxDeductible, colonne physique vatDeductible en tri-etat (D8-08).",
+              "x-kycar-provenance": "OAS"
+            },
+            "isNegotiable": {
+              "type": "boolean",
+              "description": "OAS:PublicPrice.isNegotiable. SANS EQUIVALENT CANONIQUE (ecart E-04) : conserve dans la couche source, non ingere.",
+              "x-kycar-provenance": "OAS"
+            },
+            "onRequestOnly": {
+              "type": "boolean",
+              "description": "Prix sur demande (prices.public.onRequestOnly, observe ; aucun equivalent dans l'OpenAPI de creation). Canonique : #9 priceOnRequestOnly, DEFAUT false.",
+              "x-kycar-provenance": "LECTURE"
+            },
+            "evaluation": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Evaluation de prix calculee par AutoScout24 (prices.public.evaluation), reference EXTERNE au sens d'EX-DATA-13 : elle n'entre dans aucune methode de detection KYCAR.",
+              "properties": {
+                "category": {
+                  "$ref": "#/$defs/priceEvaluationSearch",
+                  "description": "Echelle de RECHERCHE a 3 niveaux (pe_category). Projetee sur KYCAR_PRICE_EVALUATION a 6 niveaux par EX-DATA-12. Canonique : #11 priceEvaluationCategory."
+                }
+              }
+            }
+          }
+        },
+        "manufacturersSuggestedRetail": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "OAS:PricesShared.manufacturersSuggestedRetail (OAS:RetailPrice = OAS:Price).",
+          "required": ["price", "currency"],
+          "properties": {
+            "price": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999999,
+              "description": "OAS:Price.price. Canonique : #15 msrpEur.",
+              "x-kycar-provenance": "OAS"
+            },
+            "currency": {
+              "type": "string",
+              "enum": ["EUR", "CAD"],
+              "x-kycar-provenance": "OAS"
+            }
+          }
+        }
+      }
+    },
+    "superDeal": {
+      "type": "boolean",
+      "description": "Label SuperDeal servi par l'annonce (listings[].superDeal). Aucun equivalent dans l'OpenAPI de creation. Canonique : #12 isSuperDeal, DEFAUT false.",
+      "x-kycar-provenance": "LECTURE"
+    },
+    "adProduct": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Produit publicitaire de l'annonce (listings[].adProduct, observe). Le VOCABULAIRE vient de l'OpenAPI (OAS:Tier) mais aucune propriete de l'OpenAPI ne le porte : c'est un champ de lecture.",
+      "properties": {
+        "tier": {
+          "$ref": "#/$defs/adTier",
+          "description": "Palier publicitaire. Vocabulaire OAS:Tier (T20, T30, T40, T50) ; la valeur NONE de KYCAR_AD_TIER est CREEE et correspond a l'ABSENCE de ce champ. Canonique : #79 adTier, DEFAUT NONE."
+        }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Etat de publication de l'annonce.",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["Active", "Inactive"],
+          "description": "OAS:PublicationStatus. Une annonce Inactive n'est jamais servie par la surface de lecture : contrainte inter-champs (DATA-MODEL.md §7).",
+          "x-kycar-provenance": "OAS"
+        },
+        "accurateState": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "description": "Etat de publication fin servi par l'annonce (publication.accurateState, observe). Domaine NON ETABLI (EX-DATA #28, [A CONFIRMER]) : conserve tel quel, jamais utilise comme filtre. Canonique : #28 publicationState.",
+          "x-kycar-provenance": "LECTURE"
+        },
+        "isNew": {
+          "type": "boolean",
+          "description": "Annonce recente (publication.isNew, observe). Canonique : #29 isNewListing, DEFAUT false.",
+          "x-kycar-provenance": "LECTURE"
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "OAS:ListingSummary.createdAt : date de creation de l'annonce, ISO-8601 UTC. SANS EQUIVALENT CANONIQUE en v1 (ecart E-01) ; sert aux contraintes de coherence et aux deltas inter-snapshots.",
+      "x-kycar-provenance": "OAS"
+    },
+    "lastUpdatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "OAS:ListingSummary.lastUpdatedAt : derniere mise a jour, ISO-8601 UTC. SANS EQUIVALENT CANONIQUE en v1 (ecart E-01) ; c'est le champ qui rend un delta de snapshot verifiable.",
+      "x-kycar-provenance": "OAS"
+    },
+    "firstActivatedDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "OAS:BaseSharedAllSellersNoImages.firstActivatedDate : premiere activation de l'annonce, ISO-8601 UTC. SANS EQUIVALENT CANONIQUE en v1 (ecart E-01) ; c'est la date de PUBLICATION au sens metier.",
+      "x-kycar-provenance": "OAS"
+    },
+    "imageCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 50,
+      "description": "CARDINALITE de OAS:ListingSharedAllSellers.images (maxItems 50). Les URL d'image (OAS:Image.previewUrl) sont EXCLUES par construction (EX-DATA-44, EX-DATA-47 E18) : la couche source ne porte que le compte. Canonique : #80 imageCount, DEFAUT 0.",
+      "x-kycar-provenance": "OAS-DERIVE"
+    },
+    "hasVideo": {
+      "type": "boolean",
+      "description": "Vrai si OAS:BaseSharedAllSellersNoImages.youtubeVideoUrl est non vide. L'URL elle-meme est EXCLUE (EX-DATA-47 E19). Canonique : #81 hasVideo, DEFAUT false.",
+      "x-kycar-provenance": "OAS-DERIVE"
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["countryCode"],
+      "description": "Localisation du vehicule, DEJA TRONQUEE au niveau regional. R3 structurelle (EX-DATA-47 E8/E9/E11, EX-DATA-48) : ni code postal exact, ni ville, ni rue, ni latitude/longitude. Le code postal complet n'existe que dans la portee locale de l'adaptateur d'une source REELLE ; un fichier de fixtures etant une structure PERSISTANTE, il ne peut pas le porter (decision proposee D3-06, DATA-MODEL.md §5).",
+      "properties": {
+        "countryCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "description": "Pays au format ISO-3166-1 alpha-2 (EX-DATA-40 : jamais le code marketplace proprietaire). Canonique : #74 countryCode.",
+          "x-kycar-provenance": "LECTURE"
+        },
+        "postalCodePrefix2": {
+          "type": "string",
+          "pattern": "^[0-9]{2}$",
+          "description": "Deux premiers chiffres du code postal. Suffisant et sans perte pour resoudre #75 regionCode en Belgique : les 13 plages d'EX-DATA-52 commencent toutes sur un multiple de 100. Canonique : #77 postalCodePrefix2, puis #75 regionCode et #76 regionName par la table EX-DATA-52.",
+          "x-kycar-provenance": "LECTURE-TRONQUE"
+        }
+      }
+    },
+    "seller": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Attributs vendeur NON IDENTIFIANTS, et rien d'autre (D3-02, EX-DATA-42). additionalProperties = false interdit structurellement id, companyName, contactName, telephone, courriel, URL de vitrine et adresse.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/sellerType",
+          "description": "Type de vendeur, vocabulaire KYCAR_SELLER_TYPE (custtype : P particulier, D professionnel). Canonique : #78 sellerType."
+        },
+        "dealerBucket": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}$",
+          "description": "Cle de REGROUPEMENT pseudonyme et NON REVERSIBLE (D3-02) : hachage sale d'un identifiant fictif, 8 caracteres hexadecimaux. Necessaire aux doublons inter-vendeurs et au biais publicitaire. SANS EQUIVALENT CANONIQUE : elle ne franchit PAS l'interface DataProvider (ecart E-02). Interdite quand seller.type vaut P (contrainte inter-champs, DATA-MODEL.md §7).",
+          "x-kycar-provenance": "KYCAR"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "yearMonth": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+      "description": "Mois calendaire YYYY-MM, ordonnable lexicographiquement (EX-DATA-22). Aucune tolerance sur un mois 00 ou 13 (EX-DATA-23)."
+    },
+    "marketplace": {
+      "type": "string",
+      "enum": ["at", "be", "ca", "de", "es", "fr", "it", "lu", "nl"],
+      "description": "OAS:Marketplace, 9 valeurs. La neuvieme valeur que le dictionnaire tenait pour non identifiee (EX-DATA-40, code reserve UNKNOWN_9) est ca (Canada) : voir contradiction C-01."
+    },
+    "fuelCategory": {
+      "type": "string",
+      "enum": ["2", "3", "B", "C", "D", "E", "H", "L", "M", "O"],
+      "description": "KYCAR_FUEL_CATEGORY, 10 codes (references/FuelCategory.json moins le code T, moto)."
+    },
+    "fuelType": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16,
+      "description": "KYCAR_FUEL_TYPE, 16 codes (references/FuelType.json). Servi en ENTIER par l'OpenAPI, stocke en CHAINE par KYCAR."
+    },
+    "transmission": { "type": "string", "enum": ["A", "M", "S"] },
+    "drivetrain": { "type": "string", "enum": ["4", "F", "R"] },
+    "bodyType": {
+      "type": "integer",
+      "enum": [1, 2, 3, 4, 5, 6, 7, 12, 13],
+      "description": "KYCAR_BODY_TYPE, 9 codes voiture (references/BodyType.json filtre vehicleType contient C)."
+    },
+    "bodyColor": {
+      "type": "integer",
+      "enum": [1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16],
+      "description": "KYCAR_BODY_COLOR, 14 codes."
+    },
+    "paintType": { "type": "string", "enum": ["M", "O", "P", "S", "U"] },
+    "upholsteryType": { "type": "string", "enum": ["AL", "CL", "FL", "OT", "PL", "VL"] },
+    "upholsteryColor": {
+      "type": "integer",
+      "enum": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "description": "KYCAR_UPHOLSTERY_COLOR, 11 codes."
+    },
+    "euEmissionStandard": {
+      "type": "string",
+      "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
+      "description": "KYCAR_EU_EMISSION_STANDARD, 11 codes."
+    },
+    "co2Class": {
+      "type": "integer",
+      "enum": [10, 20, 30, 40, 50, 60, 70],
+      "description": "KYCAR_CO2_CLASS, 7 codes (10 = A ... 70 = G)."
+    },
+    "efficiencyClass": {
+      "type": "integer",
+      "enum": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "description": "KYCAR_EFFICIENCY_CLASS, 10 codes."
+    },
+    "batteryOwnership": { "type": "string", "enum": ["1", "2", "3"] },
+    "offerType": {
+      "type": "string",
+      "enum": ["D", "J", "N", "O", "S", "U"],
+      "description": "KYCAR_OFFER_TYPE, 6 codes."
+    },
+    "usageState": { "type": "string", "enum": ["A", "N", "U"] },
+    "sellerType": { "type": "string", "enum": ["P", "D"] },
+    "adTier": { "type": "string", "enum": ["T20", "T30", "T40", "T50"] },
+    "priceEvaluationSearch": {
+      "type": "integer",
+      "enum": [1, 2, 3],
+      "description": "Echelle de recherche pe_category a 3 niveaux, projetee par EX-DATA-12."
+    },
+    "equipmentCode": {
+      "type": "integer",
+      "enum": [
+        1, 2, 3, 4, 5, 10, 12, 13, 15, 16, 17, 18, 19, 20, 21, 23, 25, 26, 27, 28, 29, 30, 31, 32,
+        34, 36, 38, 39, 41, 42, 43, 44, 45, 46, 47, 48, 50, 52, 54, 112, 113, 114, 115, 116, 117,
+        118, 119, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136,
+        137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+        155, 156, 157, 158, 159, 160, 161, 162, 170, 173, 174, 187, 189, 190, 210, 211, 212, 213,
+        214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231,
+        232, 233, 237, 238, 239, 240, 241, 242, 243, 244, 245, 248, 249, 250, 251
+      ],
+      "description": "KYCAR_EQUIPMENT, 132 codes du perimetre voiture (references/Equipment.json filtre vehicleType contient C)."
+    },
+    "sealCode": {
+      "type": "integer",
+      "enum": [111, 112, 118, 134, 156, 216, 223, 226, 241, 247, 249, 271, 295, 315],
+      "description": "KYCAR_SEAL, 14 codes (filters.json -> seals, fr-BE)."
+    }
+  }
+}
