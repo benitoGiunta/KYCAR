@@ -2,7 +2,8 @@
  "$comment": "KYCAR — dynamique entre les 3 snapshots hebdomadaires : sorties, entrees, revisions de prix, annonces stables. Regles R-50 a R-56.",
  "source": [
   "S3 TRAXIO 2025 : 734 165 transactions d'occasion sur l'annee, marche stationnaire a l'echelle de trois semaines",
-  "H15 hypothese : la duree d'exposition de reference (68 jours) et ses multiplicateurs sont ASSUMES ; ils sont contraints par la cible de la mission (sorties de 8 a 12 % par semaine) et par la composition du stock, qu'ils determinent conjointement (segments.json stockBias)"
+  "H15 hypothese : la duree d'exposition de reference (68 jours) et ses multiplicateurs sont ASSUMES ; ils sont contraints par la cible de la mission (sorties de 8 a 12 % par semaine) et par la composition du stock, qu'ils determinent conjointement (segments.json stockBias)",
+  "S18 docs/data/DATA-MODEL.md §7 contraintes 1 a 4 (ordre des dates, chainage des snapshots)"
  ],
  "principle": "R-50 — UN SEUL parametre, la duree d'exposition d_i (jours), gouverne DEUX consequences testables : (a) la composition du stock, qui vaut le flux d'immatriculations multiplie par la duree moyenne d'exposition du segment ; (b) le taux de sortie hebdomadaire. Un jeu de donnees ou les deux sont regles separement est incoherent.",
  "dwellDays": {
@@ -44,7 +45,8 @@
   "rule": "R-52 — le nombre d'entrees egale EXACTEMENT le nombre de sorties, MARQUE PAR MARQUE : l'effectif par marque est donc identique sur les trois snapshots, et les valeurs attendues du parcours P1 ne derivent pas d'un snapshot a l'autre. Le modele d'une annonce entrante est retire dans la marque, donc les effectifs par modele varient legerement.",
   "ageTilt": "la loi d'age des entrantes est multipliee par exp(-0.02 * age) puis renormalisee : les arrivees sont un peu plus recentes que le stock",
   "isNewListing": "vrai pour les entrantes du snapshot, faux ensuite",
-  "listingIdRule": "une annonce qui survit CONSERVE son listingId ; une entrante en recoit un nouveau, jamais reutilise"
+  "listingIdRule": "une annonce qui survit CONSERVE son listingId ; une entrante en recoit un nouveau, jamais reutilise",
+  "snapshotChaining": "contrainte 4 : capturedAt strictement croissant, previousSnapshotId chaine, et delta.carriedOverCount + delta.enteredCount = listingCount"
  },
  "priceRevision": {
   "shareOfSurvivors": 0.17,
@@ -63,13 +65,25 @@
    ]
   },
   "reRounding": "le prix revise repasse par l'arrondi commercial de price-model.json",
-  "aggregateEffect": "la mediane des prix affiches recule d'environ 0,5 % par semaine ; sonde P-52"
+  "aggregateEffect": "la mediane des prix affiches recule d'environ 0,5 % par semaine ; sonde P-52",
+  "imageCountDrift": {
+   "shareOfSurvivors": 0.05,
+   "amplitude": "+1 a +4 images, borne 50",
+   "comment": "seule autre modification autorisee par la contrainte 4"
+  }
  },
  "stable": {
-  "comment": "les annonces ni sorties ni revisees sont IDENTIQUES octet a octet d'un snapshot a l'autre, sauf snapshotId, observedAt et isNewListing ; c'est ce qui rend un diff de snapshots lisible"
+  "comment": "contrainte 4 : une annonce reconduite garde son id, son createdAt et son firstActivatedDate ; SEULS le prix, lastUpdatedAt et imageCount peuvent bouger. Tout autre champ modifie est un defaut, pas une variante."
  },
  "mileageDrift": {
-  "rule": "aucune. Le kilometrage affiche d'une annonce ne change pas entre deux snapshots : un vendeur ne remet pas son compteur a jour chaque semaine.",
-  "exception": "0,6 % des annonces survivantes voient leur kilometrage corrige (+0 a +900 km ou correction de saisie) — matiere de la detection de conflit de doublon"
+  "rule": "AUCUNE. La contrainte DATA-MODEL 4 n'autorise que prix, lastUpdatedAt et imageCount a bouger sur une annonce reconduite : le kilometrage ne change JAMAIS entre deux snapshots. La correction de kilometrage envisagee dans la premiere redaction est RETIREE."
+ },
+ "dates": {
+  "$comment": "R-55bis — la couche source PORTE les dates (createdAt, firstActivatedDate, lastUpdatedAt) : la duree d'exposition devient OBSERVABLE, l'ecart E-04 de la premiere redaction est leve.",
+  "ordering": "contrainte 1 : firstRegistrationDate (au mois) <= createdAt <= firstActivatedDate <= lastUpdatedAt <= manifest.capturedAt. Aucune date posterieure a la capture.",
+  "createdAt": "capturedAt(S0) - anciennete tiree dans la loi d'exposition tronquee ; la moyenne d'anciennete au premier snapshot vaut d/2 (etat stationnaire)",
+  "firstActivatedDate": "createdAt + U(0, 36) heures — date de PUBLICATION au sens metier",
+  "lastUpdatedAt": "firstActivatedDate au premier snapshot ; mis a jour au snapshot ou l'annonce est REVISEE (prix, imageCount) ; inchange sinon",
+  "nextInspectionDate": "contrainte 3 : tire dans [capturedAt - 24 mois, capturedAt + 48 mois], au mois"
  }
 }

@@ -1,5 +1,5 @@
 {
- "$comment": "KYCAR — contrat de sondes entre dataset-design, dataset-gen et data-review. Une ligne par regle verifiable. La sonde est ECRITE PAR LE REVIEWER et doit passer SANS MODIFICATION (D-31/D-32) ; dataset-gen la traite comme une specification, jamais comme un test a ajuster.",
+ "$comment": "KYCAR — contrat de sondes entre dataset-design, dataset-gen et data-review. Une ligne par regle verifiable. Les sondes P-86 a P-109 couvrent une a une les 31 contraintes de coherence de docs/data/DATA-MODEL.md §7 (colonne regle : DM-nn). La sonde est ECRITE PAR LE REVIEWER et doit passer SANS MODIFICATION (D-31/D-32) ; dataset-gen la traite comme une specification, jamais comme un test a ajuster.",
  "champs": [
   "id",
   "regle",
@@ -8,7 +8,7 @@
   "tolerance",
   "portee"
  ],
- "count": 85,
+ "count": 110,
  "probes": [
   {
    "id": "P-01",
@@ -366,8 +366,8 @@
    "id": "P-45",
    "regle": "R-24",
    "famille": "M3",
-   "statistique": "kappa de Cohen entre priceEvaluationCategory binarisee et le verdict M1 sur les cellules a n >= 30",
-   "tolerance": "dans [0.25, 0.60] — non nul, non parfait",
+   "statistique": "kappa de Cohen entre prices.public.evaluation.category dans {1,2} et le verdict M1_LOW, sur les cellules a n >= 30",
+   "tolerance": "dans [0.25, 0.60] — non nul, non parfait ; le cote haut n'est pas mesurable (echelle source a 3 niveaux)",
    "portee": "snapshot test"
   },
   {
@@ -406,8 +406,8 @@
    "id": "P-50",
    "regle": "R-28",
    "famille": "Publicite",
-   "statistique": "part d'adTier != NONE chez les PRO / chez les PRIVE",
-   "tolerance": "PRO dans [0.30, 0.38] ; PRIVE = 0",
+   "statistique": "part d'annonces portant adProduct.tier, globale / chez les PRO / chez les PRIVE",
+   "tolerance": "globale dans [0.14, 0.24] et STRICTEMENT < 0.30 (contrainte 15) ; PRIVE = 0",
    "portee": "snapshot"
   },
   {
@@ -422,24 +422,24 @@
    "id": "P-52",
    "regle": "R-35",
    "famille": "Geographie",
-   "statistique": "couples (code postal, commune)",
-   "tolerance": "100 % figurent dans localities de geography.json, hors les 0,4 % de codes hors plage",
+   "statistique": "location.postalCodePrefix2",
+   "tolerance": "100 % des valeurs sont sur 2 chiffres ; 99,6 % dans 10..99, 0,4 % dans 00..09 (anomalie A-21)",
    "portee": "snapshot"
   },
   {
    "id": "P-53",
    "regle": "R-35",
    "famille": "Geographie",
-   "statistique": "code postal dans la plage de la province NUTS-2 declaree",
-   "tolerance": "100 % hors les 0,4 % hors plage",
+   "statistique": "coherence prefixe -> regionCode derive par EX-DATA-52",
+   "tolerance": "100 % des prefixes 10..99 resolvent un regionCode ; 100 % des prefixes 00..09 donnent INCONNU + REGION_UNRESOLVED",
    "portee": "snapshot"
   },
   {
    "id": "P-54",
    "regle": "R-36",
    "famille": "Langue",
-   "statistique": "langue des libelles textuels",
-   "tolerance": "100 % des annonces d'une commune neerlandophone sont en nl ou fr, aucune en de hors codes 4700-4790",
+   "statistique": "langue du texte de modelVersion vs region linguistique du prefixe",
+   "tolerance": "de uniquement sur le prefixe 47 ; croisement fr/nl <= 5 % des annonces professionnelles",
    "portee": "snapshot"
   },
   {
@@ -479,7 +479,7 @@
    "regle": "R-45",
    "famille": "Manquants",
    "statistique": "absences structurelles",
-   "tolerance": "0 annonce non electrifiee ne porte electricRangeKm ; 0 annonce PRIVATE ne porte isTaxDeductible ou dealerBucket",
+   "tolerance": "0 annonce hors {E,2,3} ne porte electricRange, battery.* ou une consommation electrique ; 0 annonce E ne porte cylinderCapacity ou cylinderCount ; 0 annonce PRIVATE ne porte isTaxDeductible, dealerBucket, adProduct.tier, appliedSeals ou warranty",
    "portee": "snapshot"
   },
   {
@@ -494,16 +494,16 @@
    "id": "P-61",
    "regle": "R-39",
    "famille": "Emissions",
-   "statistique": "co2Source",
-   "tolerance": "WLTP pour 100 % des annonces de 1re immatriculation >= 2018-09 dont la source est connue ; NEDC pour 100 % de celles < 2018-09",
+   "statistique": "branche de mesure vs firstRegistrationDate",
+   "tolerance": "100 % des annonces >= 2018-09 servent wltp.* et AUCUN de co2Emissions / consumption.* / efficiencyClass ; 100 % des annonces < 2018-09 l'inverse",
    "portee": "snapshot"
   },
   {
    "id": "P-62",
    "regle": "R-39",
    "famille": "Emissions",
-   "statistique": "part de co2Source = UNKNOWN",
-   "tolerance": "dans [0.10, 0.20] globalement et > 0.30 pour les annonces d'age > 17 ans",
+   "statistique": "part d'annonces sans aucune branche de mesure (co2Source = UNKNOWN)",
+   "tolerance": "dans [0.10, 0.20] globalement et > 0.30 au-dela de 17 ans",
    "portee": "snapshot"
   },
   {
@@ -519,7 +519,7 @@
    "regle": "R-38",
    "famille": "Emissions",
    "statistique": "CO2 des annonces electriques",
-   "tolerance": "= 0 pour 100 % du carburant E",
+   "tolerance": "= 0 pour 100 % du carburant E, porte par co2Emissions (NEDC) ou co2EmissionInGramPerKmWithFallback (WLTP) ; JAMAIS par wltp.co2EmissionsCombined",
    "portee": "snapshot"
   },
   {
@@ -678,8 +678,8 @@
    "id": "P-84",
    "regle": "R-12",
    "famille": "Etat",
-   "statistique": "usageState = N",
-   "tolerance": "100 % ont age = 0 ; part d'accidentes (A) dans [0.02, 0.05]",
+   "statistique": "mileage = 0",
+   "tolerance": "100 % ont offerType dans {N, S, D}, sauf les annonces declarees A-03 ; part d'accidentes (usageState = A) dans [0.02, 0.05]",
    "portee": "snapshot"
   },
   {
@@ -688,6 +688,206 @@
    "famille": "Etat",
    "statistique": "offerType = O (Ancetre)",
    "tolerance": "100 % ont age >= 30",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-86",
+   "regle": "DM-1",
+   "famille": "Temps",
+   "statistique": "ordre des dates",
+   "tolerance": "100 % : firstRegistrationDate (au mois) <= createdAt <= firstActivatedDate <= lastUpdatedAt <= manifest.capturedAt",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-87",
+   "regle": "DM-2",
+   "famille": "Temps",
+   "statistique": "bornes de firstRegistrationDate",
+   "tolerance": "100 % dans [1900-01, (capturedAt.year+1)-12] hors annonces declarees A-05",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-88",
+   "regle": "DM-3",
+   "famille": "Temps",
+   "statistique": "nextInspectionDate",
+   "tolerance": "100 % dans [capturedAt - 24 mois, capturedAt + 48 mois]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-89",
+   "regle": "DM-4",
+   "famille": "Snapshots",
+   "statistique": "chainage",
+   "tolerance": "capturedAt strictement croissant, previousSnapshotId chaine, carriedOverCount + enteredCount = listingCount ; publication.status = Active sur 100 % des lignes",
+   "portee": "profil"
+  },
+  {
+   "id": "P-90",
+   "regle": "DM-5",
+   "famille": "Prix",
+   "statistique": "prix sur demande",
+   "tolerance": "100 % des annonces a onRequestOnly = true ont price ABSENT, hors annonces declarees A-20",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-91",
+   "regle": "DM-8",
+   "famille": "Prix",
+   "statistique": "forme des montants",
+   "tolerance": "netPrice < price sur 100 % ; vatRate a une seule decimale ; currency = EUR des qu'un montant est servi",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-92",
+   "regle": "DM-10",
+   "famille": "Prix",
+   "statistique": "couverture de prix",
+   "tolerance": "part d'annonces a prix affiche >= 0.80 (valeur visee 0.964) : au-dela, coverageWarning.price serait vrai partout",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-93",
+   "regle": "DM-12",
+   "famille": "Vendeurs",
+   "statistique": "regroupement",
+   "tolerance": "tout dealerBucket porte >= 3 annonces ; 100 % des paires CROSS_SELLER_DUPLICATE ont deux dealerBucket differents et un peerListingId",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-94",
+   "regle": "DM-14",
+   "famille": "Manifest",
+   "statistique": "marketplace",
+   "tolerance": "manifest.marketplace = marketplace de 100 % des lignes du fichier",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-95",
+   "regle": "DM-16",
+   "famille": "Motorisation",
+   "statistique": "coherence kW / ch",
+   "tolerance": "|powerHp - round(power / 0.7355)| / powerHp <= 2 % sur 100 % des annonces, hors celles declarees A-13b",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-96",
+   "regle": "DM-17",
+   "famille": "Ecologie",
+   "statistique": "exclusion des branches",
+   "tolerance": "aucune ligne ne porte a la fois wltp et l'un de co2Emissions / consumption.* / efficiencyClass (rejet du schema : la sonde le confirme sur le fichier livre)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-97",
+   "regle": "DM-17",
+   "famille": "Ecologie",
+   "statistique": "champs …WithFallback",
+   "tolerance": "100 % portent EXACTEMENT la valeur retenue par la priorite wltp > NEDC > repli",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-98",
+   "regle": "DM-19",
+   "famille": "Motorisation",
+   "statistique": "hybride rechargeable",
+   "tolerance": "100 % des isPluginHybrid = true ont fuelCategory dans {2, 3, O}, hors annonces declarees A-15",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-99",
+   "regle": "DM-20",
+   "famille": "Ecologie",
+   "statistique": "classes exclusives",
+   "tolerance": "wltp.co2Class n'apparait qu'en branche WLTP, efficiencyClass qu'en branche NEDC ; 0 exception",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-100",
+   "regle": "DM-22",
+   "famille": "Kilometrage",
+   "statistique": "plausibilite",
+   "tolerance": "mileage * 12 / max(age_en_mois, 6) <= 200 000 sur 100 %, hors annonces declarees A-04",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-101",
+   "regle": "DM-23",
+   "famille": "Manifest",
+   "statistique": "codes inatteignables",
+   "tolerance": "ni FIRST_REG_UNPARSEABLE ni MARKETPLACE_UNMAPPED ne figurent dans manifest.groundTruth",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-102",
+   "regle": "DM-24",
+   "famille": "Forme",
+   "statistique": "decimales",
+   "tolerance": "100 % des consommations, CO2 et capacites de batterie s'ecrivent avec au plus une decimale (comparaison TEXTUELLE sur le NDJSON, pas numerique)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-103",
+   "regle": "DM-25",
+   "famille": "Forme",
+   "statistique": "ordre des cles",
+   "tolerance": "les cles JSON apparaissent dans le meme ordre sur 100 % des lignes",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-104",
+   "regle": "DM-26",
+   "famille": "Forme",
+   "statistique": "unicite de l'identifiant",
+   "tolerance": "id unique sur 100 % des lignes, hors les paires declarees A-07 ; minuscules, forme 8-4-4-4-12",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-105",
+   "regle": "DM-27",
+   "famille": "Forme",
+   "statistique": "deeplink",
+   "tolerance": "webPage contient l'id de l'annonce et l'hote du marche (www.autoscout24.be pour be) sur 100 % des lignes",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-106",
+   "regle": "DM-28",
+   "famille": "Forme",
+   "statistique": "bornes de collection",
+   "tolerance": "imageCount <= 50 sur 100 % ; equipment et appliedSeals sans doublon sur 100 %",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-107",
+   "regle": "DM-29",
+   "famille": "R3",
+   "statistique": "texte libre",
+   "tolerance": "0 occurrence de numero de telephone, de courriel ou d'URL dans modelVersion (expressions du dictionnaire A.5.2)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-108",
+   "regle": "DM-30",
+   "famille": "Attributs",
+   "statistique": "paintType",
+   "tolerance": "taux d'absence >= 0.75 : le champ n'a jamais ete observe, un remplissage systematique ferait passer une hypothese pour un fait",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-109",
+   "regle": "DM-31",
+   "famille": "Determinisme",
+   "statistique": "hachage",
+   "tolerance": "manifest.sha256 porte sur les octets NON COMPRESSES du NDJSON et se verifie ; sha256Gz, s'il est present, verifie le fichier livre",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-110",
+   "regle": "R-04",
+   "famille": "Modeles",
+   "statistique": "couverture curatee",
+   "tolerance": ">= 65 % des annonces portent un modelId de la table curatee de models.json",
    "portee": "snapshot"
   }
  ]

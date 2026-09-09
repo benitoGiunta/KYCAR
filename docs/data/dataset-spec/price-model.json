@@ -1,10 +1,11 @@
 {
- "$comment": "KYCAR — modele de prix : depreciation, kilometrage, primes, arrondis commerciaux, statut de prix, TVA, evaluation AutoScout24. Regles R-17 a R-25.",
+ "$comment": "KYCAR — modele de prix : depreciation, kilometrage, primes, arrondis commerciaux, statut de prix, TVA, evaluation AutoScout24. Regles R-17 a R-25. Chemins de champ = schema As24Listing (prices.public.*).",
  "source": [
   "S11 mozzeno (presse economique belge) : prix moyen d'une voiture d'occasion 24 382 EUR en aout 2023, 22 323 EUR en aout 2024 — ordre de grandeur du PRIX DEMANDE, pas du prix de transaction",
   "S3 TRAXIO 2025 (structure d'age du marche)",
   "H7 hypothese : le taux de depreciation annuel (13,5 %) et la decote au premier jour (15 %) sont des ordres de grandeur usuels du marche europeen, non releves sur une serie belge",
-  "H8 hypothese : la prime de prix professionnel (+6 %) est justifiee par la garantie legale de 12 mois due par un vendeur professionnel en Belgique, non par un releve"
+  "H8 hypothese : la prime de prix professionnel (+6 %) est justifiee par la garantie legale de 12 mois due par un vendeur professionnel en Belgique, non par un releve",
+  "S18 docs/data/DATA-MODEL.md §7 contraintes 5 a 10 (prix, TVA, couverture) et §3 (echelle d'evaluation a 3 niveaux)"
  ],
  "formula": "prix_juste = newPriceScale * S_segment * B_marque * F_carburant * (kW / kW_ref)^0.55 * exp(N(0, 0.25))_modele * D(age) * K(km) * T_vendeur * exp(N(0, sigma_p))",
  "brandCoefficient": {
@@ -106,7 +107,7 @@
   "T30": 1.02,
   "T40": 1.03,
   "T50": 1.05,
-  "comment": "le produit publicitaire est correle a la valeur du stock, pas cause par elle ; la surcote reste faible et n'est pas une variable de decision"
+  "comment": "le produit publicitaire est correle a la valeur du stock, pas cause par elle ; la surcote reste faible et n'est pas une variable de decision. NONE n'existe pas dans la source : c'est l'ABSENCE d'adProduct.tier (contrainte DATA-MODEL 15)."
  },
  "residualSigma": 0.2,
  "residualSigmaRationale": "ecart-type du log-prix A L'INTERIEUR d'une cellule (marque, modele, annee) ; il fixe la detectabilite de M2 : un facteur de prix 0,40 vaut z = -4,6",
@@ -161,62 +162,68 @@
   "expectedShareOfCommercialEndings": 0.78
  },
  "priceStatus": {
-  "$comment": "KYCAR_PRICE_STATUS ; R-22",
+  "$comment": "R-22 — le statut est PORTE PAR LA FORME de prices.public dans la couche source, il n'y a pas de champ priceStatus (contraintes DATA-MODEL 5 et 6)",
+  "QUOTED": "prices.public.price present (entier >= 1) ET prices.public.currency = EUR ; onRequestOnly absent ou faux",
   "ON_REQUEST": {
+   "forme": "prices.public.onRequestOnly = true ET price ABSENT",
    "P": 0.005,
    "D": 0.035,
    "D_luxe_ou_prix>80000": 0.22,
    "aggregatedTarget": [
     0.02,
     0.05
-   ]
+   ],
+   "anomalyCode": "PRICE_ON_REQUEST"
   },
   "MISSING": {
+   "forme": "price ABSENT et onRequestOnly absent ou faux",
    "rate": 0.006,
-   "comment": "defaut d'extraction, jamais une decision du vendeur (EX-DATA-18) ; pose PRICE_MISSING_UNDECLARED"
+   "anomalyCode": "PRICE_MISSING_UNDECLARED",
+   "comment": "defaut d'extraction, jamais une decision du vendeur (EX-DATA-18)"
   },
-  "QUOTED": "le complement"
+  "quotedShareFloor": {
+   "value": 0.8,
+   "regle": "contrainte DATA-MODEL 10 : la part d'annonces a prix affiche reste >= 80 %, sinon coverageWarning.price est vrai partout et l'avertissement ne signale plus rien. Part visee ici : 96,4 %."
+  }
  },
  "vat": {
   "isTaxDeductibleAmongPro": 0.35,
   "unknownAmongPro": 0.06,
-  "amongPrivate": "champ TOUJOURS absent — un particulier ne facture pas de TVA deductible",
-  "rationale": "61,6 % des immatriculations neuves 2024 sont des societes (S1), mais la majorite des reventes professionnelles passe par le regime de la marge, sans TVA recuperable : 35 % des annonces professionnelles est un ordre de grandeur assume (H9), non un releve",
-  "netPriceEur": "present si et seulement si isTaxDeductible = vrai ; net = round(prix / 1.21)",
-  "vatRatePercent": "21 quand isTaxDeductible = vrai, absent sinon"
+  "amongPrivate": "contrainte DATA-MODEL 7 : prices.public.isTaxDeductible = true implique seller.type = D. Chez un particulier le champ est TOUJOURS ABSENT.",
+  "rationale": "61,6 % des immatriculations neuves 2024 sont des societes (S1), mais la majorite des reventes professionnelles passe par le regime de la marge, sans TVA recuperable : 35 % est un ordre de grandeur assume (H9), non un releve",
+  "netPrice": "contrainte DATA-MODEL 8 : prices.public.netPrice < price, present si et seulement si isTaxDeductible = true ; netPrice = arrondi(price / 1.21), et si l'arrondi rend netPrice = price, price est augmente de 1 EUR",
+  "vatRate": "21.0 quand isTaxDeductible = true, absent sinon ; UNE seule decimale (contrainte 8 et 24)",
+  "currency": "contrainte 8 : prices.public.currency = EUR sur le marche be, exige des qu'un montant est servi (dependentRequired du schema)"
  },
  "priceEvaluationCategory": {
-  "$comment": "R-24 — M3 est un CONTROLE externe (EX-DATA-13), donc il doit etre CORRELE au juste prix sans lui etre identique. Le generateur actuel le tire d'un bruit INDEPENDANT du prix : le kappa d'EX-DATA-96 y vaut alors zero par construction, et le controle croise ne mesure rien. CORRECTION.",
-  "formula": "d = ln(prix_affiche / prix_juste) / sigma_p ; categorie par seuils, puis brouillage",
+  "$comment": "R-24 — prices.public.evaluation.category est l'echelle de RECHERCHE a TROIS niveaux (1, 2, 3), projetee sur les 6 niveaux canoniques par EX-DATA-12. Les niveaux canoniques 4 (un peu cher) et 5 (cher) N'EXISTENT PAS dans la source : l'annonce chere n'est simplement pas etiquetee. CORRECTION du generateur actuel, qui tirait la categorie d'un bruit INDEPENDANT du prix — le kappa d'EX-DATA-96 y valait alors zero par construction.",
+  "formula": "d = ln(prix_affiche / prix_juste) / sigma_p",
   "thresholds": [
    [
-    "d < -1.6",
-    "1"
+    "d < -1.0",
+    "1 (tres bon prix)"
    ],
    [
-    "-1.6 <= d < -0.6",
-    "2"
+    "-1.0 <= d < -0.2",
+    "2 (bon prix)"
    ],
    [
-    "-0.6 <= d < 0.6",
-    "3"
+    "-0.2 <= d < 0.9",
+    "3 (prix correct)"
    ],
    [
-    "0.6 <= d < 1.6",
-    "4"
-   ],
-   [
-    "d >= 1.6",
-    "5"
+    "d >= 0.9",
+    "champ ABSENT — la source n'etiquette pas les annonces cheres"
    ]
   ],
   "confusionRate": 0.12,
-  "confusionRule": "avec probabilite 0.12, la categorie est deplacee d'un cran (haut ou bas equiprobables, bornee a 1..5) : le controle externe est correle mais imparfait",
-  "unavailable": "categorie 0 quand priceStatus != QUOTED",
-  "expectedKappaAgainstM1": [
+  "confusionRule": "avec probabilite 0.12 la categorie est deplacee d'un cran (bornee a 1..3, l'absence comptant comme le cran au-dessus de 3) : le controle externe est correle mais imparfait",
+  "unavailable": "champ ABSENT quand le prix n'est pas affiche (ON_REQUEST ou MISSING)",
+  "expectedKappaAgainstM1Low": [
    0.25,
    0.6
-  ]
+  ],
+  "kappaScope": "le kappa d'EX-DATA-96 n'est mesurable que du COTE BAS (categories 1-2 contre M1_LOW) : le cote haut n'est pas observable dans une echelle a 3 niveaux"
  },
  "isSuperDeal": {
   "rule": "vrai seulement si sellerType = D et priceEvaluationCategory dans {1, 2}",
@@ -225,5 +232,12 @@
  },
  "msrpEur": {
   "rule": "present pour 12 % des annonces (professionnels, age <= 6 ans) ; msrp = prix neuf du modele arrondi a 500 EUR"
+ },
+ "isNegotiable": {
+  "rule": "prices.public.isNegotiable : sans equivalent canonique (ecart E-04 de DATA-MODEL). Servi pour 22 % des annonces particulieres et 6 % des professionnelles, absent sinon."
+ },
+ "warranty": {
+  "rule": "warranty (mois) et hasWarranty : professionnels seulement. 58 % des annonces professionnelles portent warranty dans {12, 24, 36} et hasWarranty = true ; 12 % portent warranty = 0 et hasWarranty = false ; le reste omet les deux. Coherence OpenAPI imposee : warranty = 0 interdit hasWarranty = true et reciproquement.",
+  "warrantyUnit": "months"
  }
 }

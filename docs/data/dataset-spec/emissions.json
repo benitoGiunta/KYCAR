@@ -1,12 +1,63 @@
 {
- "$comment": "KYCAR — consommation, CO2, norme Euro, classes. Regles R-38 a R-42. La coherence CO2 <-> consommation est PHYSIQUE et donc verifiable exactement.",
+ "$comment": "KYCAR — consommation, CO2, norme Euro, classes. Regles R-38 a R-42. ALIGNE sur DATA-MODEL.md C-13 et contrainte 17 : UNE SEULE branche de mesure par annonce (wltp.* XOR co2Emissions/consumption.*/efficiencyClass), exclusion encodee dans le schema (dependentSchemas.wltp).",
  "source": [
-  "S15 facteurs d'emission carbone des carburants routiers : essence 2 392 g CO2 par litre, diesel 2 640 g CO2 par litre (valeurs de reference europeennes usuelles)",
-  "S16 calendrier WLTP : homologation obligatoire pour tous les vehicules neufs immatricules a partir du 1er septembre 2018 (NEDC avant)",
+  "S15 facteurs d'emission carbone des carburants routiers : essence 2 392 g CO2/L, diesel 2 640 g CO2/L (references europeennes usuelles)",
+  "S16 calendrier WLTP : homologation obligatoire pour tout vehicule neuf immatricule a partir du 1er septembre 2018 (NEDC avant)",
+  "S18 docs/data/DATA-MODEL.md C-13 et §7 contraintes 17 a 20",
   "H12 hypothese : les consommations de base par segment sont des ordres de grandeur, non des relevés d'homologation"
  ],
- "consumptionCombinedL100Km": {
-  "formula": "conso = (a_segment + 0.021 * (kW - kW_ref_segment)) * f_carburant * (1 - 0.011 * (annee - 2010)) * exp(N(0, 0.09)), bornee [2.2, 22.0]",
+ "branchRule": {
+  "$comment": "R-38 — la branche est choisie par la date de premiere immatriculation, puis les champs de l'AUTRE branche sont INTERDITS (le schema rejette la ligne).",
+  "WLTP": {
+   "condition": "firstRegistrationDate >= 2018-09",
+   "champs": [
+    "wltp.consumptionCombined",
+    "wltp.consumptionElectricCombined",
+    "wltp.co2EmissionsCombined",
+    "wltp.co2Class"
+   ],
+   "interdits": [
+    "co2Emissions",
+    "co2EmissionsUnit",
+    "consumption.combined",
+    "consumption.electricCombined",
+    "efficiencyClass"
+   ]
+  },
+  "NEDC": {
+   "condition": "firstRegistrationDate < 2018-09",
+   "champs": [
+    "co2Emissions",
+    "co2EmissionsUnit",
+    "consumption.combined",
+    "consumption.electricCombined",
+    "combinedUnit",
+    "efficiencyClass"
+   ],
+   "interdits": [
+    "wltp"
+   ]
+  },
+  "AUCUNE": {
+   "condition": "part d'annonces sans branche declaree",
+   "champs": [
+    "co2EmissionInGramPerKmWithFallback",
+    "consumptionCombinedWithFallback"
+   ],
+   "effet": "co2Source et consumptionSource valent UNKNOWN (EX-DATA-35) — c'est la SEULE facon de produire UNKNOWN",
+   "rate": {
+    "ageInf10": 0.06,
+    "age10a17": 0.18,
+    "ageSup17": 0.42
+   }
+  },
+  "electriqueEnBrancheWLTP": "contrainte 20 / C-06 : wltp.co2EmissionsCombined a pour minimum 1, un electrique ne peut donc PAS y porter 0. Une annonce electrique de branche WLTP porte wltp.consumptionElectricCombined, wltp.co2Class et co2EmissionInGramPerKmWithFallback = 0, et OMET wltp.co2EmissionsCombined.",
+  "electriqueEnBrancheNEDC": "co2Emissions = 0 est licite dans cette branche"
+ },
+ "withFallbackRule": "R-38bis — contrainte 17 : co2EmissionInGramPerKmWithFallback et consumptionCombinedWithFallback portent EXACTEMENT la valeur retenue par la priorite wltp > NEDC > repli. Servis sur 100 % des annonces dont une valeur existe. Deux chiffres differents pour la meme annonce sont un defaut, pas une variante.",
+ "consumptionCombined": {
+  "formula": "conso_WLTP = (a_segment + 0.021 * (kW - kW_ref_segment)) * f_carburant * (1 - 0.011 * (annee - 2010)) * exp(N(0, 0.09)), bornee [2.2, 22.0], arrondie a UNE decimale",
+  "nedcRule": "branche NEDC : la valeur est MINOREE de 21 % par rapport a la formule ci-dessus (l'homologation NEDC sous-estimait la consommation reelle) ; meme arrondi",
   "aSegment": {
    "citadine": 5.6,
    "compacte": 6.3,
@@ -28,26 +79,30 @@
    "M": 1.32,
    "O": 1.0
   },
-  "electricOnly": "carburant E : consumptionCombinedL100Km ABSENT ; consumptionElectricKwh100Km = (13.8 + 0.030 * kW) * (1 - 0.006 * (annee - 2015)) * exp(N(0, 0.07)), borne [11, 30]",
-  "pluginHybrid": "carburant 2 ou 3 avec isPluginHybrid : les DEUX consommations sont servies"
+  "electric": "carburant E : consumptionCombined ABSENT ; consumptionElectricCombined = (13.8 + 0.030 * kW) * (1 - 0.006 * (annee - 2015)) * exp(N(0, 0.07)), borne [11, 30], UNE decimale",
+  "pluginHybrid": "carburant 2 ou 3 avec isPluginHybrid : les DEUX consommations sont servies dans la meme branche"
  },
- "co2EmissionsGPerKm": {
-  "formula": "CO2 = round(conso * k_carburant) avec k(B, L, M, O) = 23.92, k(D, 3) = 26.40, k(2) = 23.92, k(C) = 18.10 ; CO2 = 0 si carburant = E ou H",
-  "tolerance": "la sonde admet un ecart de +/- 6 g/km entre CO2 et conso * k (arrondi et bruit d'homologation)",
-  "noise": "aucun bruit independant : le CO2 est DERIVE de la consommation, jamais tire separement — c'est ce qui rend la coherence testable"
+ "co2": {
+  "formula": "CO2 = arrondi(conso * k_carburant, 1 decimale) avec k(B, L, M, O, 2) = 23.92, k(D, 3) = 26.40, k(C) = 18.10 ; CO2 = 0 pour E et H",
+  "tolerance": "sonde : |CO2 - conso * k| <= 6 g/km hors anomalie A-14",
+  "noise": "aucun bruit independant : le CO2 est DERIVE de la consommation, jamais tire separement — c'est ce qui rend la coherence testable exactement",
+  "unit": "co2EmissionsUnit = g/km ; combinedUnit = l/100km ; electricCombinedUnit = kWh/100km"
  },
- "co2Source": {
-  "$comment": "champ 50 du dictionnaire",
-  "rule": "WLTP si firstRegistrationYearMonth >= 2018-09 ; NEDC si < 2018-09 ; UNKNOWN pour une part des annonces",
-  "unknownRate": {
-   "ageInf10": 0.06,
-   "age10a17": 0.18,
-   "ageSup17": 0.42
-  },
-  "wltpUpliftOnNedcValues": "les valeurs anterieures a 2018-09 sont des valeurs NEDC : le generateur les minore de 21 % par rapport a la formule WLTP ci-dessus"
+ "decimalRule": "R-38ter — contrainte 24 : consommations, CO2 et capacite de batterie portent AU PLUS UNE decimale et sont ecrites telles quelles (5.6, jamais 5.6000000000000005). Le generateur arrondit par Math.round(x * 10) / 10 AVANT serialisation ; multipleOf: 0.1 etant faux en virgule flottante binaire, le schema ne peut pas l'imposer : c'est une sonde.",
+ "co2Class": {
+  "$comment": "wltp.co2Class — BRANCHE WLTP UNIQUEMENT (KYCAR_CO2_CLASS, entiers 10..70)",
+  "rule": "seuils sur le CO2 : 10 (A) <= 0, 20 (B) <= 60, 30 (C) <= 100, 40 (D) <= 130, 50 (E) <= 160, 60 (F) <= 200, 70 (G) au-dela",
+  "absentRate": 0.28,
+  "scope": "annonces de branche WLTP seulement ; ABSENT a 100 % en branche NEDC"
+ },
+ "efficiencyClass": {
+  "$comment": "efficiencyClass — BRANCHE NEDC UNIQUEMENT (C-13 ; entiers 1..10 de KYCAR_EFFICIENCY_CLASS : 1 = A+, 2 = A, 3 = B ... 8 = G, 9 = A++, 10 = A+++)",
+  "rule": "seuils sur le CO2 NEDC : <= 60 -> 1, <= 90 -> 2, <= 110 -> 3, <= 130 -> 4, <= 150 -> 5, <= 175 -> 6, <= 200 -> 7, au-dela -> 8",
+  "absentRate": 0.34,
+  "scope": "annonces de branche NEDC seulement ; ABSENT a 100 % en branche WLTP — une annonce WLTP qui la porte est REJETEE par le schema (dependentSchemas.wltp)"
  },
  "euEmissionStandard": {
-  "$comment": "KYCAR_EU_EMISSION_STANDARD par annee de 1re immatriculation",
+  "$comment": "KYCAR_EU_EMISSION_STANDARD, chaines 1..11, par annee de 1re immatriculation ; independant de la branche de mesure",
   "byYear": [
    [
     "<=1996",
@@ -90,18 +145,36 @@
     "10 (Euro 6e)"
    ]
   ],
-  "electricRule": "un vehicule electrique porte la norme de son annee comme les autres (l'homologation existe), sauf 8 % laisses INCONNU"
- },
- "co2Class": {
-  "rule": "KYCAR_CO2_CLASS de A (10) a G (70) par seuils de CO2 : A <= 0, B <= 60, C <= 100, D <= 130, E <= 160, F <= 200, G au-dela",
-  "absentBefore": 2021,
-  "absentRate": 0.55
- },
- "efficiencyClass": {
-  "rule": "derive de co2Class ; absent pour 62 % des annonces"
+  "absentRate": 0.22,
+  "electricRule": "un vehicule electrique porte la norme de son annee comme les autres, sauf 8 % laisses absents"
  },
  "hasParticleFilter": {
+  "scope": "contrainte 20 etendue : servi pour les carburants D et 3 seulement",
   "D": "vrai si annee >= 2011, sinon 35 % vrai",
-  "autres": "absent dans 78 % des cas"
+  "absentRateAmongDiesel": 0.12
+ },
+ "electricRange": {
+  "$comment": "electricRange (km, WLTP EAER) ; servi pour fuelCategory dans {E, 2, 3} SEULEMENT (contrainte 20)",
+  "E": {
+   "medianFormula": "115 + 14.5 * (annee - 2012), borne [90, 620]",
+   "sigma": 0.18
+  },
+  "PHEV": {
+   "medianFormula": "36 + 2.6 * (annee - 2014), borne [25, 110]",
+   "sigma": 0.22
+  }
+ },
+ "battery": {
+  "$comment": "battery.capacity (kWh, UNE decimale), battery.ownershipType (KYCAR_BATTERY_OWNERSHIP) ; servis pour fuelCategory dans {E, 2, 3} SEULEMENT",
+  "capacityE": "mediane = electricRange / 5.6, sigma 0.10",
+  "capacityPHEV": "mediane = electricRange / 4.4, sigma 0.12",
+  "ownershipType": {
+   "scope": "carburant E seulement",
+   "1": 0.93,
+   "2": 0.06,
+   "3": 0.01,
+   "absentRate": 0.4
+  },
+  "capacityUnit": "kWh"
  }
 }
