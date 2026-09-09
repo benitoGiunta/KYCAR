@@ -24,6 +24,12 @@ export const APP_HEADER_SELECTOR = '.kycar-header';
 /** Nom de la variable CSS lue par `.kycar-filter-bar` (`app.css`). */
 export const BAND_TOP_VAR = '--kycar-band-top';
 
+/** Sélecteur du conteneur collant du bandeau (`app.css`, `.kycar-filter-bar`). */
+export const BAND_BAR_SELECTOR = '.kycar-filter-bar';
+
+/** Hauteur du bandeau collant, publiée pour le `scroll-padding-top` du document. */
+export const BAND_HEIGHT_VAR = '--kycar-band-height';
+
 /**
  * Publie en continu la hauteur de l'en-tête dans `--kycar-band-top` sur l'élément racine. Rend une
  * fonction d'arrêt (à appeler au démontage). Sans DOM, sans en-tête, ou sans `ResizeObserver`, le
@@ -35,15 +41,22 @@ export function observeHeaderHeight(): () => void {
   const root = document.documentElement;
   const header = document.querySelector(APP_HEADER_SELECTOR);
   if (root === null || header === null) return () => undefined;
+  const bar = document.querySelector(BAND_BAR_SELECTOR);
 
   const publish = (): void => {
     root.style.setProperty(BAND_TOP_VAR, `${stickyTopPx(header.getBoundingClientRect().height)}px`);
+    // `--kycar-band-height` alimente le `scroll-padding-top` du document (`app.css`) : sans lui,
+    // `scrollIntoView` amène le contenu SOUS l'en-tête et le bandeau collants, où il est recouvert.
+    if (bar !== null) {
+      root.style.setProperty(BAND_HEIGHT_VAR, `${stickyTopPx(bar.getBoundingClientRect().height)}px`);
+    }
   };
   publish();
 
   if (typeof ResizeObserver === 'function') {
     const ro = new ResizeObserver(publish);
     ro.observe(header);
+    if (bar !== null) ro.observe(bar);
     return () => ro.disconnect();
   }
   if (typeof window !== 'undefined') {

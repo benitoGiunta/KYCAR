@@ -5,6 +5,16 @@
  * contrat d'impression de `src/styles/print.css` (EX-NFR-31).
  */
 
+/*
+ * `EX-SCR-56` (ACC-02) — l'en-tête et le bandeau de filtres sont COLLANTS : sans marge de
+ * défilement, `scrollIntoView` (ancres, prise de focus, `EX-NFR-12`) amène le contenu visé SOUS eux,
+ * où il est recouvert et où un clic tombe sur le bandeau. `scroll-padding-top` réserve exactement
+ * leur hauteur cumulée, publiée par `src/components/filters/sticky-offset.ts`.
+ */
+:root {
+  scroll-padding-top: calc(var(--kycar-band-top, 0px) + var(--kycar-band-height, 0px));
+}
+
 .kycar-app {
   min-height: 100vh;
 }

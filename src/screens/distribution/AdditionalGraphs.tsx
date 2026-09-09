@@ -169,6 +169,7 @@ export function DensityHeatmap({
   dataSelection,
   log,
   onToggleLog,
+  compact,
 }: {
   density: PriceMileageDensity;
   dataSelection?: string;
@@ -176,6 +177,10 @@ export function DensityHeatmap({
   log?: boolean;
   /** Bascule l'échelle de l'axe des prix (`toggleLogHistogram(ui, 7)`). Absent : bouton inerte. */
   onToggleLog?: () => void;
+  /** `EX-SCR-181` (ACC-03) — régime COMPACT : `G7` n'est PAS tracé (la grille d'`EX-DATA-102bis` sur
+   * moins de 320 px de large ne porte plus d'information) et affiche le message normatif à sa place.
+   * Le cadre, son titre et sa table de données équivalente (`EX-NFR-15`) restent, eux, en place. */
+  compact?: boolean;
 }) {
   const cellSize = 14;
   const isLog = log === true;
@@ -245,7 +250,10 @@ export function DensityHeatmap({
         )
       }
     >
-      {density.available ? (
+      {/* `EX-SCR-181` (ACC-03) — régime compact : le message normatif tient lieu de tracé. */}
+      {compact === true ? (
+        <p class="kycar-graph-note kycar-graph-note--large-only">Densité disponible sur écran large</p>
+      ) : density.available ? (
         <>
           {/* `EX-SCR-17` — bascule de l'axe des PRIX de G7, et de lui seul. Bouton bascule nommé
               (l'axe est dit dans le libellé), état porté par `aria-pressed` : un lecteur d'écran
@@ -316,6 +324,7 @@ export function OutlierLollipopChart({
   /** `EX-SCR-164` — avertissement ambre quand `R² < 0,30` (`graphs-model.ts::g8RSquaredWarning`). */
   rSquaredWarning,
   dataSelection,
+  compact,
 }: {
   items: readonly OutlierLollipop[];
   perimeter?: { makeModel?: string; year?: number };
@@ -323,8 +332,15 @@ export function OutlierLollipopChart({
   modelCaption?: string;
   rSquaredWarning?: boolean;
   dataSelection?: string;
+  /** `EX-SCR-181` (ACC-03) — régime COMPACT : la liste est réduite de 20 à 10 sucettes, les autres
+   * étant repliées derrière un bouton `Afficher 10 de plus`. Le repli est un `<details>` natif :
+   * aucun état de composant (ce module est appelé comme une fonction pure par les sondes D7). */
+  compact?: boolean;
 }) {
   const maxAbs = Math.max(1, ...items.map((i) => Math.abs(i.deviationPct)));
+  const COMPACT_VISIBLE = 10;
+  const shown = compact === true ? items.slice(0, COMPACT_VISIBLE) : items;
+  const rest = compact === true ? items.slice(COMPACT_VISIBLE) : [];
   return (
     <GraphFrame
       graphId="G8"
@@ -365,7 +381,7 @@ export function OutlierLollipopChart({
         </p>
       ) : null}
       <ul class="kycar-lollipops">
-        {items.map((it) => {
+        {shown.map((it) => {
           const frac = (it.deviationPct / maxAbs) * 50; // % de largeur, centré sur 0
           const cold = it.deviationPct < 0;
           return (
@@ -390,6 +406,43 @@ export function OutlierLollipopChart({
           );
         })}
       </ul>
+      {/* `EX-SCR-181` (ACC-03) — le reste de la liste, replié, jamais retiré. */}
+      {rest.length > 0 ? (
+        <details class="kycar-lollipops-more">
+          <summary>Afficher {rest.length} de plus</summary>
+          <ul class="kycar-lollipops">
+            {rest.map((it) => {
+              const frac = (it.deviationPct / maxAbs) * 50;
+              const cold = it.deviationPct < 0;
+              return (
+                <li key={it.listingId} class="kycar-lollipop">
+                  <button
+                    type="button"
+                    class="kycar-lollipop-open"
+                    onClick={() => onOpen?.(it.row)}
+                    title={`${comparisonBaseLabel(it, perimeter)} · ${methodLabel(it.method)}`}
+                  >
+                    <span class="kycar-lollipop-price">{formatPrice(it.priceEur)}</span>
+                    <span class="kycar-lollipop-bar" aria-hidden="true">
+                      <span
+                        style={{
+                          position: 'relative',
+                          left: cold ? `${50 + frac}%` : '50%',
+                          width: `${Math.abs(frac)}%`,
+                          height: '6px',
+                          display: 'inline-block',
+                          background: cold ? 'var(--color-primary)' : 'var(--color-danger)',
+                        }}
+                      />
+                    </span>
+                    <span class="kycar-lollipop-dev">{formatSignedPct(it.deviationPct)}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      ) : null}
     </GraphFrame>
   );
 }

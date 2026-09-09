@@ -389,20 +389,43 @@ export function DistributionScreen(props: DistributionScreenProps) {
           <span>Recalcul en cours — les figures affichées portent encore le périmètre précédent.</span>
         </div>
       ) : null}
-      {/* Bloc 1 — en-tête statistique (EX-SCR-142) */}
-      <header class="kycar-stat-header">
-        <div class="kycar-stat-line">
-          <strong>{props.makeModelName ?? 'Modèle'}</strong>
-          {/* `EX-SCR-174` : à zéro, l'en-tête dit `aucune offre` — jamais « 0 offres ». */}
-          <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
-          <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
-          <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
-          <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
-          <span title={`n = ${price.n}`}>
-            min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
-            <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
-          </span>
-        </div>
+      {/* Bloc 1 — en-tête statistique (EX-SCR-142). `EX-SCR-181` (ACC-03) : en régime COMPACT il
+          passe de 3 à 5 lignes — le nom et l'effectif, les trois quartiles, l'étendue, les
+          médianes secondaires, puis la rangée d'actions (défilable horizontalement). Aucune donnée
+          n'est retirée : les mêmes valeurs sont réparties sur cinq lignes au lieu de trois. */}
+      <header class="kycar-stat-header" data-regime={degraded ? 'compact' : 'large'}>
+        {degraded ? (
+          <>
+            <div class="kycar-stat-line">
+              <strong>{props.makeModelName ?? 'Modèle'}</strong>
+              <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
+            </div>
+            <div class="kycar-stat-line">
+              <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
+              <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
+              <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
+            </div>
+            <div class="kycar-stat-line">
+              <span title={`n = ${price.n}`}>
+                min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
+                <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
+              </span>
+            </div>
+          </>
+        ) : (
+          <div class="kycar-stat-line">
+            <strong>{props.makeModelName ?? 'Modèle'}</strong>
+            {/* `EX-SCR-174` : à zéro, l'en-tête dit `aucune offre` — jamais « 0 offres ». */}
+            <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
+            <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>
+              min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
+              <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
+            </span>
+          </div>
+        )}
         <div class="kycar-stat-line">
           <span title={`n = ${stats.mileage.n}`}>km médian {statOrDash(stats.mileage.p50, formatKm)}</span>
           <span title={`n = ${stats.year.n}`}>1ʳᵉ immat. médiane {statOrDash(stats.year.p50, formatYear)}</span>
@@ -515,9 +538,9 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <>
         {/* Bloc 2 — histogrammes G1–G3 */}
         <section class="kycar-hist-row" aria-label="Distributions">
-          <Histogram graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
-          <Histogram graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
-          <Histogram graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
         </section>
 
         {/* Bloc 3 — nuage G4 */}
@@ -555,9 +578,10 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <section class="kycar-graph-grid" aria-label="Graphes additionnels">
           {!isUnresolvedModel ? <YearMedianChart points={yearMedian} dataSelection={stats.selectionHash} /> : null}
           {!isUnresolvedModel ? <DepreciationChart model={depreciation} dataSelection={stats.selectionHash} /> : null}
-          <DensityHeatmap density={density} log={ui.logHistograms.has(7)} onToggleLog={() => onToggleLog(7)} dataSelection={stats.selectionHash} />
+          <DensityHeatmap compact={degraded} density={density} log={ui.logHistograms.has(7)} onToggleLog={() => onToggleLog(7)} dataSelection={stats.selectionHash} />
           {!isUnresolvedModel ? (
             <OutlierLollipopChart
+              compact={degraded}
               items={lollipops}
               perimeter={{ makeModel: props.makeModelName }}
               onOpen={props.onOpenListing}

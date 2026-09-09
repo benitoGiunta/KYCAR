@@ -195,12 +195,15 @@ export function FilterBand(props: FilterBandProps) {
    * actifs (4) — et tient dans les 96 px de l'exigence ; déplié, il ouvre le panneau qui porte la
    * recherche de filtre (2) et les groupes secondaires (3), plafonné à 320 px, zone (3) défilante.
    *
-   * Défaut : DÉPLIÉ si et seulement si un groupe secondaire l'est déjà — c'est-à-dire si `EX-SCR-92`
-   * en a déplié un parce qu'il porte un filtre actif, ou si `grp` en a demandé un dans l'URL. Le
-   * repliement du bandeau lui-même n'ajoute AUCUN paramètre d'URL : `grp` reste l'unique porteur de
-   * l'état de repliement (`EX-NAV-10bis`), et le panneau suit ce qu'il décrit.
+   * Défaut : REPLIÉ, sans exception. `EX-SCR-56` décrit 96 px comme l'état d'arrivée du bandeau, et
+   * `EX-SCR-92` (« les groupes portant un filtre actif sont dépliés au chargement ») porte sur les
+   * GROUPES à l'intérieur de la zone (3), pas sur le bandeau lui-même : ces groupes sont bien
+   * ouverts, ils le sont dans un panneau que l'utilisateur ouvre. Ouvrir le panneau au chargement
+   * dès qu'un filtre est posé rendait 320 px du viewport indisponibles sur toute URL partagée.
+   * Le repliement du bandeau n'ajoute AUCUN paramètre d'URL : `grp` reste l'unique porteur de
+   * l'état de repliement des groupes (`EX-NAV-10bis`).
    */
-  const [panelOpen, setPanelOpen] = useState<boolean>(() => defaultExpandedGroups(props.initialSelection).size > 0);
+  const [panelOpen, setPanelOpen] = useState<boolean>(false);
 
   // `EX-SCR-56` (ACC-02) — publie la hauteur de l'en-tête collant dans `--kycar-band-top`, que
   // `app.css` lit sur `.kycar-filter-bar` : c'est ce conteneur qui porte le collage (le bandeau

@@ -201,3 +201,158 @@ test('ACC-06 — un brossage 2D conduit à un écran D restreint aux annonces br
   mesure(testInfo, 'ACC-06 — CSV des annonces du périmètre', `${lignes} lignes de données`);
   expect(lignes).toBe(brossees);
 });
+
+/* ================================================================================================
+ * ACC-03 — `EX-SCR-181` : le régime compact de l'écran B
+ * ============================================================================================== */
+
+test.describe('ACC-03 — régime compact de l’écran B (EX-SCR-181)', () => {
+  test('hauteurs, en-tête à 5 lignes, boutons défilables, une étiquette sur trois, G8 à 10, G7 non tracé', async ({
+    page,
+  }, testInfo) => {
+    test.skip(regimeOf(testInfo) !== 'compact', 'EX-SCR-181 ne décrit que le régime compact (< 768 px)');
+    await open(page, P2_PATH);
+
+    const m = await page.evaluate(() => {
+      const h = (sel: string): number => {
+        const el = document.querySelector(sel);
+        return el === null ? -1 : Math.round(el.getBoundingClientRect().height);
+      };
+      const actions = document.querySelector('.kycar-stat-actions');
+      return {
+        hist: h('[data-graph="G1"] svg.kycar-hist'),
+        canvas: h('[data-graph="G4"] canvas'),
+        additional: h('[data-graph="G9"] .kycar-graph-body'),
+        statLines: document.querySelectorAll('.kycar-stat-header .kycar-stat-line').length,
+        actionsOverflow: actions === null ? 'absent' : getComputedStyle(actions).overflowX,
+        g1Labels: document.querySelectorAll('[data-graph="G1"] svg.kycar-hist text').length,
+        g1Bars: document.querySelectorAll('[data-graph="G1"] svg.kycar-hist rect[role="button"]').length,
+      };
+    });
+    mesure(
+      testInfo,
+      'ACC-03 — géométrie du régime compact',
+      `G1=${m.hist} px · G4=${m.canvas} px · additionnels=${m.additional} px · en-tête=${m.statLines} lignes · boutons overflow-x=${m.actionsOverflow} · G1 ${m.g1Labels} textes pour ${m.g1Bars} barres`,
+    );
+
+    expect(m.hist).toBe(200);
+    expect(m.canvas).toBe(320);
+    expect(m.additional).toBe(240);
+    expect(m.statLines).toBe(5);
+    expect(m.actionsOverflow).toBe('auto');
+
+    // `EX-SCR-181` — une étiquette d'axe sur trois : au plus ⌈barres / 3⌉ étiquettes d'axe X, plus
+    // les deux graduations de l'axe des effectifs (max et 0).
+    expect(m.g1Labels).toBeLessThanOrEqual(Math.ceil(m.g1Bars / 3) + 2);
+
+    // `EX-SCR-181` — G8 montre 10 sucettes, les autres derrière « Afficher 10 de plus ».
+    const g8Visible = await page.locator('[data-graph="G8"] li.kycar-lollipop:visible').count();
+    mesure(testInfo, 'ACC-03 — G8 en compact', `${g8Visible} sucettes visibles`);
+    expect(g8Visible).toBeLessThanOrEqual(10);
+    await expect(page.locator('[data-graph="G8"] summary')).toContainText(/Afficher \d+ de plus/);
+
+    // `EX-SCR-181` — G7 n'est pas tracé et le dit.
+    await expect(page.locator('[data-graph="G7"]')).toContainText('Densité disponible sur écran large');
+    expect(await page.locator('[data-graph="G7"] svg.kycar-heatmap').count()).toBe(0);
+  });
+
+  test('appui long sur un point de G4 : infobulle en feuille basse avec « Ouvrir l’annonce » (EX-SCR-181)', async ({
+    page,
+  }, testInfo) => {
+    test.skip(regimeOf(testInfo) !== 'compact', 'EX-SCR-181 : l’appui long est l’interaction tactile du régime compact');
+    await open(page, P2_PATH);
+
+    const canvas = page.locator('[data-graph="G4"] canvas');
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    expect(box, 'canvas G4 absent').not.toBeNull();
+    if (box === null) return;
+
+    // Balayage de la zone de tracé : l'appui long n'ouvre la feuille que SUR un point.
+    const sheet = page.getByRole('dialog', { name: 'Annonce sélectionnée' });
+    let ouverte = false;
+    for (let i = 1; i <= 12 && !ouverte; i += 1) {
+      for (let j = 1; j <= 6 && !ouverte; j += 1) {
+        const x = box.x + (box.width * i) / 13;
+        const y = box.y + (box.height * j) / 7;
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        await page.waitForTimeout(700); // > 500 ms (LONG_PRESS_MS)
+        await page.mouse.up();
+        ouverte = await sheet.isVisible();
+      }
+    }
+    mesure(testInfo, 'ACC-03 — appui long sur G4', ouverte ? 'feuille basse ouverte' : 'aucun point atteint');
+    expect(ouverte, 'aucun appui long n’a ouvert la feuille basse').toBe(true);
+    await expect(sheet.getByRole('button', { name: 'Ouvrir l’annonce' })).toBeVisible();
+    await sheet.getByRole('button', { name: 'Fermer' }).click();
+    await expect(sheet).toBeHidden();
+  });
+
+  test('un appui déplacé n’ouvre pas la feuille basse (EX-SCR-181, geste annulé au déplacement)', async ({
+    page,
+  }, testInfo) => {
+    test.skip(regimeOf(testInfo) !== 'compact', 'EX-SCR-181 : régime compact');
+    await open(page, P2_PATH);
+    const canvas = page.locator('[data-graph="G4"] canvas');
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    if (box === null) return;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 60, y + 40, { steps: 6 });
+    await page.waitForTimeout(700);
+    await page.mouse.up();
+    await expect(page.getByRole('dialog', { name: 'Annonce sélectionnée' })).toBeHidden();
+  });
+});
+
+/* ================================================================================================
+ * ACC-04 — `EX-SCR-180` : le régime intermédiaire de l'écran B
+ * ============================================================================================== */
+
+test('ACC-04 — régime intermédiaire : G3 et G8 en pleine largeur, G4 à 400 px, légendes dessous (EX-SCR-180)', async ({
+  page,
+}, testInfo) => {
+  test.skip(regimeOf(testInfo) !== 'intermediate', 'EX-SCR-180 ne décrit que le régime intermédiaire (768–1279 px)');
+  await open(page, P2_PATH);
+
+  const m = await page.evaluate(() => {
+    const w = (sel: string): number => {
+      const el = document.querySelector(sel);
+      return el === null ? -1 : Math.round(el.getBoundingClientRect().width);
+    };
+    const canvas = document.querySelector('[data-graph="G4"] canvas');
+    const legend = document.querySelector('.kycar-scatter-legend');
+    return {
+      histRow: w('.kycar-hist-row'),
+      g1: w('[data-graph="G1"]'),
+      g3: w('[data-graph="G3"]'),
+      grid: w('.kycar-graph-grid'),
+      g8: w('[data-graph="G8"]'),
+      g9: w('[data-graph="G9"]'),
+      canvasHeight: canvas === null ? -1 : Math.round(canvas.getBoundingClientRect().height),
+      legendPosition: legend === null ? 'absent' : getComputedStyle(legend).position,
+      legendBelowCanvas:
+        canvas !== null && legend !== null
+          ? legend.getBoundingClientRect().top >= canvas.getBoundingClientRect().bottom - 1
+          : false,
+    };
+  });
+  mesure(
+    testInfo,
+    'ACC-04 — géométrie du régime intermédiaire',
+    `rangée=${m.histRow} · G1=${m.g1} · G3=${m.g3} · grille=${m.grid} · G8=${m.g8} · G9=${m.g9} · G4=${m.canvasHeight} px · légende ${m.legendPosition}, dessous=${m.legendBelowCanvas}`,
+  );
+
+  // `G1` sur une demi-rangée, `G3` seul en pleine largeur ; idem `G9` (demi) et `G8` (pleine).
+  expect(m.g1).toBeLessThan(m.histRow * 0.6);
+  expect(m.g3).toBeGreaterThan(m.histRow * 0.9);
+  expect(m.g9).toBeLessThan(m.grid * 0.6);
+  expect(m.g8).toBeGreaterThan(m.grid * 0.9);
+  expect(m.canvasHeight).toBe(400);
+  expect(m.legendPosition).toBe('static');
+  expect(m.legendBelowCanvas).toBe(true);
+});

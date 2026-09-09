@@ -354,7 +354,15 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     );
 
     await open(page, P2_PATH);
-    const line = await page.locator('.kycar-stat-header .kycar-stat-line').nth(1).innerText();
+    // 2.10 / ACC-03 (`EX-SCR-181`) : en régime COMPACT l'en-tête statistique passe de 3 à 5 lignes —
+    // la part de particuliers n'est plus sur la ligne d'indice 1. On désigne donc la ligne par ce
+    // qu'elle CONTIENT plutôt que par son rang ; le fait mesuré (la part de particuliers de
+    // l'en-tête est > 0) est rigoureusement inchangé, dans les trois régimes.
+    const line = await page
+      .locator('.kycar-stat-header .kycar-stat-line')
+      .filter({ hasText: 'particuliers' })
+      .first()
+      .innerText();
     mesure(testInfo, 'P2 — ligne 2 de l’en-tête écran B', line.replace(/\n/g, ' | '));
     const share = /(\d+)\s*%\s*particuliers/.exec(line);
     expect(share, `part de particuliers introuvable dans « ${line} »`).not.toBeNull();
@@ -445,6 +453,14 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
   test('EX-SCR-17 — la bascule d’échelle log de l’axe des prix existe sur G7, et sur lui seul', async ({
     page,
   }, testInfo) => {
+    // 2.10 / ACC-03 : `EX-SCR-181` dit que sous 768 px `G7` n'est PAS tracé (« la grille
+    // d'`EX-DATA-102bis` sur moins de 320 px de large ne porte plus d'information ») et affiche à sa
+    // place « Densité disponible sur écran large ». Sans tracé, il n'y a pas d'axe des prix à
+    // basculer : l'inadéquation est de plate-forme, au sens du README du harnais, et non un écart.
+    test.skip(
+      regimeOf(testInfo) === 'compact',
+      'EX-SCR-181 : G7 n’est pas tracé en régime compact, sa bascule d’échelle n’y existe donc pas',
+    );
     await open(page, P2_PATH);
     const g7 = page.locator('[data-graph="G7"]');
     await expect(g7).toHaveCount(1);
