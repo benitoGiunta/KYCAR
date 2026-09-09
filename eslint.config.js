@@ -40,7 +40,7 @@ export default tseslint.config(
     // Plain-Node tooling scripts that ship with this lot (the bundle size guard). Not
     // type-checked by tsc (see package.json `build`), so no TS-specific rules apply here -
     // just give them the Node globals `no-undef` needs.
-    files: ['tools/**/*.mjs'],
+    files: ['tools/**/*.mjs', 'data/schema/**/*.mjs'],
     languageOptions: {
       globals: {
         console: 'readonly',
