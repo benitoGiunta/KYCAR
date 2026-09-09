@@ -122,24 +122,33 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
 
     const bars = page.locator('[data-graph="G1"] svg.kycar-hist rect[role="button"]');
     const count = await bars.count();
+    // On préfère une barre qui n'est PAS la première classe de prix : la borne basse de la première
+    // classe vaut le minimum du domaine, et `EX-NAV-9` omet de l'URL tout filtre resté à sa valeur
+    // par défaut — l'URL ne porterait alors que `priceto`. Ce n'est pas un écart, c'est la
+    // canonicalisation ; mais une barre intérieure fait une preuve plus forte (les DEUX bornes).
     let chosen: { label: string; index: number } | null = null;
+    let firstNonEmpty: { label: string; index: number } | null = null;
     for (let i = 0; i < count; i += 1) {
       const label = (await bars.nth(i).getAttribute('aria-label')) ?? '';
-      if (!/:\s*0\s+offres/.test(label)) {
+      if (/:\s*0\s+offres/.test(label)) continue;
+      firstNonEmpty ??= { label, index: i };
+      if (i > 0) {
         chosen = { label, index: i };
         break;
       }
     }
+    chosen ??= firstNonEmpty;
     expect(chosen, 'aucune barre non vide sur G1').not.toBeNull();
     const expected = parseInteger((chosen?.label ?? '').split(':')[1] ?? '0');
+    const interior = (chosen?.index ?? 0) > 0;
 
     // Une barre SVG peut être haute de 0 px : on déclenche l'activation, pas un clic géométrique.
     await bars.nth(chosen?.index ?? 0).dispatchEvent('click');
 
-    await page.waitForFunction(() => window.location.search.includes('pricefrom='), null, { timeout: 20_000 });
+    await page.waitForFunction(() => window.location.search.includes('priceto='), null, { timeout: 20_000 });
     const search = new URL(page.url()).search;
-    expect(search).toContain('pricefrom=');
     expect(search).toContain('priceto=');
+    if (interior) expect(search).toContain('pricefrom=');
     // Le filtre est RÉEL : Σ se recalcule sur l'intervalle de la barre.
     await expect.poll(() => readSelectionCount(page), { timeout: 30_000 }).toBe(expected);
   });

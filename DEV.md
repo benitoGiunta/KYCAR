@@ -34,14 +34,39 @@ lot qui l'ouvre en premier.
 | `npm run test:e2e` | Playwright, harnais de bout en bout (`tests/e2e/`) |
 | `npm run test:e2e:report` | ouvre le dernier rapport Playwright |
 | `npm run size` | garde de budget bundle (`tools/check-bundle-size.mjs`), a lancer apres `npm run build` |
+| `npm run test:contract` | suite de contrat des providers (`tests/contract/`), rejouee sur synthetic / fixture / mock 2dehands |
+| `npm run data:gen` | (re)genere les fixtures `data/fixtures/dev|test` — deterministe, a graine fixe |
+| `npm run data:validate` | schema, sha256, chainage des snapshots, garde R3, budgets de taille |
+| `npm run data:check` | sondes statistiques du jeu contre `docs/data/DATASET-SPEC.md` |
 
 ## Lancer l'application (lot D8)
 
 `npm run dev` (ou le lanceur `kycar-dev` de `.claude/launch.json`, port 5173) sert l'app complete.
 Le point d'entree `src/main.tsx` assemble le cablage de production : `loadReferenceData()`
 (referentiels servis sous `/reference/*` par le plugin Vite `kycar-reference-data`) +
-`SyntheticDataProvider` (source SYNTHETIC par defaut, sert mode 1 et mode 2) +
-`createAggregationEngine()` (Web Worker) + `DataController`, puis monte la coquille `src/app.tsx`.
+`resolveProvider()` (registre `src/providers/registry.ts`) + `createAggregationEngine()`
+(Web Worker) + `DataController`, puis monte la coquille `src/app.tsx`.
+
+### Source de donnees et bascule (phase 3, `D3-01`, `DF-2`)
+
+La source par DEFAUT est le jeu de **fixtures** `fixture:test` : des annonces **fictives** a la
+forme AutoScout24, versionnees dans `data/fixtures/test` (3 snapshots de 20 000, NDJSON gzip +
+`manifest.json`). Ce ne sont ni des annonces reelles, ni une distribution calculee a la volee.
+
+Priorite de resolution : `?provider=<spec>` > `VITE_KYCAR_PROVIDER` > defaut `fixture:test`.
+Specifications reconnues : `fixture:test`, `fixture:dev`, `fixture:perf`, `synthetic`,
+`tweedehands` (au registre mais NON cablee : `D-18`/`DR-104` tant qu'`AC-01` n'est pas levee).
+Une specification inconnue ou non cablee retombe sur le defaut **avec un avertissement affiche**
+(bandeau `ET-SOURCE-REPLI`), jamais en silence.
+
+La NATURE de la source (`REAL` / `SYNTHETIC` / `FIXTURE`) est propagee de `describe()` jusqu'a l'UI
+et rendue par le module pur `src/app/source-notice.ts` : bandeau d'en-tete sur tous les ecrans,
+ligne legale du pied de page, phrase de provenance de `/mentions`, en-tete des exports CSV. La
+mention « Source : AutoScout24 — agregat non affilie » n'est ecrite que sur une source REELLE.
+
+Les fixtures et les referentiels sont servis en STATIQUE (`/fixtures/*`, `/reference/*`) par deux
+plugins Vite, jamais inlines dans un chunk JS : `npm run size` ne les voit donc pas, et le
+chargement du jeu est du reseau, pas du bundle.
 
 Le rendu est une fonction pure du chemin+requete (EX-NAV-18). Routes servies :
 `/marche` (ecran A), `/marche/:makeId-:slug/:modelId-:slug` (ecran B, distributions),

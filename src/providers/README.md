@@ -103,9 +103,28 @@ Rien d'autre ne bouge : ni le moteur, ni l'état, ni les écrans. C'est l'exigen
 | 2 | variable de build | `VITE_KYCAR_PROVIDER=synthetic` |
 | 3 | défaut (D3-01) | `fixture:test` |
 
-Une spécification **inconnue** ou **non câblée** retombe sur le défaut **et** écrit un avertissement
-dans la `coverageNote` du `SnapshotDescriptor` — le chemin par lequel la coquille l'affiche déjà.
-D-03 appliqué à la source : jamais appliqué en silence, jamais ignoré en silence.
+Une spécification **inconnue** ou **non câblée** retombe sur le défaut **et** publie un
+avertissement. D-03 appliqué à la source : jamais appliqué en silence, jamais ignoré en silence.
+
+**Complété en 3.5 (`mvp-integrate`)** : l'avertissement voyageait par la `coverageNote` du
+`SnapshotDescriptor`, que **aucun écran n'affiche** — le repli était donc muet pour l'utilisateur.
+`src/main.tsx` transmet désormais `ResolvedSpec.warning` à la coquille, qui en fait le bandeau
+d'état **`ET-SOURCE-REPLI`** (priorité juste après `ET-PARTIEL-CACHE`). La `coverageNote` continue
+de le porter pour la traçabilité et l'export.
+
+**Ce que l'utilisateur voit selon la spécification**, mesuré par `tests/e2e/source-fixture.spec.ts` :
+
+| `?provider=` | Source servie | Bandeau de provenance | Bandeau de repli |
+|---|---|---|---|
+| *(absent)* | `fixture:test` | « Jeu de données fictif à la forme AutoScout24 (profil test, 3 snapshots) — aucune annonce réelle. » | aucun |
+| `fixture:dev` | `fixture:dev` | idem, « profil dev » | aucun |
+| `synthetic` | `SyntheticDataProvider` | « Données synthétiques de démonstration — … » | aucun |
+| `tweedehands` | `fixture:test` (repli) | étiquette du défaut | motif de non-câblage (AC-01) |
+| valeur inconnue | `fixture:test` (repli) | étiquette du défaut | « source inconnue », liste des sources reconnues |
+
+Le pied de page suit la même règle : « Source : AutoScout24 — agrégat non affilié » n'est écrit que
+sur une source **RÉELLE**. Sur un jeu fictif ou synthétique, la ligne légale nomme ce qui est
+réellement servi (`src/app/source-notice.ts`).
 
 ### 4. Ce que le provider de fixtures garantit
 

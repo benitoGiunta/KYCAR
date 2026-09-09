@@ -266,10 +266,16 @@ export async function brushScatter(page: Page, graphId = 'G4'): Promise<void> {
   if (box === null) return;
   const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
 
-  const x0 = box.x + box.width * 0.15;
-  const y0 = box.y + box.height * 0.2;
-  const x1 = Math.min(box.x + box.width * 0.75, viewport.width - 8);
-  const y1 = Math.min(box.y + box.height * 0.75, viewport.height - 8);
+  // Phase 3.5 : le rectangle couvre désormais la QUASI-TOTALITÉ du cadre (5 % → 95 %). L'ancien
+  // rectangle 15 %–75 % avait été réglé sur la forme du nuage synthétique de 100 000 annonces ;
+  // sur les fixtures (cellule Opel Corsa, 317 points tracés) il tombait dans une zone vide et le
+  // geste ne sélectionnait rien — un faux négatif du HARNAIS, pas un écart du produit. Le fait
+  // mesuré (« un brossage réel produit une sélection, donc les deux actions ») est inchangé, et il
+  // ne dépend plus de la façon dont les points se répartissent dans le cadre.
+  const x0 = box.x + box.width * 0.05;
+  const y0 = box.y + box.height * 0.05;
+  const x1 = Math.min(box.x + box.width * 0.95, viewport.width - 8);
+  const y1 = Math.min(box.y + box.height * 0.95, viewport.height - 8);
   // Le geste doit dépasser 4 px sur les DEUX axes, sinon il est lu comme un clic simple.
   expect(x1 - x0, 'rectangle de brossage trop étroit').toBeGreaterThan(8);
   expect(y1 - y0, 'rectangle de brossage trop plat').toBeGreaterThan(8);

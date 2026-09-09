@@ -62,12 +62,32 @@ function slidingFps(frames: readonly number[]): { windows: number; bad: number; 
   return { windows, bad, minFps: Number.isFinite(minFps) ? minFps : 0 };
 }
 
-/** Mesure le délai entre le début de navigation et la visibilité de la première carte-marque. */
-async function measureFirstUsefulPaint(page: Page, path: string): Promise<number> {
+/**
+ * Deux jalons, mesurés dans la MÊME navigation, parce qu'ils ne disent pas la même chose :
+ *
+ *   - `ossature` : la première `.kycar-market-card` visible. **Attention : le SQUELETTE de
+ *     chargement de `MarketScreen` porte cette même classe** — ce jalon marque donc la peinture de
+ *     l'ossature de l'écran (coquille, bandeau, grille de substitution), PAS l'arrivée d'un chiffre.
+ *     C'est ce que la campagne 2.9 mesurait sous le nom de « premier affichage utile » ; on le garde
+ *     pour la continuité de la série, en le NOMMANT pour ce qu'il est.
+ *   - `premierChiffre` : la première `.kycar-market-card-count` visible, c'est-à-dire le premier
+ *     EFFECTIF réel rendu. Les cartes de squelette n'en portent aucun. C'est le jalon qui dit quand
+ *     l'utilisateur voit une donnée.
+ *
+ * Depuis la phase 3.5 la source par défaut est un jeu de fixtures TÉLÉCHARGÉ (`D3-01`) : l'écart
+ * entre les deux jalons est devenu la mesure la plus importante du chargement (constat `C-3.5-01`,
+ * `reports/remediation-2.8/mvp-integrate.md` §6.2).
+ */
+async function measureFirstUsefulPaint(
+  page: Page,
+  path: string,
+): Promise<{ ossature: number; premierChiffre: number }> {
   const started = Date.now();
   await page.goto(path, { waitUntil: 'commit' });
   await page.locator('.kycar-market-card').first().waitFor({ state: 'visible', timeout: 120_000 });
-  return Date.now() - started;
+  const ossature = Date.now() - started;
+  await page.locator('.kycar-market-card-count').first().waitFor({ state: 'visible', timeout: 120_000 });
+  return { ossature, premierChiffre: Date.now() - started };
 }
 
 /** Démarre la collecte des trames dans la page. */
@@ -104,15 +124,37 @@ test.describe('Budgets de performance mesurés au navigateur', () => {
     await cdp.send('Network.emulateNetworkConditions', FOURG);
 
     const samples: number[] = [];
-    for (let run = 0; run < 5; run += 1) samples.push(await measureFirstUsefulPaint(page, SURFACES.A));
+    const chiffres: number[] = [];
+    for (let run = 0; run < 5; run += 1) {
+      const m = await measureFirstUsefulPaint(page, SURFACES.A);
+      samples.push(m.ossature);
+      chiffres.push(m.premierChiffre);
+    }
 
     const transferred = await page.evaluate(() =>
       performance.getEntriesByType('resource').reduce((sum, r) => sum + ((r as PerformanceResourceTiming).transferSize || 0), 0),
     );
+    const snapshotKio = await page.evaluate(
+      () =>
+        (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+          .filter((r) => r.name.includes('.ndjson.gz'))
+          .reduce((sum, r) => sum + (r.transferSize || 0), 0) / 1024,
+    );
     mesure(
       testInfo,
-      'EX-NFR-9 — premier affichage utile en 4G (4 Mb/s, 150 ms)',
-      `${samples.map((s) => `${s} ms`).join(' / ')} — médiane ${median(samples)} ms, max ${Math.max(...samples)} ms, ${(transferred / 1024).toFixed(0)} Kio transférés`,
+      'EX-NFR-9 — ossature de l’écran A en 4G (4 Mb/s, 150 ms)',
+      `${samples.map((s) => `${s} ms`).join(' / ')} — médiane ${median(samples)} ms, max ${Math.max(...samples)} ms, ${(transferred / 1024).toFixed(0)} Kio transférés au total`,
+    );
+    // `C-3.5-01` — PUBLIÉ, non asserté. Le jalon « premier chiffre » dépasse le budget de 2 000 ms
+    // depuis que la source par défaut est un jeu de fixtures téléchargé (2,7 Mio gzip pour un
+    // snapshot du profil `test`). L'écart est un CONSTAT remonté au coordinateur : le corriger
+    // suppose soit des agrégats mode 1 précalculés au manifest, soit un profil plus léger par
+    // défaut — deux décisions hors du périmètre de cet agent (`D3-01`, `src/providers/fixture`).
+    // Le publier sans l'asserter est la seule façon de ne pas le taire sans le maquiller.
+    mesure(
+      testInfo,
+      'EX-NFR-9 — PREMIER CHIFFRE affiché en 4G (constat C-3.5-01, publié, non asserté)',
+      `${chiffres.map((s) => `${s} ms`).join(' / ')} — médiane ${median(chiffres)} ms contre un budget de ${NFR9_BUDGET_MS} ms ; snapshot de fixtures ${snapshotKio.toFixed(0)} Kio gzip`,
     );
 
     await cdp.send('Network.emulateNetworkConditions', {
@@ -135,10 +177,12 @@ test.describe('Budgets de performance mesurés au navigateur', () => {
     await cdp.send('Network.emulateNetworkConditions', FOURG);
 
     const samples: number[] = [];
-    for (let run = 0; run < 5; run += 1) samples.push(await measureFirstUsefulPaint(page, `${SURFACES.A}${P1_QUERY}`));
+    for (let run = 0; run < 5; run += 1) {
+      samples.push((await measureFirstUsefulPaint(page, `${SURFACES.A}${P1_QUERY}`)).ossature);
+    }
     mesure(
       testInfo,
-      'EX-NFR-9 — premier affichage utile sur URL filtrée (partage de lien)',
+      'EX-NFR-9 — ossature de l’écran A sur URL filtrée (partage de lien)',
       `${samples.map((s) => `${s} ms`).join(' / ')} — médiane ${median(samples)} ms, max ${Math.max(...samples)} ms`,
     );
 
