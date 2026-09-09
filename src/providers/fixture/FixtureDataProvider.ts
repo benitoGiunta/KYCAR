@@ -171,9 +171,12 @@ export class FixtureDataProvider implements DataProvider {
       marketplace: this.state?.descriptor.marketplace ?? 'be',
       sourceKind: 'FIXTURE',
       mode1: { source: 'LISTINGS' },
-      // Le lot colonnaire complet est en mémoire : aucun plafond d'échantillon n'est imposé par la
-      // source. Ce n'est pas une promesse de volume, c'est l'absence de troncature.
-      mode2: { kind: 'SERVED', maxSampleSize: null },
+      // SINCÉRITÉ (D3-21) : `maxSampleSize` est l'effectif fin maximal qu'une réponse peut ramener.
+      // Tant qu'aucun snapshot n'est ouvert, ce plafond est INCONNU et vaut `null` — « pas de
+      // plafond imposé par la source ». Une fois le snapshot ouvert, il est CONNU et fini : c'est
+      // l'effectif servi, lu du jeu réel. Annoncer `null` sur un jeu de 5 000 annonces laisserait
+      // croire à un échantillon illimité (`EX-DATA-112` dimensionne la mémoire sur ce chiffre).
+      mode2: { kind: 'SERVED', maxSampleSize: this.state?.descriptor.listingCount ?? null },
     };
   }
 
@@ -510,6 +513,17 @@ export class FixtureDataProvider implements DataProvider {
       `Ingestion : ${report.lineCount} lignes lues, ${report.rows.length} retenues, ` +
         `${report.rejectedCount} rejetées, ${report.duplicateListingCount} doublons d’identifiant ` +
         `arbitrés (critères D3-15 : complétude, date de mise à jour, signature — jamais l’ordre du fichier).`,
+    );
+    // Tailles ANNONCÉES par le manifest, jamais estimées : elles disent ce que le jeu pèse
+    // réellement et rendent le budget `EX-NFR-3` vérifiable depuis l'application elle-même.
+    const announced = manifest.listingCount;
+    const kept = report.rows.length;
+    parts.push(
+      `Taille : ${announced} annonces annoncées au manifest, ${kept} servies ` +
+        `(couverture d’échantillon ${announced === 0 ? 'indéterminée' : `${((100 * kept) / announced).toFixed(1)} %`})` +
+        `${manifest.uncompressedBytes === undefined ? '' : `, ${(manifest.uncompressedBytes / 1048576).toFixed(2)} Mio non compressés`}` +
+        `${manifest.compressedBytes === undefined ? '' : `, ${(manifest.compressedBytes / 1048576).toFixed(2)} Mio gzip`}` +
+        `${manifest.groundTruth.length === 0 ? '' : `, ${manifest.groundTruth.length} anomalies déclarées en vérité terrain`}.`,
     );
     parts.push(
       'Provenance de la mesure (co2Source, EX-DATA-35) : DÉRIVÉE par l’adaptateur mais sans colonne ' +

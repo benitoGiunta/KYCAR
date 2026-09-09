@@ -21,6 +21,20 @@
  * inadvertance. La graine est fixe : deux exécutions produisent les mêmes octets, ce que la suite
  * de contrat vérifie.
  *
+ * **POURQUOI IL EST CONSERVÉ APRÈS L'ARRIVÉE DE `data/fixtures/` (porte G9a).** Le sujet de contrat
+ * sert désormais le jeu RÉEL — c'est lui qui doit porter les mesures et l'arbitrage des doublons.
+ * Mais le générateur garantit **100 % de lignes conformes au schéma** (critère S2 de la phase 3.2) :
+ * par construction, aucun fichier réel ne peut exercer les chemins de REJET de l'ingestion. Or ce
+ * sont eux qui protègent R3 et l'interface :
+ *
+ *   - `R3_FORBIDDEN_FIELD` — un nom de propriété interdit : la ligne n'entre pas ;
+ *   - `LISTING_URL_INVALID` — un hôte étranger au domaine (`EX-DATA-14`) ;
+ *   - `LISTING_ID_INVALID`, `VEHICLE_TYPE_NOT_CAR`, `MAKE_UNKNOWN` ;
+ *   - une ligne de JSON tronquée : le provider la compte, il ne s'arrête pas.
+ *
+ * Le mini-jeu est le SEUL porteur de ces six cas, et le seul dont je maîtrise le `sha256` du
+ * manifest. Il reste donc, réduit à ce rôle : les cas limites que le jeu réel ne peut pas produire.
+ *
  * Module de TEST uniquement (`node:fs`, `node:zlib`) : aucun fichier de `src/` ne l'importe.
  */
 

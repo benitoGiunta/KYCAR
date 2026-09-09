@@ -11,6 +11,7 @@ import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
 import { looksGzipped, readNdjsonStream } from './ndjson';
+import { createHttpFixtureLoader, LIGHT_MANIFEST } from './loaders/http';
 import { checkSchemaVersion, selectSnapshot, isSnapshotManifest, isFixtureProfile } from './manifest';
 import { duplicateSignature, hasDuplicateValueConflict, preferCandidate, type DuplicateCandidate } from './dedupe';
 import type { CanonicalRow } from '../adapters/as24/adapt';
@@ -226,5 +227,65 @@ describe('fixture / dedupe — arbitrage INDÉPENDANT de l’ordre du fichier (D
     expect(hasDuplicateValueConflict(row(), row({ firstRegistrationYearMonth: 24_001 }))).toBe(true);
     // Un champ hors des quatre ne fait PAS un conflit : le compteur d'ARB-54 doit rester lisible.
     expect(hasDuplicateValueConflict(row(), row({ imageCount: 42, powerKw: 90 }))).toBe(false);
+  });
+});
+
+
+describe('fixture / chargeur HTTP — manifest allégé d’abord, repli sur le complet', () => {
+  /** Faux `fetch` : rend 200 pour les chemins connus, 404 sinon, et journalise les URL demandées. */
+  function fakeFetch(known: Readonly<Record<string, unknown>>): { impl: typeof fetch; urls: string[] } {
+    const urls: string[] = [];
+    const impl = ((input: RequestInfo | URL): Promise<Response> => {
+      const url = String(input);
+      urls.push(url);
+      const body = known[url];
+      if (body === undefined) return Promise.resolve(new Response('', { status: 404 }));
+      return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+    }) as typeof fetch;
+    return { impl, urls };
+  }
+
+  const entry = { snapshotId: 'be-20260921T060000Z', dir: 'be-20260921T060000Z', capturedAt: '2026-09-21T06:00:00Z' };
+
+  it('demande `manifest.min.json` en premier : la vérité terrain n’est pas sur le chemin critique', async () => {
+    const { impl, urls } = fakeFetch({
+      [`/fixtures/dev/${entry.dir}/${LIGHT_MANIFEST}`]: { snapshotId: entry.snapshotId, listingCount: 5000 },
+    });
+    const loader = createHttpFixtureLoader({ fetchImpl: impl });
+    const manifest = (await loader.loadManifest('dev', entry)) as { listingCount: number };
+    expect(manifest.listingCount).toBe(5000);
+    expect(urls).toEqual([`/fixtures/dev/${entry.dir}/${LIGHT_MANIFEST}`]);
+    // Le manifest complet n'a même pas été demandé : c'est tout l'objet de l'allègement.
+    expect(urls.some((u) => u.endsWith('manifest.json'))).toBe(false);
+  });
+
+  it('se replie sur `manifest.json` quand l’allégé n’existe pas (jeu servi par un autre hébergeur)', async () => {
+    const { impl, urls } = fakeFetch({
+      [`/fixtures/dev/${entry.dir}/manifest.json`]: { snapshotId: entry.snapshotId, listingCount: 5000 },
+    });
+    const loader = createHttpFixtureLoader({ fetchImpl: impl });
+    const manifest = (await loader.loadManifest('dev', entry)) as { listingCount: number };
+    expect(manifest.listingCount).toBe(5000);
+    expect(urls).toEqual([
+      `/fixtures/dev/${entry.dir}/${LIGHT_MANIFEST}`,
+      `/fixtures/dev/${entry.dir}/manifest.json`,
+    ]);
+  });
+
+  it('une ressource absente donne un message qui NOMME l’URL, jamais un échec muet', async () => {
+    const { impl } = fakeFetch({});
+    const loader = createHttpFixtureLoader({ fetchImpl: impl });
+    await expect(loader.loadProfileIndex('dev')).rejects.toThrow(/\/fixtures\/dev\/index\.json/);
+    await expect(loader.openListings('dev', entry)).rejects.toThrow(/listings\.ndjson\.gz/);
+  });
+
+  it('les URL sont RELATIVES : aucune requête ne sort de l’origine de l’application (E5)', async () => {
+    const { impl, urls } = fakeFetch({});
+    const loader = createHttpFixtureLoader({ fetchImpl: impl });
+    await loader.loadProfileIndex('dev').catch(() => undefined);
+    await loader.loadManifest('dev', entry).catch(() => undefined);
+    await loader.openListings('dev', entry).catch(() => undefined);
+    expect(urls.length).toBeGreaterThan(0);
+    for (const u of urls) expect(u.startsWith('/fixtures/'), u).toBe(true);
   });
 });

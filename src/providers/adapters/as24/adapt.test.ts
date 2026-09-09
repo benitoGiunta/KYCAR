@@ -411,6 +411,13 @@ describe('adaptateur as24 — motorisation (# 35 à # 48)', () => {
     // Catégorie absente : repli sur le TYPE (7 = Diesel → D).
     const fallback = accept(listing({ fuelCategory: undefined, primaryFuelType: 7, isPluginHybrid: undefined }));
     expect(fallback.fuelCategory).toBe(byteOf('KYCAR_FUEL_CATEGORY', 'D'));
+    // EX-DATA-11 : sur un HYBRIDE RECHARGEABLE, le repli d'EX-DATA-10 est inapplicable — le type
+    // primaire est le carburant thermique et ne dit pas la catégorie. Le classer « Essence » serait
+    // faux dans tous les filtres ; la catégorie reste INCONNUE et la situation est signalée.
+    const hybrideEssence = accept(listing({ fuelCategory: undefined, primaryFuelType: 2, isPluginHybrid: true }));
+    expect(hybrideEssence.fuelCategory).toBe(ENUM_UNKNOWN_BYTE);
+    expect(hybrideEssence.notices).toContain('HYBRID_CATEGORY_UNRESOLVED');
+    expect(hybrideEssence.notices).not.toContain('HYBRID_INCONSISTENT');
     // Ni catégorie ni type résoluble sur un hybride rechargeable : EX-DATA-11, signalé, jamais deviné.
     const unresolved = accept(listing({ fuelCategory: undefined, primaryFuelType: 14, isPluginHybrid: true }));
     expect(unresolved.fuelCategory).toBe(ENUM_UNKNOWN_BYTE);
@@ -442,6 +449,11 @@ describe('adaptateur as24 — motorisation (# 35 à # 48)', () => {
     expect(readBooleanFlag(accept(listing()).booleanFlags, 'isPluginHybrid')).toBe(true);
     const inconsistent = accept(listing({ isPluginHybrid: true, fuelCategory: 'D' }));
     expect(inconsistent.notices).toContain('HYBRID_INCONSISTENT');
+    // §7-19 vise une CONTRADICTION, pas une absence : catégorie inconnue → `HYBRID_CATEGORY_UNRESOLVED`
+    // seul, sans quoi la même annonce serait comptée dans deux diagnostics distincts.
+    const unresolved = accept(listing({ isPluginHybrid: true, fuelCategory: undefined, primaryFuelType: 14 }));
+    expect(unresolved.notices).toContain('HYBRID_CATEGORY_UNRESOLVED');
+    expect(unresolved.notices).not.toContain('HYBRID_INCONSISTENT');
     expect(readBooleanFlag(accept(listing({ isPluginHybrid: undefined })).booleanFlags, 'isPluginHybrid')).toBeNull();
   });
 });

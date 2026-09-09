@@ -22,11 +22,11 @@
 | tsc suite de contrat | `tsc --noEmit -p tsconfig.contract.json` (nouveau) | **0 erreur** |
 | lint (mon périmètre) | `eslint src/providers src/types src/main.tsx tests/contract tests/review/D2 vite.config.ts vitest.contract.config.ts` | **0 problème** |
 | lint global | `npm run lint` | **5 erreurs, PRÉEXISTANTES** — `data/schema/validate.mjs`, livrable de `data-model` (3.1) : voir **C-P3-6** |
-| unitaires du périmètre | `vitest run --no-file-parallelism src/providers src/types` | **230 / 230** |
-| suite de contrat | `npm run test:contract` | **50 / 50** |
-| sondes de revue | `vitest run --config vitest.review.config.ts tests/review/D2 D3 D9` | **258 / 258** |
+| unitaires du périmètre | `vitest run --no-file-parallelism src/providers src/types` | **230 / 230** (suite complète : 756 / 756) |
+| suite de contrat | `npm run test:contract` | **83 / 83** (dont 31 de vérité terrain) |
+| sondes de revue | `vitest run --config vitest.review.config.ts` (toutes) | **1097 / 1097** |
 | build | `npm run build` | **0 erreur / 0 avertissement** |
-| taille | `npm run size` | **129,15 / 300 Kio gzip — OK** |
+| taille | `npm run size` | **129,51 / 300 Kio gzip — OK** |
 
 Livré en quatre lots, un commit chacun : couche schéma (D3-07, D3-10, `SourceKind`) · adaptateur
 as24 · provider + registre + service des fixtures · suite de contrat ; puis ce rapport.
@@ -362,3 +362,139 @@ imprime automatiquement, en nommant le jeu servi.
 - **H-P3-4** — L'ouverture conserve le lot après `closeSnapshot` (idempotente, rien libéré) :
   `EX-NAV-23` ne demande qu'UN snapshot actif, pas sa destruction à la fermeture d'un écran, et le
   rouvrir coûterait une relecture complète du fichier.
+
+
+---
+
+## 11. Finalisation sur fixtures réelles (après la porte G9a)
+
+Branche de session fusionnée dans le worktree (`c973a6e`, sans conflit) : `data/fixtures/dev` et
+`data/fixtures/test` sont là, trois snapshots chacun. **La suite de contrat est passée du premier
+coup sur le jeu réel** — le sujet `fixture` sert automatiquement `data/fixtures/dev` dès qu'il
+existe, et nomme le jeu servi dans chaque mesure.
+
+### 11.1 Mesures
+
+| Mesure | Profil `dev` (3 × 5 000) | Profil `test` (3 × 20 000, **source par défaut D3-01**) | Budget |
+|---|---|---|---|
+| Ouverture d'un snapshot | **494 ms** (sha256 **vérifié**) | **1 861 ms** (sha256 non vérifié, hors `dev`) | < 2 000 ms (S4) — tenu, **sans marge sur `test`** → **C-P3-14** |
+| Annonces | 5 000 annoncées → **4 995 servies** (5 doublons arbitrés) | 20 000 → **19 980** (20 doublons) | — |
+| Lot colonnaire | 1 059 Kio, **217,2 o/ligne** | **4,14 Mio**, 217,2 o/ligne | < 250 o/ligne — tenu |
+| Mémoire extrapolée (ARB-55) | — | **207 Mio à 10⁶ lignes** | enveloppe 274 Mio — tenu |
+| Recalcul **filtré** (`EX-NFR-5` : « application d'un filtre ») | — | médiane **12,1 ms**, **p95 15,4 ms** | ≤ 200 ms p95 — **tenu, large** |
+| Recalcul **Σ** (sélection entière, pire cas, hors `EX-NFR-5`) | médiane 39 ms, p95 56 ms | médiane **171 ms**, **p95 194 ms** | — → **C-P3-15** |
+| Fichier gzip | 682 Kio / snapshot | **2 677 Kio** / snapshot, **137 o/ligne** | `EX-NFR-3` : 60 o/ligne à 100 000 — **non comparable à 20 000** (la fenêtre gzip travaille mieux à volume élevé) ; le budget commité de 8 Mio pour les trois snapshots `test` est tenu (7,79 Mio ; `dev` 1,99 Mio) |
+| Bundle initial | **129,51 / 300 Kio gzip** | idem | tenu (43 %) |
+
+**Deux optimisations faites en réponse aux mesures**, toutes deux sans changement de sémantique :
+
+1. **Découpage des lignes par curseur** (`ndjson.ts`) : le tampon était réaffecté à chaque ligne
+   (`pending = pending.slice(nl + 1)`), donc la fin du morceau était recopiée autant de fois qu'il
+   contenait de lignes — un coût **quadratique** dans un morceau de 64 Kio qui en porte deux cents.
+   Un index remplace les `slice` ; la queue incomplète n'est recopiée qu'une fois par morceau.
+2. **Chemins rapides de normalisation** : `normalizeText` rend la chaîne telle quelle quand elle est
+   déjà normalisée au sens d'`EX-DATA-7` (imprimables ASCII, sans espace de bord ni espace double —
+   NFC est l'identité sur l'ASCII) ; `normalizeListingUrl` évite de construire un objet `URL` quand
+   l'adresse est un `https` sans requête ni fragment, cas où le nettoyage EST l'identité. Ces deux
+   chemins sont **stricts** : au moindre doute, la chaîne repasse par le traitement complet.
+
+Ouverture du profil `test` : **2 112 ms → 1 861 ms**. Répartition mesurée du coût d'ouverture à
+20 000 lignes : ingestion **2 319 ms** (dont `JSON.parse` 593 ms, adaptation ≈ 900 ms, flux et
+décompression ≈ 800 ms), assemblage colonnaire **64 ms**, identifiants **10 ms**, baseline **12 ms**.
+Différer la zone de chaînes (garde-fou 2 de §9.3) ne rapporterait donc rien ici : **tout le coût est
+dans l'ingestion**, et l'assemblage — zone de chaînes comprise — pèse 3 % du total.
+
+**Troisième optimisation, sur le chemin critique d'`EX-NFR-9`** : `manifest.json` du profil `test`
+pèse **501 Kio**, dont **1,3 Kio** intéressent l'application — les 2 436 anomalies de `groundTruth`
+sont le document du reviewer et des sondes, jamais lu par l'application. Le plugin Vite écrit
+désormais un `manifest.min.json` (le manifest sans sa vérité terrain, `groundTruth` **vidé et non
+retiré**, pour rester conforme au schéma, avec une note qui dit où trouver le complet) et le chargeur
+HTTP le demande **en premier**, avec repli sur `manifest.json`. **501 Kio → 1,46 Kio** avant la
+première ligne d'annonces. `generation.json` (provenance du générateur) n'est plus copié dans `dist/`.
+
+### 11.2 Vérité terrain : les 27 codes d'anomalie confrontés
+
+`tests/contract/ground-truth.test.ts` — **31 cas, verts**. Elle lit le manifest du snapshot le plus
+récent de `dev` (612 anomalies déclarées, 27 codes), retrouve **chaque annonce citée** dans le
+NDJSON, l'adapte et confronte le résultat à une **attente écrite pour chacun des 27 codes**. Un code
+sans attente, ou une attente sans code, fait échouer le test de complétude : la couverture ne peut
+pas se dégrader en silence quand `dataset-gen` fait évoluer sa liste.
+
+| Classe | Codes | Résultat |
+|---|---|---|
+| **Drapeau `KYCAR_INGEST_FLAG` posé** (11) | `PRICE_SENTINEL_ABSOLUTE`, `PRICE_OUT_OF_RANGE`, `PRICE_MISSING_UNDECLARED`, `PRICE_ON_REQUEST_WITH_AMOUNT`, `MILEAGE_OUT_OF_RANGE`, `SUSPECT_ZERO_MILEAGE`, `POWER_UNIT_MISMATCH`, `UNIT_UNSUPPORTED`, `FIRST_REG_OUT_OF_RANGE`, `MODEL_UNRESOLVED`, `VERSION_FULLY_STRIPPED` | **conformes** (réserve C-P3-11 sur le dernier) |
+| **Signalement hors vocabulaire** (C-P3-1) (4) | `CO2_ZERO_NON_BEV`, `HYBRID_INCONSISTENT`, `HYBRID_CATEGORY_UNRESOLVED`, `MILEAGE_IMPLAUSIBLE_FOR_AGE` | **conformes** (réserves C-P3-9) |
+| **Valeur canonique** (3) | `PRICE_ON_REQUEST` (statut), `REGION_UNRESOLVED` (région inconnue), `OTHER` (complétude) | **conformes** (réserve C-P3-13) |
+| **Étage SNAPSHOT** (3) | `DUPLICATE_LISTING_ID` (5 déclarés = 5 mesurés), `DUPLICATE_VALUE_CONFLICT`, `CROSS_SELLER_DUPLICATE` | **mesurés** (réserve C-P3-10) |
+| **Étage MOTEUR, aucun drapeau attendu** (4) | `OUTLIER_M1_LOW/HIGH`, `OUTLIER_M2_LOW/HIGH` | **conformes** |
+| **Sans conséquence canonique, assumé** (2) | `VERSION_AMBIGUOUS`, `POWER_OUT_OF_RANGE` | **constatés** (C-P3-7, C-P3-12) |
+
+**Deux défauts de l'adaptateur trouvés et corrigés par cette confrontation** — c'est ce qu'on
+attendait d'elle :
+
+- **`HYBRID_CATEGORY_UNRESOLVED` ne se posait pas** sur une hybride rechargeable dont
+  `fuelCategory` est absente et `primaryFuelType` connu : le repli d'`EX-DATA-10` résolvait la
+  catégorie à `B` (« Essence ») depuis le carburant **thermique**, et signalait ensuite une
+  incohérence. C'était **faux** : `EX-DATA-11` déclare précisément ce cas non résoluble, et une
+  hybride rechargeable classée « Essence » l'aurait été dans **tous** les filtres et **toutes** les
+  distributions. Le repli est désormais bloqué quand `isPluginHybrid` est vrai, et la catégorie
+  reste INCONNUE avec son signalement.
+- **`HYBRID_INCONSISTENT` était posé en même temps** que `HYBRID_CATEGORY_UNRESOLVED` : §7-19 vise
+  une catégorie qui **contredit**, pas une catégorie **absente**. La même annonce était comptée dans
+  deux diagnostics distincts. Corrigé, avec un cas unitaire.
+
+### 11.3 Constats supplémentaires (tous quantifiés par une sonde verte)
+
+| Réf. | Constat | Chiffre mesuré | Pour |
+|---|---|---|---|
+| **C-P3-7** | `POWER_OUT_OF_RANGE` est **inatteignable depuis une ligne conforme au schéma** : `as24-listing.schema.json` borne `power` à 1..9 999 et l'annexe A valide **le même domaine, bornes incluses**. Même classe que `FIRST_REG_UNPARSEABLE` (C-07) et D3-16. | 3 anomalies déclarées, valeurs injectées 9 999, 1, 1 — **toutes dans le domaine** | `data-review` / `dataset-design` |
+| **C-P3-8** | `PRICE_ON_REQUEST_WITH_AMOUNT` : le manifest déclare `expected.status = ON_REQUEST` ; `EX-DATA-32` et le champ # 8 disent **`QUOTED` + drapeau**. L'adaptateur suit le dictionnaire, qui est normatif. | 2 annonces | `data-review` |
+| **C-P3-9** | `MILEAGE_IMPLAUSIBLE_FOR_AGE`, deux réserves : (a) au-delà de la borne dure de # 59 le kilométrage devient INCONNU **d'abord** (ordre d'`EX-DATA-2`) et le signal devient `MILEAGE_OUT_OF_RANGE` — l'anomalie n'est pas perdue, elle **change de nom** ; (b) §7-22 ne borne **que le haut**, donc la forme « kilométrage trop faible pour l'âge » n'a **aucune** conséquence canonique. | 15 déclarées : **4** signalées, **9** absorbées, **2** sans conséquence | `data-review` |
+| **C-P3-10** | `DUPLICATE_VALUE_CONFLICT` : le générateur l'emploie pour une **republication intra-vendeur** (deux identifiants **différents**, même `dealerBucket`) alors qu'`ARB-54` le réserve à une divergence entre deux occurrences du **même** identifiant. Un nom, deux notions disjointes. | 13 déclarées | `data-review` |
+| **C-P3-11** | **La liste d'arrêt d'`EX-DATA-30` n'est chargée par AUCUN des deux chargeurs de référentiels** : ni `reference-loader.ts` (navigateur) ni `reference-fs.ts` (Node) ne lisent `data/reference/version-stoplist.json` ni `version-lexicon.json`, pourtant versionnés. L'**étape 3** du pipeline `EX-DATA-29` est donc **inerte dans toute l'application** — et avec elle la **deuxième barrière R3** sur le seul texte libre conservé (`tel `, `@`, `www.`… ne sont retirés de nulle part). Aucune fuite R3 **aujourd'hui** : les fixtures sont propres par construction (§7-29) ; le risque est pour une source réelle. | 5 des 20 `VERSION_FULLY_STRIPPED` non dépouillées (« `--- PROMO ---` » → « `PROMO` ») ; `versionStoplist = []`, `versionDriveBadges = []` | **`mvp-integrate` / D8** — remède : ajouter les deux fichiers à `RawReferenceInputs` dans les deux chargeurs |
+| **C-P3-12** | Quatre `VERSION_AMBIGUOUS` déclarées ont **perdu leur version** : le modèle de valeurs manquantes a retiré `modelVersion` **après** l'injection. `DATASET-SPEC` §6 exige que toute anomalie déclarée soit **retrouvable**. | 55 déclarées : **51** retrouvables, **4** effacées | `data-review` |
+| **C-P3-13** | `REGION_UNRESOLVED` recouvre **deux situations que la table §3.1 sépare** : préfixe hors des 13 plages belges → INCONNU **+ drapeau** ; pays ≠ BE → INCONNU **sans drapeau** (`EX-DATA-55`), parce qu'une annonce néerlandaise n'a pas une région belge « non résolue », elle n'en a pas. | 23 déclarées : **20** par préfixe, **3** par pays | `data-review` |
+| **C-P3-14** | **L'ouverture du profil `test` — la source par DÉFAUT — tient le budget de 2 s sans marge** (1 861 ms mesurées, 93 % du budget), sur une machine sans charge concurrente. Le coût est l'**ingestion** (2 319 ms bruts) : décompression, `JSON.parse`, adaptation de 20 000 lignes. Deux leviers restent, hors de ce lot : porter l'ingestion dans le **Web Worker** (elle bloque aujourd'hui le fil principal), ou précalculer la **baseline** à la génération (`EX-DATA-109` l'autorise explicitement : « agrégats précalculés et persistés avec le snapshot »). L'assertion de la sonde est posée à 2 500 ms — garde-fou de **non-régression**, et elle le dit ; le budget lui-même est confronté par la mesure imprimée. | 1 861 / 2 000 ms | **coordinateur** (arbitrage d'architecture) |
+| **C-P3-15** | Le recalcul de la **sélection entière** (pire cas, premier affichage) coûte **p95 194 ms** à 20 000 lignes, au ras des 200 ms d'`EX-NFR-5`. Ce n'est **pas** le cas visé par `EX-NFR-5` — qui parle de « l'application d'un filtre », mesurée à **p95 15,4 ms** — mais c'est le chemin du premier affichage, et il n'a plus de marge à 20 000 lignes. | Σ p95 **194 ms** · filtré p95 **15,4 ms** | **coordinateur** / `acceptance` |
+
+### 11.4 C-P3-3 tranché
+
+Les fixtures livrées portent **`be-YYYYMMDDTHHmmssZ`**, la forme imposée par
+`snapshot-manifest.schema.json` — c'est le contrat validé, et c'est celui que le générateur a suivi.
+La ligne `snapshotIdPattern` de `docs/data/dataset-spec/profiles.json`
+(`be-fixture-<profil>-<AAAAMMJJ>-<graine hex 8>`) est donc **une documentation à corriger, pas une
+seconde convention**. Une sonde le CONSTATE sur les six snapshots réels (dev + test) et vérifie de
+surcroît que **le nom du répertoire est l'identifiant** — ce qui permet à l'un de servir de clé de
+l'autre. Le provider, lui, continue de ne **jamais interpréter** l'identifiant (l'interface le
+déclare opaque) et d'ordonner les snapshots par `capturedAt` : l'arbitrage ne crée aucune dépendance
+nouvelle. **Correction documentaire à la charge de `dataset-design` / `data-review`.**
+
+### 11.5 Le mini-jeu est CONSERVÉ, et réduit à son rôle
+
+Le sujet de contrat et l'épreuve d'indépendance à l'ordre (D3-15) tournent désormais sur le **jeu
+réel** — 5 000 lignes, 5 doublons d'identifiant et 40 doublons inter-vendeurs éprouvent l'arbitrage
+bien mieux que 201 lignes fabriquées.
+
+Le mini-jeu reste, pour une raison que le jeu réel ne peut pas couvrir : le générateur garantit
+**100 % de lignes conformes au schéma** (critère S2 de 3.2), donc **aucun fichier réel ne peut
+exercer les chemins de REJET de l'ingestion**. Or ce sont eux qui protègent R3 et l'interface —
+`R3_FORBIDDEN_FIELD`, `LISTING_URL_INVALID` (`EX-DATA-14`), `LISTING_ID_INVALID`,
+`VEHICLE_TYPE_NOT_CAR`, `MAKE_UNKNOWN`, et la ligne de JSON tronquée que le provider doit **compter
+sans s'arrêter**. Le mini-jeu est le seul porteur de ces six cas, et le seul dont je maîtrise le
+`sha256` du manifest (donc le seul qui puisse éprouver la garde d'intégrité). Il est conservé, et son
+en-tête dit désormais exactement pourquoi.
+
+### 11.6 `describe()` sincère sur le profil `test`
+
+Deux corrections de sincérité, vérifiées par la suite :
+
+- **`mode2.maxSampleSize`** ne vaut plus `null` (« pas de plafond imposé par la source ») une fois le
+  snapshot ouvert : il vaut l'effectif **réellement servi**, lu du jeu (19 980 sur `test`).
+  `EX-DATA-112` dimensionne la mémoire sur ce chiffre ; annoncer « illimité » sur un jeu fini serait
+  une valeur fabriquée. Tant qu'aucun snapshot n'est ouvert, le plafond est **inconnu** et vaut
+  `null` — ce qui est vrai.
+- **`providerVersion`** vaut `kycar-dataset-gen@1.0.0`, lu du manifest : c'est le **générateur** qui
+  a produit le fichier, pas ce provider (`EX-DATA-106`, traçabilité).
+- **`coverageNote`** porte désormais les tailles **annoncées au manifest** — annonces annoncées et
+  servies, couverture d'échantillon, Mio non compressés et gzip, nombre d'anomalies déclarées —
+  jamais des estimations.

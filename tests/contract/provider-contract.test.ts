@@ -25,6 +25,9 @@
  * Aucune I/O réseau (E5) : le sujet fixture lit le disque, le sujet 2dehands rejoue des chaînes.
  */
 
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
+
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -374,19 +377,23 @@ describe('contrat — déterminisme d’`openSnapshot`', () => {
   });
 
   it('D3-15 — l’arbitrage des doublons ne dépend PAS de l’ordre du fichier', async () => {
-    // Le mini-jeu porte un doublon d'identifiant délibéré : le lire à l'endroit et à l'envers doit
-    // donner le même descripteur et les mêmes agrégats. C'est la propriété que D3-15 exige, et
-    // qu'un dédoublonnage « première occurrence » ne tient PAS.
-    const mini = buildMiniFixtures();
+    // Le jeu porte des doublons d'identifiant DÉLIBÉRÉS et déclarés en vérité terrain (cinq sur le
+    // profil dev réel) : le lire à l'endroit et à l'envers doit donner le même descripteur et les
+    // mêmes agrégats. C'est la propriété que D3-15 exige, et qu'un dédoublonnage « première
+    // occurrence » ne tient PAS. Le jeu RÉEL est employé dès qu'il est là — un jeu de 5 000 lignes
+    // et 40 doublons inter-vendeurs éprouve l'arbitrage bien mieux que 201 lignes fabriquées.
+    const root = realDevFixturesAvailable()
+      ? resolvePath(process.cwd(), 'data/fixtures')
+      : buildMiniFixtures().root;
     const forward = new FixtureDataProvider({
       referenceData: referenceData(),
       profile: MINI_PROFILE as 'dev',
-      loader: createNodeFixtureLoader(mini.root),
+      loader: createNodeFixtureLoader(root),
     });
     const reversed = new FixtureDataProvider({
       referenceData: referenceData(),
       profile: MINI_PROFILE as 'dev',
-      loader: reversingLoader(createNodeFixtureLoader(mini.root)),
+      loader: reversingLoader(createNodeFixtureLoader(root)),
       // L'ORDRE des octets est délibérément changé par ce chargeur : le sha256 du manifest ne peut
       // donc plus correspondre, et c'est exactement ce que la garde d'intégrité doit dire. On la
       // désarme ICI, et seulement ici, pour éprouver la propriété visée — l'indépendance de
@@ -434,6 +441,33 @@ describe('contrat — déterminisme d’`openSnapshot`', () => {
       snapshotId: 'be-19700101T000000Z',
     });
     await expect(unknown.openSnapshot()).rejects.toThrow(/absent du profil/);
+  });
+
+  it('C-P3-3 tranché — la forme réelle du `snapshotId` est celle du schéma de manifest', () => {
+    // Deux formes coexistaient dans la spécification : `snapshot-manifest.schema.json` impose
+    // `^[a-z]{2}-[0-9]{8}T[0-9]{6}Z$`, `docs/data/dataset-spec/profiles.json` annonçait
+    // `be-fixture-<profil>-<AAAAMMJJ>-<graine hex>`. Les fixtures LIVRÉES tranchent : elles portent
+    // la forme du SCHÉMA, qui est le contrat validé et celui que le générateur a suivi. La ligne de
+    // `profiles.json` est donc une documentation à corriger, pas une seconde convention.
+    // Le provider n'interprète toujours pas l'identifiant (l'interface le déclare opaque) ; cette
+    // sonde ne fige pas une dépendance, elle CONSTATE l'arbitrage sur les fichiers réels.
+    const root = resolvePath(process.cwd(), 'data/fixtures');
+    if (!existsSync(root)) return;
+    let checked = 0;
+    for (const profile of ['dev', 'test']) {
+      const dir = resolvePath(root, profile);
+      if (!existsSync(dir)) continue;
+      for (const name of readdirSync(dir)) {
+        const manifestPath = resolvePath(dir, name, 'manifest.json');
+        if (!existsSync(manifestPath)) continue;
+        const m = JSON.parse(readFileSync(manifestPath, 'utf-8')) as { snapshotId: string };
+        expect(m.snapshotId, `${profile}/${name}`).toMatch(/^[a-z]{2}-[0-9]{8}T[0-9]{6}Z$/);
+        // Le répertoire porte le même nom que l'identifiant : l'un peut servir de clé de l'autre.
+        expect(name).toBe(m.snapshotId);
+        checked += 1;
+      }
+    }
+    expect(checked, 'six snapshots (dev + test)').toBe(6);
   });
 
   it('les rejets d’ingestion sont COMPTÉS PAR MOTIF, jamais avalés (EX-DATA-46)', async () => {
@@ -596,6 +630,94 @@ describe('contrat — budgets mesurés', () => {
         `médiane ${(samples[Math.floor(runs / 2)] as number).toFixed(1)} ms, p95 ${p95.toFixed(1)} ms`,
     );
     expect(p95).toBeLessThan(200);
+  });
+
+  it('profil TEST (3 x 20 000, source par défaut D3-01) — ouverture, mémoire, recalcul, sincérité', async () => {
+    const root = resolvePath(process.cwd(), 'data/fixtures');
+    if (!existsSync(resolvePath(root, 'test'))) {
+      console.log('[mesure] profil test absent de l’arbre : mesure non exécutée');
+      return;
+    }
+    const provider = new FixtureDataProvider({
+      referenceData: referenceData(),
+      profile: 'test',
+      loader: createNodeFixtureLoader(root),
+    });
+    const started = Date.now();
+    const handle = await provider.openSnapshot();
+    const openMs = Date.now() - started;
+    const d = handle.descriptor;
+
+    const batch = await provider.fetchListingColumns(handle, 'FULL');
+    const bytes = batchByteLength(batch);
+    const dataset = new AggregationDataset(batch);
+
+    /** p95 d'une série de recalculs. */
+    const p95Of = (run: (i: number) => void, runs: number): { p95: number; median: number } => {
+      const samples: number[] = [];
+      for (let i = 0; i < runs; i += 1) {
+        const t0 = performance.now();
+        run(i);
+        samples.push(performance.now() - t0);
+      }
+      samples.sort((a, b) => a - b);
+      return {
+        p95: samples[Math.min(samples.length - 1, Math.ceil(0.95 * samples.length) - 1)] as number,
+        median: samples[Math.floor(samples.length / 2)] as number,
+      };
+    };
+
+    // DEUX mesures, parce qu'`EX-NFR-5` en vise une seule des deux :
+    //   - `Σ` : recalcul de la sélection ENTIÈRE, sans portée de taxonomie, donc sans élagage. C'est
+    //     le pire cas du moteur, celui du premier affichage — il n'est PAS l'objet d'`EX-NFR-5`,
+    //     qui parle de « l'application d'un filtre ». Mesuré et publié quand même.
+    //   - `filtrée` : recalcul avec une portée de marque, ce que fait réellement l'utilisateur qui
+    //     pose un filtre. C'est CETTE mesure qu'`EX-NFR-5` borne à 200 ms p95.
+    const full = p95Of((i) => dataset.recalculate({ selectionHash: `FULL:${i}` }), 10);
+    const topMake = [...(await provider.fetchBaselineAggregates(handle)).rows].sort(
+      (a, b) => b.listingCount - a.listingCount,
+    )[0] as MakeAggregate;
+    const filtered = p95Of(
+      (i) => dataset.recalculate({ selectionHash: `M${topMake.makeId}:${i}`, scope: { makeIds: [topMake.makeId] } }),
+      20,
+    );
+
+    console.log(
+      `[mesure] profil test / ${d.snapshotId} : ouverture ${openMs} ms (budget S4 2 000 ms ; sha256 ` +
+        `NON vérifié, profil ≠ dev) · ${d.announcedListingCount} annoncées → ${d.listingCount} servies · ` +
+        `lot ${(bytes / 1048576).toFixed(2)} Mio (${(bytes / batch.rowCount).toFixed(1)} o/ligne) · ` +
+        `recalcul Σ médiane ${full.median.toFixed(1)} ms p95 ${full.p95.toFixed(1)} ms · ` +
+        `recalcul filtré (marque ${topMake.makeId}, ${topMake.listingCount} annonces) médiane ` +
+        `${filtered.median.toFixed(1)} ms p95 ${filtered.p95.toFixed(1)} ms (budget EX-NFR-5 200 ms)`,
+    );
+
+    // `EX-NFR-5` : l'application d'un FILTRE, p95 ≤ 200 ms.
+    expect(filtered.p95, 'EX-NFR-5 — recalcul filtré sur le profil test').toBeLessThan(200);
+    // Budget S4 de la phase 3.3, sur le profil qui sera RÉELLEMENT servi à l'utilisateur. La borne
+    // du test est posée à 2 500 ms et NON à 2 000 : la mesure relevée ici (~1,95 s) est SOUS le
+    // budget mais sans marge, et une assertion à la valeur exacte du budget deviendrait un test qui
+    // clignote au gré de la charge de la machine — ce qui masquerait les vraies régressions au lieu
+    // de les révéler. Le budget lui-même est confronté PAR LA MESURE IMPRIMÉE ci-dessus et consigné
+    // en CONSTAT C-P3-14 ; cette assertion est un garde-fou de non-régression, et elle le dit.
+    expect(openMs, 'ouverture du profil test (garde-fou de non-régression)').toBeLessThan(2_500);
+    // Le recalcul Σ (pire cas, hors périmètre d'EX-NFR-5) est lui aussi gardé contre la régression.
+    expect(full.p95, 'recalcul Σ (garde-fou)').toBeLessThan(400);
+    // ARB-55 : l'enveloppe mémoire est de 274 Mo à 10⁶ lignes. Extrapolation linéaire depuis la
+    // mesure, pour que le chiffre reste opposable au-delà de l'effectif mesuré.
+    const extrapolated = (bytes / batch.rowCount) * 1_000_000;
+    console.log(`[mesure] extrapolation ARB-55 à 10⁶ lignes : ${(extrapolated / 1048576).toFixed(0)} Mio de colonnes`);
+    expect(extrapolated / 1048576).toBeLessThan(274);
+
+    // SINCÉRITÉ (D3-21) : une fois le snapshot ouvert, `describe()` annonce le plafond RÉEL, lu du
+    // jeu, et non `null` (« pas de plafond »), qui laisserait croire à un échantillon illimité.
+    const caps = provider.describe();
+    expect(caps.mode2.kind).toBe('SERVED');
+    if (caps.mode2.kind === 'SERVED') expect(caps.mode2.maxSampleSize).toBe(d.listingCount);
+    expect(caps.providerVersion).toBe('kycar-dataset-gen@1.0.0');
+    // Et la note de couverture porte les tailles ANNONCÉES au manifest, jamais des estimations.
+    expect(d.coverageNote).toMatch(/annonces annoncées au manifest/);
+    expect(d.coverageNote).toMatch(/Mio gzip/);
+    expect(d.coverageNote).toMatch(/anomalies déclarées en vérité terrain/);
   });
 
   it('le jeu servi est nommé dans le rapport : aucune mesure sans son objet', () => {

@@ -132,12 +132,18 @@ export async function readNdjsonStream(
     uncompressedBytes += value.byteLength;
     if (options.hash === true) chunks.push(value);
     pending += decoder.decode(value, { stream: true });
-    let nl = pending.indexOf('\n');
+    // Découpage par CURSEUR, jamais par `slice` répété : réaffecter `pending` à chaque ligne
+    // recopierait la fin du tampon autant de fois qu'il contient de lignes, soit un coût
+    // QUADRATIQUE dans un morceau de 64 Kio qui en porte deux cents. On avance un index et on ne
+    // recopie qu'une fois, la queue incomplète, à la fin du morceau.
+    let from = 0;
+    let nl = pending.indexOf('\n', from);
     while (nl >= 0) {
-      emit(pending.slice(0, nl));
-      pending = pending.slice(nl + 1);
-      nl = pending.indexOf('\n');
+      emit(pending.slice(from, nl));
+      from = nl + 1;
+      nl = pending.indexOf('\n', from);
     }
+    pending = from === 0 ? pending : pending.slice(from);
   }
   pending += decoder.decode();
   if (pending.length > 0) emit(pending);
