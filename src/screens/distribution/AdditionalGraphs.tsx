@@ -11,6 +11,13 @@
  */
 
 import { GraphFrame } from './GraphFrame';
+import {
+  RAMP_B_MILEAGE,
+  rampColor,
+  qualitativeColor,
+  DIVERGING_NEGATIVE,
+  DIVERGING_POSITIVE,
+} from './scatter-model';
 import { formatPrice, formatKm, formatYear, formatSignedPct, formatPower } from './format';
 import { comparisonBaseLabel, methodLabel } from '../outlier-index';
 import type {
@@ -288,7 +295,10 @@ export function DensityHeatmap({
                   height={cellHeight}
                   data-price-lower={b.lower}
                   data-price-upper={b.upper}
-                  fill={`rgba(11,95,214,${(0.15 + 0.85 * t).toFixed(3)})`}
+                  // `EX-SCR-186` (ACC-12) — la DENSITÉ de G7 encode le couple prix × kilométrage :
+                  // elle suit la rampe B (kilométrage), et non l'alpha de l'accent, qui n'est
+                  // l'encodage d'aucune variable.
+                  fill={rampColor(RAMP_B_MILEAGE, 0.15 + 0.85 * t)}
                 >
                   <title>{`prix bin ${c.priceBinIndex} · km bin ${c.mileageBinIndex} · ${c.count} offres`}</title>
                 </rect>
@@ -396,7 +406,7 @@ export function OutlierLollipopChart({
                       width: `${Math.abs(frac)}%`,
                       height: '6px',
                       display: 'inline-block',
-                      background: cold ? 'var(--color-primary)' : 'var(--color-danger)',
+                      background: cold ? DIVERGING_NEGATIVE : DIVERGING_POSITIVE,
                     }}
                   />
                 </span>
@@ -431,7 +441,7 @@ export function OutlierLollipopChart({
                           width: `${Math.abs(frac)}%`,
                           height: '6px',
                           display: 'inline-block',
-                          background: cold ? 'var(--color-primary)' : 'var(--color-danger)',
+                          background: cold ? DIVERGING_NEGATIVE : DIVERGING_POSITIVE,
                         }}
                       />
                     </span>
@@ -497,11 +507,20 @@ export function CategoricalBars({
       }
     >
       <ul class="kycar-catbars">
-        {bars.map((b) => (
+        {bars.map((b, i) => (
           <li key={b.key} class="kycar-catbar">
             <span class="kycar-catbar-label">{label(b.key)}</span>
             <span class="kycar-catbar-track" aria-hidden="true">
-              <span style={{ width: `${(b.count / maxCount) * 100}%`, background: 'var(--color-primary)', display: 'inline-block', height: '12px' }} />
+              <span
+                style={{
+                  width: `${(b.count / maxCount) * 100}%`,
+                  // `EX-SCR-186` (ACC-12) — variable NOMINALE : palette qualitative `Q`, une teinte
+                  // par modalité, dans l'ordre d'affichage du graphe.
+                  background: qualitativeColor(i),
+                  display: 'inline-block',
+                  height: '12px',
+                }}
+              />
             </span>
             <span class="kycar-catbar-value">
               {b.count} · {b.sharePct.toFixed(0)} %{b.medianPrice != null ? ` · ${formatPrice(b.medianPrice)}` : ''}

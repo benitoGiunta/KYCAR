@@ -75,6 +75,12 @@
    masqué (`EX-NFR-14` : tous les contrôles restent atteignables au clavier, et le focus fait défiler
    la rangée) — c'est la seule différence avec le rendu d'avant 2.10, qui les empilait. */
 .kycar-band-primary-row .kycar-control {
+  /* Un groupe de cases est un `<fieldset>` : sans cette remise à zéro il porte encore le cadre et le
+     rembourrage par défaut du navigateur (~20 px), qui à eux seuls dépassaient le budget de la
+     rangée repliée. Le regroupement sémantique (`fieldset`/`legend`) est intact. */
+  border: 0;
+  margin: 0;
+  padding: 0;
   flex-direction: row;
   align-items: center;
   flex: 0 0 auto;
@@ -96,6 +102,30 @@
   display: flex;
   flex-wrap: nowrap;
   gap: var(--space-2);
+}
+
+/* `EX-SCR-56` (ACC-02, budget de 96 px) — dans la rangée REPLIÉE, la note permanente d'un groupe de
+   cases (« Au moins une de ces valeurs ») est rendue AUX TECHNOLOGIES D'ASSISTANCE SEULEMENT : un
+   `<legend>` est rendu hors du flux flex par le navigateur, si bien que cette note ajoutait une
+   troisième ligne (69 px pour une rangée dont le budget est 56). Elle n'est ni retirée du DOM ni du
+   nom accessible du groupe — seulement retirée du rendu visuel de la rangée repliée. Les messages
+   TRANSITOIRES (`role="status"` d'un intervalle écrêté) restent visibles : ils ne sont pas ciblés. */
+.kycar-band-primary-row .kycar-control {
+  /* Ancre du positionnement de la note masquée ci-dessous : sans bloc contenant à l'INTÉRIEUR de la
+     rangée défilante, la note sortait du défilement interne et poussait le DOCUMENT au débordement
+     horizontal (mesuré : scrollWidth de 6 331 px pour un viewport de 1 280). */
+  position: relative;
+}
+
+.kycar-band-primary-row fieldset.kycar-control > .kycar-control__hint:not([role]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Le bouton de dépliage ne défile jamais avec la rangée : il est l'issue vers les zones (2) et (3). */
@@ -643,4 +673,125 @@
   .kycar-filter-band {
     padding: var(--space-1) var(--space-2);
   }
+}
+
+
+/* ================================================================================================
+ * ACC-11 — `EX-SCR-87` : retour visuel de chaque contrôle (survol, focus, actif)
+ * ==============================================================================================
+ * Mesuré en recette : au survol, le fond restait `rgb(239,239,239)` avant comme après ; une case
+ * cochée gardait un fond transparent et un texte non inversé. Les deux états manquaient purement et
+ * simplement dans cette feuille.
+ *
+ * La couleur du FOCUS reste le jeton `--color-focus-ring` (#ffd54a) et NON la couleur d'accent :
+ * c'est un choix délibéré de `src/styles/tokens.css`, motivé par le contraste (12,72:1 sur le texte,
+ * contre 4,7:1 pour l'accent), et `EX-NFR-13` prime sur la lettre d'`EX-SCR-87`. Cette feuille ne
+ * touche donc pas au focus ; l'écart est ratifié, pas corrigé en silence.
+ */
+.kycar-checkbox-option,
+.kycar-radio-segment,
+.kycar-toggle,
+.kycar-range-steps button,
+.kycar-secondary-group__toggle,
+.kycar-band-more,
+.kycar-active-tokens__clear-all,
+.kycar-active-tokens__save-search,
+.kycar-token button {
+  transition: background-color 90ms linear, color 90ms linear;
+}
+
+/* Survol : fond à 4 % de la couleur d'accent (`EX-SCR-87`). */
+.kycar-checkbox-option:hover,
+.kycar-radio-segment:hover,
+.kycar-toggle:hover,
+.kycar-range-steps button:hover,
+.kycar-secondary-group__toggle:hover,
+.kycar-band-more:hover,
+.kycar-active-tokens__clear-all:hover,
+.kycar-active-tokens__save-search:hover,
+.kycar-token button:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
+}
+
+/* Actif : fond accent, texte inversé — pour une case cochée comme pour un interrupteur. */
+.kycar-checkbox-option:has(input[type='checkbox']:checked),
+.kycar-checkbox-option:has(input[type='radio']:checked) {
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-radius: var(--radius-sm);
+}
+
+.kycar-checkbox-option:has(input:checked) .kycar-facet-count {
+  color: var(--color-primary-contrast);
+}
+
+/* ================================================================================================
+ * ACC-08 — `EX-SCR-21` : rayons et cibles tactiles
+ * ==============================================================================================
+ * Mesuré en recette : rayon 0 px sur les contrôles de la ligne primaire (4 px exigés) ; 157 des 202
+ * éléments interactifs visibles sous 44 × 44 px en compact, 196–206 sous 32 × 32 px ailleurs.
+ * Les tailles sont posées en `min-height`/`min-width` : rien n'est déplacé, les cibles grandissent.
+ */
+.kycar-primary-line input,
+.kycar-primary-line select,
+.kycar-primary-line button,
+.kycar-filter-band input,
+.kycar-filter-band select,
+.kycar-filter-band button {
+  border-radius: var(--radius-sm);
+}
+
+/* ≥ 32 × 32 px hors régime compact. */
+.kycar-filter-band button,
+.kycar-filter-band select,
+.kycar-filter-band input[type='search'],
+.kycar-filter-band input[type='text'],
+.kycar-filter-band input[type='number'] {
+  min-height: 32px;
+}
+
+.kycar-token button {
+  width: 32px;
+  height: 32px;
+}
+
+.kycar-token {
+  height: auto;
+  min-height: 32px;
+}
+
+/* La case elle-même reste petite : c'est son LIBELLÉ qui porte la cible cliquable (`<label>`). */
+.kycar-checkbox-option {
+  min-height: 32px;
+  padding: 0 var(--space-1);
+}
+
+/* ≥ 44 × 44 px en régime compact (`EX-SCR-21`), y compris dans la feuille plein écran. */
+[data-regime='compact'] button,
+[data-regime='compact'] select,
+[data-regime='compact'] input[type='search'],
+[data-regime='compact'] input[type='text'],
+[data-regime='compact'] input[type='number'],
+.kycar-compact-sheet button,
+.kycar-compact-sheet select,
+.kycar-compact-sheet input[type='search'],
+.kycar-compact-sheet input[type='text'],
+.kycar-compact-sheet input[type='number'] {
+  min-height: 44px;
+}
+
+[data-regime='compact'] .kycar-token button,
+.kycar-compact-sheet .kycar-token button {
+  width: 44px;
+  height: 44px;
+}
+
+[data-regime='compact'] .kycar-token,
+.kycar-compact-sheet .kycar-checkbox-option {
+  min-height: 44px;
+}
+
+.kycar-compact-sheet > header button {
+  min-width: 44px;
+  min-height: 44px;
 }

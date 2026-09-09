@@ -15,7 +15,10 @@
  * est un point d'intégration D8 (le modèle expose déjà `selectedRows`). Idem `ET-*` d'écran (D8).
  */
 
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
+
+/** `EX-SCR-25` (ACC-13) — budget d'un recalcul local : au-delà, et alors seulement, `ET-CHARGE-MAJ`. */
+export const RECALC_INDICATOR_DELAY_MS = 150;
 import type { JSX } from 'preact';
 import type { ListingColumnBatch, SelectionInput } from '../../types/index';
 import { MODEL_ID_UNRESOLVED } from '../../types/index';
@@ -248,12 +251,44 @@ export function DistributionScreen(props: DistributionScreenProps) {
   const labels = props.labels ?? {};
   const degraded = props.degraded ?? defaultDegradedFromViewport();
 
+  /**
+   * `EX-SCR-25` (ACC-13) — un recalcul LOCAL n'admet AUCUN indicateur tant qu'il tient dans son
+   * budget de 150 ms ; au-delà seulement, l'état bascule sur `ET-CHARGE-MAJ`. La coquille pose
+   * `recalculating` dès le premier tick : mesuré en recette, l'indicateur apparaissait dès 105 ms,
+   * pour un seul tick de 5 ms. On le TEMPORISE ici : il n'est monté que si le recalcul dure plus de
+   * `RECALC_INDICATOR_DELAY_MS`, et il disparaît immédiatement à la fin du recalcul.
+   */
+  const [recalcVisible, setRecalcVisible] = useState(false);
+  useEffect(() => {
+    if (props.recalculating !== true) {
+      setRecalcVisible(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setRecalcVisible(true), RECALC_INDICATOR_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [props.recalculating]);
+
   const onToggleLog = (n: number): void => props.onUiChange(toggleLogHistogram(ui, n));
   const onBrushChange = (brushX: BrushRange | null, brushY: BrushRange | null): void =>
     props.onUiChange({ ...ui, brushX, brushY });
   const onVariantChange = (v: G4Variant): void => props.onUiChange({ ...ui, g4Variant: v });
 
   const price = stats.price;
+
+  /**
+   * `EX-SCR-178` (ACC-07) — les exclusions de `G1` doivent CLORE l'effectif : mesuré en recette,
+   * G1 annonçait 1 246 offres pour Σ = 1 352 en ne nommant que 87 exclusions (prix sur demande,
+   * prix absent) — 19 annonces disparaissaient sans motif. Ce sont les annonces à prix VALIDE mais
+   * hors des bornes de classes du binning (au-delà du plafond, `EX-DATA-76`) : elles ne sont
+   * comptées dans aucun motif publié. On les nomme, comme un motif à part entière, et la somme
+   * « G1 + exclusions » vaut alors exactement Σ.
+   */
+  const priceOutOfClasses = useMemo(() => {
+    let inBuckets = 0;
+    for (const b of recalc.priceHistogram) inBuckets += b.count;
+    const named = stats.priceOnRequestCount + stats.priceMissingCount;
+    return Math.max(0, selectionCount - inBuckets - named);
+  }, [recalc.priceHistogram, stats.priceOnRequestCount, stats.priceMissingCount, selectionCount]);
 
   // `EX-SCR-142` ligne 2 (DR-077) — part de particuliers, calculée depuis le batch (aucune donnée
   // équivalente sur `SelectionStats`, hors périmètre fix-screens de l'étendre) : le libellé exact
@@ -377,13 +412,13 @@ export function DistributionScreen(props: DistributionScreenProps) {
 
   return (
     <div
-      class={props.recalculating === true ? 'kycar-screen-b kycar-screen-b--recalculating' : 'kycar-screen-b'}
-      aria-busy={props.recalculating === true ? 'true' : undefined}
-      data-recalculating={props.recalculating === true ? 'true' : undefined}
+      class={recalcVisible ? 'kycar-screen-b kycar-screen-b--recalculating' : 'kycar-screen-b'}
+      aria-busy={recalcVisible ? 'true' : undefined}
+      data-recalculating={recalcVisible ? 'true' : undefined}
     >
       {/* `ET-CHARGE-MAJ` (D8-24, EX-SCR-24) — barre de progression indéterminée + mention explicite :
           les figures ci-dessous portent encore le périmètre précédent (EX-SCR-39, jamais muet). */}
-      {props.recalculating === true ? (
+      {recalcVisible ? (
         <div class="kycar-recalc-notice" role="status">
           <progress class="kycar-recalc-progress" aria-label="Recalcul en cours" />
           <span>Recalcul en cours — les figures affichées portent encore le périmètre précédent.</span>
@@ -538,7 +573,7 @@ export function DistributionScreen(props: DistributionScreenProps) {
         <>
         {/* Bloc 2 — histogrammes G1–G3 */}
         <section class="kycar-hist-row" aria-label="Distributions">
-          <Histogram compact={degraded} graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }, { count: priceOutOfClasses, reason: 'hors des classes affichées' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
           <Histogram compact={degraded} graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
           <Histogram compact={degraded} graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
         </section>

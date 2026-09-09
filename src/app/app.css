@@ -511,3 +511,84 @@ button:disabled {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+
+/* ================================================================================================
+ * ACC-08 — `EX-SCR-21` : cibles tactiles minimales, à l'échelle de l'application
+ * ==============================================================================================
+ * « Hauteur de cible tactile minimale 44 × 44 px en `compact`, 32 × 32 px ailleurs ». Mesuré en
+ * recette : 157 des 202 éléments interactifs visibles sous 44 × 44 px en compact, 196–206 sous
+ * 32 × 32 px ailleurs — aucune règle de taille minimale n'existait.
+ *
+ * Deux mécanismes, selon la nature de l'élément :
+ *   - les contrôles de bloc (boutons, listes déroulantes, champs, `summary`) reçoivent un
+ *     `min-height` : ils grandissent sans rien déplacer autour d'eux ;
+ *   - les LIENS, souvent en ligne au milieu d'un texte, reçoivent un rembourrage vertical : la zone
+ *     cliquable grandit (le rembourrage fait partie de la boîte de survol et de clic) sans changer
+ *     la hauteur de ligne ni casser le retour à la ligne du paragraphe qui les porte.
+ * La cible d'une case à cocher est son LIBELLÉ (`<label for>`), pas la case elle-même : c'est lui
+ * qui porte la hauteur minimale, et un clic n'importe où dessus bascule la case.
+ */
+.kycar-app button,
+.kycar-app select,
+.kycar-app summary,
+.kycar-app [role='button'],
+.kycar-app input[type='search'],
+.kycar-app input[type='text'],
+.kycar-app input[type='number'],
+.kycar-app label {
+  min-height: 32px;
+}
+
+.kycar-app a {
+  padding-block: 8px;
+}
+
+.kycar-skip-link {
+  min-height: 32px;
+}
+
+/* Un bouton est une boîte flex : sans cela le `min-height` laisse son texte collé en haut. */
+.kycar-app button,
+.kycar-app [role='button'] {
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 0.25rem);
+}
+
+/* Les libellés de case restent des rangées : case + texte + effectif, alignés au centre. */
+.kycar-app label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+}
+
+/* Les surdimensions du régime compact viennent EN DERNIER : à spécificité égale, c'est l'ordre
+   de la feuille qui tranche, et le socle de 32 px ci-dessus les annulerait autrement. */
+@media (max-width: 767px) {
+  .kycar-app button,
+  .kycar-app select,
+  .kycar-app summary,
+  .kycar-app [role='button'],
+  .kycar-app input[type='search'],
+  .kycar-app input[type='text'],
+  .kycar-app input[type='number'],
+  .kycar-app label {
+    min-height: 44px;
+  }
+
+  .kycar-app a {
+    padding-block: 14px;
+  }
+
+  .kycar-app button,
+  .kycar-app [role='button'] {
+    min-width: 44px;
+  }
+
+  .kycar-skip-link {
+    min-height: 44px;
+  }
+}

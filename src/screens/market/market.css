@@ -69,11 +69,23 @@
 .kycar-market-banner--rouge { background: color-mix(in srgb, var(--color-danger) 14%, transparent); }
 .kycar-market-banner--neutre { background: var(--color-surface); }
 
-/* Grille de cartes-marques - EX-SCR-105/136/137. */
+/* Grille de cartes-marques - EX-SCR-105/136/137.
+   `EX-SCR-21` (ACC-08) : gouttiere de 16 px en compact, 20 px en intermediaire, 24 px en large
+   (mesuree a 16 px aux TROIS regimes en recette). Les seuils sont ceux de `breakpoints.ts` ; la
+   grille vit dans un conteneur de requete, d'ou des `@container` alignes sur les `@media` du reste
+   de la feuille. */
 .kycar-market-grid {
   display: grid;
-  gap: var(--space-3);
+  gap: 16px;
   grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .kycar-market-grid { gap: 20px; }
+}
+
+@media (min-width: 1280px) {
+  .kycar-market-grid { gap: 24px; }
 }
 
 @container (min-width: 768px) {
@@ -86,6 +98,12 @@
 
 @container (min-width: 1680px) {
   .kycar-market-grid { grid-template-columns: repeat(4, minmax(320px, 520px)); }
+}
+
+/* `EX-SCR-127` (ACC-10) : cales de la grille virtualisee - pleine largeur, jamais un enfant de
+   colonne (elles portent la hauteur des rangees hors fenetre, pas du contenu). */
+.kycar-market-grid-spacer {
+  grid-column: 1 / -1;
 }
 
 /* Carte-marque - EX-SCR-107. */
@@ -161,6 +179,31 @@
 .kycar-market-zone-list--expanded {
   max-height: 480px;
   overflow-y: auto;
+  /* `EX-SCR-124` regle 1 (ACC-09) : ombre portee haute et basse signalant le debord (mesure
+     `box-shadow: none` en recette). Ombres INTERNES, donc sans effet sur la mise en page. */
+  box-shadow:
+    inset 0 8px 6px -8px rgb(0 0 0 / 35%),
+    inset 0 -8px 6px -8px rgb(0 0 0 / 35%);
+}
+
+/* `EX-SCR-124` regle 1 (ACC-09) : « la carte ne s'allonge donc jamais au-dela de 636 px »
+   (mesure 688-699 px en recette). La carte est plafonnee ; deja colonne flex, c'est sa liste de
+   zones qui absorbe la contrainte et se reduit, jamais l'en-tete ni les pieds de carte. */
+.kycar-market-card {
+  /* `border-box` : le cadre de 1 px de la carte fait partie des 636 px mesures (638 sinon). */
+  box-sizing: border-box;
+  max-height: 636px;
+}
+
+.kycar-market-zone-list--expanded {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.kycar-market-card-header,
+.kycar-market-card-summary,
+.kycar-market-card-footer {
+  flex: 0 0 auto;
 }
 
 /* Zone-modele - EX-SCR-112, 72px en regime large. `D8-14` (a11y, nested-interactive) : la case de

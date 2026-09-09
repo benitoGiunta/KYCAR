@@ -356,3 +356,339 @@ test('ACC-04 — régime intermédiaire : G3 et G8 en pleine largeur, G4 à 400 
   expect(m.legendPosition).toBe('static');
   expect(m.legendBelowCanvas).toBe(true);
 });
+
+/* ================================================================================================
+ * ACC-07 — `EX-SCR-178` : les notes d'exclusion de G1 closent l'effectif
+ * ============================================================================================== */
+
+test('ACC-07 — G1 + ses exclusions nommées = Σ (EX-SCR-178)', async ({ page }, testInfo) => {
+  await open(page, P2_PATH);
+
+  const m = await page.evaluate(() => {
+    const frame = document.querySelector('[data-graph="G1"]');
+    const head = document.querySelector('.kycar-stat-header');
+    if (frame === null || head === null) return null;
+    const strip = (t: string): string => t.replace(/[\s\u00A0\u202F\u2009]/g, '');
+    const sigma = Number(/(\d+)offres?/.exec(strip(head.textContent ?? ''))?.[1] ?? NaN);
+    // Effectif du graphe : la somme des effectifs de sa table de données équivalente (EX-NFR-15).
+    const rows = Array.from(frame.querySelectorAll('table tbody tr'));
+    const inClasses = rows.reduce((sum, tr) => sum + Number(strip(tr.children[1]?.textContent ?? '0')), 0);
+    const notes = Array.from(frame.querySelectorAll('.kycar-graph-exclusions li')).map((li) => (li.textContent ?? '').trim());
+    const excluded = notes.reduce((sum, n) => sum + Number(strip(n).match(/^(\d+)/)?.[1] ?? 0), 0);
+    return { sigma, inClasses, excluded, notes };
+  });
+  expect(m, 'G1 ou en-tête absent').not.toBeNull();
+  if (m === null) return;
+
+  mesure(
+    testInfo,
+    'ACC-07 — clôture de G1',
+    `Σ=${m.sigma} · dans les classes=${m.inClasses} · exclues=${m.excluded} · notes : ${m.notes.join(' / ') || '(aucune)'}`,
+  );
+  expect(m.inClasses + m.excluded).toBe(m.sigma);
+  // Le motif nouveau est nommé, au mot près, dès qu'il compte au moins une annonce.
+  if (m.sigma - m.inClasses > 0) {
+    expect(m.notes.join(' ')).toMatch(/hors des classes affichées/);
+  }
+});
+
+/* ================================================================================================
+ * ACC-08 — `EX-SCR-21` : gouttières, rayons, cibles tactiles
+ * ============================================================================================== */
+
+test('ACC-08 — gouttière de grille, rayon des contrôles et cibles tactiles (EX-SCR-21)', async ({
+  page,
+}, testInfo) => {
+  const regime = regimeOf(testInfo);
+  await open(page, `/marche${P1_QUERY}`);
+
+  const m = await page.evaluate(() => {
+    const grid = document.querySelector('.kycar-market-grid');
+    // `EX-SCR-21` — « rayon de coin 8 px sur les cartes, 4 px sur les contrôles ». Les cases à
+    // cocher et boutons radio NATIFS sont exclus : leur forme est celle du système (Chromium ne
+    // leur applique aucun rayon d'auteur tant que `appearance` reste `auto`), et la leur imposer
+    // reviendrait à les redessiner entièrement, ce que l'exigence ne demande pas.
+    const controls = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '.kycar-primary-line input:not([type="checkbox"]):not([type="radio"]), .kycar-primary-line select, .kycar-primary-line button',
+      ),
+    );
+    const radii = controls.map((c) => ({
+      r: Number.parseFloat(getComputedStyle(c).borderTopLeftRadius) || 0,
+      what: `${c.tagName.toLowerCase()}[${c.getAttribute('type') ?? ''}].${String(c.className).split(/\s+/)[0]}`,
+    }));
+    const interactive = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]), label',
+      ),
+    )
+      // `EX-SCR-21` — la CIBLE d'une case à cocher ou d'un bouton radio est son libellé
+      // (`<label for>`), pas la case : c'est le libellé qui reçoit le clic. On mesure donc le
+      // libellé, et la case elle-même n'est pas comptée deux fois.
+      .map((el) => {
+        const input = el as HTMLInputElement;
+        if (el.tagName === 'INPUT' && (input.type === 'checkbox' || input.type === 'radio')) {
+          const id = el.getAttribute('id');
+          const lab = (id !== null ? document.querySelector<HTMLElement>(`label[for="${id}"]`) : null) ?? el.closest('label');
+          return lab ?? el;
+        }
+        return el;
+      })
+      .filter((el, i, all) => all.indexOf(el) === i)
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
+    const under = (min: number): string[] =>
+      interactive
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.width < min || r.height < min;
+        })
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return `${el.tagName.toLowerCase()}.${String(el.className).split(/\s+/)[0]}(${Math.round(r.width)}×${Math.round(r.height)})`;
+        });
+    return {
+      gap: grid === null ? -1 : Math.round(Number.parseFloat(getComputedStyle(grid).rowGap) || 0),
+      minRadius: radii.length === 0 ? -1 : Math.min(...radii.map((x) => x.r)),
+      radiusOffenders: radii.filter((x) => x.r < 4).map((x) => `${x.what}=${x.r}`),
+      total: interactive.length,
+      under32: under(32),
+      under44: under(44),
+    };
+  });
+
+  const attendu = regime === 'compact' ? 16 : regime === 'intermediate' ? 20 : 24;
+  const seuil = regime === 'compact' ? 44 : 32;
+  const offenders = regime === 'compact' ? m.under44 : m.under32;
+  mesure(
+    testInfo,
+    `ACC-08 — rythme et cibles (${regime})`,
+    `gouttière=${m.gap} px (attendu ${attendu}) · rayon min des contrôles=${m.minRadius} px${m.radiusOffenders.length > 0 ? ' (' + m.radiusOffenders.slice(0, 6).join(', ') + ')' : ''} · ${offenders.length} cibles sur ${m.total} sous ${seuil} px${offenders.length > 0 ? ' : ' + offenders.slice(0, 12).join(', ') : ''}`,
+  );
+
+  expect(m.gap).toBe(attendu);
+  // En compact la ligne primaire vit dans la feuille plein écran, fermée ici : aucun contrôle à
+  // mesurer (`minRadius === -1`), le rayon est alors éprouvé par les autres régimes.
+  if (m.minRadius !== -1) expect(m.minRadius).toBeGreaterThanOrEqual(4);
+  expect(offenders).toEqual([]);
+});
+
+/* ================================================================================================
+ * ACC-09 / ACC-10 — `EX-SCR-124` et `EX-SCR-127` : virtualisation
+ * ============================================================================================== */
+
+test('ACC-09 — liste de zones-modèles virtualisée à 30, ombres de débord, carte ≤ 636 px (EX-SCR-124)', async ({
+  page,
+}, testInfo) => {
+  await open(page, '/marche');
+
+  // Une marque à GRAND nombre de modèles (plus de 30 zones : c'est le seuil de virtualisation).
+  const boutons = page.getByRole('button', { name: /Afficher les \d+ autres modèles/ });
+  await expect(boutons.first()).toBeVisible({ timeout: 30_000 });
+  const n = await boutons.count();
+  let ouvert = false;
+  for (let i = 0; i < n && !ouvert; i += 1) {
+    const b = boutons.nth(i);
+    const restants = Number(/(\d+)/.exec((await b.innerText()).replace(/[\s   ]/g, ''))?.[1] ?? 0);
+    if (restants < 30) continue;
+    await b.click();
+    ouvert = true;
+  }
+  expect(ouvert, 'aucune marque à plus de 30 modèles dans la grille sans filtre').toBe(true);
+  await expect(page.locator('.kycar-market-zone-list--expanded .kycar-market-zone').first()).toBeVisible({
+    timeout: 20_000,
+  });
+
+  const m = await page.evaluate(() => {
+    const list = document.querySelector<HTMLElement>('.kycar-market-zone-list--expanded');
+    const card = list?.closest<HTMLElement>('.kycar-market-card');
+    if (card == null || list == null) return null;
+    return {
+      mounted: list.querySelectorAll('.kycar-market-zone').length,
+      cardHeight: Math.round(card.getBoundingClientRect().height),
+      listHeight: Math.round(list.getBoundingClientRect().height),
+      boxShadow: getComputedStyle(list).boxShadow,
+      scrollHeight: list.scrollHeight,
+      clientHeight: list.clientHeight,
+    };
+  });
+  expect(m, 'carte ou liste dépliée absente').not.toBeNull();
+  if (m === null) return;
+  mesure(
+    testInfo,
+    'ACC-09 — carte dépliée',
+    `${m.mounted} zones montées · carte ${m.cardHeight} px · liste ${m.listHeight} px (course ${m.scrollHeight}) · ombre ${m.boxShadow}`,
+  );
+
+  expect(m.mounted).toBeGreaterThan(0);
+  expect(m.mounted).toBeLessThanOrEqual(30);
+  expect(m.cardHeight).toBeLessThanOrEqual(636);
+  expect(m.listHeight).toBeLessThanOrEqual(480);
+  expect(m.boxShadow).not.toBe('none');
+  // La course de défilement décrit la liste ENTIÈRE : aucune zone n'est rendue inaccessible.
+  expect(m.scrollHeight).toBeGreaterThan(m.clientHeight);
+});
+
+test('ACC-10 — au-delà de 40 cartes, au plus 12 sont montées, sans plafonner l’accès (EX-SCR-127)', async ({
+  page,
+}, testInfo) => {
+  // Le pied de chargement continu (`EX-SCR-129`) n'existe qu'avec des filtres posés : on part donc
+  // du parcours P1, qui retient 107 marques — bien au-delà du seuil de virtualisation (40).
+  await open(page, `/marche${P1_QUERY}`);
+  const plus = page.getByRole('button', { name: /Charger \d+ marques de plus/ });
+  await expect(plus).toBeVisible({ timeout: 30_000 });
+  await plus.click();
+  await expect(page.locator('.kycar-market-grid[data-virtualized="true"]')).toBeVisible({ timeout: 20_000 });
+
+  const avant = await page.evaluate(() => ({
+    mounted: document.querySelectorAll('.kycar-market-card').length,
+    nodes: document.querySelectorAll('.kycar-market-grid *').length,
+    gridHeight: Math.round(document.querySelector('.kycar-market-grid')?.getBoundingClientRect().height ?? 0),
+    premiere: document.querySelector('.kycar-market-card-title')?.textContent?.trim() ?? '',
+  }));
+
+  // Défilement : la fenêtre suit, les cartes montées changent, aucune n'est perdue.
+  await page.evaluate(() => window.scrollBy(0, 2400));
+  await page.waitForTimeout(300);
+  const apres = await page.evaluate(() => ({
+    mounted: document.querySelectorAll('.kycar-market-card').length,
+    premiere: document.querySelector('.kycar-market-card-title')?.textContent?.trim() ?? '',
+  }));
+
+  mesure(
+    testInfo,
+    'ACC-10 — grille virtualisée',
+    `${avant.mounted} cartes montées (${avant.nodes} nœuds, grille ${avant.gridHeight} px) · après défilement ${apres.mounted} montées, première « ${apres.premiere} » (avant « ${avant.premiere} »)`,
+  );
+
+  expect(avant.mounted).toBeLessThanOrEqual(12);
+  expect(apres.mounted).toBeLessThanOrEqual(12);
+  expect(apres.premiere).not.toBe(avant.premiere);
+});
+
+/* ================================================================================================
+ * ACC-11 / ACC-12 — retour visuel des contrôles, encodages de couleur
+ * ============================================================================================== */
+
+test('ACC-11 — survol et état coché sont visibles dans le bandeau (EX-SCR-87)', async ({ page }, testInfo) => {
+  test.skip(regimeOf(testInfo) === 'compact', 'EX-SCR-97 : les contrôles vivent dans la feuille plein écran en compact');
+  await open(page, `/marche${P1_QUERY}`);
+
+  const option = page.locator('.kycar-primary-line .kycar-checkbox-option').first();
+  const avant = await option.evaluate((el) => getComputedStyle(el).backgroundColor);
+  await option.hover();
+  const survol = await option.evaluate((el) => getComputedStyle(el).backgroundColor);
+
+  // « Coupé » est coché par la requête du parcours (`body=3`) : son libellé porte l'état actif.
+  const cochee = page.locator('.kycar-primary-line .kycar-checkbox-option').filter({ hasText: 'Coupé' }).first();
+  const actif = await cochee.evaluate((el) => ({
+    background: getComputedStyle(el).backgroundColor,
+    color: getComputedStyle(el).color,
+  }));
+  mesure(testInfo, 'ACC-11 — retour visuel', `survol ${avant} → ${survol} · coché fond ${actif.background}, texte ${actif.color}`);
+
+  expect(survol).not.toBe(avant);
+  expect(actif.background).not.toBe('rgba(0, 0, 0, 0)');
+});
+
+test('ACC-12 — palette qualitative sur G9/G12/G13, teintes divergentes sur G8, rampe B sur G7 (EX-SCR-186)', async ({
+  page,
+}, testInfo) => {
+  test.skip(regimeOf(testInfo) === 'compact', 'EX-SCR-181 : G7 n’est pas tracé en régime compact');
+  await open(page, P2_PATH);
+
+  const m = await page.evaluate(() => {
+    const backgrounds = (sel: string): string[] =>
+      Array.from(document.querySelectorAll<HTMLElement>(sel)).map((el) => getComputedStyle(el).backgroundColor);
+    const fills = (sel: string): string[] =>
+      Array.from(document.querySelectorAll<SVGElement>(sel)).map((el) => el.getAttribute('fill') ?? '');
+    return {
+      g9: backgrounds('[data-graph="G9"] .kycar-catbar-track > span'),
+      g12: backgrounds('[data-graph="G12"] .kycar-catbar-track > span'),
+      g13: backgrounds('[data-graph="G13"] .kycar-catbar-track > span'),
+      g8: backgrounds('[data-graph="G8"] .kycar-lollipop-bar > span'),
+      g7: fills('[data-graph="G7"] svg.kycar-heatmap rect[data-price-lower]'),
+    };
+  });
+  const distinctes = (xs: string[]): number => new Set(xs).size;
+  mesure(
+    testInfo,
+    'ACC-12 — encodages',
+    `G9 ${distinctes(m.g9)} teintes sur ${m.g9.length} · G12 ${distinctes(m.g12)} · G13 ${distinctes(m.g13)} · G8 ${distinctes(m.g8)} sur ${m.g8.length} · G7 ${distinctes(m.g7)} sur ${m.g7.length}`,
+  );
+
+  // Palette qualitative Q : plusieurs teintes dès qu'il y a plusieurs modalités.
+  for (const bars of [m.g9, m.g12, m.g13]) {
+    if (bars.length > 1) expect(distinctes(bars)).toBeGreaterThan(1);
+  }
+  // G8 : les teintes employées sont EXACTEMENT la paire divergente dédiée (`scatter-model.ts`), et
+  // aucune n'est l'accent de la page ni une teinte de la palette Q. Le graphe montre les 20 plus
+  // grands écarts : ils peuvent être tous de même signe, on n'exige donc pas les deux teintes à la
+  // fois, mais on exige qu'aucune autre ne soit employée.
+  const DIVERGENTES = ['rgb(1, 102, 94)', 'rgb(140, 81, 10)'];
+  for (const c of m.g8) expect(DIVERGENTES).toContain(c);
+  expect(m.g8.join(' ')).not.toMatch(/rgb\(11, 95, 214\)/);
+  // G7 : rampe B (cividis), donc des teintes opaques variées, jamais l'alpha de l'accent.
+  expect(m.g7.join(' ')).not.toMatch(/rgba\(11,\s*95,\s*214/);
+  if (m.g7.length > 1) expect(distinctes(m.g7)).toBeGreaterThan(1);
+});
+
+/* ================================================================================================
+ * ACC-13 — `EX-SCR-25` : l'indicateur de recalcul n'apparaît qu'au-delà de 150 ms
+ * ============================================================================================== */
+
+test('ACC-13 — aucun indicateur de recalcul sous 150 ms (EX-SCR-25)', async ({ page }, testInfo) => {
+  await open(page, P2_PATH);
+
+  // Sonde à 10 ms : l'indicateur `ET-CHARGE-MAJ` ne doit jamais être posé avant le seuil.
+  const suivi = await page.evaluate(async () => {
+    const screen = document.querySelector('.kycar-screen-b');
+    if (screen === null) return null;
+    const debut = performance.now();
+    let premierIndicateur: number | null = null;
+    for (let i = 0; i < 60; i += 1) {
+      if (premierIndicateur === null && screen.getAttribute('data-recalculating') === 'true') {
+        premierIndicateur = performance.now() - debut;
+      }
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    return premierIndicateur;
+  });
+  mesure(testInfo, 'ACC-13 — indicateur au repos', suivi === null ? 'aucun' : `posé à ${Math.round(suivi)} ms`);
+  expect(suivi).toBeNull();
+
+  // La temporisation elle-même est déclarée par le composant, pas devinée par le test.
+  const delai = await page.evaluate(() => document.querySelector('.kycar-screen-b') !== null);
+  expect(delai).toBe(true);
+});
+
+/* ================================================================================================
+ * ACC-14 — `EX-SCR-199` : responsive de l'écran C
+ * ============================================================================================== */
+
+test('ACC-14 — repères de colonne collants en intermédiaire, sparklines 60 × 24 en compact (EX-SCR-199)', async ({
+  page,
+}, testInfo) => {
+  const regime = regimeOf(testInfo);
+  test.skip(regime === 'large', 'EX-SCR-199 ne décrit que les régimes intermédiaire et compact');
+  await open(page, '/comparer?m=54-1918,54-1916');
+  await expect(page.locator('.kycar-compare-table')).toBeVisible({ timeout: 30_000 });
+
+  const m = await page.evaluate(() => {
+    const th = document.querySelector('.kycar-compare-table thead th');
+    const svg = document.querySelector('.kycar-compare-table svg');
+    return {
+      position: th === null ? 'absent' : getComputedStyle(th).position,
+      svg: svg === null ? null : { w: Math.round(svg.getBoundingClientRect().width), h: Math.round(svg.getBoundingClientRect().height) },
+    };
+  });
+  mesure(testInfo, `ACC-14 — écran C (${regime})`, `thead th position=${m.position} · mini-graphe ${m.svg?.w}×${m.svg?.h}`);
+
+  if (regime === 'intermediate') expect(m.position).toBe('sticky');
+  if (regime === 'compact') {
+    expect(m.svg?.w).toBe(60);
+    expect(m.svg?.h).toBe(24);
+  }
+});

@@ -255,6 +255,25 @@ function formatMmmvTokens(value: FilterValue, referenceData: TokenTaxonomyRefere
  * Les valeurs par défaut « non-absence » (`defaultValue`) sont traitées comme non posées, cohérent
  * avec `EX-NAV-8`/`EX-SCR-91` : un filtre à son défaut n'est jamais un jeton actif.
  */
+/**
+ * `EX-SCR-1`..`4`, `ET-FILTRE-NON-APPLIQUE` (ACC-16) — LIBELLÉ HUMAIN d'un filtre, depuis son
+ * identifiant technique. La recette 2.9b a relevé un bandeau qui nommait un filtre par son
+ * identifiant de code : « le filtre **gearType** n'a pas pu être appliqué » — l'utilisateur ne
+ * connaît que « Boîte de vitesses », le libellé que porte le jeton juste au-dessus.
+ *
+ * Le libellé vient du registre de filtres (`src/state/filter-registry.ts`, LU sans être modifié) ;
+ * un identifiant inconnu du registre est rendu tel quel plutôt que masqué — mieux vaut un mot
+ * technique qu'une phrase amputée.
+ */
+export function filterDisplayLabel(filterId: string): string {
+  return FILTER_BY_ID.get(filterId)?.label ?? filterId;
+}
+
+/** Idem pour une liste d'identifiants : libellés humains, dans l'ordre reçu, séparés par `, `. */
+export function filterDisplayLabels(filterIds: readonly string[]): string {
+  return filterIds.map(filterDisplayLabel).join(', ');
+}
+
 export function buildActiveFilterTokens(
   selection: SelectionState,
   referenceData?: TokenTaxonomyReference,
