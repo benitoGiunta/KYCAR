@@ -54,8 +54,17 @@ export type Marketplace = 'be' | 'nl';
 /**
  * Nature de la donnée. `SYNTHETIC` DOIT être propagé jusqu'à l'UI (EX-DATA-107) : l'utilisateur ne
  * doit jamais confondre une distribution générée avec un marché réel.
+ *
+ * `FIXTURE` (phase 3.3, PLAN-3) est la troisième nature : un JEU DE DONNÉES FICTIF VERSIONNÉ, à la
+ * forme AutoScout24 (`data/fixtures/<profil>/<snapshot>/`), figé et rejouable — ni un marché réel,
+ * ni une distribution générée à la volée dans l'onglet. Il doit être étiqueté comme tel jusqu'à
+ * l'UI, au même titre que `SYNTHETIC` et pour le même motif : la distinction porte sur ce que
+ * l'utilisateur a le droit de croire du chiffre affiché.
+ *
+ * SEUL élargissement de l'interface gelée admis en phase 3.3 (mission `fixture-provider`) : ajouter
+ * une valeur à cette union n'invalide aucune implémentation existante ni aucune donnée déjà écrite.
  */
-export type SourceKind = 'REAL' | 'SYNTHETIC';
+export type SourceKind = 'REAL' | 'SYNTHETIC' | 'FIXTURE';
 
 /**
  * Identifiant opaque et stable d'un snapshot (EX-DATA-106). Sert de composante des clés d'entité

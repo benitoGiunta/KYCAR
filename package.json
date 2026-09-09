@@ -14,6 +14,7 @@
     "test:perf": "vitest run --config vitest.perf.config.ts",
     "size": "node tools/check-bundle-size.mjs",
     "test:review": "tsc --noEmit -p tsconfig.review.json && vitest run --config vitest.review.config.ts",
+    "test:contract": "tsc --noEmit -p tsconfig.contract.json && vitest run --config vitest.contract.config.ts",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report"

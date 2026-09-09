@@ -57,3 +57,79 @@ les filtres réellement appliqués.
 quand la sélection est entièrement poussée dans la facette marque/modèle, fourchettes calculées sur
 l'échantillon de la page, **axe année à `n = 0`** (EX-DATA-25 impose la première immatriculation, que
 la surface ne sert pas et qu'EX-DATA-27 interdit d'imputer), région NUTS-2 toujours `REGION_UNRESOLVED`.
+
+---
+
+## Phase 3.3 — brancher une nouvelle source : un adaptateur + une entrée de registre
+
+`reports/data/fixture-provider.md` · `docs/data/DATA-MODEL.md` (table §3.1, la spécification de
+l'adaptateur) · `docs/plans/PLAN-3-fixture-data-mvp.md` §3.3.
+
+### 1. Ce que contient le dossier depuis la phase 3.3
+
+```
+src/providers/
+├── DataProvider.ts        interface GELÉE (copie octet à octet de docs/plans/DataProvider.ts)
+├── registry.ts            LE point de bascule : spec -> provider, sans recompilation
+├── adapters/as24/         source AS24 -> canonique (pur, réutilisable par une source réelle)
+├── fixture/               FixtureDataProvider : fichiers versionnés, NDJSON gzip en flux
+├── synthetic/             SyntheticDataProvider : génération à la volée (bancs, repli mode 2)
+└── tweedehands/           TweedehandsDataProvider : source réelle, NON câblée (D-18 / AC-01)
+```
+
+### 2. La recette, en deux fichiers
+
+**(a) Un adaptateur** sous `src/providers/adapters/<source>/` : une fonction PURE
+`adapt<Source>Listing(raw, ctx) → { accepté: ligne canonique } | { rejeté: motif }`, qui applique
+dans l'ordre d'`EX-DATA-2` — **garde R3 d'abord** (`scanForbiddenFields` sur l'objet REÇU), puis
+normalisation (unités d'`EX-DATA-4`, arrondi d'`EX-DATA-6`, `EX-DATA-7` sur les chaînes), puis
+validation contre `LISTING_NUMERIC_BOUNDS` / `LISTING_BOUND_INGEST_FLAG` (`src/types/validation.ts`,
+source UNIQUE des bornes — D-47 : aucune borne n'est recopiée dans un adaptateur).
+
+Ce que l'adaptateur ne fait jamais : inventer un code de drapeau. `KYCAR_INGEST_FLAG` compte 17
+codes et l'encodage est POSITIONNEL (D-01 / DR-013) ; une condition détectée hors de ce vocabulaire
+se publie ailleurs (`notices` de l'adaptateur as24 → `coverageNote`), jamais dans le bit d'un autre.
+
+**(b) Une entrée de registre** dans `registry.ts` : `spec`, libellé, `sourceKind`, service du mode 2,
+et surtout `wired` — une source non branchable est REFUSÉE AVEC SON MOTIF, pas absente du registre.
+
+Rien d'autre ne bouge : ni le moteur, ni l'état, ni les écrans. C'est l'exigence **DF-2** du PLAN-3.
+
+### 3. La bascule de source est un paramètre
+
+| Priorité | Origine | Exemple |
+|---|---|---|
+| 1 | paramètre d'URL (le seul qui se partage dans un lien) | `?provider=fixture:dev` |
+| 2 | variable de build | `VITE_KYCAR_PROVIDER=synthetic` |
+| 3 | défaut (D3-01) | `fixture:test` |
+
+Une spécification **inconnue** ou **non câblée** retombe sur le défaut **et** écrit un avertissement
+dans la `coverageNote` du `SnapshotDescriptor` — le chemin par lequel la coquille l'affiche déjà.
+D-03 appliqué à la source : jamais appliqué en silence, jamais ignoré en silence.
+
+### 4. Ce que le provider de fixtures garantit
+
+- **`sourceKind = 'FIXTURE'`** propagé jusqu'à l'UI : un jeu fictif versionné n'est ni un marché
+  réel, ni une distribution calculée à la volée dans l'onglet.
+- **Contrôle de version de schéma AVANT la première ligne** (`DATA-MODEL` §6) : un majeur inconnu
+  refuse l'ouverture, aucune ligne servie.
+- **Lecture en flux** : `DecompressionStream('gzip')` branché après RENIFLAGE des octets magiques
+  `1f 8b`, découpage ligne à ligne, jamais le texte entier en mémoire (budget ARB-55).
+- **Dédoublonnage indépendant de l'ordre du fichier** (D3-15) : complétude, puis date de mise à
+  jour, puis signature stable. Le tri du NDJSON sert la diffabilité, jamais l'arbitrage.
+- **Baseline précalculée une fois** à l'ouverture (`ARCHITECTURE` §9.3 garde-fou 1) :
+  `fetchBaselineAggregates` rend le même objet.
+- **Colonne `booleanFlags` remplie** (D3-10) : les dix booléens du dictionnaire, dont six tri-états.
+- **`unsupportedFilterIds`** vient de la MÊME compilation de sélection que `fetchSelectionCount`
+  (D-33).
+
+Le cinquième champ textuel du lot (`trimTokens`) est sérialisé en jetons séparés par une espace ;
+le provider synthétique, lui, le laisse vide.
+
+### 5. Suite de contrat
+
+`tests/contract/provider-contract.test.ts` (`npm run test:contract`) exécute les MÊMES cas sur
+**synthetic**, **fixture** et un **mock 2dehands** : sincérité de `describe()`, invariants I1–I8,
+`unsupportedFilterIds` jamais tu, R3 (`scanForbiddenFields` sur ce qui sort du provider),
+déterminisme d'`openSnapshot`, cohérence baseline ↔ `fetchAggregates` sans filtre,
+`fetchSelectionCount` = somme des effectifs d'agrégat, budgets d'ouverture et de taille.

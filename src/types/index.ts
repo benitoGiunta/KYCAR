@@ -53,7 +53,16 @@ export type { ColumnDescriptor, ColumnPhysicalType, SentinelPolicy, Listing } fr
 export { LISTING_COLUMNS, LISTING_COLUMN_BY_NAME } from './columns';
 
 // Vocabulaires.
-export type { VocabularyName, EnumValueDef, PostalRangeDef, IngestFlagCode, OutlierFlagCode } from './vocabularies';
+export type {
+  VocabularyName,
+  EnumValueDef,
+  PostalRangeDef,
+  IngestFlagCode,
+  OutlierFlagCode,
+  BooleanFlagCode,
+  BooleanFlagKind,
+  BooleanFlagDef,
+} from './vocabularies';
 export {
   VOCABULARY_NAMES,
   PRICE_STATUS_VALUES,
@@ -68,6 +77,14 @@ export {
   hasIngestFlag,
   setIngestFlag,
   ingestFlagCodes,
+  // D3-10 (E-07) : les dix booléens du dictionnaire dans les 16 bits gelés de `booleanFlags`.
+  BOOLEAN_FLAG_VALUES,
+  BOOLEAN_FLAG_BIT,
+  BOOLEAN_FLAG_KNOWN_BIT,
+  BOOLEAN_FLAG_BIT_CAPACITY,
+  setBooleanFlag,
+  readBooleanFlag,
+  isBooleanFlagCode,
   OUTLIER_FLAG_VALUES,
   OUTLIER_NOT_EVALUABLE_CODES,
   isOutlierFlagCode,
