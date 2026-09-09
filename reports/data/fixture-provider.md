@@ -28,8 +28,8 @@
 | build | `npm run build` | **0 erreur / 0 avertissement** |
 | taille | `npm run size` | **129,15 / 300 Kio gzip — OK** |
 
-Quatre commits, un par lot : couche schéma (D3-07, D3-10, `SourceKind`) · adaptateur as24 ·
-provider + registre + service des fixtures · suite de contrat.
+Livré en quatre lots, un commit chacun : couche schéma (D3-07, D3-10, `SourceKind`) · adaptateur
+as24 · provider + registre + service des fixtures · suite de contrat ; puis ce rapport.
 
 ---
 
