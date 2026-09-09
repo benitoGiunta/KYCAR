@@ -33,6 +33,7 @@ import {
   computeBrushSelection,
   brushAccessorFor,
   brushToIntervalFilters,
+  brushToSelRestriction,
   intervalFiltersToSelectionInput,
   selectedCountsByBucket,
 } from './brush-model';
@@ -67,6 +68,7 @@ import {
   type DistributionUiState,
   type G4Variant,
   type BrushRange,
+  type SelRestriction,
 } from './url-state';
 import { formatPrice, formatKm, formatYear, formatPower, formatMonthYear } from './format';
 import './distribution.css';
@@ -116,8 +118,10 @@ export interface DistributionScreenProps {
    * nouvelle URL — voir le rapport de lot, § « Câblage attendu de fix-app ». */
   readonly onApplyFilters?: (patch: SelectionInput) => void;
   /** `EX-SCR-158`/`184`, `D-12`/`D-26` — « Voir ces annonces » : navigue vers l'écran D restreint à
-   * la sélection brossée (`sel=<lo>-<hi>` sur le prix, restriction d'affichage, Σ INCHANGÉE). */
-  readonly onViewBrushedListings?: (sel: { readonly from: number; readonly to: number }) => void;
+   * la sélection brossée (`sel`, restriction d'affichage, Σ INCHANGÉE). Depuis 2.10 (ACC-06) la
+   * charge porte les DEUX axes brossés (`SelRestriction`), pas seulement l'intervalle de prix : la
+   * coquille la repose telle quelle dans l'état d'interface, elle n'a rien à en connaître. */
+  readonly onViewBrushedListings?: (sel: SelRestriction) => void;
   /** `EX-SCR-142` ligne 3 (DR-078) — « Voir les <n> annonces » : écran D SANS restriction. */
   readonly onViewListings?: () => void;
   /** `EX-SCR-142` ligne 3 (DR-078) — « Comparer » : écran C. */
@@ -309,8 +313,12 @@ export function DistributionScreen(props: DistributionScreenProps) {
     props.onUiChange({ ...ui, brushX: null, brushY: null }); // `sel`/`selx`/`sely` retirés (D-26)
   };
   const onViewBrushedListings = (): void => {
-    if (!brushInterval) return;
-    props.onViewBrushedListings?.({ from: brushInterval.priceFrom, to: brushInterval.priceTo });
+    // ACC-06 — `sel` porte les DEUX axes réellement brossés (`brushToSelRestriction`), et non la
+    // seule bande de prix : sans le second axe, l'écran D montrait plus de lignes que brossées.
+    if (!selectedRows) return;
+    const sel = brushToSelRestriction(scatter.points, selectedRows);
+    if (sel === null) return;
+    props.onViewBrushedListings?.(sel);
   };
 
   // `EX-SCR-158` (DR-084) — infobulle de survol du nuage, 6 lignes, CONTENU TEXTUEL (`ARB-62`).

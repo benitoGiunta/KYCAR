@@ -35,12 +35,13 @@ export {
   historyModeFor,
   readListingsPage,
   readListingsSel,
+  selMatches,
   effectiveG4Variant,
   toggleLogHistogram,
   EMPTY_UI_STATE,
 } from './url-state';
-export type { DistributionUiState, G4Variant, BrushRange } from './url-state';
-export { computeBrushSelection, brushToIntervalFilters } from './brush-model';
+export type { DistributionUiState, G4Variant, BrushRange, SelRestriction, SelAxisRange, SelAxisMetric } from './url-state';
+export { computeBrushSelection, brushToIntervalFilters, brushToSelRestriction } from './brush-model';
 export {
   buildYearMedian,
   buildDepreciation,
