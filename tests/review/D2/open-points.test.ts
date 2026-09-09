@@ -44,16 +44,33 @@ describe('D2 — O13 : drapeaux d’ingestion réellement définis et leur encod
 });
 
 describe('D2 — ADV-15 / ARB-60 : KYCAR_MARKETPLACE n=9 contre 8 codes pays traduits', () => {
-  it('fait — le vocabulaire porte 9 valeurs dont 8 marchés nommés et un code réservé', () => {
+  /**
+   * **Sonde corrigée en phase 3.3 (D3-07 / C-01), avec justification écrite.**
+   *
+   * Les deux cas ci-dessous figeaient un ÉTAT DE CONNAISSANCE (« la 9ᵉ valeur n'est pas
+   * identifiée par les relevés »), pas une exigence. `data-model` (phase 3.1) a produit la preuve
+   * contraire, versionnée dans le dépôt depuis l'ingestion du schéma :
+   * `docs/reference/vendor/as24-listing-creation-openapi.yml`, `components.schemas.Marketplace`,
+   * énumère `at be ca de es fr it lu nl` — la neuvième est le **Canada**. Le coordinateur a
+   * ratifié `ca` (D3-07, `reports/data/DATA-LEAD-DECISIONS.md`).
+   *
+   * Ce qui était MESURÉ reste mesuré et inchangé : la cardinalité 9, l'ordre des huit premiers
+   * codes (la colonne `countryCode` est positionnelle) et le fait que le 9ᵉ code n'est pas
+   * DEVINÉ — il est désormais PROUVÉ, ce que contrôle `marketplace-ca.test.ts` (R-D2-21c) en
+   * relisant l'OpenAPI. Aucune sonde n'est affaiblie : une preuve remplace une réserve.
+   */
+  it('fait — le vocabulaire porte 9 valeurs, les 9 marchés réels d’OAS:Marketplace (D3-07)', () => {
     expect(MARKETPLACE_VALUES).toHaveLength(9);
     expect(MARKETPLACE_VALUES.map((v) => v.code)).toEqual([
-      'be', 'nl', 'de', 'at', 'es', 'fr', 'it', 'lu', 'UNKNOWN_9',
+      'be', 'nl', 'de', 'at', 'es', 'fr', 'it', 'lu', 'ca',
     ]);
   });
 
-  it('fait — le 9ᵉ code n’est pas deviné : il porte un code réservé et un libellé explicite', () => {
-    expect(MARKETPLACE_VALUES[8]?.code).toBe('UNKNOWN_9');
-    expect(MARKETPLACE_VALUES[8]?.label).toMatch(/non identifié/i);
+  it('fait — le 9ᵉ code n’est pas deviné : il est prouvé par l’OpenAPI du dépôt (D3-07)', () => {
+    expect(MARKETPLACE_VALUES[8]?.code).toBe('ca');
+    expect(MARKETPLACE_VALUES[8]?.label).toMatch(/canada/i);
+    // Plus aucun code réservé : `UNKNOWN_9` n'existe nulle part dans le vocabulaire.
+    expect(MARKETPLACE_VALUES.map((v) => v.code)).not.toContain('UNKNOWN_9');
   });
 
   it('R-D2-18 (ADV-15) — le repli d’ARB-60 (MARKETPLACE_UNMAPPED) est stockable dans `ingestFlags`', () => {

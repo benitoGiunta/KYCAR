@@ -27,6 +27,7 @@ import {
   type ProviderCapabilities,
   type SnapshotDescriptor,
   type SnapshotHandle,
+  type SourceKind,
 } from '../providers/DataProvider';
 import { compilePredicates } from '../engine/predicates';
 import { FILTER_DEFAULTS } from '../state/filter-registry';
@@ -81,7 +82,13 @@ export interface DataControllerOptions {
 export interface StartResult {
   readonly status: 'ready' | 'degraded-cache' | 'failed';
   readonly descriptor: SnapshotDescriptor | null;
-  readonly sourceKind: 'REAL' | 'SYNTHETIC' | null;
+  /**
+   * Phase 3.3 — ÉLARGISSEMENT DE TYPE SEUL. Le champ RECOPIAIT l'union de `SourceKind` au lieu de
+   * la référencer ; l'ajout de `FIXTURE` à l'interface gelée le rendait non assignable depuis
+   * `descriptor.sourceKind`. Il référence désormais le type gelé, une fois pour toutes. Aucune
+   * valeur, aucun comportement ni aucun étiquetage ne change ici.
+   */
+  readonly sourceKind: SourceKind | null;
   readonly errorCode?: string;
   readonly attemptedAt: string;
   readonly hasCachedResult: boolean;
@@ -94,7 +101,8 @@ export interface Mode2Payload {
   /** Lignes de Σ après application des filtres R de l'URL (`DR-006`), indices dans `batch`. */
   readonly rows: Int32Array;
   readonly makeModelName: string;
-  readonly sourceKind: 'REAL' | 'SYNTHETIC';
+  /** Phase 3.3 — même élargissement de type que `StartResult.sourceKind` (aucun comportement). */
+  readonly sourceKind: SourceKind;
   /** `selectionHash` réellement recalculé (`<localDatasetKey>:<refineHash>`, EX-SRCH-9quinquies). */
   readonly selectionHash: string;
   /** `D-03` — filtres R posés que le moteur n'a PAS pu appliquer (jamais silencieux). */

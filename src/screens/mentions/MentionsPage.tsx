@@ -7,9 +7,22 @@
  */
 import type { JSX } from 'preact';
 
+import type { SourceKind } from '../../providers/DataProvider';
+
 export interface MentionsPageProps {
   readonly snapshotDate?: string;
-  readonly sourceKind?: 'REAL' | 'SYNTHETIC' | null;
+  /**
+   * Phase 3.3 (`fixture-provider`) — ÉLARGISSEMENT DE TYPE SEUL, aucun changement de rendu. Le
+   * `SourceKind` gelé gagne la valeur `FIXTURE` (jeu fictif versionné) ; cette propriété recopiait
+   * l'union au lieu de la référencer, et bloquait donc le type-check de la coquille. Elle référence
+   * désormais le type de l'interface gelée, ce qui la met à l'abri de la prochaine valeur.
+   *
+   * HORS PÉRIMÈTRE, À LA CHARGE DE `mvp-integrate` (3.5) : la phrase de provenance ci-dessous ne
+   * nomme encore que `REAL` et `SYNTHETIC` ; un snapshot `FIXTURE` n'affiche donc AUCUNE mention de
+   * provenance. C'est un manque à combler avant que le provider fixture ne devienne la source par
+   * défaut de l'application (`reports/data/fixture-provider.md`, § points hors périmètre).
+   */
+  readonly sourceKind?: SourceKind | null;
   readonly providerId?: string;
 }
 

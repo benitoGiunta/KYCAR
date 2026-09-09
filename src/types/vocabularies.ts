@@ -130,8 +130,24 @@ export const PRICE_EVALUATION_VALUES: readonly EnumValueDef[] = [
 ];
 
 /**
- * `KYCAR_MARKETPLACE` — OpenAPI `Marketplace`, 9 valeurs (§A.1). La 9ᵉ n'est pas identifiée par les
- * relevés (EX-DATA-40) : elle est représentée par le code réservé `UNKNOWN_9`.
+ * `KYCAR_MARKETPLACE` — OpenAPI `Marketplace`, 9 valeurs (§A.1).
+ *
+ * **D3-07 (C-01, ratifié le 2026-09-09)** : la 9ᵉ valeur n'est plus le code réservé `UNKNOWN_9`.
+ * L'OpenAPI VERSIONNÉ DANS LE DÉPÔT (`docs/reference/vendor/as24-listing-creation-openapi.yml`,
+ * `components.schemas.Marketplace`) énumère `at be ca de es fr it lu nl` : la neuvième est le
+ * **Canada**, ce que confirment `components.schemas.Culture` (`fr-CA`, `en-CA`) et
+ * `Price.currency` (`CAD`). La preuve était dans le dépôt depuis l'ingestion du schéma ;
+ * `EX-DATA-40` gagne la traduction `ca → CA`.
+ *
+ * **L'ORDRE des huit premiers codes est intangible** : la valeur stockée dans la colonne
+ * `countryCode` (un octet) est l'INDEX du code dans ce tableau (`codeIndex`,
+ * `src/providers/synthetic/catalog.ts`). Renuméroter un code déjà servi réinterpréterait
+ * silencieusement toute ligne déjà encodée. `ca` prend donc exactement la place — la 9ᵉ, index 8 —
+ * qu'occupait le code réservé.
+ *
+ * `MARKETPLACE_UNMAPPED` (`KYCAR_INGEST_FLAG`) devient par conséquent **inatteignable** pour les
+ * neuf codes connus ; le drapeau est conservé comme garde de régression pour un adaptateur de
+ * source réelle qui recevrait un code hors de cette liste.
  */
 export const MARKETPLACE_VALUES: readonly EnumValueDef[] = [
   { code: 'be', label: 'Belgique' },
@@ -142,7 +158,7 @@ export const MARKETPLACE_VALUES: readonly EnumValueDef[] = [
   { code: 'fr', label: 'France' },
   { code: 'it', label: 'Italie' },
   { code: 'lu', label: 'Luxembourg' },
-  { code: 'UNKNOWN_9', label: 'Marché non identifié' },
+  { code: 'ca', label: 'Canada' },
 ];
 
 /**
@@ -214,6 +230,171 @@ export function ingestFlagCodes(flags: number): readonly IngestFlagCode[] {
     if (hasIngestFlag(flags, def.code)) codes.push(def.code);
   }
   return codes;
+}
+
+/* ================================================================================================
+ * COLONNE `booleanFlags` — table bit ↔ champ (D3-10, écart E-07 de `docs/data/DATA-MODEL.md`)
+ * ============================================================================================== */
+
+/**
+ * Les **dix booléens du dictionnaire** que `ListingColumnBatch` ne transporte par aucune colonne
+ * propre (écart **E-07**), et la place physique qui leur est allouée depuis la phase 2.3 :
+ * `booleanFlags`, un `Uint16Array` que `generate.ts` remplissait de zéros avec le commentaire
+ * « sémantique réservée à un lot ultérieur ».
+ *
+ * **L'arithmétique de E-07** — quatre de ces booléens ont un DÉFAUT documenté par l'annexe A
+ * (colonne « Si absent » = `false` : # 9, 12, 29, 81) et tiennent donc sur **1 bit** ; les six
+ * autres valent **INCONNU** quand la source se tait (# 27, 46, 58, 61, 63, 68) et exigent
+ * **2 bits** (valeur + connu), sans quoi « la source ne le dit pas » se confondrait avec « non » —
+ * exactement ce qu'`EX-DATA-2` interdit et ce que la colonne `vatDeductible` a déjà coûté (D8-08).
+ * Total : `4 × 1 + 6 × 2 = 16 bits`, la capacité exacte de la colonne. **Aucune modification de
+ * l'interface gelée.**
+ *
+ * Cette table est la **source unique** du couple bit ↔ champ, comme `INGEST_FLAG_BIT` l'est des
+ * drapeaux d'ingestion (exigence DR-013) : aucun appelant n'écrit de `1 << n` littéral, et le
+ * provider qui remplit la colonne (`FixtureDataProvider`, phase 3.3) passe par `setBooleanFlag`.
+ *
+ * D3-10 la définit ici, dans `src/types`, et non dans le provider : donner une sémantique à une
+ * colonne gelée est une décision de la couche schéma, que TOUT provider et tout écran doivent lire
+ * au même endroit.
+ */
+const BOOLEAN_FLAG_DEFS = [
+  // --- 1 bit : l'absence VAUT `false` (annexe A, colonne « Si absent ») -------------------------
+  { code: 'priceOnRequestOnly', label: 'Prix sur demande', field: 9, kind: 'default-false' },
+  { code: 'isSuperDeal', label: 'Super affaire', field: 12, kind: 'default-false' },
+  { code: 'isNewListing', label: 'Annonce nouvelle', field: 29, kind: 'default-false' },
+  { code: 'hasVideo', label: 'Vidéo présente', field: 81, kind: 'default-false' },
+  // --- 2 bits : valeur + connu ; l'absence vaut INCONNU, jamais `false` -------------------------
+  { code: 'hadAccident', label: 'A eu un accident', field: 27, kind: 'tristate' },
+  { code: 'isPluginHybrid', label: 'Hybride rechargeable', field: 46, kind: 'tristate' },
+  { code: 'hasParticleFilter', label: 'Filtre à particules', field: 58, kind: 'tristate' },
+  { code: 'hasFullServiceHistory', label: 'Carnet d’entretien complet', field: 61, kind: 'tristate' },
+  { code: 'wasCabOrRental', label: 'Ancien taxi ou véhicule de location', field: 63, kind: 'tristate' },
+  { code: 'isMetallic', label: 'Peinture métallisée', field: 68, kind: 'tristate' },
+] as const;
+
+/** Code canonique d'un booléen porté par `booleanFlags` (les dix champs de E-07). */
+export type BooleanFlagCode = (typeof BOOLEAN_FLAG_DEFS)[number]['code'];
+
+/** Nature d'un booléen : à défaut documenté (1 bit) ou tri-état (2 bits). */
+export type BooleanFlagKind = 'default-false' | 'tristate';
+
+/** Descripteur d'un booléen de `booleanFlags` : son champ du dictionnaire et ses bits. */
+export interface BooleanFlagDef {
+  readonly code: BooleanFlagCode;
+  readonly label: string;
+  /** Numéro du champ dans l'annexe A (dictionnaire), pour la traçabilité. */
+  readonly field: number;
+  readonly kind: BooleanFlagKind;
+  /** Rang du bit portant la VALEUR (0..15). */
+  readonly valueBit: number;
+  /** Rang du bit « valeur connue » (tri-état seulement), sinon `null`. */
+  readonly knownBit: number | null;
+}
+
+/** Nombre de bits utilisables dans la colonne `booleanFlags` (`Uint16Array`, interface gelée). */
+export const BOOLEAN_FLAG_BIT_CAPACITY = 16;
+
+/**
+ * Les dix descripteurs, bits ASSIGNÉS une fois pour toutes : les quatre booléens à défaut occupent
+ * les bits 0 à 3, puis chaque tri-état occupe un couple `(valeur, connu)` consécutif à partir du
+ * bit 4. L'allocation est calculée ici plutôt que recopiée à la main pour qu'elle ne puisse pas
+ * diverger de la liste ci-dessus ; elle reste STABLE tant que l'ordre de `BOOLEAN_FLAG_DEFS` ne
+ * change pas — et cet ordre ne doit pas changer, pour la même raison que celui de
+ * `MARKETPLACE_VALUES` : la colonne est déjà écrite dans des lots.
+ */
+export const BOOLEAN_FLAG_VALUES: readonly BooleanFlagDef[] = Object.freeze(
+  (() => {
+    let next = 0;
+    const defs: BooleanFlagDef[] = [];
+    for (const d of BOOLEAN_FLAG_DEFS) {
+      if (d.kind === 'default-false') {
+        defs.push({ ...d, valueBit: next, knownBit: null });
+        next += 1;
+      } else {
+        defs.push({ ...d, valueBit: next, knownBit: next + 1 });
+        next += 2;
+      }
+    }
+    if (next !== BOOLEAN_FLAG_BIT_CAPACITY) {
+      throw new RangeError(
+        `BOOLEAN_FLAG_VALUES : ${next} bits alloués pour une colonne de ${BOOLEAN_FLAG_BIT_CAPACITY}`,
+      );
+    }
+    return defs;
+  })(),
+);
+
+/**
+ * Table EXPLICITE code → NUMÉRO DU BIT DE VALEUR (0..15), pendant d'`INGEST_FLAG_BIT`. Une valeur
+ * de cette table est un rang de bit, pas un masque : passer par `setBooleanFlag` / `readBooleanFlag`
+ * évite d'avoir à s'en souvenir.
+ */
+export const BOOLEAN_FLAG_BIT: Readonly<Record<BooleanFlagCode, number>> = Object.freeze(
+  Object.fromEntries(BOOLEAN_FLAG_VALUES.map((d) => [d.code, d.valueBit])) as Record<BooleanFlagCode, number>,
+);
+
+/** Table code → numéro du bit « connu » ; `null` pour un booléen à défaut documenté. */
+export const BOOLEAN_FLAG_KNOWN_BIT: Readonly<Record<BooleanFlagCode, number | null>> = Object.freeze(
+  Object.fromEntries(BOOLEAN_FLAG_VALUES.map((d) => [d.code, d.knownBit])) as Record<
+    BooleanFlagCode,
+    number | null
+  >,
+);
+
+const BOOLEAN_FLAG_BY_CODE: ReadonlyMap<BooleanFlagCode, BooleanFlagDef> = new Map(
+  BOOLEAN_FLAG_VALUES.map((d) => [d.code, d]),
+);
+
+function booleanFlagDef(code: BooleanFlagCode): BooleanFlagDef {
+  const def = BOOLEAN_FLAG_BY_CODE.get(code);
+  if (def === undefined) throw new RangeError(`booleanFlags : code inconnu « ${code} »`);
+  return def;
+}
+
+/**
+ * Écrit un booléen dans le masque `booleanFlags` et rend le masque augmenté (jamais muté en place).
+ *
+ *   - **tri-état** : `null`/`undefined` efface les deux bits (INCONNU) ; `true`/`false` posent le
+ *     bit « connu » et la valeur.
+ *   - **défaut documenté** : `null`/`undefined` vaut `false`, c'est-à-dire le bit à zéro — l'annexe A
+ *     dit que l'absence de ces quatre champs SIGNIFIE `false`, il n'y a donc rien à distinguer.
+ */
+export function setBooleanFlag(
+  flags: number,
+  code: BooleanFlagCode,
+  value: boolean | null | undefined,
+): number {
+  const def = booleanFlagDef(code);
+  let out = flags & 0xffff;
+  const valueMask = 1 << def.valueBit;
+  if (def.knownBit === null) {
+    out = value === true ? out | valueMask : out & ~valueMask;
+    return out & 0xffff;
+  }
+  const knownMask = 1 << def.knownBit;
+  if (value === null || value === undefined) {
+    out = out & ~valueMask & ~knownMask;
+    return out & 0xffff;
+  }
+  out = out | knownMask;
+  out = value ? out | valueMask : out & ~valueMask;
+  return out & 0xffff;
+}
+
+/**
+ * Relit un booléen du masque : `true`, `false`, ou `null` pour un tri-état dont la source ne dit
+ * rien. Un booléen à défaut documenté ne rend JAMAIS `null` — son absence est une valeur.
+ */
+export function readBooleanFlag(flags: number, code: BooleanFlagCode): boolean | null {
+  const def = booleanFlagDef(code);
+  if (def.knownBit !== null && ((flags >>> def.knownBit) & 1) === 0) return null;
+  return ((flags >>> def.valueBit) & 1) === 1;
+}
+
+/** Vrai si `code` appartient aux dix booléens de `booleanFlags`. */
+export function isBooleanFlagCode(code: string): code is BooleanFlagCode {
+  return BOOLEAN_FLAG_BY_CODE.has(code as BooleanFlagCode);
 }
 
 /**
