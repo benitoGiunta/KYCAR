@@ -1,0 +1,229 @@
+{
+ "$comment": "KYCAR — modele de prix : depreciation, kilometrage, primes, arrondis commerciaux, statut de prix, TVA, evaluation AutoScout24. Regles R-17 a R-25.",
+ "source": [
+  "S11 mozzeno (presse economique belge) : prix moyen d'une voiture d'occasion 24 382 EUR en aout 2023, 22 323 EUR en aout 2024 — ordre de grandeur du PRIX DEMANDE, pas du prix de transaction",
+  "S3 TRAXIO 2025 (structure d'age du marche)",
+  "H7 hypothese : le taux de depreciation annuel (13,5 %) et la decote au premier jour (15 %) sont des ordres de grandeur usuels du marche europeen, non releves sur une serie belge",
+  "H8 hypothese : la prime de prix professionnel (+6 %) est justifiee par la garantie legale de 12 mois due par un vendeur professionnel en Belgique, non par un releve"
+ ],
+ "formula": "prix_juste = newPriceScale * S_segment * B_marque * F_carburant * (kW / kW_ref)^0.55 * exp(N(0, 0.25))_modele * D(age) * K(km) * T_vendeur * exp(N(0, sigma_p))",
+ "brandCoefficient": {
+  "$comment": "B_marque par classe ; la classe est portee par makes.json (champ ajoute par R-17)",
+  "budget": 0.82,
+  "generaliste": 1.0,
+  "premium": 1.3,
+  "exotique": 2.6,
+  "budgetMakes": [
+   "dacia",
+   "fiat",
+   "skoda",
+   "seat",
+   "suzuki",
+   "kia",
+   "hyundai",
+   "mg",
+   "ssangyong",
+   "daihatsu",
+   "lada",
+   "chery",
+   "byd"
+  ],
+  "premiumMakes": [
+   "bmw",
+   "mercedes-benz",
+   "audi",
+   "volvo",
+   "lexus",
+   "land-rover",
+   "mini",
+   "ds-automobiles",
+   "cupra",
+   "alfa-romeo",
+   "jaguar",
+   "tesla",
+   "polestar",
+   "infiniti"
+  ],
+  "exotiqueMakes": [
+   "porsche",
+   "ferrari",
+   "lamborghini",
+   "bentley",
+   "aston-martin",
+   "maserati",
+   "mclaren",
+   "rolls-royce",
+   "bugatti",
+   "lotus",
+   "alpina"
+  ]
+ },
+ "fuelNewPremium": {
+  "B": 1.0,
+  "D": 1.06,
+  "2": 1.14,
+  "3": 1.18,
+  "E": 1.2,
+  "L": 0.98,
+  "C": 0.99,
+  "M": 0.97,
+  "H": 1.35,
+  "O": 0.95
+ },
+ "powerExponent": 0.55,
+ "modelDispersionSigma": 0.25,
+ "modelDispersionComment": "tirage FIXE par modelId (hachage stable) : il ecarte les modeles entre eux sans ajouter de variance A L'INTERIEUR d'une cellule d'homogenite, ou M2 ajuste sa regression",
+ "depreciation": {
+  "formula": "D(age) = max(D0 * exp(-lambda_f * age), floor)",
+  "D0": 0.85,
+  "lambda": 0.135,
+  "lambdaElectric": 0.168,
+  "floor": 0.05,
+  "lambdaElectricRationale": "les valeurs residuelles des vehicules electriques ont chute plus vite que celles des thermiques entre 2023 et 2025 (baisse des prix du neuf, incertitude sur la batterie) : lambda majore de 0,033",
+  "checks": {
+   "1": 0.743,
+   "3": 0.567,
+   "5": 0.433,
+   "8": 0.289,
+   "10": 0.221,
+   "15": 0.112,
+   "20": 0.057,
+   "25": 0.05
+  }
+ },
+ "mileageFactor": {
+  "formula": "K = clamp(exp(-beta * (km - m(age, carburant)) / 100000), 0.45, 1.35)",
+  "beta": 0.55,
+  "rationale": "forme log-lineaire en km, identique a celle qu'EX-DATA-90 ajuste (y = b0 + b1*annee + b2*km/10000) : le jeu de donnees est donc bien specifie pour le modele que le moteur estime, et le R2 publie a un sens"
+ },
+ "sellerPremium": {
+  "D": 1.06,
+  "P": 1.0
+ },
+ "adTierPremium": {
+  "NONE": 1.0,
+  "T20": 1.01,
+  "T30": 1.02,
+  "T40": 1.03,
+  "T50": 1.05,
+  "comment": "le produit publicitaire est correle a la valeur du stock, pas cause par elle ; la surcote reste faible et n'est pas une variable de decision"
+ },
+ "residualSigma": 0.2,
+ "residualSigmaRationale": "ecart-type du log-prix A L'INTERIEUR d'une cellule (marque, modele, annee) ; il fixe la detectabilite de M2 : un facteur de prix 0,40 vaut z = -4,6",
+ "globalChecks": {
+  "$comment": "mesures Monte-Carlo 120 000 tirages sur ce modele — references des sondes P-30 a P-33",
+  "mediane": 15815,
+  "moyenne": 19831,
+  "P10": 4407,
+  "P25": 8642,
+  "P75": 26253,
+  "P90": 39556,
+  "partSous5000": 0.12,
+  "partAu-dessus50000": 0.05,
+  "correlationPrixAge": -0.53,
+  "correlationLnPrixAge": -0.742,
+  "olsBeta1AnneeCentre": 0.0768,
+  "olsBeta2Par10000Km": -0.0381
+ },
+ "commercialRounding": {
+  "rule": "R-21 — tirer une terminaison e dans la table selon la tranche de prix, puis prix_affiche = 1000 * round((prix_juste - e) / 1000) + e ; bornes basses : sous 1 500 EUR la grille est de 100 EUR avec terminaisons {0, 50, 90}",
+  "bands": [
+   {
+    "maxEur": 1500,
+    "step": 100,
+    "endings": {
+     "0": 0.34,
+     "50": 0.33,
+     "90": 0.33
+    }
+   },
+   {
+    "maxEur": 100000,
+    "step": 1000,
+    "endings": {
+     "990": 0.38,
+     "950": 0.24,
+     "900": 0.16,
+     "500": 0.1,
+     "0": 0.12
+    }
+   },
+   {
+    "maxEur": 9999999,
+    "step": 5000,
+    "endings": {
+     "0": 0.55,
+     "900": 0.25,
+     "500": 0.2
+    }
+   }
+  ],
+  "expectedShareOfCommercialEndings": 0.78
+ },
+ "priceStatus": {
+  "$comment": "KYCAR_PRICE_STATUS ; R-22",
+  "ON_REQUEST": {
+   "P": 0.005,
+   "D": 0.035,
+   "D_luxe_ou_prix>80000": 0.22,
+   "aggregatedTarget": [
+    0.02,
+    0.05
+   ]
+  },
+  "MISSING": {
+   "rate": 0.006,
+   "comment": "defaut d'extraction, jamais une decision du vendeur (EX-DATA-18) ; pose PRICE_MISSING_UNDECLARED"
+  },
+  "QUOTED": "le complement"
+ },
+ "vat": {
+  "isTaxDeductibleAmongPro": 0.35,
+  "unknownAmongPro": 0.06,
+  "amongPrivate": "champ TOUJOURS absent — un particulier ne facture pas de TVA deductible",
+  "rationale": "61,6 % des immatriculations neuves 2024 sont des societes (S1), mais la majorite des reventes professionnelles passe par le regime de la marge, sans TVA recuperable : 35 % des annonces professionnelles est un ordre de grandeur assume (H9), non un releve",
+  "netPriceEur": "present si et seulement si isTaxDeductible = vrai ; net = round(prix / 1.21)",
+  "vatRatePercent": "21 quand isTaxDeductible = vrai, absent sinon"
+ },
+ "priceEvaluationCategory": {
+  "$comment": "R-24 — M3 est un CONTROLE externe (EX-DATA-13), donc il doit etre CORRELE au juste prix sans lui etre identique. Le generateur actuel le tire d'un bruit INDEPENDANT du prix : le kappa d'EX-DATA-96 y vaut alors zero par construction, et le controle croise ne mesure rien. CORRECTION.",
+  "formula": "d = ln(prix_affiche / prix_juste) / sigma_p ; categorie par seuils, puis brouillage",
+  "thresholds": [
+   [
+    "d < -1.6",
+    "1"
+   ],
+   [
+    "-1.6 <= d < -0.6",
+    "2"
+   ],
+   [
+    "-0.6 <= d < 0.6",
+    "3"
+   ],
+   [
+    "0.6 <= d < 1.6",
+    "4"
+   ],
+   [
+    "d >= 1.6",
+    "5"
+   ]
+  ],
+  "confusionRate": 0.12,
+  "confusionRule": "avec probabilite 0.12, la categorie est deplacee d'un cran (haut ou bas equiprobables, bornee a 1..5) : le controle externe est correle mais imparfait",
+  "unavailable": "categorie 0 quand priceStatus != QUOTED",
+  "expectedKappaAgainstM1": [
+   0.25,
+   0.6
+  ]
+ },
+ "isSuperDeal": {
+  "rule": "vrai seulement si sellerType = D et priceEvaluationCategory dans {1, 2}",
+  "rateAmongEligible": 0.28,
+  "aggregatedRate": 0.041
+ },
+ "msrpEur": {
+  "rule": "present pour 12 % des annonces (professionnels, age <= 6 ans) ; msrp = prix neuf du modele arrondi a 500 EUR"
+ }
+}

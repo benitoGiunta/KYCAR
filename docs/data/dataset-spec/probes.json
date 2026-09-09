@@ -1,0 +1,694 @@
+{
+ "$comment": "KYCAR — contrat de sondes entre dataset-design, dataset-gen et data-review. Une ligne par regle verifiable. La sonde est ECRITE PAR LE REVIEWER et doit passer SANS MODIFICATION (D-31/D-32) ; dataset-gen la traite comme une specification, jamais comme un test a ajuster.",
+ "champs": [
+  "id",
+  "regle",
+  "famille",
+  "statistique",
+  "tolerance",
+  "portee"
+ ],
+ "count": 85,
+ "probes": [
+  {
+   "id": "P-01",
+   "regle": "R-01",
+   "famille": "Volume",
+   "statistique": "effectif du snapshot",
+   "tolerance": "= listingsPerSnapshot du profil, exactement",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-02",
+   "regle": "R-01",
+   "famille": "Volume",
+   "statistique": "nombre de snapshots par profil",
+   "tolerance": "= 3, identifiants et observedAt conformes a profiles.json",
+   "portee": "profil"
+  },
+  {
+   "id": "P-03",
+   "regle": "R-30",
+   "famille": "Determinisme",
+   "statistique": "hachage SHA-256 du fichier NDJSON gz regenere a graine egale",
+   "tolerance": "identique octet a octet",
+   "portee": "profil"
+  },
+  {
+   "id": "P-04",
+   "regle": "R-31",
+   "famille": "Determinisme",
+   "statistique": "deux graines differentes",
+   "tolerance": "au moins 99 % des listingId different",
+   "portee": "profil"
+  },
+  {
+   "id": "P-05",
+   "regle": "R-33",
+   "famille": "Taille",
+   "statistique": "somme des 3 fichiers gz du profil test",
+   "tolerance": "<= 8 Mio",
+   "portee": "profil test"
+  },
+  {
+   "id": "P-06",
+   "regle": "R-32",
+   "famille": "Ordre",
+   "statistique": "ordre des lignes du fichier",
+   "tolerance": "croissant sur (makeId, modelId, firstRegistrationYearMonth, listingId)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-07",
+   "regle": "R-02",
+   "famille": "Marques",
+   "statistique": "nombre de marques distinctes",
+   "tolerance": "test >= 150, dev >= 120, perf >= 290",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-08",
+   "regle": "R-02",
+   "famille": "Marques",
+   "statistique": "effectif de chaque marque nommee",
+   "tolerance": "= round(N * sharePct/100) a +/- 1",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-09",
+   "regle": "R-02",
+   "famille": "Marques",
+   "statistique": "part des 5 premieres marques",
+   "tolerance": "ordre = Volkswagen, BMW, Mercedes-Benz, Peugeot, Opel",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-10",
+   "regle": "R-03",
+   "famille": "Modeles",
+   "statistique": "effectif de golf / polo / corsa / 320 au profil test",
+   "tolerance": "golf >= 650, polo >= 480, corsa >= 440, 320 >= 170",
+   "portee": "snapshot test"
+  },
+  {
+   "id": "P-11",
+   "regle": "R-04",
+   "famille": "Modeles",
+   "statistique": "familles bmw-serie-3 et bmw-serie-1 (models.json families)",
+   "tolerance": "chacune >= 280 annonces au profil test",
+   "portee": "snapshot test"
+  },
+  {
+   "id": "P-12",
+   "regle": "R-10",
+   "famille": "Fenetres",
+   "statistique": "annonces dont firstRegistrationYear sort de [yearFrom, yearTo+1] du modele curate",
+   "tolerance": "= 0",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-13",
+   "regle": "R-09",
+   "famille": "Age",
+   "statistique": "mediane de l'age (observedAt.year - firstRegistrationYear)",
+   "tolerance": "dans [6, 9]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-14",
+   "regle": "R-09",
+   "famille": "Age",
+   "statistique": "part des annonces d'age >= 20 ans",
+   "tolerance": "dans [0.025, 0.055]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-15",
+   "regle": "R-09",
+   "famille": "Age",
+   "statistique": "part des annonces d'age >= 30 ans (oldtimers)",
+   "tolerance": "dans [0.002, 0.012]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-16",
+   "regle": "R-13",
+   "famille": "Carburant",
+   "statistique": "mix global (B, D, hybrides 2+3, E)",
+   "tolerance": "B dans [0.52, 0.59], D dans [0.23, 0.29], hyb dans [0.11, 0.16], E dans [0.035, 0.058]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-17",
+   "regle": "R-14",
+   "famille": "Carburant",
+   "statistique": "part diesel des annonces de 1re immatriculation 2015",
+   "tolerance": "dans [0.40, 0.50] — voir ecart assume E-01",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-18",
+   "regle": "R-14",
+   "famille": "Carburant",
+   "statistique": "part diesel des annonces de 1re immatriculation 2012 et 2024",
+   "tolerance": "2012 dans [0.55, 0.65] ; 2024 dans [0.015, 0.045]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-19",
+   "regle": "R-14",
+   "famille": "Carburant",
+   "statistique": "part electrique des annonces de 1re immatriculation 2024",
+   "tolerance": "dans [0.19, 0.27]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-20",
+   "regle": "R-14",
+   "famille": "Carburant",
+   "statistique": "monotonie",
+   "tolerance": "la part diesel par annee de 1re immatriculation est decroissante sur 2016..2026 (tolerance 1 inversion)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-21",
+   "regle": "R-15",
+   "famille": "Carburant",
+   "statistique": "part diesel du segment utilitaire vs du segment citadine",
+   "tolerance": "rapport >= 3",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-22",
+   "regle": "R-16",
+   "famille": "Hybrides",
+   "statistique": "part isPluginHybrid parmi le code de categorie 2, annees 2023-2026",
+   "tolerance": "dans [0.50, 0.70]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-23",
+   "regle": "R-05",
+   "famille": "Segments",
+   "statistique": "part de la carrosserie SUV (code 4) parmi les 1res immatriculations >= 2022",
+   "tolerance": "dans [0.38, 0.52]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-24",
+   "regle": "R-05",
+   "famille": "Segments",
+   "statistique": "part de la carrosserie Coupe (code 3)",
+   "tolerance": "dans [0.020, 0.035] — matiere du parcours P1",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-25",
+   "regle": "R-07",
+   "famille": "Boite",
+   "statistique": "part de boites automatiques ou semi-automatiques par annee",
+   "tolerance": "2010 <= 0.30 ; 2024 >= 0.60 ; monotone croissante (tolerance 1 inversion)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-26",
+   "regle": "R-07",
+   "famille": "Boite",
+   "statistique": "annonces electriques a boite manuelle",
+   "tolerance": "= 0",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-27",
+   "regle": "R-06",
+   "famille": "Couleurs",
+   "statistique": "part cumulee noir + gris + blanc + argent",
+   "tolerance": "dans [0.68, 0.78]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-28",
+   "regle": "R-11",
+   "famille": "Kilometrage",
+   "statistique": "mediane du kilometrage des annonces d'age 5 ans",
+   "tolerance": "dans [66 000, 84 000]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-29",
+   "regle": "R-11",
+   "famille": "Kilometrage",
+   "statistique": "mediane du kilometrage, diesel vs essence, a age egal (5 ans)",
+   "tolerance": "rapport diesel/essence dans [1.30, 1.70]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-30",
+   "regle": "R-11",
+   "famille": "Kilometrage",
+   "statistique": "kilometrages exactement multiples de 100",
+   "tolerance": "= 100 % des valeurs connues",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-31",
+   "regle": "R-17",
+   "famille": "Prix",
+   "statistique": "mediane des prix affiches",
+   "tolerance": "dans [13 500, 18 500]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-32",
+   "regle": "R-17",
+   "famille": "Prix",
+   "statistique": "rapport moyenne / mediane des prix affiches",
+   "tolerance": "dans [1.15, 1.40]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-33",
+   "regle": "R-18",
+   "famille": "Prix",
+   "statistique": "correlation de Pearson entre ln(prix) et age",
+   "tolerance": "< -0.65",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-34",
+   "regle": "R-18",
+   "famille": "Prix",
+   "statistique": "correlation de Pearson entre prix et age",
+   "tolerance": "< -0.45",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-35",
+   "regle": "R-18",
+   "famille": "Prix",
+   "statistique": "OLS ln(prix) ~ (annee centree) + km/10000 sur l'ensemble du snapshot",
+   "tolerance": "beta1 dans [0.055, 0.100] et beta2 dans [-0.055, -0.022]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-36",
+   "regle": "R-18",
+   "famille": "Prix",
+   "statistique": "prix median par annee de 1re immatriculation",
+   "tolerance": "strictement croissant sur 2008..2024 (tolerance 1 inversion)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-37",
+   "regle": "R-19",
+   "famille": "Prix",
+   "statistique": "prime electrique : prix median a segment, age et puissance comparables",
+   "tolerance": "carburant E superieur de 5 a 25 % au carburant B",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-38",
+   "regle": "R-20",
+   "famille": "Prix",
+   "statistique": "prime professionnelle : prix median PRO / PRIVE a segment et age comparables",
+   "tolerance": "dans [1.02, 1.12]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-39",
+   "regle": "R-21",
+   "famille": "Prix",
+   "statistique": "part des prix affiches se terminant par 990, 950, 900, 500 ou 000",
+   "tolerance": "dans [0.70, 0.88]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-40",
+   "regle": "R-22",
+   "famille": "Prix",
+   "statistique": "part de priceStatus = ON_REQUEST",
+   "tolerance": "dans [0.02, 0.05]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-41",
+   "regle": "R-22",
+   "famille": "Prix",
+   "statistique": "part de priceStatus = MISSING",
+   "tolerance": "dans [0.004, 0.009] et 100 % portent PRICE_MISSING_UNDECLARED",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-42",
+   "regle": "R-23",
+   "famille": "TVA",
+   "statistique": "part d'annonces a TVA deductible chez les PRIVATE",
+   "tolerance": "= 0 %, le champ est absent",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-43",
+   "regle": "R-23",
+   "famille": "TVA",
+   "statistique": "part d'annonces a TVA deductible chez les PRO (champ renseigne)",
+   "tolerance": "dans [0.31, 0.39]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-44",
+   "regle": "R-23",
+   "famille": "TVA",
+   "statistique": "netPriceEur present",
+   "tolerance": "present si et seulement si isTaxDeductible = vrai, et net = round(prix / 1.21) a +/- 1 EUR",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-45",
+   "regle": "R-24",
+   "famille": "M3",
+   "statistique": "kappa de Cohen entre priceEvaluationCategory binarisee et le verdict M1 sur les cellules a n >= 30",
+   "tolerance": "dans [0.25, 0.60] — non nul, non parfait",
+   "portee": "snapshot test"
+  },
+  {
+   "id": "P-46",
+   "regle": "R-26",
+   "famille": "Vendeurs",
+   "statistique": "part sellerType = D",
+   "tolerance": "dans [0.67, 0.73]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-47",
+   "regle": "R-27",
+   "famille": "Vendeurs",
+   "statistique": "dealerBucket present",
+   "tolerance": "present pour 100 % des D, absent pour 100 % des P",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-48",
+   "regle": "R-27",
+   "famille": "Vendeurs",
+   "statistique": "nombre de dealerBucket distincts et loi de stock",
+   "tolerance": "= counts du profil a +/- 2 % ; effectif du premier / effectif median >= 8",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-49",
+   "regle": "R-27",
+   "famille": "Vendeurs",
+   "statistique": "stabilite du dealerBucket entre snapshots",
+   "tolerance": "tout dealerBucket de S1 existe dans S0",
+   "portee": "profil"
+  },
+  {
+   "id": "P-50",
+   "regle": "R-28",
+   "famille": "Publicite",
+   "statistique": "part d'adTier != NONE chez les PRO / chez les PRIVE",
+   "tolerance": "PRO dans [0.30, 0.38] ; PRIVE = 0",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-51",
+   "regle": "R-34",
+   "famille": "Geographie",
+   "statistique": "repartition Flandre / Wallonie / Bruxelles",
+   "tolerance": "55 / 37 / 8 a +/- 2 points",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-52",
+   "regle": "R-35",
+   "famille": "Geographie",
+   "statistique": "couples (code postal, commune)",
+   "tolerance": "100 % figurent dans localities de geography.json, hors les 0,4 % de codes hors plage",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-53",
+   "regle": "R-35",
+   "famille": "Geographie",
+   "statistique": "code postal dans la plage de la province NUTS-2 declaree",
+   "tolerance": "100 % hors les 0,4 % hors plage",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-54",
+   "regle": "R-36",
+   "famille": "Langue",
+   "statistique": "langue des libelles textuels",
+   "tolerance": "100 % des annonces d'une commune neerlandophone sont en nl ou fr, aucune en de hors codes 4700-4790",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-55",
+   "regle": "R-43",
+   "famille": "Manquants",
+   "statistique": "taux d'absence par champ",
+   "tolerance": "chaque champ de baseRates est a +/- 25 % relatifs de sa valeur de reference",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-56",
+   "regle": "R-43",
+   "famille": "Manquants",
+   "statistique": "uniformite",
+   "tolerance": "l'ecart-type des taux d'absence des champs optionnels est > 0.15 : les taux ne sont PAS uniformes",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-57",
+   "regle": "R-43",
+   "famille": "Manquants",
+   "statistique": "correlation entre absences",
+   "tolerance": "corr(1[modelVersion absente], 1[upholsteryType absente]) dans [0.10, 0.40]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-58",
+   "regle": "R-44",
+   "famille": "Manquants",
+   "statistique": "effet vendeur",
+   "tolerance": "taux d'absence de l'equipement chez les PRIVE / chez les PRO >= 1.8",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-59",
+   "regle": "R-45",
+   "famille": "Manquants",
+   "statistique": "absences structurelles",
+   "tolerance": "0 annonce non electrifiee ne porte electricRangeKm ; 0 annonce PRIVATE ne porte isTaxDeductible ou dealerBucket",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-60",
+   "regle": "R-38",
+   "famille": "Emissions",
+   "statistique": "coherence CO2 / consommation",
+   "tolerance": "pour 100 % des annonces thermiques renseignees, |CO2 - conso * k_carburant| <= 6 g/km hors anomalie A-14",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-61",
+   "regle": "R-39",
+   "famille": "Emissions",
+   "statistique": "co2Source",
+   "tolerance": "WLTP pour 100 % des annonces de 1re immatriculation >= 2018-09 dont la source est connue ; NEDC pour 100 % de celles < 2018-09",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-62",
+   "regle": "R-39",
+   "famille": "Emissions",
+   "statistique": "part de co2Source = UNKNOWN",
+   "tolerance": "dans [0.10, 0.20] globalement et > 0.30 pour les annonces d'age > 17 ans",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-63",
+   "regle": "R-40",
+   "famille": "Emissions",
+   "statistique": "norme Euro",
+   "tolerance": "100 % des normes correspondent a la tranche d'annee de emissions.json (hors INCONNU)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-64",
+   "regle": "R-38",
+   "famille": "Emissions",
+   "statistique": "CO2 des annonces electriques",
+   "tolerance": "= 0 pour 100 % du carburant E",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-65",
+   "regle": "R-50",
+   "famille": "Snapshots",
+   "statistique": "taux de sortie entre S0 et S1, puis S1 et S2",
+   "tolerance": "dans [0.08, 0.12]",
+   "portee": "profil"
+  },
+  {
+   "id": "P-66",
+   "regle": "R-52",
+   "famille": "Snapshots",
+   "statistique": "effectif par marque",
+   "tolerance": "identique sur les 3 snapshots pour 100 % des marques",
+   "portee": "profil"
+  },
+  {
+   "id": "P-67",
+   "regle": "R-52",
+   "famille": "Snapshots",
+   "statistique": "entrees et sorties",
+   "tolerance": "nombre d'entrees = nombre de sorties, snapshot par snapshot",
+   "portee": "profil"
+  },
+  {
+   "id": "P-68",
+   "regle": "R-53",
+   "famille": "Snapshots",
+   "statistique": "part d'annonces survivantes dont le prix a change",
+   "tolerance": "dans [0.14, 0.20] ; 80 a 88 % des revisions sont a la baisse",
+   "portee": "profil"
+  },
+  {
+   "id": "P-69",
+   "regle": "R-53",
+   "famille": "Snapshots",
+   "statistique": "derive de la mediane des prix",
+   "tolerance": "mediane(S2) < mediane(S0) et recul <= 3 %",
+   "portee": "profil"
+  },
+  {
+   "id": "P-70",
+   "regle": "R-54",
+   "famille": "Snapshots",
+   "statistique": "annonces stables",
+   "tolerance": "une annonce survivante non revisee est identique champ a champ hors snapshotId, observedAt et isNewListing",
+   "portee": "profil"
+  },
+  {
+   "id": "P-71",
+   "regle": "R-56",
+   "famille": "Snapshots",
+   "statistique": "kilometrage entre snapshots",
+   "tolerance": "au plus 0,8 % des survivantes voient leur kilometrage changer, toujours en hausse ou par correction declaree",
+   "portee": "profil"
+  },
+  {
+   "id": "P-72",
+   "regle": "R-57",
+   "famille": "Anomalies",
+   "statistique": "chaque anomalie A-01 a A-20",
+   "tolerance": "effectif realise a +/- 20 % relatifs du taux specifie, et jamais nul au profil test",
+   "portee": "snapshot test"
+  },
+  {
+   "id": "P-73",
+   "regle": "R-57",
+   "famille": "Anomalies",
+   "statistique": "verite terrain",
+   "tolerance": "100 % des listingId listes au manifest existent dans le snapshot et portent la valeur injectee",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-74",
+   "regle": "R-58",
+   "famille": "Anomalies",
+   "statistique": "exclusion mutuelle",
+   "tolerance": "aucune annonce ne porte deux anomalies de prix",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-75",
+   "regle": "A-10",
+   "famille": "Anomalies",
+   "statistique": "rappel de M1",
+   "tolerance": "au moins 90 % des M1 injectes sont signales M1_LOW ou M1_HIGH par le moteur quand la cellule a n_price >= 12",
+   "portee": "snapshot test"
+  },
+  {
+   "id": "P-76",
+   "regle": "A-11",
+   "famille": "Anomalies",
+   "statistique": "rappel de M2",
+   "tolerance": "au moins 85 % des M2 injectes sont signales M2_LOW ou M2_HIGH",
+   "portee": "snapshot test"
+  },
+  {
+   "id": "P-77",
+   "regle": "A-01",
+   "famille": "Anomalies",
+   "statistique": "sentinelles hors des statistiques",
+   "tolerance": "aucune annonce a PRICE_SENTINEL_ABSOLUTE n'entre dans un quantile de prix publie",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-78",
+   "regle": "R-59",
+   "famille": "Cellules",
+   "statistique": "cellules (marque, modele, annee) a n_price >= 12",
+   "tolerance": "test >= 150, dev >= 10",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-79",
+   "regle": "R-59",
+   "famille": "Cellules",
+   "statistique": "cellules (marque, modele) a n_price >= 30",
+   "tolerance": "test >= 90, dev >= 20",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-80",
+   "regle": "R-60",
+   "famille": "R3",
+   "statistique": "champs interdits",
+   "tolerance": "aucune cle JSON de la couche source ni de la couche canonique ne figure dans EX-DATA-47 E1 a E17",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-81",
+   "regle": "R-60",
+   "famille": "R3",
+   "statistique": "dealerBucket",
+   "tolerance": "aucune valeur de dealerBucket ne permet de retrouver un index ordonne : la distribution des 32 bits est uniforme au test du khi-deux (p > 0.01)",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-82",
+   "regle": "R-61",
+   "famille": "Filtres",
+   "statistique": "alimentation des filtres retenus",
+   "tolerance": "chaque filtre de data/reference/filters-scope.json de classe enum ou borne a au moins 2 valeurs distinctes representees dans le snapshot, ou figure a la liste des filtres non alimentes du manifest",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-83",
+   "regle": "R-25",
+   "famille": "Prix",
+   "statistique": "isSuperDeal",
+   "tolerance": "vrai seulement chez les PRO et seulement pour priceEvaluationCategory dans {1, 2} ; taux global dans [0.025, 0.055]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-84",
+   "regle": "R-12",
+   "famille": "Etat",
+   "statistique": "usageState = N",
+   "tolerance": "100 % ont age = 0 ; part d'accidentes (A) dans [0.02, 0.05]",
+   "portee": "snapshot"
+  },
+  {
+   "id": "P-85",
+   "regle": "R-12",
+   "famille": "Etat",
+   "statistique": "offerType = O (Ancetre)",
+   "tolerance": "100 % ont age >= 30",
+   "portee": "snapshot"
+  }
+ ]
+}

@@ -1,0 +1,765 @@
+{
+ "$comment": "KYCAR — geographie belge : provinces NUTS-2 ponderees, communes et codes postaux. Regles R-34 a R-37. R3 : le code postal et la commune n'existent QUE dans la couche source ; l'adaptateur les reduit a regionCode (NUTS-2) et postalCodePrefix2 puis les met hors de portee (EX-DATA-48).",
+ "source": [
+  "S2 Statbel, population legale au 1er janvier 2025 par province (total 11 825 551 habitants)",
+  "S3 TRAXIO 2025 : repartition regionale des immatriculations d'occasion Flandre 55 %, Wallonie 37 %, Bruxelles 8 %",
+  "H10 hypothese : le poids d'une commune dans sa province est proportionnel a sa population (ordre de grandeur en milliers d'habitants, arrondi) ; la liste des communes est un ECHANTILLON de 78 communes, pas le repertoire complet",
+  "H11 hypothese : la repartition linguistique des libelles suit la region linguistique de la commune ; Bruxelles est fixe a 80 % fr / 20 % nl et l'arrondissement germanophone de Liege (codes 4700-4790) a de"
+ ],
+ "regionalTarget": {
+  "VLG": 55.0,
+  "WAL": 37.0,
+  "BRU": 8.0
+ },
+ "provinceWeightRule": "R-34 — poids = cible regionale x (population de la province / population de la region) ; la somme vaut 100",
+ "provinces": [
+  {
+   "nuts2": "BE10",
+   "name": "Région de Bruxelles-Capitale",
+   "region": "BRU",
+   "population2025": 1255795,
+   "weightPct": 8.0,
+   "postalRanges": [
+    [
+     1000,
+     1299
+    ]
+   ],
+   "language": {
+    "fr": 0.8,
+    "nl": 0.2
+   }
+  },
+  {
+   "nuts2": "BE21",
+   "name": "Anvers",
+   "region": "VLG",
+   "population2025": 1921189,
+   "weightPct": 15.3924,
+   "postalRanges": [
+    [
+     2000,
+     2999
+    ]
+   ],
+   "language": {
+    "nl": 1.0
+   }
+  },
+  {
+   "nuts2": "BE22",
+   "name": "Limbourg",
+   "region": "VLG",
+   "population2025": 904919,
+   "weightPct": 7.2501,
+   "postalRanges": [
+    [
+     3500,
+     3999
+    ]
+   ],
+   "language": {
+    "nl": 1.0
+   }
+  },
+  {
+   "nuts2": "BE23",
+   "name": "Flandre-Orientale",
+   "region": "VLG",
+   "population2025": 1602532,
+   "weightPct": 12.8394,
+   "postalRanges": [
+    [
+     9000,
+     9999
+    ]
+   ],
+   "language": {
+    "nl": 1.0
+   }
+  },
+  {
+   "nuts2": "BE24",
+   "name": "Brabant flamand",
+   "region": "VLG",
+   "population2025": 1204541,
+   "weightPct": 9.6507,
+   "postalRanges": [
+    [
+     1500,
+     1999
+    ],
+    [
+     3000,
+     3499
+    ]
+   ],
+   "language": {
+    "nl": 1.0
+   }
+  },
+  {
+   "nuts2": "BE25",
+   "name": "Flandre-Occidentale",
+   "region": "VLG",
+   "population2025": 1231585,
+   "weightPct": 9.8674,
+   "postalRanges": [
+    [
+     8000,
+     8999
+    ]
+   ],
+   "language": {
+    "nl": 1.0
+   }
+  },
+  {
+   "nuts2": "BE31",
+   "name": "Brabant wallon",
+   "region": "WAL",
+   "population2025": 415381,
+   "weightPct": 4.1482,
+   "postalRanges": [
+    [
+     1300,
+     1499
+    ]
+   ],
+   "language": {
+    "fr": 1.0
+   }
+  },
+  {
+   "nuts2": "BE32",
+   "name": "Hainaut",
+   "region": "WAL",
+   "population2025": 1365328,
+   "weightPct": 13.6349,
+   "postalRanges": [
+    [
+     6000,
+     6599
+    ],
+    [
+     7000,
+     7999
+    ]
+   ],
+   "language": {
+    "fr": 1.0
+   }
+  },
+  {
+   "nuts2": "BE33",
+   "name": "Liège",
+   "region": "WAL",
+   "population2025": 1122925,
+   "weightPct": 11.2141,
+   "postalRanges": [
+    [
+     4000,
+     4999
+    ]
+   ],
+   "language": {
+    "fr": 0.93,
+    "de": 0.07
+   }
+  },
+  {
+   "nuts2": "BE34",
+   "name": "Luxembourg",
+   "region": "WAL",
+   "population2025": 296008,
+   "weightPct": 2.9561,
+   "postalRanges": [
+    [
+     6600,
+     6999
+    ]
+   ],
+   "language": {
+    "fr": 1.0
+   }
+  },
+  {
+   "nuts2": "BE35",
+   "name": "Namur",
+   "region": "WAL",
+   "population2025": 505348,
+   "weightPct": 5.0467,
+   "postalRanges": [
+    [
+     5000,
+     5999
+    ]
+   ],
+   "language": {
+    "fr": 1.0
+   }
+  }
+ ],
+ "localityRule": "R-35 — la commune est tiree au poids DANS la province ; le code postal est celui de la commune, jamais tire independamment : la coherence (code postal, commune, province) est garantie par construction",
+ "localities": [
+  {
+   "postalCode": 1000,
+   "city": "Bruxelles",
+   "nuts2": "BE10",
+   "weight": 185,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1030,
+   "city": "Schaerbeek",
+   "nuts2": "BE10",
+   "weight": 130,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1060,
+   "city": "Saint-Gilles",
+   "nuts2": "BE10",
+   "weight": 50,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1070,
+   "city": "Anderlecht",
+   "nuts2": "BE10",
+   "weight": 125,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1080,
+   "city": "Molenbeek-Saint-Jean",
+   "nuts2": "BE10",
+   "weight": 100,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1180,
+   "city": "Uccle",
+   "nuts2": "BE10",
+   "weight": 85,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1140,
+   "city": "Evere",
+   "nuts2": "BE10",
+   "weight": 44,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1190,
+   "city": "Forest",
+   "nuts2": "BE10",
+   "weight": 57,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1200,
+   "city": "Woluwe-Saint-Lambert",
+   "nuts2": "BE10",
+   "weight": 58,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1210,
+   "city": "Saint-Josse-ten-Noode",
+   "nuts2": "BE10",
+   "weight": 28,
+   "language": "fr"
+  },
+  {
+   "postalCode": 2000,
+   "city": "Antwerpen",
+   "nuts2": "BE21",
+   "weight": 100,
+   "language": "nl"
+  },
+  {
+   "postalCode": 2018,
+   "city": "Antwerpen",
+   "nuts2": "BE21",
+   "weight": 90,
+   "language": "nl"
+  },
+  {
+   "postalCode": 2060,
+   "city": "Antwerpen",
+   "nuts2": "BE21",
+   "weight": 60,
+   "language": "nl"
+  },
+  {
+   "postalCode": 2300,
+   "city": "Turnhout",
+   "nuts2": "BE21",
+   "weight": 47,
+   "language": "nl"
+  },
+  {
+   "postalCode": 2800,
+   "city": "Mechelen",
+   "nuts2": "BE21",
+   "weight": 89,
+   "language": "nl"
+  },
+  {
+   "postalCode": 2900,
+   "city": "Schoten",
+   "nuts2": "BE21",
+   "weight": 34,
+   "language": "nl"
+  },
+  {
+   "postalCode": 2600,
+   "city": "Berchem",
+   "nuts2": "BE21",
+   "weight": 44,
+   "language": "nl"
+  },
+  {
+   "postalCode": 2170,
+   "city": "Merksem",
+   "nuts2": "BE21",
+   "weight": 45,
+   "language": "nl"
+  },
+  {
+   "postalCode": 2200,
+   "city": "Herentals",
+   "nuts2": "BE21",
+   "weight": 29,
+   "language": "nl"
+  },
+  {
+   "postalCode": 3000,
+   "city": "Leuven",
+   "nuts2": "BE24",
+   "weight": 103,
+   "language": "nl"
+  },
+  {
+   "postalCode": 3500,
+   "city": "Hasselt",
+   "nuts2": "BE22",
+   "weight": 80,
+   "language": "nl"
+  },
+  {
+   "postalCode": 3600,
+   "city": "Genk",
+   "nuts2": "BE22",
+   "weight": 67,
+   "language": "nl"
+  },
+  {
+   "postalCode": 3800,
+   "city": "Sint-Truiden",
+   "nuts2": "BE22",
+   "weight": 41,
+   "language": "nl"
+  },
+  {
+   "postalCode": 3900,
+   "city": "Pelt",
+   "nuts2": "BE22",
+   "weight": 33,
+   "language": "nl"
+  },
+  {
+   "postalCode": 3700,
+   "city": "Tongeren",
+   "nuts2": "BE22",
+   "weight": 31,
+   "language": "nl"
+  },
+  {
+   "postalCode": 3200,
+   "city": "Aarschot",
+   "nuts2": "BE24",
+   "weight": 30,
+   "language": "nl"
+  },
+  {
+   "postalCode": 3300,
+   "city": "Tienen",
+   "nuts2": "BE24",
+   "weight": 35,
+   "language": "nl"
+  },
+  {
+   "postalCode": 1800,
+   "city": "Vilvoorde",
+   "nuts2": "BE24",
+   "weight": 47,
+   "language": "nl"
+  },
+  {
+   "postalCode": 1500,
+   "city": "Halle",
+   "nuts2": "BE24",
+   "weight": 41,
+   "language": "nl"
+  },
+  {
+   "postalCode": 1930,
+   "city": "Zaventem",
+   "nuts2": "BE24",
+   "weight": 34,
+   "language": "nl"
+  },
+  {
+   "postalCode": 1700,
+   "city": "Dilbeek",
+   "nuts2": "BE24",
+   "weight": 44,
+   "language": "nl"
+  },
+  {
+   "postalCode": 9000,
+   "city": "Gent",
+   "nuts2": "BE23",
+   "weight": 265,
+   "language": "nl"
+  },
+  {
+   "postalCode": 9100,
+   "city": "Sint-Niklaas",
+   "nuts2": "BE23",
+   "weight": 81,
+   "language": "nl"
+  },
+  {
+   "postalCode": 9200,
+   "city": "Dendermonde",
+   "nuts2": "BE23",
+   "weight": 46,
+   "language": "nl"
+  },
+  {
+   "postalCode": 9300,
+   "city": "Aalst",
+   "nuts2": "BE23",
+   "weight": 90,
+   "language": "nl"
+  },
+  {
+   "postalCode": 9700,
+   "city": "Oudenaarde",
+   "nuts2": "BE23",
+   "weight": 32,
+   "language": "nl"
+  },
+  {
+   "postalCode": 9600,
+   "city": "Ronse",
+   "nuts2": "BE23",
+   "weight": 27,
+   "language": "nl"
+  },
+  {
+   "postalCode": 9800,
+   "city": "Deinze",
+   "nuts2": "BE23",
+   "weight": 45,
+   "language": "nl"
+  },
+  {
+   "postalCode": 9500,
+   "city": "Geraardsbergen",
+   "nuts2": "BE23",
+   "weight": 34,
+   "language": "nl"
+  },
+  {
+   "postalCode": 8000,
+   "city": "Brugge",
+   "nuts2": "BE25",
+   "weight": 119,
+   "language": "nl"
+  },
+  {
+   "postalCode": 8500,
+   "city": "Kortrijk",
+   "nuts2": "BE25",
+   "weight": 78,
+   "language": "nl"
+  },
+  {
+   "postalCode": 8400,
+   "city": "Oostende",
+   "nuts2": "BE25",
+   "weight": 72,
+   "language": "nl"
+  },
+  {
+   "postalCode": 8800,
+   "city": "Roeselare",
+   "nuts2": "BE25",
+   "weight": 65,
+   "language": "nl"
+  },
+  {
+   "postalCode": 8900,
+   "city": "Ieper",
+   "nuts2": "BE25",
+   "weight": 35,
+   "language": "nl"
+  },
+  {
+   "postalCode": 8600,
+   "city": "Diksmuide",
+   "nuts2": "BE25",
+   "weight": 17,
+   "language": "nl"
+  },
+  {
+   "postalCode": 8700,
+   "city": "Tielt",
+   "nuts2": "BE25",
+   "weight": 21,
+   "language": "nl"
+  },
+  {
+   "postalCode": 8300,
+   "city": "Knokke-Heist",
+   "nuts2": "BE25",
+   "weight": 34,
+   "language": "nl"
+  },
+  {
+   "postalCode": 4000,
+   "city": "Liège",
+   "nuts2": "BE33",
+   "weight": 197,
+   "language": "fr"
+  },
+  {
+   "postalCode": 4020,
+   "city": "Liège",
+   "nuts2": "BE33",
+   "weight": 60,
+   "language": "fr"
+  },
+  {
+   "postalCode": 4100,
+   "city": "Seraing",
+   "nuts2": "BE33",
+   "weight": 64,
+   "language": "fr"
+  },
+  {
+   "postalCode": 4600,
+   "city": "Visé",
+   "nuts2": "BE33",
+   "weight": 18,
+   "language": "fr"
+  },
+  {
+   "postalCode": 4800,
+   "city": "Verviers",
+   "nuts2": "BE33",
+   "weight": 55,
+   "language": "fr"
+  },
+  {
+   "postalCode": 4700,
+   "city": "Eupen",
+   "nuts2": "BE33",
+   "weight": 20,
+   "language": "de"
+  },
+  {
+   "postalCode": 4780,
+   "city": "Sankt Vith",
+   "nuts2": "BE33",
+   "weight": 10,
+   "language": "de"
+  },
+  {
+   "postalCode": 4900,
+   "city": "Spa",
+   "nuts2": "BE33",
+   "weight": 11,
+   "language": "fr"
+  },
+  {
+   "postalCode": 4500,
+   "city": "Huy",
+   "nuts2": "BE33",
+   "weight": 22,
+   "language": "fr"
+  },
+  {
+   "postalCode": 6000,
+   "city": "Charleroi",
+   "nuts2": "BE32",
+   "weight": 204,
+   "language": "fr"
+  },
+  {
+   "postalCode": 7000,
+   "city": "Mons",
+   "nuts2": "BE32",
+   "weight": 96,
+   "language": "fr"
+  },
+  {
+   "postalCode": 7100,
+   "city": "La Louvière",
+   "nuts2": "BE32",
+   "weight": 81,
+   "language": "fr"
+  },
+  {
+   "postalCode": 7500,
+   "city": "Tournai",
+   "nuts2": "BE32",
+   "weight": 70,
+   "language": "fr"
+  },
+  {
+   "postalCode": 7700,
+   "city": "Mouscron",
+   "nuts2": "BE32",
+   "weight": 58,
+   "language": "fr"
+  },
+  {
+   "postalCode": 6200,
+   "city": "Châtelet",
+   "nuts2": "BE32",
+   "weight": 36,
+   "language": "fr"
+  },
+  {
+   "postalCode": 7300,
+   "city": "Boussu",
+   "nuts2": "BE32",
+   "weight": 20,
+   "language": "fr"
+  },
+  {
+   "postalCode": 6180,
+   "city": "Courcelles",
+   "nuts2": "BE32",
+   "weight": 31,
+   "language": "fr"
+  },
+  {
+   "postalCode": 5000,
+   "city": "Namur",
+   "nuts2": "BE35",
+   "weight": 114,
+   "language": "fr"
+  },
+  {
+   "postalCode": 5100,
+   "city": "Jambes",
+   "nuts2": "BE35",
+   "weight": 25,
+   "language": "fr"
+  },
+  {
+   "postalCode": 5500,
+   "city": "Dinant",
+   "nuts2": "BE35",
+   "weight": 14,
+   "language": "fr"
+  },
+  {
+   "postalCode": 5590,
+   "city": "Ciney",
+   "nuts2": "BE35",
+   "weight": 16,
+   "language": "fr"
+  },
+  {
+   "postalCode": 5300,
+   "city": "Andenne",
+   "nuts2": "BE35",
+   "weight": 28,
+   "language": "fr"
+  },
+  {
+   "postalCode": 6700,
+   "city": "Arlon",
+   "nuts2": "BE34",
+   "weight": 32,
+   "language": "fr"
+  },
+  {
+   "postalCode": 6900,
+   "city": "Marche-en-Famenne",
+   "nuts2": "BE34",
+   "weight": 18,
+   "language": "fr"
+  },
+  {
+   "postalCode": 6800,
+   "city": "Libramont-Chevigny",
+   "nuts2": "BE34",
+   "weight": 11,
+   "language": "fr"
+  },
+  {
+   "postalCode": 6600,
+   "city": "Bastogne",
+   "nuts2": "BE34",
+   "weight": 17,
+   "language": "fr"
+  },
+  {
+   "postalCode": 6890,
+   "city": "Libin",
+   "nuts2": "BE34",
+   "weight": 5,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1300,
+   "city": "Wavre",
+   "nuts2": "BE31",
+   "weight": 34,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1400,
+   "city": "Nivelles",
+   "nuts2": "BE31",
+   "weight": 29,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1348,
+   "city": "Louvain-la-Neuve",
+   "nuts2": "BE31",
+   "weight": 13,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1420,
+   "city": "Braine-l'Alleud",
+   "nuts2": "BE31",
+   "weight": 40,
+   "language": "fr"
+  },
+  {
+   "postalCode": 1490,
+   "city": "Court-Saint-Étienne",
+   "nuts2": "BE31",
+   "weight": 10,
+   "language": "fr"
+  }
+ ],
+ "labelLanguageRule": "R-36 — la langue des libelles textuels de l'annonce (version, finition, mentions) suit la langue de la commune ; 4 % des annonces professionnelles d'une commune neerlandophone sont redigees en francais et reciproquement (concessionnaires frontaliers)",
+ "regionUnresolvedRate": 0.004,
+ "regionUnresolvedComment": "0,4 % des annonces portent un code postal hors des plages ci-dessus (saisie fautive) : l'adaptateur pose REGION_UNRESOLVED et laisse regionCode INCONNU",
+ "countryCode": "B",
+ "crossBorderRate": 0.0,
+ "crossBorderComment": "le profil be ne contient que des annonces belges ; le filtre countryType/cy reste donc a une seule valeur (le graphe G15 par pays est masque, comportement deja constate en recette)"
+}

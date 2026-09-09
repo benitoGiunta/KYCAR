@@ -1,0 +1,75 @@
+{
+ "$comment": "KYCAR — dynamique entre les 3 snapshots hebdomadaires : sorties, entrees, revisions de prix, annonces stables. Regles R-50 a R-56.",
+ "source": [
+  "S3 TRAXIO 2025 : 734 165 transactions d'occasion sur l'annee, marche stationnaire a l'echelle de trois semaines",
+  "H15 hypothese : la duree d'exposition de reference (68 jours) et ses multiplicateurs sont ASSUMES ; ils sont contraints par la cible de la mission (sorties de 8 a 12 % par semaine) et par la composition du stock, qu'ils determinent conjointement (segments.json stockBias)"
+ ],
+ "principle": "R-50 — UN SEUL parametre, la duree d'exposition d_i (jours), gouverne DEUX consequences testables : (a) la composition du stock, qui vaut le flux d'immatriculations multiplie par la duree moyenne d'exposition du segment ; (b) le taux de sortie hebdomadaire. Un jeu de donnees ou les deux sont regles separement est incoherent.",
+ "dwellDays": {
+  "formula": "d = 68 * m_segment * (max(prix, 2000) / 15000)^0.18 * (1 + 0.012 * (age - 8)) * m_vendeur, borne [35, 130]",
+  "mSegment": {
+   "citadine": 0.85,
+   "compacte": 0.9,
+   "berline": 1.05,
+   "break": 1.0,
+   "suv": 0.95,
+   "monospace": 1.15,
+   "utilitaire": 1.05,
+   "sportive": 1.45,
+   "luxe": 1.5
+  },
+  "mSeller": {
+   "D": 0.92,
+   "P": 1.2
+  },
+  "measured": {
+   "moyenne": 67.5,
+   "mediane": 64.3
+  }
+ },
+ "exitRate": {
+  "formula": "p_sortie(semaine) = 1 - exp(-7 / d)",
+  "measured": {
+   "moyenne": 0.1031,
+   "min": 0.0524,
+   "max": 0.1678
+  },
+  "target": [
+   0.08,
+   0.12
+  ],
+  "comment": "une annonce sortie est VENDUE ou RETIREE ; le generateur ne distingue pas les deux, aucun champ du dictionnaire ne le porte"
+ },
+ "entries": {
+  "rule": "R-52 — le nombre d'entrees egale EXACTEMENT le nombre de sorties, MARQUE PAR MARQUE : l'effectif par marque est donc identique sur les trois snapshots, et les valeurs attendues du parcours P1 ne derivent pas d'un snapshot a l'autre. Le modele d'une annonce entrante est retire dans la marque, donc les effectifs par modele varient legerement.",
+  "ageTilt": "la loi d'age des entrantes est multipliee par exp(-0.02 * age) puis renormalisee : les arrivees sont un peu plus recentes que le stock",
+  "isNewListing": "vrai pour les entrantes du snapshot, faux ensuite",
+  "listingIdRule": "une annonce qui survit CONSERVE son listingId ; une entrante en recoit un nouveau, jamais reutilise"
+ },
+ "priceRevision": {
+  "shareOfSurvivors": 0.17,
+  "direction": {
+   "down": 0.84,
+   "up": 0.16
+  },
+  "amplitude": {
+   "law": "log-normale sur la valeur absolue de la variation relative",
+   "medianDown": 0.035,
+   "medianUp": 0.025,
+   "sigma": 0.55,
+   "clamp": [
+    0.01,
+    0.22
+   ]
+  },
+  "reRounding": "le prix revise repasse par l'arrondi commercial de price-model.json",
+  "aggregateEffect": "la mediane des prix affiches recule d'environ 0,5 % par semaine ; sonde P-52"
+ },
+ "stable": {
+  "comment": "les annonces ni sorties ni revisees sont IDENTIQUES octet a octet d'un snapshot a l'autre, sauf snapshotId, observedAt et isNewListing ; c'est ce qui rend un diff de snapshots lisible"
+ },
+ "mileageDrift": {
+  "rule": "aucune. Le kilometrage affiche d'une annonce ne change pas entre deux snapshots : un vendeur ne remet pas son compteur a jour chaque semaine.",
+  "exception": "0,6 % des annonces survivantes voient leur kilometrage corrige (+0 a +900 km ou correction de saisie) — matiere de la detection de conflit de doublon"
+ }
+}

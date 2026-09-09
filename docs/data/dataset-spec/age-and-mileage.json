@@ -1,0 +1,99 @@
+{
+ "$comment": "KYCAR — age du vehicule (annee de premiere immatriculation) et kilometrage. Regles R-09 a R-12.",
+ "source": [
+  "S3 TRAXIO 2025 : age median a l'immatriculation d'occasion = 7 ans 9 mois ; age moyen du parc belge ~ 10 ans",
+  "S2 Statbel / presse : age moyen des voitures privees 9,1 ans",
+  "S7 Moniteur Automobile : kilometrage annuel moyen belge 12 000 a 15 000 km ; reperes a 3 ans essence 40-50 000 km, diesel 55-75 000 km, hybride 35-55 000 km, electrique 30-55 000 km",
+  "S8 Car-Pass, rapport annuel 2024 (via presse) : hybride rechargeable diesel 25 463 km/an, electrique 19 281 km/an"
+ ],
+ "ageDistribution": {
+  "law": "log-normale discretisee sur l'age entier a (masse de l'intervalle (a-0.5, a+0.5])",
+  "mu": "ln(7.0)",
+  "sigma": 0.58,
+  "ageMin": 0,
+  "ageMax": 40,
+  "checks": {
+   "median": 7,
+   "mean": 8.23,
+   "P(age<=3)": 0.1162,
+   "P(age<=7)": 0.548,
+   "P(age>=20)": 0.0375,
+   "P(age>=25)": 0.0142
+  },
+  "oldtimerComment": "la queue au-dela de 25 ans (1,4 %) porte les oldtimers ; le type d'offre O (Ancetre) est reserve aux ages >= 30 ans, soit 0,53 % des annonces"
+ },
+ "productionWindowRule": "R-10 — l'annee de premiere immatriculation est tiree dans la loi ci-dessus CONDITIONNEE a la fenetre [yearFrom, yearTo+1] du modele (models.json) ; un modele non curate recoit une fenetre derivee du hachage stable de son modelId : debut uniforme sur 1985..2019, duree uniforme sur 6..16 ans, bornee a 2026",
+ "registrationMonth": {
+  "law": "uniforme 1..12",
+  "exception": "annee de premiere immatriculation = 2026 : mois uniforme 1..9 (le snapshot est de septembre 2026)"
+ },
+ "mileage": {
+  "law": "log-normale : mediane m(age, carburant) = m_f * max(age, 0.4)^gamma ; sigma = 0.35",
+  "gamma": 0.9,
+  "gammaRationale": "le kilometrage annuel decroit avec l'age du vehicule ; un exposant strictement inferieur a 1 le traduit sans parametre supplementaire",
+  "annualKmByFuel": {
+   "B": 12500,
+   "D": 19000,
+   "2": 17000,
+   "3": 25500,
+   "E": 19300,
+   "L": 16000,
+   "C": 16000,
+   "M": 12000,
+   "H": 15000,
+   "O": 12000
+  },
+  "medianCoefficient": "m_f = annualKmByFuel[f] * 5^(1-gamma) = 1.1746 * annualKmByFuel[f]",
+  "roundingKm": 100,
+  "bounds": [
+   0,
+   420000
+  ],
+  "checks": {
+   "medianeAge5Ans": 74500,
+   "toleranceSonde": [
+    66000,
+    84000
+   ],
+   "medianeGlobale": 100000
+  }
+ },
+ "usageState": {
+  "$comment": "KYCAR_USAGE_STATE ; A = accidente",
+  "rule": "age = 0 -> N ; sinon P(A) = 0.025 + 0.0015*age borne a 0.08, le reste en U"
+ },
+ "offerType": {
+  "$comment": "KYCAR_OFFER_TYPE derive de l'age et de l'etat",
+  "rules": [
+   [
+    "age = 0 et kilometrage < 1000",
+    "N"
+   ],
+   [
+    "age = 0 et kilometrage >= 1000",
+    "D"
+   ],
+   [
+    "age <= 1",
+    "S 0.25 / J 0.55 / D 0.20"
+   ],
+   [
+    "age <= 3",
+    "J 0.72 / U 0.28"
+   ],
+   [
+    "age >= 30",
+    "O 0.55 / U 0.45"
+   ],
+   [
+    "autres",
+    "U"
+   ]
+  ]
+ },
+ "previousOwnerCount": {
+  "law": "1 + Poisson(lambda) tronquee a 9",
+  "lambda": "0.16 * age",
+  "comment": "P(1 seul proprietaire) decroit de 100 % a 0 an a environ 20 % a 10 ans"
+ }
+}

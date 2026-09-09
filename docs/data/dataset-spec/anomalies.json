@@ -1,0 +1,229 @@
+{
+ "$comment": "KYCAR — anomalies controlees avec verite terrain. Chaque ligne : taux, mecanisme d'injection, ce que le moteur doit detecter, exigence visee, ce que le reviewer doit retrouver. Regles R-57 et R-58 ; identifiants d'anomalie A-01 a A-20.",
+ "principe": "R-57 — toute anomalie est INJECTEE APRES le calcul de la valeur plausible, et la valeur plausible est conservee dans le manifest. Une anomalie dont la valeur plausible n'est pas conservee n'est pas une verite terrain : elle n'est pas falsifiable.",
+ "manifest": "le manifest de chaque snapshot publie, par anomalie : l'identifiant A-nn, l'effectif, le taux realise, et la liste des listingId avec leurs valeurs avant et apres injection. Les listes A-10 et A-11 portent en outre la methode (M1 ou M2), le drapeau attendu et le juste prix.",
+ "exclusionMutuelle": "R-58 — une annonce porte au plus UNE anomalie de prix (A-01, A-02, A-10, A-11 sont mutuellement exclusives) ; les anomalies non tarifaires peuvent se cumuler avec une anomalie de prix mais pas entre elles sur le meme champ.",
+ "tauxCumule": 0.072,
+ "anomalies": [
+  {
+   "id": "A-01",
+   "nom": "Prix sentinelle absolu",
+   "rate": 0.001,
+   "base": "annonces QUOTED",
+   "mecanisme": "le prix affiche est remplace par une valeur tiree dans {1, 11, 99, 111, 123, 150, 199, 249} EUR ; le juste prix calcule est conserve dans la verite terrain",
+   "detection": "ingestion : ingestFlags contient PRICE_SENTINEL_ABSOLUTE (prix < 250) ; l'annonce COMPTE dans les effectifs et est EXCLUE de V_price",
+   "exigence": "EX-DATA-19(1), EX-DATA-60, ARB-15",
+   "verite": "listingId, prix injecte, juste prix",
+   "aRetrouver": "le nombre d'annonces portant le drapeau egale exactement le nombre annonce par le manifest ; aucune de ces annonces n'apparait dans un quantile de prix"
+  },
+  {
+   "id": "A-02",
+   "nom": "Prix placeholder haut",
+   "rate": 0.0002,
+   "base": "annonces QUOTED",
+   "mecanisme": "prix force a 123456 ou 999999 EUR",
+   "detection": "M1_HIGH (barrieres de Tukey sur ln prix) ; PRICE_OUT_OF_RANGE si au-dela de la borne de l'annexe A",
+   "exigence": "EX-DATA-88, EX-DATA-45",
+   "verite": "listingId, prix injecte",
+   "aRetrouver": "chaque annonce est signalee M1_HIGH ou porte PRICE_OUT_OF_RANGE"
+  },
+  {
+   "id": "A-03",
+   "nom": "Kilometrage 0 sur vehicule ancien",
+   "rate": 0.0025,
+   "base": "annonces d'age >= 2 ans",
+   "mecanisme": "mileageKm force a 0 alors que usageState != N",
+   "detection": "ingestFlags contient SUSPECT_ZERO_MILEAGE ; annonce exclue de V_mileage",
+   "exigence": "EX-DATA-60, annexe A champ 59",
+   "verite": "listingId, kilometrage plausible ecrase",
+   "aRetrouver": "aucune de ces annonces n'entre dans une mediane de kilometrage ; l'effectif n_mileage est inferieur a l'effectif total d'autant"
+  },
+  {
+   "id": "A-04",
+   "nom": "Kilometrage incoherent",
+   "rate": 0.003,
+   "base": "toutes",
+   "mecanisme": "deux formes : (a) kilometrage porte a age * 65 000 a 95 000 km (usage impossible) ; (b) kilometrage reduit a 200-900 km sur un vehicule d'age >= 6 ans",
+   "detection": "aucune regle d'ingestion ne les rejette (ils restent dans le domaine de l'annexe A) : ils doivent apparaitre comme points extremes du nuage G4 et peser sur le regresseur x2 de M2",
+   "exigence": "EX-DATA-90, EX-DATA-102bis",
+   "verite": "listingId, kilometrage plausible, kilometrage injecte, forme (a) ou (b)",
+   "aRetrouver": "la sonde verifie que le mileagePerYearKm derive depasse 60 000 km/an pour la forme (a) — ce que le dictionnaire borne a 200 000 sans le signaler"
+  },
+  {
+   "id": "A-05",
+   "nom": "Premiere immatriculation future",
+   "rate": 0.0008,
+   "base": "toutes",
+   "mecanisme": "firstRegistrationDate mise a observedAt.year + 2 (ex. 2028-04)",
+   "detection": "FIRST_REG_OUT_OF_RANGE : la valeur devient INCONNU (borne 1900-01 a (observedAt.year+1)-12)",
+   "exigence": "EX-DATA-24 champ 30, EX-DATA-45",
+   "verite": "listingId, chaine brute emise",
+   "aRetrouver": "100 % de ces annonces ont firstRegistrationYearMonth INCONNU dans la couche canonique et ne forment aucune cellule de rang 1"
+  },
+  {
+   "id": "A-06",
+   "nom": "Premiere immatriculation non analysable",
+   "rate": 0.0008,
+   "base": "toutes",
+   "mecanisme": "la couche SOURCE porte la chaine brute telle quelle : moitie en 2024-13 (mois 13), moitie en 13/2024 ; s'y ajoute 0,02 % de 00/2019 et 0,02 % de 24-05 (annee a 2 chiffres)",
+   "detection": "FIRST_REG_UNPARSEABLE, valeur INCONNU — aucune tolerance (EX-DATA-23)",
+   "exigence": "EX-DATA-23, EX-DATA-45",
+   "verite": "listingId, chaine brute exacte",
+   "aRetrouver": "la sonde relit la chaine brute dans le NDJSON source et verifie qu'aucune des deux expressions d'EX-DATA-23 ne l'accepte"
+  },
+  {
+   "id": "A-07",
+   "nom": "Doublon exact intra-vendeur",
+   "rate": 0.0035,
+   "base": "annonces professionnelles",
+   "mecanisme": "l'annonce est republiee a l'identique par le MEME dealerBucket ; seul listingId differe",
+   "detection": "audit de doublons dans l'ordre total d'ingestion ; aucun conflit de valeur",
+   "exigence": "EX-DATA-15, ARB-54",
+   "verite": "couples (listingId conserve, listingId duplique)",
+   "aRetrouver": "le nombre de paires exactes trouvees par l'audit egale celui du manifest"
+  },
+  {
+   "id": "A-08",
+   "nom": "Quasi-doublon inter-vendeurs",
+   "rate": 0.008,
+   "base": "annonces professionnelles",
+   "mecanisme": "le MEME vehicule (marque, modele, annee, carburant, puissance, couleur) est publie par DEUX dealerBucket distincts ; le prix differe de 2 a 9 %, le kilometrage de 0 a 400 km, la version est reformulee",
+   "detection": "DUPLICATE_VALUE_CONFLICT — la cle de rapprochement retrouve la paire mais les valeurs divergent",
+   "exigence": "EX-DATA-15, EX-DATA-45",
+   "verite": "couples de listingId, ecart de prix, ecart de kilometrage",
+   "aRetrouver": "le taux de paires retrouvees est celui du manifest a +/- 10 % ; aucune paire ne partage un dealerBucket"
+  },
+  {
+   "id": "A-09",
+   "nom": "Version ambigue",
+   "rate": 0.015,
+   "base": "toutes",
+   "mecanisme": "trois formes : (a) la version cite un nom de modele d'une AUTRE marque (Golf dans une annonce Opel) ; (b) la version contient une puissance contredisant powerKw de plus de 30 % ; (c) la version se reduit a du bruit qui disparait entierement au nettoyage (A.5.2)",
+   "detection": "(c) pose VERSION_FULLY_STRIPPED ; (b) pose VERSION_POWER_MISMATCH ; (a) n'est pas detectable a l'ingestion et sert la recherche par mots-cles",
+   "exigence": "EX-DATA-45, annexe A.5.2",
+   "verite": "listingId, forme, version brute",
+   "aRetrouver": "le taux de VERSION_FULLY_STRIPPED est non nul et egal a celui du manifest"
+  },
+  {
+   "id": "A-10",
+   "nom": "Outlier de prix M1 (absolu)",
+   "rate": 0.0025,
+   "base": "annonces QUOTED",
+   "mecanisme": "M1_HIGH : prix tire dans [500 000, 3 000 000] EUR ; M1_LOW : prix tire dans [260, 480] EUR — jamais sous 250 EUR, sinon l'annonce devient une sentinelle A-01 et sort de V_price, ce qui rendrait la verite terrain infalsifiable",
+   "detection": "M1, barrieres de Tukey sur ln(prix) de la cellule d'homogeneite",
+   "exigence": "EX-DATA-88, EX-DATA-89",
+   "verite": "listingId, methode M1, drapeau, juste prix, prix injecte",
+   "aRetrouver": "au moins 90 % des M1 injectes sont signales M1_LOW ou M1_HIGH quand la cellule retenue a n_price >= 12"
+  },
+  {
+   "id": "A-11",
+   "nom": "Outlier de prix M2 (relatif a la cellule)",
+   "rate": 0.0035,
+   "base": "annonces QUOTED de cellules (marque, modele) a |F| >= 30",
+   "mecanisme": "le prix est multiplie par un facteur tire dans [0.30, 0.50] (M2_LOW) ou [2.0, 3.2] (M2_HIGH) ; avec sigma_p = 0.20 le score robuste attendu vaut |z| >= 3.5, donc l'aberration reste PLAUSIBLE dans l'absolu et n'est demasquee que par le modele",
+   "detection": "M2, ecart robuste au modele ln(prix) ~ annee + km/10000",
+   "exigence": "EX-DATA-90, EX-DATA-92, EX-DATA-93",
+   "verite": "listingId, methode M2, drapeau, juste prix, prix injecte, effectif de la cellule au moment de l'injection",
+   "aRetrouver": "au moins 85 % des M2 injectes sont signales M2_LOW ou M2_HIGH ; les M1 et M2 injectes sont DISJOINTS, ce qui rend mesurable le taux d'accord M1_M2_AGREE"
+  },
+  {
+   "id": "A-12",
+   "nom": "Annonce incomplete",
+   "rate": 0.02,
+   "base": "toutes",
+   "mecanisme": "le facteur latent de completude est force dans le premier centile (c < 0.25) : au moins 6 champs optionnels sont absents simultanement",
+   "detection": "rapport d'ingestion EX-DATA-46 ; aucune de ces annonces n'est rejetee",
+   "exigence": "EX-DATA-46, EX-DATA-61",
+   "verite": "listingId, liste des champs absents",
+   "aRetrouver": "la couverture metrique de chaque statistique publiee est inferieure a 1 et son effectif est publie avec elle"
+  },
+  {
+   "id": "A-13",
+   "nom": "Puissance hors domaine",
+   "rate": 0.0005,
+   "base": "toutes",
+   "mecanisme": "powerKw porte a une valeur hors bornes de l'annexe A (0 ou > 1 000)",
+   "detection": "POWER_OUT_OF_RANGE, valeur mise a INCONNU",
+   "exigence": "EX-DATA-45",
+   "verite": "listingId, valeur emise",
+   "aRetrouver": "aucune valeur de powerKw hors bornes ne subsiste dans la couche canonique"
+  },
+  {
+   "id": "A-14",
+   "nom": "CO2 nul sur non electrique",
+   "rate": 0.0012,
+   "base": "annonces thermiques",
+   "mecanisme": "co2EmissionsGPerKm force a 0 sur un vehicule a carburant B, D, 2 ou 3",
+   "detection": "CO2_ZERO_NON_BEV (sous-qualification d'ENUM_UNKNOWN)",
+   "exigence": "EX-DATA-45",
+   "verite": "listingId",
+   "aRetrouver": "le drapeau est pose et la valeur ne pollue aucune moyenne de CO2"
+  },
+  {
+   "id": "A-15",
+   "nom": "Hybride incoherent",
+   "rate": 0.0008,
+   "base": "toutes",
+   "mecanisme": "isPluginHybrid = vrai avec fuelCategory = B ou D",
+   "detection": "HYBRID_INCONSISTENT",
+   "exigence": "EX-DATA-11, EX-DATA-45",
+   "verite": "listingId",
+   "aRetrouver": "le drapeau est pose ; la categorie n'est PAS corrigee en silence"
+  },
+  {
+   "id": "A-16",
+   "nom": "Categorie de carburant non resolue",
+   "rate": 0.002,
+   "base": "annonces hybrides",
+   "mecanisme": "la source ne sert pas fuelCategory ; le libelle de creation seul est disponible. La moitie est resolue par la table de repli creation -> recherche (ENUM_UNKNOWN + valeur extrapolee), l'autre reste INCONNUE (HYBRID_CATEGORY_UNRESOLVED)",
+   "detection": "EX-DATA-10 et EX-DATA-11",
+   "exigence": "EX-DATA-10, EX-DATA-11",
+   "verite": "listingId, branche empruntee",
+   "aRetrouver": "les deux branches sont exercees par au moins 20 annonces au profil test"
+  },
+  {
+   "id": "A-17",
+   "nom": "Unite de kilometrage non geree",
+   "rate": 0.0045,
+   "base": "toutes",
+   "mecanisme": "la source sert mileageUnit = mi ; la conversion est REFUSEE, la valeur reste INCONNUE",
+   "detection": "UNIT_UNSUPPORTED",
+   "exigence": "EX-DATA-5, EX-DATA-45",
+   "verite": "listingId, valeur et unite emises",
+   "aRetrouver": "aucune annonce a unite mi ne porte un kilometrage converti"
+  },
+  {
+   "id": "A-18",
+   "nom": "Annonce sans deeplink, rejetee",
+   "rate": 0.0015,
+   "base": "candidates SOURCE",
+   "mecanisme": "la ligne SOURCE ne porte pas details.webPage ; elle est ecrite dans le NDJSON et REJETEE par l'adaptateur, jamais chargee",
+   "detection": "rejet a l'ingestion, motif LISTING_URL_MISSING",
+   "exigence": "EX-DATA-14, EX-DATA-46",
+   "verite": "listingId, motif",
+   "aRetrouver": "listingCount canonique = lignes du NDJSON moins les rejets ; le rapport d'ingestion publie le motif"
+  },
+  {
+   "id": "A-19",
+   "nom": "Marketplace non mappe",
+   "rate": 0.0003,
+   "base": "toutes",
+   "mecanisme": "countryCode sert une valeur hors vocabulaire (ex. BE au lieu de B)",
+   "detection": "MARKETPLACE_UNMAPPED",
+   "exigence": "EX-DATA-45, EX-DATA-46",
+   "verite": "listingId, valeur emise",
+   "aRetrouver": "le drapeau figure au rapport d'ingestion avec un effectif non nul"
+  },
+  {
+   "id": "A-20",
+   "nom": "Prix sur demande avec montant",
+   "rate": 0.0004,
+   "base": "annonces ON_REQUEST",
+   "mecanisme": "onRequestOnly = vrai ET un montant est present dans la couche source",
+   "detection": "PRICE_ON_REQUEST_WITH_AMOUNT ; le montant n'est PAS retenu, priceStatus reste ON_REQUEST",
+   "exigence": "EX-DATA-45",
+   "verite": "listingId, montant emis",
+   "aRetrouver": "aucune annonce ON_REQUEST ne porte un priceEur connu dans la couche canonique"
+  }
+ ]
+}

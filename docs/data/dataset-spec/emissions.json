@@ -1,0 +1,107 @@
+{
+ "$comment": "KYCAR — consommation, CO2, norme Euro, classes. Regles R-38 a R-42. La coherence CO2 <-> consommation est PHYSIQUE et donc verifiable exactement.",
+ "source": [
+  "S15 facteurs d'emission carbone des carburants routiers : essence 2 392 g CO2 par litre, diesel 2 640 g CO2 par litre (valeurs de reference europeennes usuelles)",
+  "S16 calendrier WLTP : homologation obligatoire pour tous les vehicules neufs immatricules a partir du 1er septembre 2018 (NEDC avant)",
+  "H12 hypothese : les consommations de base par segment sont des ordres de grandeur, non des relevés d'homologation"
+ ],
+ "consumptionCombinedL100Km": {
+  "formula": "conso = (a_segment + 0.021 * (kW - kW_ref_segment)) * f_carburant * (1 - 0.011 * (annee - 2010)) * exp(N(0, 0.09)), bornee [2.2, 22.0]",
+  "aSegment": {
+   "citadine": 5.6,
+   "compacte": 6.3,
+   "berline": 7.4,
+   "break": 7.2,
+   "suv": 7.8,
+   "monospace": 7.3,
+   "utilitaire": 7.6,
+   "sportive": 9.4,
+   "luxe": 10.6
+  },
+  "fFuel": {
+   "B": 1.0,
+   "D": 0.84,
+   "2": 0.62,
+   "3": 0.58,
+   "L": 1.28,
+   "C": 1.1,
+   "M": 1.32,
+   "O": 1.0
+  },
+  "electricOnly": "carburant E : consumptionCombinedL100Km ABSENT ; consumptionElectricKwh100Km = (13.8 + 0.030 * kW) * (1 - 0.006 * (annee - 2015)) * exp(N(0, 0.07)), borne [11, 30]",
+  "pluginHybrid": "carburant 2 ou 3 avec isPluginHybrid : les DEUX consommations sont servies"
+ },
+ "co2EmissionsGPerKm": {
+  "formula": "CO2 = round(conso * k_carburant) avec k(B, L, M, O) = 23.92, k(D, 3) = 26.40, k(2) = 23.92, k(C) = 18.10 ; CO2 = 0 si carburant = E ou H",
+  "tolerance": "la sonde admet un ecart de +/- 6 g/km entre CO2 et conso * k (arrondi et bruit d'homologation)",
+  "noise": "aucun bruit independant : le CO2 est DERIVE de la consommation, jamais tire separement — c'est ce qui rend la coherence testable"
+ },
+ "co2Source": {
+  "$comment": "champ 50 du dictionnaire",
+  "rule": "WLTP si firstRegistrationYearMonth >= 2018-09 ; NEDC si < 2018-09 ; UNKNOWN pour une part des annonces",
+  "unknownRate": {
+   "ageInf10": 0.06,
+   "age10a17": 0.18,
+   "ageSup17": 0.42
+  },
+  "wltpUpliftOnNedcValues": "les valeurs anterieures a 2018-09 sont des valeurs NEDC : le generateur les minore de 21 % par rapport a la formule WLTP ci-dessus"
+ },
+ "euEmissionStandard": {
+  "$comment": "KYCAR_EU_EMISSION_STANDARD par annee de 1re immatriculation",
+  "byYear": [
+   [
+    "<=1996",
+    "1"
+   ],
+   [
+    "1997-2000",
+    "2"
+   ],
+   [
+    "2001-2005",
+    "3"
+   ],
+   [
+    "2006-2010",
+    "4"
+   ],
+   [
+    "2011-2014",
+    "5"
+   ],
+   [
+    "2015-2017",
+    "6"
+   ],
+   [
+    "2018",
+    "7 (Euro 6c)"
+   ],
+   [
+    "2019-2020",
+    "9 (Euro 6d-TEMP)"
+   ],
+   [
+    "2021-2023",
+    "8 (Euro 6d)"
+   ],
+   [
+    "2024-2026",
+    "10 (Euro 6e)"
+   ]
+  ],
+  "electricRule": "un vehicule electrique porte la norme de son annee comme les autres (l'homologation existe), sauf 8 % laisses INCONNU"
+ },
+ "co2Class": {
+  "rule": "KYCAR_CO2_CLASS de A (10) a G (70) par seuils de CO2 : A <= 0, B <= 60, C <= 100, D <= 130, E <= 160, F <= 200, G au-dela",
+  "absentBefore": 2021,
+  "absentRate": 0.55
+ },
+ "efficiencyClass": {
+  "rule": "derive de co2Class ; absent pour 62 % des annonces"
+ },
+ "hasParticleFilter": {
+  "D": "vrai si annee >= 2011, sinon 35 % vrai",
+  "autres": "absent dans 78 % des cas"
+ }
+}
