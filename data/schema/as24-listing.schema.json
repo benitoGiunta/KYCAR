@@ -435,8 +435,8 @@
         "public": {
           "type": "object",
           "additionalProperties": false,
-          "description": "OAS:PublicPrice = OAS:Price + attributs de TVA. Prix affiche a l'utilisateur, TTC.",
-          "required": ["currency"],
+          "description": "OAS:PublicPrice = OAS:Price + attributs de TVA. Prix affiche a l'utilisateur, TTC. La devise n'est exigee que si un montant est servi : une annonce a prix sur demande n'a pas de devise a declarer.",
+          "dependentRequired": { "price": ["currency"], "netPrice": ["price"], "vatRate": ["price"] },
           "properties": {
             "price": {
               "type": "integer",

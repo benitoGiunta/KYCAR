@@ -147,6 +147,14 @@ function validateNode(schema, data, root, path, errors) {
     for (const key of s.required ?? []) {
       if (!Object.prototype.hasOwnProperty.call(data, key)) errors.push(`${path}/${key} requis et absent`);
     }
+    for (const [trigger, needed] of Object.entries(s.dependentRequired ?? {})) {
+      if (!Object.prototype.hasOwnProperty.call(data, trigger)) continue;
+      for (const key of needed) {
+        if (!Object.prototype.hasOwnProperty.call(data, key)) {
+          errors.push(`${path}/${key} requis des lors que ${trigger} est present`);
+        }
+      }
+    }
     const props = s.properties ?? {};
     for (const [key, value] of Object.entries(data)) {
       if (Object.prototype.hasOwnProperty.call(props, key)) {
@@ -179,6 +187,97 @@ function buildFallbackValidator(schemas) {
 }
 
 /* ================================================================================================
+ * Garde R3 (EX-DATA-47, EX-DATA-49, D3-02) — critere S4 de la phase 3.1
+ * ============================================================================================== */
+
+/**
+ * Noms de champ interdits, forme NORMALISEE (minuscules, sans `_`, `-` ni espace). Copie de
+ * `R3_FORBIDDEN_FIELD_NAMES` (src/types/validation.ts), qui reste la source de verite : ce fichier
+ * est un script Node autonome, il ne peut pas importer le TypeScript de l'application. Toute
+ * extension du garde applicatif doit etre reportee ici — la sonde de la phase 3.3 controle que les
+ * deux listes coincident.
+ */
+const R3_FORBIDDEN = new Set([
+  'sellerid', 'companyname', 'contactname',
+  'phone', 'phonenumber', 'telephone', 'mobile', 'mobilephone',
+  'email', 'emailaddress', 'mail',
+  'contacturl', 'formurl', 'sellerurl', 'dealerurl', 'website', 'websiteurl', 'homepage',
+  'zip', 'zipcode', 'postalcode', 'postcode',
+  'city', 'town', 'municipality',
+  'street', 'streetname', 'housenumber', 'address', 'addressline',
+  'lat', 'lon', 'lng', 'latitude', 'longitude', 'geolocation',
+  'description', 'cid',
+  'sellername', 'dealername', 'vendorname', 'sellercompanyname',
+  'sellerphone', 'dealerphone', 'vendorphone', 'contactphone',
+  'selleremail', 'dealeremail', 'vendoremail', 'contactemail',
+  'sellercontacturl', 'dealercontacturl', 'contacturlseller',
+  'selleraddress', 'dealeraddress', 'vendoraddress', 'sellerstreet', 'dealerstreet',
+  'sellerpostalcode', 'sellerzip', 'sellercity',
+  'vin', 'vehicleidentificationnumber', 'chassisnumber',
+  'licenceplate', 'licenseplate', 'numberplate', 'registrationplate', 'plate', 'kenteken',
+  'belgiancarpassmileageurl', 'carpassmileageurl', 'carpassurl',
+]);
+
+const normalizeKey = (k) => k.toLowerCase().replace(/[_\-\s]/g, '');
+
+const FLATTENED_SELLER_SUFFIX = new Set(['id', 'name']);
+function isFlattenedSellerIdentifier(key) {
+  for (const prefix of ['seller', 'dealer', 'vendor']) {
+    if (!key.startsWith(prefix)) continue;
+    const rest = key.slice(prefix.length);
+    if (rest.length > 0 && FLATTENED_SELLER_SUFFIX.has(rest)) return true;
+  }
+  return false;
+}
+
+/**
+ * Collecte les noms de propriete que le schema autorise dans une INSTANCE. Le document de schema
+ * lui-meme emploie legitimement le mot-cle JSON Schema `description`, qui figure sur la liste R3 :
+ * le garde porte donc sur le vocabulaire des instances (`properties`, `$defs`, `items`), jamais sur
+ * les mots-cles du meta-schema.
+ */
+function collectInstanceKeys(node, out) {
+  if (!node || typeof node !== 'object') return out;
+  if (node.properties && typeof node.properties === 'object') {
+    for (const [key, sub] of Object.entries(node.properties)) {
+      out.add(key);
+      collectInstanceKeys(sub, out);
+    }
+  }
+  for (const key of ['items', 'then', 'else', 'if', 'not', 'contains']) {
+    if (node[key]) collectInstanceKeys(node[key], out);
+  }
+  for (const key of ['allOf', 'anyOf', 'oneOf', 'prefixItems']) {
+    for (const sub of node[key] ?? []) collectInstanceKeys(sub, out);
+  }
+  for (const sub of Object.values(node.$defs ?? {})) collectInstanceKeys(sub, out);
+  return out;
+}
+
+/** Collecte les cles reellement presentes dans une instance (exemple valide). */
+function collectDataKeys(node, out) {
+  if (!node || typeof node !== 'object') return out;
+  if (Array.isArray(node)) {
+    for (const v of node) collectDataKeys(v, out);
+    return out;
+  }
+  for (const [key, value] of Object.entries(node)) {
+    out.add(key);
+    collectDataKeys(value, out);
+  }
+  return out;
+}
+
+function r3Offenders(keys) {
+  const bad = [];
+  for (const key of keys) {
+    const n = normalizeKey(key);
+    if (R3_FORBIDDEN.has(n) || isFlattenedSellerIdentifier(n)) bad.push(key);
+  }
+  return bad.sort();
+}
+
+/* ================================================================================================
  * Execution
  * ============================================================================================== */
 
@@ -205,6 +304,29 @@ function main() {
         (!ok && c.valid === false ? ` :: motif ${errors.join(' | ')}` : ''),
     );
   }
+
+  // ---- Garde R3 (critere S4) : le vocabulaire d'instance du schema source, puis les exemples
+  // attendus VALIDES. `invalid-r3.json` est exclu : c'est le contre-exemple, sa raison d'etre est
+  // de porter un champ interdit et d'etre rejete (voir DATA-MODEL.md §5).
+  const declaredKeys = collectInstanceKeys(schemas.get('as24-listing.schema.json'), new Set());
+  const schemaOffenders = r3Offenders(declaredKeys);
+  if (schemaOffenders.length > 0) failures += 1;
+  lines.push(
+    `${schemaOffenders.length === 0 ? 'OK  ' : 'ECHEC'} R3 schema source : ${declaredKeys.size} noms de propriete declares, ` +
+      `${schemaOffenders.length} interdit(s)${schemaOffenders.length ? ` : ${schemaOffenders.join(', ')}` : ''}`,
+  );
+
+  const instanceKeys = new Set();
+  for (const c of CASES) {
+    if (!c.valid) continue;
+    collectDataKeys(readJson(join(EXAMPLES, c.file)), instanceKeys);
+  }
+  const dataOffenders = r3Offenders(instanceKeys);
+  if (dataOffenders.length > 0) failures += 1;
+  lines.push(
+    `${dataOffenders.length === 0 ? 'OK  ' : 'ECHEC'} R3 exemples valides : ${instanceKeys.size} cles distinctes, ` +
+      `${dataOffenders.length} interdite(s)${dataOffenders.length ? ` : ${dataOffenders.join(', ')}` : ''}`,
+  );
 
   const ndjsonIdx = process.argv.indexOf('--ndjson');
   if (ndjsonIdx !== -1) {
