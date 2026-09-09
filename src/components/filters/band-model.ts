@@ -107,6 +107,19 @@ export function countActiveFilters(selection: SelectionState): number {
 }
 
 /**
+ * `EX-SCR-56` (ACC-02) — nombre de filtres actifs portés par la LIGNE PRIMAIRE (`EX-SCR-59`). Sert
+ * au compteur du bouton « Plus de filtres (n) » : `n` compte ce que le bandeau REPLIÉ ne montre
+ * pas, c'est-à-dire les actifs des groupes secondaires (`countActiveFilters` moins ceux-ci).
+ */
+export function countPrimaryActive(selection: SelectionState): number {
+  let n = 0;
+  for (const def of PRIMARY_FILTER_DEFS) {
+    if (isFilterActive(def, selection)) n++;
+  }
+  return n;
+}
+
+/**
  * Construit les groupes de l'accordéon secondaire, dans l'ordre normatif d'`EX-SCR-93`, chacun
  * portant ses filtres (registre) et son compteur d'actifs (`<n> actifs`, `EX-SCR-92`).
  */

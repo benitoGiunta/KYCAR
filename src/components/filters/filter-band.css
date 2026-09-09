@@ -16,16 +16,109 @@
  * plein écran) sont posés par `[data-regime]`, écrit par `FilterBand.tsx`.
  */
 
+/*
+ * `EX-SCR-56` (ACC-02) — hauteur bornée et collage.
+ * Le COLLAGE n'est plus posé ici : `position: sticky` sur ce bloc s'exerçait dans un parent
+ * (`.filter-bar`) exactement à sa hauteur, donc sans aucune course. C'est désormais le conteneur
+ * `.kycar-filter-bar` (`app.css`) qui colle, sous l'en-tête.
+ * La HAUTEUR, elle, est bornée ici : replié, le bandeau ne monte que ses deux zones toujours
+ * visibles d'`EX-SCR-55` — ligne primaire (1) et filtres actifs (4) — et tient dans 96 px ; déplié,
+ * il ouvre `.kycar-band-panel` (zones 2 et 3), plafonné pour que le total reste sous 320 px ET sous
+ * 40 % du viewport, la zone (3) devenant défilante à l'intérieur.
+ */
 .kycar-filter-band {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  gap: 2px;
+  padding: 0 var(--space-3);
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
   z-index: 2;
+}
+
+/* Plafond DÉPLIÉ (`EX-SCR-56`) : 320 px, et jamais plus de 40 % du viewport. Le plafond est posé sur
+   le bandeau entier plutôt que sur la seule zone (3), pour que la somme des quatre zones le
+   respecte quel que soit le nombre de jetons ; c'est le panneau qui absorbe le reste et défile. */
+.kycar-filter-band[data-expanded='true'] {
+  /* `border-box` : le trait de séparation du bas fait partie du plafond mesuré (321 px sinon). */
+  box-sizing: border-box;
+  max-height: min(320px, 40vh);
+}
+
+.kycar-band-primary-row,
+.kycar-filter-band > .kycar-active-tokens {
+  flex: 0 0 auto;
+}
+
+/* Zone (1) + bouton de dépliage : UNE rangée, jamais deux, défilable horizontalement plutôt que
+   repliée sur cinq lignes (c'est le déploiement des neuf contrôles qui donnait 902 px). */
+.kycar-band-primary-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.kycar-band-primary-row .kycar-primary-line {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Barre de défilement FINE : à 96 px de budget, une barre classique (15 px) coûterait un sixième
+     de la hauteur du bandeau. Elle reste visible — l'affordance de défilement est conservée. */
+  scrollbar-width: thin;
+}
+
+/* Contrôles EN LIGNE dans la rangée repliée : libellé, champs et paliers côte à côte. Rien n'est
+   masqué (`EX-NFR-14` : tous les contrôles restent atteignables au clavier, et le focus fait défiler
+   la rangée) — c'est la seule différence avec le rendu d'avant 2.10, qui les empilait. */
+.kycar-band-primary-row .kycar-control {
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.kycar-band-primary-row .kycar-range-fields {
+  flex-wrap: nowrap;
+}
+
+.kycar-band-primary-row .kycar-range-fields input[type='number'] {
+  width: 5.5rem;
+}
+
+.kycar-band-primary-row .kycar-checkbox-grid,
+.kycar-band-primary-row .kycar-checkbox-grid--2col {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+}
+
+/* Le bouton de dépliage ne défile jamais avec la rangée : il est l'issue vers les zones (2) et (3). */
+.kycar-band-more {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Zones (2) et (3) dépliées : plafond de hauteur et défilement interne (`EX-SCR-56`). */
+.kycar-band-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Zone (1) — ligne primaire, EX-SCR-59 : neuf contrôles + kwd, jamais repliée. */
@@ -36,12 +129,17 @@
   gap: var(--space-2) var(--space-3);
 }
 
-/* Régime intermédiaire (768–1279 px, EX-SCR-96) : deux lignes de contrôles (5 puis 4) — un
-   maximum de cinq colonnes de largeur égale par ligne, sans changer l'ordre du DOM. */
+/* Régime intermédiaire (768–1279 px, EX-SCR-96) : deux lignes de contrôles (5 puis 4), sans changer
+   l'ordre du DOM. Depuis 2.10 (ACC-02) les pistes sont dimensionnées sur le CONTENU et la grille
+   défile horizontalement dans le bandeau : cinq pistes de largeur égale à 768 px valaient ~134 px,
+   ce qui faisait monter chaque rangée à plus de 300 px de haut (mesuré : bandeau de 1 271 px) et
+   rendait le plafond de 132 px d'`EX-SCR-96` inatteignable. Le corps de la page ne défile toujours
+   pas horizontalement (`EX-SCR-183`) : le débordement est CONFINÉ à la grille. */
 [data-regime='intermediaire'] .kycar-primary-line {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  align-items: end;
+  grid-template-columns: repeat(5, max-content);
+  grid-auto-rows: 36px;
+  align-items: center;
 }
 
 /*
@@ -107,8 +205,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  max-height: 220px;
-  overflow-y: auto;
 }
 .kycar-secondary-group {
   border: 1px solid var(--color-border);
@@ -286,13 +382,24 @@
 }
 
 /* Zone (4) — filtres actifs, EX-SCR-75, visible dès qu'un filtre est posé. */
+/* `EX-SCR-56` (ACC-02) — zone (4) sur UNE rangée défilante : empilée sur deux ou trois lignes (99 px
+   mesurés à 768 px), elle mangeait à elle seule les trois quarts du budget de hauteur du bandeau
+   replié. Aucun jeton n'est masqué : la rangée défile, comme en régime compact (`EX-SCR-97`). */
 .kycar-active-tokens {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: var(--space-2);
-  min-height: 40px;
-  padding: var(--space-1) 0;
+  min-height: 36px;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+/* Chaque élément de la rangée garde sa largeur intrinsèque : sans cela le résumé « n filtres
+   actifs » se replie sur trois lignes et fait monter la zone (4) à 67 px (mesuré à 768 px). */
+.kycar-active-tokens > * {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .kycar-active-tokens__summary {
   font-size: 0.85rem;
@@ -305,7 +412,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  overflow-x: auto;
+  flex-wrap: nowrap;
 }
 .kycar-token {
   position: relative;

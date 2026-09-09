@@ -68,28 +68,49 @@ test.describe('ACC-02 — bandeau de filtres collant et borné (EX-SCR-56)', () 
     });
   }
 
-  test('hauteur repliée du bandeau ≤ 40 % du viewport, et ≤ 96 / 132 px hors compact (EX-SCR-56, EX-SCR-96/97)', async ({
+  test('hauteur repliée du bandeau ≤ 40 % du viewport, et ≤ 96 px (132 en intermédiaire) — EX-SCR-56, EX-SCR-96/97', async ({
     page,
   }, testInfo) => {
     const regime = regimeOf(testInfo);
     await open(page, `/marche${P1_QUERY}`);
 
+    // « Replié » au sens d'`EX-SCR-56` : zones (2) et (3) fermées. `EX-SCR-92` ouvre le panneau au
+    // chargement quand un groupe porte un filtre actif — on le referme pour mesurer l'état replié.
+    if (regime !== 'compact') {
+      const more = page.getByRole('button', { name: /Plus de filtres|Moins de filtres/ });
+      if ((await more.getAttribute('aria-expanded')) === 'true') await more.click();
+      await expect(more).toHaveAttribute('aria-expanded', 'false');
+    }
+
     const m = await page.evaluate(() => {
       const band = document.querySelector('.kycar-filter-band');
       if (band === null) return null;
-      return { height: Math.round(band.getBoundingClientRect().height), viewport: window.innerHeight };
+      const parts = Array.from(band.children).map(
+        (c) => `${String(c.className).split(/\s+/)[0]}=${Math.round(c.getBoundingClientRect().height)}`,
+      );
+      const bar = document.querySelector('.kycar-compact-bar');
+      return {
+        height: Math.round(band.getBoundingClientRect().height),
+        viewport: window.innerHeight,
+        parts: parts.join(' · '),
+        compactBar: bar === null ? null : Math.round(bar.getBoundingClientRect().height),
+      };
     });
     expect(m, 'bandeau absent du DOM').not.toBeNull();
     if (m === null) return;
 
-    const plafond = regime === 'large' ? 96 : regime === 'intermediate' ? 132 : 56;
     mesure(
       testInfo,
       `ACC-02 — hauteur repliée (${regime})`,
-      `${m.height} px sur un viewport de ${m.viewport} px (${((m.height / m.viewport) * 100).toFixed(1)} %) · plafond ${plafond} px`,
+      `${m.height} px sur un viewport de ${m.viewport} px (${((m.height / m.viewport) * 100).toFixed(1)} %) · ${m.parts}`,
     );
+    // `EX-SCR-56` : 96 px replié ; `EX-SCR-96` porte ce plafond à 132 px en régime intermédiaire
+    // (ligne primaire sur deux lignes). Dans tous les cas, jamais plus de 40 % du viewport.
+    const plafond = regime === 'intermediate' ? 132 : 96;
     expect(m.height).toBeLessThanOrEqual(0.4 * m.viewport);
     expect(m.height).toBeLessThanOrEqual(plafond);
+    // `EX-SCR-97` — en compact, la barre unique du bandeau mesure 56 px.
+    if (regime === 'compact') expect(m.compactBar).toBe(56);
   });
 
   test('déplié, le bandeau ne dépasse ni 320 px ni 40 % du viewport, et sa zone (3) défile (EX-SCR-56)', async ({
@@ -100,7 +121,9 @@ test.describe('ACC-02 — bandeau de filtres collant et borné (EX-SCR-56)', () 
       'EX-SCR-97 : en compact les zones (2) et (3) vivent dans une FEUILLE plein écran, pas dans le bandeau',
     );
     await open(page, `/marche${P1_QUERY}`);
-    await page.getByRole('button', { name: /Plus de filtres|Moins de filtres/ }).click();
+    const more = page.getByRole('button', { name: /Plus de filtres|Moins de filtres/ });
+    if ((await more.getAttribute('aria-expanded')) === 'false') await more.click();
+    await expect(more).toHaveAttribute('aria-expanded', 'true');
 
     const m = await page.evaluate(() => {
       const band = document.querySelector('.kycar-filter-band');
@@ -123,6 +146,7 @@ test.describe('ACC-02 — bandeau de filtres collant et borné (EX-SCR-56)', () 
     expect(m.height).toBeLessThanOrEqual(320);
     expect(m.height).toBeLessThanOrEqual(0.4 * m.viewport);
     expect(m.overflowY).toBe('auto');
+    expect(m.scrollable).toBe(true);
   });
 });
 

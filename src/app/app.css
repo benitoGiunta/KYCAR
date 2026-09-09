@@ -159,8 +159,26 @@
   color: var(--color-text);
 }
 
+/*
+ * `EX-SCR-56` (ACC-02) — le COLLAGE est porté par ce conteneur, pas par le bandeau.
+ * Avant 2.10, `position: sticky; top: 0` était posé sur `.kycar-filter-band`, dont le parent
+ * `.filter-bar` faisait exactement sa hauteur : la boîte de collage n'offrait AUCUNE course et la
+ * règle était inerte (mesuré en recette : bandeau à y = −1 029 après 1 200 px de défilement).
+ * Le conteneur, lui, est un enfant direct de la coquille : sa boîte de collage est la page entière.
+ * `top` vaut la hauteur de l'en-tête, mesurée et publiée par `src/components/filters/sticky-offset.ts`
+ * (deux frères ne peuvent pas se coller l'un sous l'autre en CSS seul) ; à défaut, le bandeau colle
+ * au haut du viewport plutôt que sous l'en-tête — jamais rien de pire.
+ * `z-index` au-dessus de l'en-tête (10) : la feuille plein écran du régime compact (`EX-SCR-97`) est
+ * enfermée dans le contexte d'empilement du bandeau et doit rester au-dessus de l'en-tête.
+ * Le rembourrage vertical retombe à zéro : la hauteur normative (96 / 132 / 56 px) est celle du
+ * bandeau lui-même, qui porte son propre rembourrage.
+ */
 .kycar-filter-bar {
-  padding: var(--space-2) var(--space-3);
+  position: sticky;
+  top: var(--kycar-band-top, 0px);
+  z-index: 20;
+  padding: 0;
+  background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
 }
 

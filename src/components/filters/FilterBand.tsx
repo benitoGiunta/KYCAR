@@ -15,6 +15,7 @@
  * câblage `src/app.tsx` requis.
  */
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { observeHeaderHeight } from './sticky-offset';
 
 import './filter-band.css';
 
@@ -37,6 +38,7 @@ import {
   cascadeRemovalMessage,
   countActiveFilters,
   defaultExpandedGroups,
+  countPrimaryActive,
   deferredApplyLabel,
   isTypingTarget,
   type BandRegime,
@@ -187,6 +189,23 @@ export function FilterBand(props: FilterBandProps) {
   // n'est pas confirmée (`D8-15`).
   const [compactSheetOpen, setCompactSheetOpen] = useState(false);
   const [draftSelection, setDraftSelection] = useState<SelectionState>(selection);
+  /**
+   * `EX-SCR-56` (ACC-02) — état REPLIÉ / DÉPLIÉ du bandeau hors régime compact. Replié, le bandeau
+   * ne montre que ses zones TOUJOURS VISIBLES d'`EX-SCR-55` — la ligne primaire (1) et les filtres
+   * actifs (4) — et tient dans les 96 px de l'exigence ; déplié, il ouvre le panneau qui porte la
+   * recherche de filtre (2) et les groupes secondaires (3), plafonné à 320 px, zone (3) défilante.
+   *
+   * Défaut : DÉPLIÉ si et seulement si un groupe secondaire l'est déjà — c'est-à-dire si `EX-SCR-92`
+   * en a déplié un parce qu'il porte un filtre actif, ou si `grp` en a demandé un dans l'URL. Le
+   * repliement du bandeau lui-même n'ajoute AUCUN paramètre d'URL : `grp` reste l'unique porteur de
+   * l'état de repliement (`EX-NAV-10bis`), et le panneau suit ce qu'il décrit.
+   */
+  const [panelOpen, setPanelOpen] = useState<boolean>(() => defaultExpandedGroups(props.initialSelection).size > 0);
+
+  // `EX-SCR-56` (ACC-02) — publie la hauteur de l'en-tête collant dans `--kycar-band-top`, que
+  // `app.css` lit sur `.kycar-filter-bar` : c'est ce conteneur qui porte le collage (le bandeau
+  // lui-même avait un parent à sa propre hauteur, la boîte de collage n'offrait aucune course).
+  useEffect(() => observeHeaderHeight(), []);
 
   const controllerRef = useRef<InteractionController | null>(null);
   if (controllerRef.current === null) {
@@ -586,18 +605,43 @@ export function FilterBand(props: FilterBandProps) {
     );
   }
 
+  // `EX-SCR-56` (ACC-02) — la recherche de filtre (2) et les groupes secondaires (3) ne sont montés
+  // que DÉPLIÉS : c'est ce qui borne la hauteur repliée du bandeau à 96 px sans rien rendre
+  // inatteignable (tout est à un clic, et le bouton porte le compte des filtres secondaires actifs).
+  const secondaryActiveCount = activeCount - countPrimaryActive(selection);
   return (
-    <div class="kycar-filter-band" data-active-count={activeCount} data-regime={regime}>
-      <PrimaryLine
-        mode={props.mode}
-        selection={selection}
-        facetCounts={props.facetCounts}
-        facetCountsPending={props.facetCountsPending}
-        onChange={handleChange}
-        onOpenScreenG={() => setScreenGOpen(true)}
-        screenGSummary={screenGSummary}
-      />
-      {searchAndGroups(selection, handleChange, handleRemove, false)}
+    <div
+      class="kycar-filter-band"
+      data-active-count={activeCount}
+      data-regime={regime}
+      data-expanded={panelOpen ? 'true' : 'false'}
+    >
+      <div class="kycar-band-primary-row">
+        <PrimaryLine
+          mode={props.mode}
+          selection={selection}
+          facetCounts={props.facetCounts}
+          facetCountsPending={props.facetCountsPending}
+          onChange={handleChange}
+          onOpenScreenG={() => setScreenGOpen(true)}
+          screenGSummary={screenGSummary}
+        />
+        <button
+          type="button"
+          class="kycar-band-more"
+          aria-expanded={panelOpen}
+          aria-controls="kycar-band-panel"
+          onClick={() => setPanelOpen((v) => !v)}
+        >
+          {panelOpen ? 'Moins de filtres' : 'Plus de filtres'}
+          {secondaryActiveCount > 0 ? ` (${secondaryActiveCount})` : ''}
+        </button>
+      </div>
+      {panelOpen ? (
+        <div class="kycar-band-panel" id="kycar-band-panel">
+          {searchAndGroups(selection, handleChange, handleRemove, false)}
+        </div>
+      ) : null}
       <ActiveFilterTokens
         onRemovePartial={handleRemovePartial}
         onNarrow={handleNarrow}
