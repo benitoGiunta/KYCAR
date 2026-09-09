@@ -666,5 +666,6 @@ node data/schema/validate.mjs        # 8 contrôles, sortie 0 attendue
 | **D3-10** | Définir `BOOLEAN_FLAG_BIT` : 10 booléens du dictionnaire tiennent **exactement** dans les 16 bits de `booleanFlags`, déjà alloués et inutilisés | Donne une sémantique à une colonne gelée ; concerne `src/types` et le provider, hors de mon périmètre d'écriture. |
 | **D3-11** | Pas de champ canonique de date de publication en v1 ; le delta inter-snapshots reste vérifiable en couche source et manifest | Décide de ne **pas** étendre le dictionnaire ; à acter pour que `data-review` ne l'exige pas. |
 
-*(Les identifiants D3-06 à D3-11 sont proposés ; leur attribution définitive appartient au
+*(Cinq propositions : D3-06, D3-07, D3-08, D3-10 et D3-11 — le numéro D3-09 n'est pas employé.
+Les identifiants sont proposés ; leur attribution définitive appartient au
 coordinateur, `reports/data/DATA-LEAD-DECISIONS.md`.)*
