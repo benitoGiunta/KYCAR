@@ -213,6 +213,27 @@ Playwright + Chromium préinstallé, sur le build de production (`playwright.con
 depuis `src/`. Le navigateur se lance par `executablePath` (détection dans la config) : jamais
 `playwright install`.
 
+### 4.7 Plan 3 — données fictives AutoScout24-conformes et MVP (PLAN-3, 2026-09-09)
+
+Décision du commanditaire : source réelle reportée, **données fictives à la forme AutoScout24**
+(dictionnaire déjà dérivé de l'OpenAPI AS24, taxonomie AS24). Plan : `docs/plans/PLAN-3-fixture-data-mvp.md` ;
+décisions : `reports/data/DATA-LEAD-DECISIONS.md` (D3-nn). Trois couches : source `As24Listing`
+(JSON Schema `data/schema/`) → adaptateur → canonique (`src/types`). Fixtures NDJSON gzip versionnées
+(`data/fixtures/dev|test`, perf ignoré), générateur déterministe `tools/dataset/`, `FixtureDataProvider`
++ registre + bascule `?provider=`, suite de contrat `tests/contract/` commune à tous les providers.
+
+```
+3.1 PARALLÈLE  data-model Opus/high · dataset-design Opus/high · visual-2.10 Opus/high→Sonnet/high (worktree)
+3.2 SÉQUENTIEL dataset-gen Opus/high → porte G9a
+3.3 PARALLÈLE  data-review Opus/high (reviewer indépendant, tests/data/) · fixture-provider Opus/high
+3.4 SÉQUENTIEL data-fix Opus/high (Sonnet/high si constats entièrement spécifiés) → data-review delta → G9b
+3.5 SÉQUENTIEL mvp-integrate Opus/high → acceptance rev 3 Fable/max → porte G9
+```
+
+Règles : la sonde du reviewer passe sans modification (D-31/D-32) ; R3 dès la couche source (D3-02) ;
+**compaction à ~70 % de contexte** en gardant agents vivants, décisions ouvertes et portes restantes
+(`HANDOFF.md` tenu à jour à chaque fin de phase).
+
 ---
 
 ## 5. Vérifier avant de livrer
