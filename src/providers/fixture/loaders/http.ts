@@ -17,6 +17,9 @@ import type { FixtureLoader } from './types';
 /** Base publique des fixtures, servie par le plugin Vite (dev) et copiée dans `dist/` (build). */
 export const FIXTURE_BASE = '/fixtures';
 
+/** Manifest ALLÉGÉ servi à l'application : le manifest sans sa vérité terrain (plugin Vite). */
+export const LIGHT_MANIFEST = 'manifest.min.json';
+
 /** Nom par défaut du fichier d'annonces d'un snapshot (`manifest.file` prime quand il est là). */
 export const DEFAULT_LISTINGS_FILE = 'listings.ndjson.gz';
 
@@ -54,6 +57,12 @@ export function createHttpFixtureLoader(options: HttpFixtureLoaderOptions = {}):
     },
 
     async loadManifest(profile, entry) {
+      // Le manifest ALLÉGÉ d'abord (le complet moins sa vérité terrain, écrit par le plugin Vite) :
+      // sur le profil `test`, `manifest.json` pèse 501 Kio dont 2 436 anomalies déclarées que
+      // l'application ne lit jamais, et il est sur le chemin critique d'`EX-NFR-9`. Repli sur le
+      // manifest complet s'il n'existe pas — un jeu servi par un autre hébergeur reste lisible.
+      const res = await doFetch(`${base}/${profile}/${entry.dir}/${LIGHT_MANIFEST}`);
+      if (res.ok) return (await res.json()) as unknown;
       return json<unknown>(`${base}/${profile}/${entry.dir}/manifest.json`);
     },
 

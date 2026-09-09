@@ -66,6 +66,12 @@ const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/gu;
  */
 export function normalizeText(raw: string | null | undefined): string | null {
   if (raw === null || raw === undefined) return null;
+  // Chemin RAPIDE, sans changement de sémantique : une chaîne faite uniquement d'imprimables ASCII,
+  // sans espace de bord ni espace double, est déjà sa propre forme normalisée — NFC est l'identité
+  // sur l'ASCII, il n'y a aucun caractère de contrôle à retirer et aucun espace à compacter. Ce cas
+  // couvre la quasi-totalité des champs d'une annonce (codes, identifiants, URL) et évite quatre
+  // passes d'expression régulière par champ, sur ~18 champs par ligne et 20 000 lignes par snapshot.
+  if (ASCII_ALREADY_NORMAL.test(raw)) return raw.length === 0 ? null : raw;
   const out = raw
     .normalize('NFC')
     .replace(/[\t\n\r]/gu, ' ')
@@ -88,6 +94,16 @@ export function truncateCodePoints(value: string, max: number): string {
  */
 const CAMPAIGN_PARAM = /^(utm_.*|cldtidx|search_id|query_id)$/i;
 
+/**
+ * Chaîne DÉJÀ normalisée au sens d'`EX-DATA-7` : imprimables ASCII (`\x20`-`\x7E`), sans espace en
+ * tête ni en fin, sans espace double. Le motif est volontairement STRICT — au moindre doute, la
+ * chaîne repasse par le chemin complet.
+ */
+const ASCII_ALREADY_NORMAL = /^(?:[\x21-\x7E]+(?: [\x21-\x7E]+)*)?$/;
+
+/** URL `https` sans identifiants, sans port, sans requête et sans fragment : rien à nettoyer. */
+const FAST_HTTPS_URL = /^https:\/\/([A-Za-z0-9.-]+)(\/[^?#]*)?$/;
+
 /** Résultat du nettoyage d'un deeplink d'annonce. */
 export interface NormalizedListingUrl {
   /** URL nettoyée, ou `null` si elle est inexploitable (à rejeter, `EX-DATA-14`). */
@@ -106,6 +122,11 @@ export interface NormalizedListingUrl {
 export function normalizeListingUrl(raw: string | null | undefined): NormalizedListingUrl {
   const text = normalizeText(raw);
   if (text === null) return { url: null, host: null };
+  // Chemin RAPIDE : une URL `https` sans requête ni fragment n'a ni schéma à forcer, ni paramètre de
+  // campagne à retirer, ni fragment à couper — le nettoyage est l'identité. Construire un objet
+  // `URL`, itérer ses paramètres et le re-sérialiser coûterait, pour rien, sur chaque ligne.
+  const direct = FAST_HTTPS_URL.exec(text);
+  if (direct !== null) return { url: truncateCodePoints(text, 512), host: (direct[1] as string).toLowerCase() };
   let parsed: URL;
   try {
     parsed = new URL(text);

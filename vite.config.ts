@@ -1,5 +1,5 @@
 import { cpSync, existsSync, createReadStream, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { resolve, extname } from 'node:path';
+import { resolve, extname, basename } from 'node:path';
 
 import preact from '@preact/preset-vite';
 import { defineConfig, type Plugin } from 'vitest/config';
@@ -84,6 +84,37 @@ const FIXTURE_MIME: Readonly<Record<string, string>> = {
   '.gz': 'application/octet-stream',
 };
 
+/**
+ * Manifest ALLÉGÉ : le manifest sans sa vérité terrain. Sur le profil `test`, `manifest.json` pèse
+ * 501 Kio dont 2 436 anomalies déclarées — **1,3 Kio seulement** intéressent l'application, qui ne
+ * lit jamais `groundTruth` (c'est le document du reviewer et des sondes). Le télécharger avant la
+ * première ligne d'annonces coûterait un cinquième du budget de 2 s d'`EX-NFR-9`, pour rien.
+ * Le fichier complet reste versionné et servi ; c'est le CHEMIN DE L'APPLICATION qui s'allège.
+ */
+function buildLightManifest(manifestPath: string): string | null {
+  if (!existsSync(manifestPath)) return null;
+  const full = JSON.parse(readFileSync(manifestPath, 'utf-8')) as Record<string, unknown>;
+  const light: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(full)) {
+    if (key === 'groundTruth') continue;
+    light[key] = value;
+  }
+  // `groundTruth` est OBLIGATOIRE au schéma de manifest : on ne le retire pas, on le VIDE, et on
+  // dit où le trouver. Un manifest allégé reste ainsi conforme et ne se fait pas passer pour complet.
+  light['groundTruth'] = [];
+  light['note'] =
+    `${String(full['note'] ?? '')} [manifest allege servi a l'application : groundTruth ` +
+    `(${Array.isArray(full['groundTruth']) ? full['groundTruth'].length : 0} anomalies) retire du ` +
+    `chemin critique, disponible dans manifest.json]`;
+  return JSON.stringify(light, null, 1);
+}
+
+/** Nom du manifest allégé servi à l'application. */
+const LIGHT_MANIFEST = 'manifest.min.json';
+
+/** Fichiers de fixtures qui n'ont rien à faire dans `dist/` (provenance du générateur). */
+const FIXTURE_BUILD_EXCLUDE: readonly string[] = ['generation.json'];
+
 /** Index d'un profil, reconstruit depuis les manifests du disque et trié par `capturedAt`. */
 function buildFixtureProfileIndex(profile: string): string | null {
   const dir = resolve(FIXTURE_DIR, profile);
@@ -122,6 +153,20 @@ function kycarFixtureData(): Plugin {
           next();
           return;
         }
+        // `<profil>/<snapshot>/manifest.min.json` synthétisé depuis le manifest complet.
+        const asLight = new RegExp(`^([A-Za-z0-9_-]+)/([A-Za-z0-9_.-]+)/${LIGHT_MANIFEST}$`).exec(rel);
+        if (asLight !== null && !existsSync(filePath)) {
+          const body = buildLightManifest(
+            resolve(FIXTURE_DIR, asLight[1] as string, asLight[2] as string, 'manifest.json'),
+          );
+          if (body === null) {
+            next();
+            return;
+          }
+          res.setHeader('Content-Type', FIXTURE_MIME['.json'] as string);
+          res.end(body);
+          return;
+        }
         // `<profil>/index.json` synthétisé quand le générateur n'en a pas écrit.
         const asIndex = /^([A-Za-z0-9_-]+)\/index\.json$/.exec(rel);
         if (asIndex !== null && !existsSync(filePath)) {
@@ -149,7 +194,17 @@ function kycarFixtureData(): Plugin {
         const from = resolve(FIXTURE_DIR, profile);
         if (!existsSync(from)) continue;
         const to = resolve(__dirname, 'dist/fixtures', profile);
-        cpSync(from, to, { recursive: true });
+        cpSync(from, to, {
+          recursive: true,
+          filter: (src) => !FIXTURE_BUILD_EXCLUDE.includes(basename(src)),
+        });
+        // Un manifest ALLÉGÉ par snapshot, servi à l'application ; le complet reste à côté.
+        for (const name of readdirSync(to)) {
+          const snapshotDir = resolve(to, name);
+          if (!statSync(snapshotDir).isDirectory()) continue;
+          const body = buildLightManifest(resolve(snapshotDir, 'manifest.json'));
+          if (body !== null) writeFileSync(resolve(snapshotDir, LIGHT_MANIFEST), body, 'utf-8');
+        }
         const indexPath = resolve(to, 'index.json');
         if (!existsSync(indexPath)) {
           const body = buildFixtureProfileIndex(profile);
