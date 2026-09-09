@@ -20,7 +20,8 @@
     "test:e2e:report": "playwright show-report",
     "data:gen": "node tools/dataset/generate.mjs",
     "data:validate": "node tools/dataset/validate.mjs",
-    "data:check": "node tools/dataset/check.mjs"
+    "data:check": "node tools/dataset/check.mjs",
+    "test:data": "tsc --noEmit -p tsconfig.data.json && vitest run --config vitest.data.config.ts"
   },
   "dependencies": {
     "preact": "^10.29.8"
