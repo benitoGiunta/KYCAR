@@ -304,8 +304,8 @@ l'écart **E-07**, §4).
 | 52 | `consumptionElectricKwh100Km` | `wltp.consumptionElectricCombined` **sinon** `consumption.electricCombined` (déprécié) | 1 décimale ; le champ WLTP prime | `0,1 ≤ v ≤ 99,9` sinon INCONNU | INCONNU | — |
 | 53 | `consumptionSource` | **DÉRIVÉ** : quel champ de # 51 a été retenu | même règle que # 50 | — | DÉFAUT `UNKNOWN` | — (**dette D8-32**) |
 | 54 | `euEmissionStandard` | `euEmissionStandard` | chaîne | ∈ vocabulaire (11) sinon INCONNU | INCONNU | LCB `euEmissionStandard` |
-| 55 | `co2Class` | `wltp.co2Class` | entier → chaîne | ∈ {`10`…`70`} sinon INCONNU | INCONNU | — |
-| 56 | `efficiencyClass` | `efficiencyClass` | entier → chaîne | ∈ vocabulaire (10) sinon INCONNU | INCONNU | — |
+| 55 | `co2Class` | `wltp.co2Class` (**branche WLTP seule**) | entier → chaîne | ∈ {`10`…`70`} sinon INCONNU | INCONNU | — |
+| 56 | `efficiencyClass` | `efficiencyClass` (**branche NEDC seule**, C-13) | entier → chaîne | ∈ vocabulaire (10) sinon INCONNU | INCONNU | — |
 | 57 | `electricRangeKm` | `electricRange` | km | `1 ≤ r ≤ 10 000` sinon INCONNU | INCONNU | LCB `electricRangeKm` |
 | 58 | `hasParticleFilter` | `hasParticleFilter` | — | — | INCONNU | — (bit tri-état proposé) |
 | 59 | `mileageKm` | `mileage` (+ `mileageUnit`) | unité canonique km ; `mileageUnit ∉ {km}` → refus + `UNIT_UNSUPPORTED` | `0 ≤ m ≤ 1 500 000` sinon INCONNU + `MILEAGE_OUT_OF_RANGE` · `m = 0` admis sans réserve si `offerType ∈ {N,S,D}`, sinon `SUSPECT_ZERO_MILEAGE` et exclusion des statistiques de kilométrage | INCONNU | LCB `mileageKm` |
