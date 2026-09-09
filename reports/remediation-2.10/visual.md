@@ -6,7 +6,7 @@
 | **Worktree** | `/home/user/kycar-wt/visual`, branche `fix210/visual`, `node_modules` symlinké (aucun `npm ci`/`install`) |
 | **Entrée** | `reports/ACCEPTANCE.md` §8 (constats `ACC-02`…`ACC-16` en dette D8-43) et §3.4 (les 15 exigences « mesures au rendu ») |
 | **Périmètre écrit** | `src/screens/`, `src/components/`, `src/app/app.css`, `src/screens/distribution/url-state.ts` (ACC-06), `tests/review/D6`, `tests/review/D7`, `tests/e2e/`, ce rapport. **Jamais** `src/app.tsx`, `src/orchestration/`, `src/providers/`, `src/engine/`, `src/state/`, `data/`, `tools/`, `docs/` |
-| **Commits** | `61df9e2` (ACC-06) · `959d5fc` (ACC-02) · `3a342a8` (ACC-03, ACC-04) · `29b0b2c` (ACC-07 → ACC-16) |
+| **Commits** | `61df9e2` (ACC-06) · `959d5fc` (ACC-02) · `3a342a8` (ACC-03, ACC-04) · `29b0b2c` (ACC-07 → ACC-16) · `dec9d6a` (cibles des liens + ce rapport) |
 | **Bundle** | `npm run size` : **118,78 / 300 Kio** gzip d'entrée + worker (116,58 avant 2.10, **+2,20 Kio**), différé 0,00 / 400 Kio |
 
 ---
@@ -434,7 +434,7 @@ Toutes exécutées dans le worktree, sur le périmètre de l'agent.
 | `npx tsc --noEmit -p tsconfig.review.json` | **0 erreur** |
 | `npx eslint src/screens src/components src/app tests/review/D6 tests/review/D7 tests/e2e` | **0 erreur, 0 avertissement** |
 | `npx vitest run --no-file-parallelism src/screens src/components` | **21 fichiers, 315 tests** verts |
-| `npx vitest run --config vitest.review.config.ts --no-file-parallelism tests/review/D6 tests/review/D7` | **26 fichiers, 239 tests** verts (233 avant + 6 sondes nouvelles… soit 11 nouvelles réparties D6/D7) |
+| `npx vitest run --config vitest.review.config.ts --no-file-parallelism tests/review/D6 tests/review/D7` | **26 fichiers, 239 tests** verts — 24 fichiers / 228 tests avant 2.10, plus les 2 fichiers et 11 sondes de ce lot |
 | `npm run build` | `tsc` app + worker + `vite build`, **0 erreur, 0 warning** |
 | `npm run size` | **118,78 / 300 Kio** gzip (entrée + worker), différé 0,00 / 400 Kio |
 
