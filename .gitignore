@@ -7,3 +7,7 @@ npm-debug.log*
 test-results/
 playwright-report/
 data/fixtures/perf/
+
+# Phase 3.2 : le generateur de fixtures est du JavaScript ESM execute par node (DATASET-GEN.md §2),
+# il ne produit aucun artefact de build ; la ligne reste pour une eventuelle bascule TypeScript.
+tools/dataset/dist/
