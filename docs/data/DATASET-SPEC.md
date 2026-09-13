@@ -32,8 +32,8 @@ Un marché belge de l'occasion (`marketplace = be`, `location.countryCode = BE`,
 20 000 (profil de l'application, D3-01), `perf` 100 000 annonces **par snapshot**.
 
 **61 règles** (`R-01` … `R-61`), **26 anomalies** actives à vérité terrain (`A-01` … `A-24`, deux
-retirées à l'alignement), **110 sondes** (`P-01` … `P-110`, dont `P-86` … `P-109` couvrent une à une
-les 31 contraintes de `DATA-MODEL.md` §7).
+retirées à l'alignement), **111 sondes** (`P-01` … `P-110` plus `P-24bis`,
+ajoutée par `DR3-22` ; `P-86` … `P-109` couvrent une à une les 31 contraintes de `DATA-MODEL.md` §7).
 
 ### 0.2 Le fil directeur : stock = flux × durée d'exposition
 
@@ -208,7 +208,8 @@ interdit (`P-107`).
 ### 1.4 Effet attendu sur les parcours cibles
 
 Ordres de grandeur au profil `test`, à confirmer par `mvp-integrate` : P1 (`body=3` + `priceto=20000`
-+ `kmto=100000`) ≈ **670 coupés** avant filtres, ≈ **155 offres** après, sur ≈ 35 marques. P2 :
++ `kmto=100000`) ≈ **630 coupés** avant filtres, ≈ **135 offres** après, sur ≈ 33 marques
+(valeurs mesurées après l'amendement `DR3-22` ci-dessous). P2 :
 **Opel Corsa ≈ 355**, VW Golf ≈ 590, BMW 320 ≈ 205, famille Série 3 ≈ 419.
 
 **Amendement DR3-14 — deux erreurs, une dans la donnée, une dans l'annonce.**
@@ -220,8 +221,9 @@ Ordres de grandeur au profil `test`, à confirmer par `mvp-integrate` : P1 (`bod
    marché belge de l'occasion dit l'inverse : Opel Astra GTC, VW Scirocco, Renault Mégane Coupé,
    Peugeot RCZ, Hyundai Coupé, Mini sont des coupés de segment **citadine** ou **compacte**, à prix
    d'occasion courant. Le code 3 est désormais réparti sur **quatre** segments (citadine 7,0 %,
-   compacte 6,5 %, sportive 25 %, luxe 4 %), ce qui laisse la part de coupés à **3,4 %** — dans la
-   tolérance de `P-24` [2,0 % ; 3,5 %] — et rend **156 offres** au parcours P1.
+   compacte, sportive, luxe), ce qui laisse la part de coupés dans la tolérance de `P-24`
+   [2,0 % ; 3,5 %] et rend au parcours P1 de quoi remplir un écran. Les poids ont été **réécrits** par
+   l'amendement `DR3-22` ci-dessous, qui donne les valeurs en vigueur et les mesures.
 2. *L'annonce était fausse aussi.* Les « 230 à 280 offres » avaient été posées **avant** le modèle de
    prix par segment (`R-17`) et le modèle de kilométrage par carburant (`R-11`) ; aucune mesure ne
    les soutenait. Elles sont remplacées par l'ordre de grandeur **recalculé** après correction. Le
@@ -229,6 +231,52 @@ Ordres de grandeur au profil `test`, à confirmer par `mvp-integrate` : P1 (`bod
    pour absorber la variation d'une régénération sans rendre le parcours illisible. `mvp-integrate`
    recalcule `P1_EXPECTED` et `P2_EXPECTED` **par programme** (D3-17 b, D3-24) : cette section donne
    un ordre de grandeur, jamais une valeur figée.
+
+**Amendement DR3-22 — la correction précédente avait compensé une part mesurée par une part qui ne
+l'était pas.** `DR3-14` avait, en même temps qu'il répartissait le code 3 sur quatre segments,
+retourné le mélange du segment `sportive` de **60 % coupé / 40 % cabriolet** à **25 / 75** — sans le
+dire. Cela **inverse l'ordre du marché** (une sportive d'occasion est plus souvent un coupé qu'un
+cabriolet) et n'avait d'autre effet que de maintenir la part de coupés sous la borne haute de `P-24`,
+en faisant monter de **81 %** une part de cabriolets qu'**aucune sonde ne contraignait**.
+
+Ce qui est en vigueur (`segments.json:bodyTypeMapping`, motifs détaillés dans
+`segments.json:constatDR3_22`) :
+
+| segment | code 3 Coupé | code 2 Cabriolet | reste |
+|---|---:|---:|---|
+| `citadine` | 9,2 % | 2,0 % | 88,8 % code 1 |
+| `compacte` | 1,2 % | 2,0 % | 81,8 % code 6, 15 % code 1 |
+| `sportive` | **38 %** | **25 %** | 22 % code 6, 15 % code 1 |
+| `luxe` | 4 % | — | 30 % code 4, 66 % code 6 |
+
+Trois choses la fondent. (a) **L'ordre du marché est rétabli** dans `sportive` : 0,38 contre 0,25,
+rapport 1,52 (la valeur d'avant `DR3-14` valait 1,50). (b) **Le segment `sportive` n'est pas une
+carrosserie** : c'est un palier de prix catalogue (55 000 €) et de puissance (médiane 180 kW). Une
+part du parc sportif d'occasion est à quatre ou cinq portes — M3, AMG C 63, RS 4, Golf GTI et R,
+Civic Type R — d'où 22 % de code 6 et 15 % de code 1. *Hypothèse écrite (E4) `HS-01`* : aucune série
+publique belge ne donne la répartition des carrosseries **à l'intérieur** d'un palier de prix ; ce
+tiers non-coupé/non-cabriolet est une hypothèse de modèle, bornée en haut par `P-24` et en bas par
+`R-DATA-28`. (c) **Les cabriolets ne viennent plus d'une seule source** : 2 % des citadines et 2 %
+des compactes en sont (Fiat 500C, MINI Cabrio, DS 3 Cabrio, 207/208 CC, Golf Cabriolet, A3
+Cabriolet, Série 2 Cabriolet), au même titre que les coupés bon marché de `DR3-14`. Sans cela, les
+trois contraintes — ordre du marché, borne haute de `P-24`, plancher du parcours P1 — sont
+incompatibles.
+
+**La part de cabriolets est désormais sondée** : `P-24bis` (`probes.json`,
+`tests/data/p16-fuel-body.test.ts`, `data:check`) exige `part(code 2) ∈ [1,0 % ; 2,5 %]` **et**
+`part(coupés) > part(cabriolets)`. C'est la seconde assertion qui rend l'inversion impossible sans
+qu'une sonde tombe ; la bande est l'*hypothèse écrite (E4) `HS-02`* (aucune série publique belge sur
+la part de cabriolets dans le stock d'occasion), posée sur les deux états connus du jeu — 1,51 %
+avant `DR3-14`, 2,74 % après — et fermée en haut **sous** la valeur qu'avait produite l'inversion.
+
+Mesures après correction, snapshot S0 :
+
+| | coupé (code 3) | cabriolet (code 2) | rapport | P1 après filtres |
+|---|---:|---:|---:|---:|
+| `test`, avant `DR3-14` | 2,41 % | 1,51 % | 1,60 | 30 |
+| `test`, après `DR3-14` | 3,39 % | 2,74 % | 1,24 | 156 |
+| **`test`, après `DR3-22`** | **3,18 %** | **1,73 %** | **1,84** | **137** sur 33 marques |
+| **`dev`, après `DR3-22`** | **2,85 %** | **1,43 %** | **1,99** | 28 (non opposable au volume `dev`) |
 
 Les effectifs P2 sont ceux d'EG-01 / D3-19 (dette ratifiée : la composition segment × année prime sur
 les effectifs cibles par modèle).
@@ -272,7 +320,8 @@ citadines ×0,85.
 
 Le segment détermine ensuite, par tables : `bodyType` (+ 1 % de code `7 Autres`), `doorCount`,
 `seatCount`, `drivetrain`, `upholsteryType`. Le code 3 (**Coupé**) est servi par **quatre** segments
-et non deux — voir l'amendement `DR3-14` au §1.4. La **boîte** suit
+et non deux, et le code 2 (**Cabriolet**) par **trois** et non un — voir les amendements `DR3-14` et
+`DR3-22` au §1.4. La **boîte** suit
 `p_auto = σ(−0,85 + 0,155·(année−2015) + a_segment)`, toute motorisation électrique étant **forcée**
 en automatique (`P-26`). Couleurs : noir 23,5 %, gris 20,5 %, blanc 16,5 %, argent 11,5 % — cumul
 72 % (`P-27`).
@@ -531,7 +580,7 @@ jamais uniformes, de 0 % (`id`, `webPage`, `make`, `location.countryCode`, `sell
 `wltp.co2Class` 28 % · `upholsteryType` 28 % · `gearCount` 31 % · `efficiencyClass` 34 % ·
 `previousOwnerCount` 38 % · `nextInspectionDate` 62 % · `wasCabOrRental` et `appliedSeals` 78 % ·
 **`paintType` 82 %** (contrainte 30 : le champ n'a jamais été observé sur la source, un remplissage
-systématique ferait passer une hypothèse pour un fait — `P-108`). Sondes `P-55` (±25 % relatifs),
+systématique ferait passer une hypothèse pour un fait — `P-108`). Sondes `P-55` (référence ± `max(25 % relatifs, 3 erreurs-types)`, `DR3-24`),
 `P-56` (écart-type des taux > 0,15 : la non-uniformité est **mesurée**), `P-58` (l'équipement manque
 1,8 fois plus souvent chez les particuliers).
 
@@ -556,11 +605,26 @@ resterait faux :
   annonce **sans** branche de mesure. La classe de CO₂ porte désormais la branche quand tous les
   autres champs sont partis.
 
-Mesure après correction, profil test : **78 champs mesurés, 0 hors tolérance**, écart relatif maximal
-24,3 %. Au profil `dev`, `P-55` reste dans le bruit d'échantillonnage (EG-12, `DR3-19`) : à
-n = 5 000, la bande de ±25 % relatifs vaut moins de deux erreurs-types pour plusieurs champs.
-`consumption.electricCombined` n'a que **96** lignes éligibles au profil test et reste **sous le
-plancher n ≥ 100** de la sonde : sa mesure n'est pas opposable (voir la dette proposée D3-27).
+**Amendement DR3-24 — la tolérance de `P-55` tient compte de l'effectif, et il n'y a plus de plancher.**
+Deux dispositifs se superposaient sans qu'aucun soit décidé : un **plancher `n ≥ 100`** posé par le
+reviewer, qui retirait de la mesure tout champ à petite population éligible, et la **mise hors portée
+du profil `dev`** (EG-12, `DR3-19`). Tous deux traitent le même mal — une bande *relative* est plus
+étroite que le bruit quand la population est petite — et tous deux le traitent en **retirant** de la
+mesure, ce qui est un affaiblissement et non une tolérance : `consumption.electricCombined` (96 lignes
+éligibles au profil `test`, 27 au profil `dev`) n'avait de taux mesuré à **aucun volume commité**.
+
+Règle en vigueur (**décision `D3-27`, réécrite le 2026-09-13**) : un champ est conforme si sa mesure
+tombe dans **`référence ± max(25 % relatifs, 3 erreurs-types)`**, **à tous les profils** et **sans
+plancher d'effectif** ; l'erreur-type est celle de la proportion **sous la référence**, `√(p(1−p)/n)`.
+La bande relative reste seule active dès que `n` est grand (elle atteint 3 erreurs-types à `n ≥ 816`
+pour `p = 0,15`). Seule une population **vide** est écartée — elle est alors **nommée** — parce
+qu'aucun taux n'y est définissable ; ce n'est pas un plancher. `P-55` **quitte EG-12** (la liste
+revient à six sondes) et devient opposable aux deux profils.
+
+Mesure après correction : **79 champs mesurés, 0 hors tolérance** aux **deux** profils,
+`consumption.electricCombined` compris — 20,8 % pour 15 % de référence au profil `test` (+38,9 %
+relatifs, mais **1,60 erreur-type**), 25,9 % au profil `dev` (+72,8 % relatifs, **1,59 erreur-type**).
+`data:check` applique la même règle (59 champs, la sonde du contrôle latéral ignorant les taux nuls).
 
 Les taux sont choisis pour qu'**aucune branche de repli atteignable ne reste inexercée** :
 `EX-DATA-5` (unité non gérée), `EX-DATA-10` (repli création → recherche), `EX-DATA-11` (hybride non
@@ -678,6 +742,29 @@ déclare (1,3 % des annonces à prix sur demande). Les taux des anomalies rares 
 choisis pour que `taux × base` soit **entier** aux deux profils commités : à `A-04b` 0,03 % l'effectif
 attendu valait 1,5 au profil dev, et **aucun** entier n'était alors à ±20 % de l'attendu.
 
+**Base contre vivier (`DR3-21`).** `base` est le **dénominateur** du taux, `vivier` la population dans
+laquelle le générateur **tire** ; quand les deux diffèrent, les deux champs sont écrits
+(`anomalies.json:baseVsVivier`). `A-11` déclarait la base « annonces à prix affiché **de cellules
+(make, model) à `|F| ≥ 30`** » alors que le taux 0,35 % était lu sur **toutes** les annonces à prix
+affiché : 48,1 attendues contre 67 réalisées au profil `test` (**+39 %**), 4,9 contre 17 au profil
+`dev` (**+246 %**) — reliquat exact du défaut que `DR3-10` demandait de fermer partout. La restriction
+est passée dans `vivier` (elle y est écrite en entier : cellule à `|F| ≥ 30` **et** ajustement M2
+exploitable, `DR3-09`) ; sur la base déclarée l'accord est de 67 pour 67,5 et de 17 pour 16,9. Règle
+opposable qui en découle : **`base` ne nomme que des populations que le compteur sait compter** ; les
+trois implémentations (`tools/dataset/anomalies.mjs`, `tools/dataset/check.mjs`,
+`tests/data/p72-anomalies.test.ts`) comparent désormais la chaîne **exactement** et **refusent** une
+base inconnue, au lieu de l'absorber par préfixe.
+
+**Lecture de `P-72` (`DR3-23`).** Le contrôle imprimait une ligne par `A-nn` mais un effectif réalisé
+**par code** : `A-19:90/10.0` et `A-21:90/80.0` se lisaient comme un écart de **+800 %** là où le code
+unique `REGION_UNRESOLVED` réalise **90 pour 90** attendues (`0,05 % + 0,40 %` de `N`). L'unité
+d'affichage **et** de tolérance est désormais le **code** — les codes d'une même anomalie (`A-10`
+`LOW`/`HIGH`) et les anomalies qui partagent un code (`A-19`, `A-21`) sont fondus —, ce qui est la plus
+petite unité que la spécification chiffre et ce que la sonde `R-DATA-19` faisait déjà. La part imputée
+à chaque `A-nn` est publiée entre crochets, avec son effectif de base. La tolérance de ±20 % (ou ±1)
+s'applique de ce fait à **tous** les groupes : le relâchement `réalisé ≥ ⌊attendu⌋` qui couvrait les
+codes partagés a disparu.
+
 ---
 
 ## 7. Sondes attendues — `probes.json` (`P-01` … `P-110`)
@@ -685,7 +772,7 @@ attendu valait 1,5 au profil dev, et **aucun** entier n'était alors à ±20 % d
 `probes.json` est le **contrat** entre `dataset-design`, `dataset-gen` et `data-review` : identifiant,
 règle visée, famille, statistique, tolérance, portée (snapshot / profil). Le reviewer les écrit et
 les fait passer **sans les modifier** ; le générateur les traite comme une spécification, jamais
-comme un test à ajuster. **110 sondes** : `P-01` … `P-85` couvrent les distributions de cette
+comme un test à ajuster. **111 sondes** : `P-01` … `P-85` et `P-24bis` couvrent les distributions de cette
 spécification, `P-86` … `P-109` couvrent **une à une les 31 contraintes de cohérence** de
 `DATA-MODEL.md` §7 (colonne `regle` = `DM-nn`, table de correspondance au §12), `P-110` la couverture
 de la table curatée de modèles.
@@ -769,7 +856,7 @@ renvoyant aux règles.
 | `equipment.json` | 34 codes paramétrés + résiduels | R-47 … R-49 |
 | `snapshot-dynamics.json` | durée d'exposition, sorties, entrées, révisions | R-50 … R-56 |
 | `anomalies.json` | 26 anomalies actives (+ 2 retirées) : code manifest, taux, mécanisme, détection, exigence, ce que le reviewer retrouve | R-57, R-58 |
-| `probes.json` | 110 sondes : règle, statistique, tolérance, portée | contrat |
+| `probes.json` | 111 sondes : règle, statistique, tolérance, portée | contrat |
 
 ---
 

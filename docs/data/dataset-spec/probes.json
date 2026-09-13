@@ -8,7 +8,7 @@
   "tolerance",
   "portee"
  ],
- "count": 110,
+ "count": 111,
  "probes": [
   {
    "id": "P-01",
@@ -153,7 +153,7 @@
    "statistique": "part diesel des annonces de 1re immatriculation 2012 et 2024",
    "tolerance": "2012 dans [0.55, 0.65] ; 2024 dans [0.015, 0.045]",
    "portee": "snapshot test",
-   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 : P-18, P-23, P-37, P-38, P-45, P-58 \u2014 P-55 en est RETIREE par DR3-24, sa tolerance tenant compte de l'effectif)."
   },
   {
    "id": "P-19",
@@ -194,7 +194,7 @@
    "statistique": "part de la carrosserie SUV (code 4) parmi les 1res immatriculations >= 2022",
    "tolerance": "dans [0.38, 0.52]",
    "portee": "snapshot test",
-   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 : P-18, P-23, P-37, P-38, P-45, P-58 \u2014 P-55 en est RETIREE par DR3-24, sa tolerance tenant compte de l'effectif)."
   },
   {
    "id": "P-24",
@@ -203,6 +203,15 @@
    "statistique": "part de la carrosserie Coupe (code 3)",
    "tolerance": "dans [0.020, 0.035] \u2014 matiere du parcours P1",
    "portee": "snapshot"
+  },
+  {
+   "id": "P-24bis",
+   "regle": "R-05",
+   "famille": "Segments",
+   "statistique": "part de la carrosserie Cabriolet (code 2), et son rang face aux coupes",
+   "tolerance": "dans [0.010, 0.025] ET part de coupes STRICTEMENT superieure a la part de cabriolets (ordre du marche)",
+   "portee": "snapshot",
+   "amendement": "SONDE NEUVE \u2014 DR3-22. La part de cabriolets n'etait contrainte par AUCUNE sonde : la correction de DR3-14 avait tenu la borne haute de P-24 (part mesuree) en inversant le melange du segment sportive de 60/40 a 25/75 coupe/cabriolet (part NON mesuree, +81 %). L'assertion d'ORDRE (coupe > cabriolet) est le fait que le constat nomme et ne depend d'aucun calibrage ; la bande [1,0 % ; 2,5 %] est une HYPOTHESE ECRITE (E4) HS-02 - aucune serie publique belge ne donne la part des cabriolets dans le stock d'occasion (meme trou de source que H5) - posee sur les deux etats connus du jeu (1,51 % avant DR3-14, 2,74 % apres), elargie d'un demi-point vers le bas et fermee en haut SOUS la valeur qu'avait produite l'inversion. Mesure : 1,729 % au profil test, 1,433 % au profil dev."
   },
   {
    "id": "P-25",
@@ -308,7 +317,7 @@
    "statistique": "prime electrique : prix median a segment, age et puissance comparables",
    "tolerance": "carburant E superieur de 5 a 25 % au carburant B",
    "portee": "snapshot test",
-   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 : P-18, P-23, P-37, P-38, P-45, P-58 \u2014 P-55 en est RETIREE par DR3-24, sa tolerance tenant compte de l'effectif)."
   },
   {
    "id": "P-38",
@@ -317,7 +326,7 @@
    "statistique": "prime professionnelle : prix median PRO / PRIVE a segment et age comparables",
    "tolerance": "dans [1.02, 1.12]",
    "portee": "snapshot test",
-   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 : P-18, P-23, P-37, P-38, P-45, P-58 \u2014 P-55 en est RETIREE par DR3-24, sa tolerance tenant compte de l'effectif)."
   },
   {
    "id": "P-39",
@@ -453,9 +462,9 @@
    "regle": "R-43",
    "famille": "Manquants",
    "statistique": "taux d'absence par champ",
-   "tolerance": "chaque champ de baseRates est a +/- 25 % relatifs de sa valeur de reference, sur la population ELIGIBLE du champ (conditionalAbsence) et pour une population d'au moins 100 lignes",
-   "portee": "snapshot test",
-   "amendement": "DR3-05 \u2014 le calibrage par champ portait sur un echantillon global, pas sur la population eligible ; trois champs conditionnels en sortaient. DR3-19 \u2014 la sonde n'est pas opposable au profil dev (EG-12) : a n = 5 000 la bande de +/- 25 % relatifs vaut moins de deux erreurs-types pour plusieurs champs. Mesure au profil test : 78 champs, 0 hors tolerance."
+   "tolerance": "chaque champ de baseRates est dans reference +/- max(25 % relatifs, 3 erreurs-types), sur la population ELIGIBLE du champ (conditionalAbsence) ; l'erreur-type est celle de la proportion SOUS LA REFERENCE, sqrt(p(1-p)/n) ; AUCUN plancher d'effectif (seule une population VIDE est ecartee, et nommee)",
+   "portee": "snapshot",
+   "amendement": "DR3-05 \u2014 le calibrage par champ portait sur un echantillon global, pas sur la population eligible ; trois champs conditionnels en sortaient. DR3-19 \u2014 la sonde avait ete declaree non opposable au profil dev (EG-12). DR3-24 / D3-27 REECRITE (D3-37) \u2014 les deux dispositifs qui traitaient les petites populations (plancher n >= 100 du reviewer, mise hors portee du profil dev) les traitaient en les RETIRANT de la mesure, ce qui est un affaiblissement et non une tolerance : consumption.electricCombined (96 lignes eligibles au profil test, 27 au profil dev) n'avait de taux mesure a AUCUN volume commite. La tolerance tient desormais compte de l'effectif, la sonde est OPPOSABLE AUX DEUX PROFILS et P-55 quitte EG-12. Mesure : 79 champs et 0 hors tolerance aux deux profils ; ecart relatif maximal 38,9 % au profil test (consumption.electricCombined, 1,60 erreur-type), 72,8 % au profil dev (meme champ, 1,59 erreur-type)."
   },
   {
    "id": "P-56",
@@ -480,7 +489,7 @@
    "statistique": "effet vendeur",
    "tolerance": "taux d'absence de l'equipement chez les PRIVE / chez les PRO >= 1.8",
    "portee": "snapshot test",
-   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 etendue a P-18, P-23, P-37, P-38, P-45, P-55, P-58)."
+   "amendement": "DR3-19 \u2014 sonde non opposable au profil dev (bruit d'echantillonnage, EG-12 : P-18, P-23, P-37, P-38, P-45, P-58 \u2014 P-55 en est RETIREE par DR3-24, sa tolerance tenant compte de l'effectif)."
   },
   {
    "id": "P-59",
@@ -593,7 +602,7 @@
    "regle": "R-57",
    "famille": "Anomalies",
    "statistique": "chaque anomalie A-01 a A-20",
-   "tolerance": "effectif realise a +/- 20 % relatifs du taux specifie SUR SA BASE DECLAREE (champ base d'anomalies.json), et jamais nul au profil test",
+   "tolerance": "effectif realise a +/- 20 % relatifs du taux specifie SUR SA BASE DECLAREE (champ base d'anomalies.json), PAR CODE d'anomalie (les codes d'une meme anomalie et les anomalies qui partagent un code sont fondus en un groupe : c'est la plus petite unite que la specification chiffre), et jamais nul au profil test",
    "portee": "snapshot test",
    "amendement": "DR3-10 \u2014 le generateur appliquait tous les taux a l'effectif TOTAL du snapshot ; cinq groupes sortaient de la tolerance sur leur base declaree (jusqu'a +3 189 % pour A-20). Les taux des anomalies rares sont par ailleurs choisis pour que taux x base soit ENTIER aux deux profils commites : a un effectif attendu de 1,5, aucun entier n'est a +/- 20 %."
   },

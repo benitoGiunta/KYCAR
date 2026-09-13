@@ -181,7 +181,9 @@
    "nom": "Outlier de prix M2 (relatif a la cellule)",
    "anomalyCode": "OUTLIER_M2_LOW / OUTLIER_M2_HIGH",
    "rate": 0.0035,
-   "base": "annonces a prix affiche de cellules (make, model) a |F| >= 30",
+   "base": "annonces a prix affiche",
+   "vivier": "annonces a prix affiche de cellules (make, model) a |F| >= 30 dont la regression de cellule porte un ajustement M2 EXPLOITABLE (DR3-09)",
+   "baseNote": "DR3-21 \u2014 le champ `base` declarait la restriction de VIVIER \u00ab cellules (make, model) a |F| >= 30 \u00bb, que le generateur n'applique pas au DENOMINATEUR : le taux 0,0035 est lu sur toutes les annonces a prix affiche (`tools/dataset/anomalies.mjs`, `baseCount`). Reliquat de DR3-10 : le champ annoncait une chose et le fichier en produisait une autre (au profil test 165 cellules atteignent n_price >= 30 et couvrent 13 745 annonces, soit 48,1 attendues contre 67 realisees, +39 % ; au profil dev 1 402 annonces couvertes, 4,9 attendues contre 17, +246 %). La restriction est deplacee vers `vivier`, comme pour A-04 et A-16 (voir `baseVsVivier`) ; sur la base declaree l'accord est exact (67 pour 67,5 au profil test, 17 pour 16,9 au profil dev).",
    "mecanisme": "le prix est multiplie par un facteur de [0.30, 0.50] (bas) ou [2.0, 3.2] (haut) ; avec sigma_p = 0.20 le score robuste attendu vaut |z| >= 3.5 : l'aberration reste PLAUSIBLE dans l'absolu et n'est demasquee que par le modele",
    "detection": "M2, ecart robuste au modele ln(prix) ~ annee + km/10000",
    "exigence": "EX-DATA-90, EX-DATA-92, EX-DATA-93",
@@ -366,5 +368,5 @@
    "aRetrouver": "l'etat MISSING est compte SEPAREMENT d'ON_REQUEST : les confondre masquerait une regression de l'adaptateur"
   }
  ],
- "baseVsVivier": "DR3-10 \u2014 `base` est le DENOMINATEUR du taux (la population de reference sur laquelle `rate` est lu), `vivier` est la population dans laquelle le generateur TIRE. Les deux coincident presque toujours ; quand ils different, les deux champs sont ecrits. Le generateur applique desormais chaque taux a sa base declaree (tools/dataset/anomalies.mjs, `targetOf`) : il prenait auparavant N pour base de TOUTES les anomalies, ce qui donnait +46 % sur les trois doublons (base professionnelle), +658 % sur A-16 et +3 189 % sur A-20."
+ "baseVsVivier": "DR3-10 \u2014 `base` est le DENOMINATEUR du taux (la population de reference sur laquelle `rate` est lu), `vivier` est la population dans laquelle le generateur TIRE. Les deux coincident presque toujours ; quand ils different, les deux champs sont ecrits. Le generateur applique desormais chaque taux a sa base declaree (tools/dataset/anomalies.mjs, `targetOf`) : il prenait auparavant N pour base de TOUTES les anomalies, ce qui donnait +46 % sur les trois doublons (base professionnelle), +658 % sur A-16 et +3 189 % sur A-20. DR3-21 : A-11 rejoint A-04 et A-16 \u2014 sa restriction de cellule (|F| >= 30, ajustement M2 exploitable) est un VIVIER, jamais un denominateur. Regle de lecture, opposable au generateur ET aux controles : le champ `base` ne nomme QUE des populations que `baseCount` sait compter (toutes, annonces a prix affiche, annonces a prix sur demande, annonces professionnelles, annonces d'offerType U/J/O, annonces thermiques, annonces hybrides, annonces portant powerHp) ; toute autre restriction s'ecrit dans `vivier`. Les trois implementations (tools/dataset/anomalies.mjs, tools/dataset/check.mjs, tests/data/p72-anomalies.test.ts) comparent desormais la chaine EXACTEMENT et refusent une base inconnue, au lieu de l'absorber par prefixe."
 }

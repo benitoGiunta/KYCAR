@@ -6,7 +6,7 @@
  *
  * Règle du reviewer (REVIEW-PROTOCOL §2, D-31/D-32) : les mesures sont RECALCULÉES ici, jamais
  * reprises de `tools/dataset/check.mjs` ni du `generation.json` du générateur. Le seul document
- * qui fait foi est `docs/data/dataset-spec/probes.json` (les 110 sondes) et les tables qu'il vise.
+ * qui fait foi est `docs/data/dataset-spec/probes.json` (les 111 sondes) et les tables qu'il vise.
  *
  * Profil : `KYCAR_DATA_PROFILE=dev` (défaut, rapide) ou `test` (profil chargé par l'application,
  * D3-01). Une sonde de portée « snapshot test » est ignorée hors de ce profil, en le disant.

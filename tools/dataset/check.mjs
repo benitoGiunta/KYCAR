@@ -385,27 +385,49 @@ export function runCheck(opts) {
     quoted: s0.filter((o) => statusOf(o) === 'QUOTED').length,
     onRequest: s0.filter((o) => statusOf(o) === 'ON_REQUEST').length,
   };
+  // DR3-21 - COMPARAISON EXACTE de la base declaree, jamais par prefixe : une restriction de vivier
+  // ecrite par erreur dans `base` doit arreter le controle, pas etre absorbee (voir `baseVsVivier`).
   const baseOf = (b) => {
-    if (b.startsWith('annonces a prix affiche')) return baseCounts.quoted;
+    if (b === 'annonces a prix affiche') return baseCounts.quoted;
     if (b === 'annonces professionnelles') return baseCounts.pro;
     if (b === "annonces d'offerType U, J ou O") return baseCounts.usedOffer;
     if (b === 'annonces thermiques') return baseCounts.thermal;
     if (b === 'annonces hybrides') return baseCounts.hybrid;
     if (b === 'annonces portant powerHp') return baseCounts.withPowerHp;
     if (b === 'annonces a prix sur demande') return baseCounts.onRequest;
-    return baseCounts.total;
+    if (b === 'toutes') return baseCounts.total;
+    throw new Error(`anomalies.json : base « ${b} » inconnue (DR3-21)`);
   };
+  // DR3-23 - UNE LIGNE PAR CODE, PAS PAR `A-nn`. La sortie imprimait un attendu par anomalie et un
+  // realise PAR CODE : `A-19:90/10.0` et `A-21:90/80.0` se lisaient comme +800 % alors que le code
+  // unique REGION_UNRESOLVED realise 90 pour 90 attendues. Le groupe est desormais la plus petite
+  // unite que la specification chiffre - les codes d'une meme anomalie (`A-10` LOW/HIGH) et les
+  // anomalies qui partagent un code (`A-19`, `A-21`) sont fondus -, exactement comme la sonde
+  // R-DATA-19 de tests/data/p72-anomalies.test.ts. La part imputee a chaque `A-nn` est publiee
+  // entre crochets. La tolerance de +/- 20 % (ou +/- 1) s'applique maintenant a TOUS les groupes :
+  // le relachement « got >= floor(target) » qui couvrait les codes partages n'a plus lieu d'etre.
+  const groupOf = new Map();
+  const groups = new Map();
   for (const a of tables.anomalies.anomalies) {
     if (a.rate <= 0) continue;
-    const target = a.rate * baseOf(a.base);
     const codes = a.anomalyCode.split('/').map((c) => c.trim()).filter((c) => c !== '(sans objet)');
-    const got = codes.reduce((acc, c) => acc + (gtByCode.get(c) ?? 0), 0);
-    const shared = codes.some((c) => tables.anomalies.anomalies.filter((x) => x.anomalyCode.includes(c)).length > 1);
-    const ok = shared ? got >= Math.floor(target) : Math.abs(got - target) <= Math.max(1, target * 0.2);
-    if (!ok) anomalyOk = false;
-    anomalyRows.push(`${a.id}:${got}/${target.toFixed(1)}@${baseOf(a.base)}`);
+    if (codes.length === 0) continue;
+    const key = codes.map((c) => groupOf.get(c)).find((g) => g !== undefined) ?? codes.join('+');
+    for (const c of codes) groupOf.set(c, key);
+    const g = groups.get(key) ?? { codes: [], parts: [], expected: 0 };
+    for (const c of codes) if (!g.codes.includes(c)) g.codes.push(c);
+    const part = a.rate * baseOf(a.base);
+    g.expected += part;
+    g.parts.push(`${a.id} ${part.toFixed(1)}@${baseOf(a.base)}`);
+    groups.set(key, g);
   }
-  add('P-72', 'effectifs par anomalie (realise / attendu SUR SA BASE @ effectif de base)', anomalyRows.join(' '), anomalyOk);
+  for (const [key, g] of groups) {
+    const got = g.codes.reduce((acc, c) => acc + (gtByCode.get(c) ?? 0), 0);
+    const ok = Math.abs(got - g.expected) <= Math.max(1, g.expected * 0.2);
+    if (!ok) anomalyOk = false;
+    anomalyRows.push(`${key}:${got}/${g.expected.toFixed(1)}[${g.parts.join('+')}]`);
+  }
+  add('P-72', 'effectifs par CODE d anomalie (realise / somme des attendus SUR LEUR BASE, part par A-nn entre crochets)', anomalyRows.join(' '), anomalyOk);
   const ids0 = idSets[0];
   const orphan = snaps[0].manifest.groundTruth.filter((g) => !ids0.has(g.listingId)).length;
   add('P-73', 'verite terrain rattachee a une ligne du snapshot', `${orphan} orpheline(s)`, orphan === 0);
@@ -444,12 +466,24 @@ export function runCheck(opts) {
   const recent = s0.filter((o) => o.firstRegistrationDate && o.firstRegistrationDate >= '2022');
   const suv = recent.filter((o) => o.bodyType === 4).length / recent.length;
   // DR3-19 : EG-12 nomme les sondes dont la tolerance n'est pas atteignable au VOLUME dev. La liste
-  // passe de trois a sept (P-18, P-23, P-37, P-38, P-45, P-55, P-58) ; ici, seules celles que ce
-  // controle rejoue sont marquees. Au profil test elles restent OPPOSABLES.
+  // passait de trois a sept (P-18, P-23, P-37, P-38, P-45, P-55, P-58) ; DR3-24 en RETIRE P-55, dont
+  // la tolerance tient desormais compte de l'effectif (D3-27 reecrite), ce qui la rend opposable aux
+  // deux profils : la liste revient a six. Ici, seules celles que ce controle rejoue sont marquees.
+  // Au profil test elles restent OPPOSABLES.
   const devNoise = opts.profile === 'test' ? null : 'EG-12';
   add('P-23', 'part de carrosserie SUV parmi les 1res immat. >= 2022', `${(suv * 100).toFixed(1)} %`, suv >= 0.38 && suv <= 0.52, devNoise);
   const coupe = s0.filter((o) => o.bodyType === 3).length / N;
   add('P-24', 'part de carrosserie coupe', `${(coupe * 100).toFixed(2)} %`, coupe >= 0.02 && coupe <= 0.035);
+  // DR3-22 : la part de cabriolets n'etait contrainte par rien - elle avait servi de variable
+  // d'ajustement a DR3-14. Deux bornes : l'ordre du marche (plus de coupes que de cabriolets, le
+  // fait que le constat nomme) et une bande [1,0 % ; 2,5 %] (hypothese ecrite E4 HS-02).
+  const cabriolet = s0.filter((o) => o.bodyType === 2).length / N;
+  add(
+    'P-24bis',
+    'part de carrosserie cabriolet, et ordre du marche coupe > cabriolet',
+    `${(cabriolet * 100).toFixed(2)} % contre ${(coupe * 100).toFixed(2)} % de coupes`,
+    cabriolet >= 0.01 && cabriolet <= 0.025 && coupe > cabriolet,
+  );
   const autoShare = (y) => {
     const sub = s0.filter((o) => o.firstRegistrationDate && o.firstRegistrationDate.startsWith(String(y)) && o.transmission);
     return sub.length === 0 ? NaN : sub.filter((o) => o.transmission !== 'M').length / sub.length;
@@ -476,23 +510,32 @@ export function runCheck(opts) {
 
   /* ---- Valeurs manquantes -------------------------------------------------------------------------- */
   const presence = presenceRates(s0, tables);
+  // DR3-24 / D3-27 REECRITE (D3-37) : la tolerance vaut `max(+/- 25 % relatifs, +/- 3 erreurs-types)`
+  // autour de la reference, A TOUS LES PROFILS et SANS plancher d'effectif. L'erreur-type est celle
+  // de la proportion SOUS LA REFERENCE, sqrt(p(1-p)/n). La bande relative reste seule active des que
+  // n est grand (elle atteint 3 erreurs-types a n >= 816 pour p = 0,15) ; elle est elargie la ou elle
+  // etait plus etroite que le bruit qu'une donnee conforme produit. P-55 quitte donc EG-12 : elle est
+  // OPPOSABLE au profil dev comme au profil test.
   let worstField = null;
   let worstDev = 0;
   const breaches = [];
   for (const [key, { rate, base, n }] of presence) {
     const dev = base === 0 ? 0 : Math.abs(rate - base) / base;
-    if (dev > 0.25) breaches.push(`${key} ${(rate * 100).toFixed(2)} % vs ${(base * 100).toFixed(2)} % (n=${n})`);
+    const se = Math.sqrt((base * (1 - base)) / n);
+    const tol = Math.max(0.25 * base, 3 * se);
+    if (Math.abs(rate - base) > tol) {
+      breaches.push(`${key} ${(rate * 100).toFixed(2)} % vs ${(base * 100).toFixed(2)} % (n=${n}, ${(Math.abs(rate - base) / se).toFixed(1)} e.t.)`);
+    }
     if (dev > worstDev) {
       worstDev = dev;
-      worstField = `${key} ${(rate * 100).toFixed(1)} % vs ${(base * 100).toFixed(1)} % (n=${n})`;
+      worstField = `${key} ${(rate * 100).toFixed(1)} % vs ${(base * 100).toFixed(1)} % (n=${n}, ${(Math.abs(rate - base) / se).toFixed(1)} e.t.)`;
     }
   }
   add(
     'P-55',
-    `taux d absence de ${presence.size} champs a +/- 25 % relatifs (${presence.skipped.length} ecarte(s) : ${presence.skipped.join(', ')})`,
-    breaches.length === 0 ? `ecart max ${(worstDev * 100).toFixed(1)} % (${worstField})` : `HORS TOLERANCE ${breaches.join(' | ')}`,
+    `taux d absence de ${presence.size} champs a max(+/- 25 % relatifs, +/- 3 erreurs-types) (${presence.skipped.length} ecarte(s) : ${presence.skipped.join(', ')})`,
+    breaches.length === 0 ? `ecart relatif max ${(worstDev * 100).toFixed(1)} % (${worstField})` : `HORS TOLERANCE ${breaches.join(' | ')}`,
     breaches.length === 0,
-    devNoise,
   );
   const rates = [...presence.values()].map((v) => v.rate);
   const mu = rates.reduce((a, b) => a + b, 0) / rates.length;
@@ -652,8 +695,12 @@ function presenceRates(objects, tables) {
       continue;
     }
     const pop = rule === undefined ? objects : objects.filter(rule);
-    if (pop.length < 100) {
-      skipped.push(`${key} (n=${pop.length})`);
+    // DR3-24 / D3-27 reecrite : PLUS DE PLANCHER D'EFFECTIF. Une population VIDE reste ecartee (aucun
+    // taux n'y est definissable) ; une petite population est mesuree, avec la tolerance elargie a
+    // trois erreurs-types. Le plancher n >= 100 retirait `consumption.electricCombined` (96 lignes
+    // eligibles au profil test, 27 au profil dev) de TOUS les volumes commites.
+    if (pop.length === 0) {
+      skipped.push(`${key} (population vide)`);
       continue;
     }
     const missing = pop.filter((o) => at(o, key) === undefined).length;

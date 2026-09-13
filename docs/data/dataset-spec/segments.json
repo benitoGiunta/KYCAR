@@ -83,15 +83,17 @@
   "luxe": 1.5
  },
  "bodyTypeMapping": {
-  "$comment": "segment -> KYCAR_BODY_TYPE (codes AutoScout24 voiture), tirage pondere. DR3-14 : le code 3 (Coupe) n'etait produit que par les segments sportive et luxe, dont les prix catalogue valent 55 000 et 95 000 EUR. Le parcours cible P1 (coupe + prix <= 20 000 EUR + km <= 100 000) ne rendait alors que 30 offres au profil test, contre 230 a 280 annoncees au \u00a71.4. Le marche belge de l'occasion contredit ce modele : Opel Astra GTC, VW Scirocco, Renault Megane Coupe, Peugeot RCZ, Hyundai Coupe, Mini sont des coupes de segment CITADINE ou COMPACTE, a prix d'occasion courant. Le code 3 est donc reparti sur quatre segments.",
+  "$comment": "segment -> KYCAR_BODY_TYPE (codes AutoScout24 voiture), tirage pondere. DR3-14 : le code 3 (Coupe) n'etait produit que par les segments sportive et luxe, dont les prix catalogue valent 55 000 et 95 000 EUR. Le parcours cible P1 (coupe + prix <= 20 000 EUR + km <= 100 000) ne rendait alors que 30 offres au profil test, contre 230 a 280 annoncees au \u00a71.4. Le marche belge de l'occasion contredit ce modele : Opel Astra GTC, VW Scirocco, Renault Megane Coupe, Peugeot RCZ, Hyundai Coupe, Mini sont des coupes de segment CITADINE ou COMPACTE, a prix d'occasion courant. Le code 3 est donc reparti sur quatre segments. DR3-22 : la meme correction avait AUSSI inverse le melange du segment sportive (60/40 coupe/cabriolet -> 25/75) sans le dire, dans le seul but de tenir la borne haute de P-24 ; l'ordre du marche est retabli et les poids sont reequilibres. Voir `constatDR3_22`.",
   "citadine": {
-   "1": 0.93,
-   "3": 0.07
+   "1": 0.888,
+   "3": 0.092,
+   "2": 0.02
   },
   "compacte": {
    "1": 0.15,
-   "6": 0.785,
-   "3": 0.065
+   "6": 0.818,
+   "3": 0.012,
+   "2": 0.02
   },
   "berline": {
    "6": 1.0
@@ -109,8 +111,10 @@
    "13": 1.0
   },
   "sportive": {
-   "2": 0.75,
-   "3": 0.25
+   "3": 0.38,
+   "2": 0.25,
+   "6": 0.22,
+   "1": 0.15
   },
   "luxe": {
    "3": 0.04,
@@ -118,6 +122,7 @@
    "6": 0.66
   }
  },
+ "constatDR3_22": "DR3-22 (re-revue delta de la phase 3.4, reserve R3 ; arbitrage D3-37). (1) ORDRE DU MARCHE RETABLI. Le melange du segment sportive redevient a dominante COUPE : 0,38 de code 3 contre 0,25 de code 2, rapport 1,52 (la valeur d'avant DR3-14 valait 1,50 ; DR3-14 l'avait inversee a 0,33 sans le dire, la part de cabriolets gagnant 81 % au passage). (2) LE SEGMENT SPORTIVE N'EST PAS UNE CARROSSERIE. C'est un palier de prix catalogue (55 000 EUR) et de puissance (mediane 180 kW, sigma 0,35). Une part du parc sportif d'occasion belge est a quatre ou cinq portes : berlines et compactes sportives (BMW M3 et M5, Mercedes-AMG C 63 et A 45, Audi RS 3 et RS 4, VW Golf GTI et R, Honda Civic Type R, Ford Focus ST). D'ou 0,22 de code 6 (Berline) et 0,15 de code 1 (Citadine) ; le code 1 recoit les compactes sportives a trois portes, dont la carrosserie declaree est coherente avec le doorCount du segment. HYPOTHESE ECRITE (E4) HS-01 : aucune serie publique belge ne donne la repartition des carrosseries A L'INTERIEUR d'un palier de prix ; ce tiers non-coupe/non-cabriolet est une hypothese de modele, bornee en haut par P-24 et en bas par R-DATA-28 (le parcours P1 a besoin de coupes bon marche). (3) LES CABRIOLETS NE VIENNENT PLUS DU SEUL SEGMENT SPORTIVE. 2 % des citadines et 2 % des compactes en sont : Fiat 500C, MINI Cabrio, DS 3 Cabrio, Peugeot 207 CC et 208 CC, VW Golf Cabriolet, Audi A3 Cabriolet, BMW Serie 2 Cabriolet sont des cabriolets de segment courant, au meme titre que les coupes bon marche de DR3-14. C'est ce qui permet de tenir A LA FOIS l'ordre du marche dans sportive, la borne haute de P-24 et le plancher du parcours P1 : les trois contraintes sont incompatibles si le cabriolet n'a qu'une seule source. (4) MESURE. Profil test S0 : coupe 3,180 % (avant DR3-22 3,387 %, avant DR3-14 2,41 %), cabriolet 1,729 % (avant DR3-22 2,737 %, avant DR3-14 1,51 %), rapport coupe/cabriolet 1,84 (avant DR3-22 1,24, avant DR3-14 1,60) ; parcours P1 137 offres sur 33 marques (avant DR3-22 156 sur 35 ; plancher opposable 120 et 10 marques). Profil dev S0 : coupe 2,845 %, cabriolet 1,433 %, rapport 1,99. (5) LA PART DE CABRIOLETS EST DESORMAIS SONDEE. P-24bis (probes.json, tests/data/p16-fuel-body.test.ts) : part de code 2 dans [1,0 % ; 2,5 %] ET part de coupes STRICTEMENT superieure a la part de cabriolets. C'est la seconde assertion qui rend l'inversion de DR3-22 impossible sans qu'une sonde tombe - le defaut constate etait precisement qu'aucune sonde ne contraignait cette part.",
  "bodyTypeOtherRate": 0.01,
  "bodyTypeOtherComment": "1 % des annonces portent le code 7 (Autres) quel que soit le segment : le vendeur n'a pas classe son vehicule",
  "newPriceEur": {
