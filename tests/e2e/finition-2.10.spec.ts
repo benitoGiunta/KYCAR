@@ -398,11 +398,52 @@ test('ACC-07 — G1 + ses exclusions nommées = Σ (EX-SCR-178)', async ({ page 
  * ACC-08 — `EX-SCR-21` : gouttières, rayons, cibles tactiles
  * ============================================================================================== */
 
+/*
+ * D-31 (constat coordinateur C-R1-03, 2026-09-13) — correction de sonde justifiée.
+ * `open()` (`_helpers.ts`) n'attend que le premier rendu utile de l'écran A : effectif dans la barre
+ * de synthèse + au moins une carte-marque (`waitForMarket`). Les zones-modèles (et leur case
+ * « Comparer ») arrivent APRÈS, dans un second aller différé à la boucle d'inactivité
+ * (`loadAllModels`, `src/app.tsx` ~l. 413, `EX-NFR-9`) : avant la fusion de `fixture-perf`, ce
+ * second aller se terminait quasi immédiatement (jeu de données réduit), la mesure ci-dessous
+ * tombait presque toujours APRÈS son arrivée et ACC-08 ne voyait donc jamais l'état transitoire.
+ * Depuis `fixture-perf` (D3-31), l'ingestion différée retarde cet aller : la mesure, prise juste
+ * après `open()`, tombait désormais AVANT l'arrivée des zones et ne les comptait jamais parmi les
+ * cibles interactives (0 case « Comparer » vue). Le test était donc dépendant d'un état transitoire
+ * non garanti par aucun contrat — un défaut de la SONDE, pas de l'écran. La correction attend un
+ * état déterministe (nombre de `.kycar-market-zone-compare` STABLE pendant 300 ms) avant de mesurer ;
+ * aucun seuil du test ne change (44/32 px, gouttières 16/20/24, rayon 4). Voir aussi le correctif
+ * produit de la case elle-même (cible agrandie via `.kycar-market-zone-compare-target`,
+ * `src/screens/market/ModelZone.tsx`/`market.css`) que cette attente a révélé sous ce seuil.
+ */
 test('ACC-08 — gouttière de grille, rayon des contrôles et cibles tactiles (EX-SCR-21)', async ({
   page,
 }, testInfo) => {
   const regime = regimeOf(testInfo);
   await open(page, `/marche${P1_QUERY}`);
+
+  // D-31 — attendre l'arrivée ET la stabilisation des zones-modèles (second aller différé,
+  // `EX-NFR-9`) avant de mesurer les cibles tactiles ; sans quoi la mesure dépend du timing de
+  // `loadAllModels` plutôt que d'un état d'écran garanti.
+  await page.waitForFunction(
+    () => document.querySelectorAll('.kycar-market-zone-compare').length > 0,
+    null,
+    { timeout: 60_000 },
+  );
+  await page.waitForFunction(
+    () => {
+      const w = window as unknown as { __acc08LastCount?: number; __acc08StableSince?: number };
+      const n = document.querySelectorAll('.kycar-market-zone-compare').length;
+      const now = Date.now();
+      if (w.__acc08LastCount !== n) {
+        w.__acc08LastCount = n;
+        w.__acc08StableSince = now;
+        return false;
+      }
+      return now - (w.__acc08StableSince ?? now) >= 300;
+    },
+    null,
+    { timeout: 60_000 },
+  );
 
   const m = await page.evaluate(() => {
     const grid = document.querySelector('.kycar-market-grid');
