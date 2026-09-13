@@ -555,9 +555,36 @@ Schéma : `data/schema/snapshot-baseline.schema.json` (`$id`
 | `selectionCount` | l'effectif de cette sélection (annonces RETENUES) | le « n offres » d'`EX-SCR-46` |
 | `ingest` | `lineCount`, `listingCount`, rejets par motif, doublons, inconnus par champ, drapeaux d'ingestion, provenances de mesure | pour que le `SnapshotDescriptor` **et sa `coverageNote`** soient identiques, mot pour mot, avec ou sans artefact |
 
-**Poids.** 119 Kio bruts / **12,7 Kio gzip** au profil `test` (262 marques) ; 63 Kio bruts /
-7,8 Kio gzip au profil `dev` (135 marques). À comparer aux 2 677 Kio gzip d'annonces qu'il évite
-d'attendre.
+**Poids.** 121 Kio bruts / **13,5 Kio gzip** au profil `test` (262 marques) ; 64 Kio bruts /
+8,3 Kio gzip au profil `dev` (135 marques). À comparer aux 2 677 Kio gzip d'annonces qu'il évite
+d'attendre. (12,7 / 7,8 Kio gzip avant le passage au type 7 : un quantile interpolé s'écrit en plus
+de caractères qu'un rang le plus proche — `+1,13 Kio gzip` au profil `test`, soit ≈ 2 ms en 4G sur
+un budget `EX-NFR-9` de 2 000 ms ; premier chiffre mesuré à 1 512 ms médians après correction.)
+
+**Quantiles : type 7, `EX-DATA-62` — corrigé en 3.5 (`DR3-20`, `D3-37`).** Les `p05`/`p50`/`p95` de
+`rows` sont les **quantiles de type 7** (interpolation linéaire entre statistiques d'ordre), publiés
+en **double précision et sans arrondi** (`EX-DATA-63`) : l'arrondi à l'euro / au kilomètre / à
+l'année est de PRÉSENTATION (`EX-DATA-64`) et appartient au rendu. Le schéma les typait `integer`
+jusqu'en 3.5 — il figeait ainsi la convention du **rang le plus proche** `x_⌈p·n⌉` que le provider
+appliquait, en contradiction avec la « définition unique et non négociable » d'`EX-DATA-62`, avec le
+moteur (`src/engine/quantiles.ts`) et avec le provider `tweedehands`. Ils sont désormais typés
+`number`. Deux corrections vont avec, pour la même raison — une seule définition dans le produit,
+celle du moteur :
+
+- **`EX-DATA-19(2)`** : la sentinelle RELATIVE `PRICE_IMPLAUSIBLE_IN_CELL` (`prix <
+  0,10 × médianeRéf(C₃ = Σ)`, règle inapplicable sous 12 prix valides) exclut de `V_price`, comme la
+  sentinelle absolue. La cellule de la baseline est la **sélection vide**, c'est-à-dire le snapshot
+  entier : le seuil vaut 1 629,80 € au profil `test` (274 annonces écartées de `V_price`, **comptées**
+  dans `listingCount` — `ARB-15`) et 1 600 € au profil `dev` (83 annonces). Une même marque affichée
+  sous un filtre (écran B) a une cellule différente, donc un seuil différent : c'est la définition
+  d'`EX-DATA-86`, pas un écart.
+- **`EX-DATA-25`** : l'axe année d'un agrégat est `firstRegistrationYear`, **jamais** `modelYear` —
+  l'agrégation du provider lisait `modelYear` (18 791 valeurs connues contre 19 682, et seulement
+  14 065 identiques au profil `test`).
+
+Ce que l'artefact publie est donc, au bit près, ce que `aggregate()` du moteur calcule sur la même
+sélection : la sonde `tests/contract/baseline-vs-engine.test.ts` le prouve champ à champ sur les six
+snapshots commités.
 
 **Production.** `npm run data:baseline -- --profile dev|test|perf`
 (`tools/dataset/baseline.ts`, lancé par `vite-node`). Le script **instancie le vrai
@@ -584,7 +611,12 @@ obligerait à régénérer les fixtures pour un fichier calculé après elles.
 3. **après coup, contre les annonces elles-mêmes** : quand l'ingestion différée se termine, le
    provider RECALCULE `aggregateByMake(batch, null, 1)` et compare champ à champ (`diffBaseline`).
    Un écart met le snapshot en **erreur explicite** — plus aucune valeur n'est servie, pas même la
-   baseline déjà affichée — plutôt que de laisser vivre un chiffre que plus rien ne soutient.
+   baseline déjà affichée — plutôt que de laisser vivre un chiffre que plus rien ne soutient ;
+4. **contre un TIERS**, depuis 3.5 (`DR3-20`) : `tests/contract/baseline-vs-engine.test.ts` confronte
+   chaque `baseline.json` commité aux `MakeAggregate` d'`aggregate()` du **moteur** — l'autre
+   implémentation du même contrat, celle qui sert l'écran B. Les trois verrous précédents comparent
+   l'artefact au code qui l'a produit ; ils étaient donc aveugles à une convention fausse mais
+   appliquée partout, ce qu'était `DR3-20`.
 
 **Conséquence pour `dataset-gen`.** Régénérer un snapshot change son `sha256` : son `baseline.json`
 devient périmé et sera refusé (verrou 1). **Toute régénération de fixtures est suivie de

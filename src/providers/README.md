@@ -25,6 +25,38 @@ le générateur *et* par l'adaptateur réel ; l'annonce reste **comptée** dans 
 mais sort de `V_price` dans toute fourchette publiée par le provider. Même règle pour
 `SUSPECT_ZERO_MILEAGE` / `MILEAGE_OUT_OF_RANGE` sur `V_mileage`.
 
+## Phase 3.5 (`fix-providers-3`) — la convention de calcul est celle du MOTEUR, pas la sienne
+
+Rapport : `reports/data/fix-providers-3.md`. Constat `DR3-20` (MAJEUR, arbitrage `D3-37`) :
+`src/providers/synthetic/aggregate.ts` — l'agrégation mode 1 des providers **synthétique ET
+fixture** — servait trois conventions qui n'étaient ni celles du dictionnaire ni celles du moteur.
+Les trois sont corrigées, et le code du moteur est désormais **importé** plutôt que paraphrasé :
+
+| Point | Ce qui était servi | Ce qui l'est depuis 3.5 | Source unique |
+|---|---|---|---|
+| Quantile | rang le plus proche `x_⌈p·n⌉` | **type 7** (`EX-DATA-62`, « définition unique et non négociable »), en double précision sans arrondi (`EX-DATA-63`) | `quantileFromSorted` de `src/engine/quantiles.ts` |
+| Échantillon de prix | sentinelle ABSOLUE seule | + sentinelle **RELATIVE** `PRICE_IMPLAUSIBLE_IN_CELL` (`EX-DATA-19(2)`), cellule `C₃ = Σ` | `implausibleInCellThreshold` de `src/engine/implausible.ts`, `isPriceValid` de `src/engine/flags.ts` |
+| Axe année | `modelYear` | **`firstRegistrationYear`** (`EX-DATA-25` : « jamais `modelYear` ») | `isYearValid` / `yearFromYearMonth` de `src/engine/flags.ts` |
+
+Conséquences pour les couches consommatrices :
+
+- **`MetricRange.p05` / `p50` / `p95` ne sont plus des entiers.** Ce sont des réels non arrondis ;
+  l'arrondi (euro entier, kilomètre, plancher/plafond pour l'année) est de **présentation**
+  (`EX-DATA-64`) et appartient au rendu. `data/schema/snapshot-baseline.schema.json` les type
+  `number`. `min` et `max` restent entiers : ce sont des statistiques d'ordre.
+- **`src/providers` importe `src/engine`** (trois modules PURS : `quantiles`, `implausible`,
+  `flags`). Le graphe de production reste acyclique — seul `src/engine/testkit.ts`, réservé aux
+  tests et absent de `src/engine/index.ts`, remonte vers `src/providers`. Coût mesuré sur le paquet
+  initial : **+0,11 Kio gzip** (121,80 → 121,91 Kio, budget 300 Kio).
+- **`MetricColumns` (`synthetic/generate.ts`) porte deux colonnes de plus** — `priceStatus` et
+  `firstRegistrationYearMonth` —, que `ListingColumnBatch` et `CoreColumns` satisfaisaient déjà
+  structurellement et que la passe de génération du noyau remplissait déjà : le chemin critique du
+  premier affichage (DR-049) ne matérialise rien de plus.
+- **La preuve est un TIERS** : `tests/contract/baseline-vs-engine.test.ts` confronte chaque
+  `baseline.json` commité aux `MakeAggregate` d'`aggregate()` du moteur, champ à champ, sur les six
+  snapshots de `dev` et `test` — plus une batterie de lots construits à la main (n = 2, 3, 4, 20) où
+  les quantiles sont calculés à la main.
+
 ### 2. `unsupportedFilterIds` : un effectif n'est jamais publié comme filtré s'il ne l'est pas
 
 `AggregateResult.unsupportedFilterIds` liste les identifiants de filtre que le provider **n'a pas
