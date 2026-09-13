@@ -519,37 +519,61 @@ test('ACC-08 — gouttière de grille, rayon des contrôles et cibles tactiles (
 });
 
 /*
- * C-R1-04 (constat coordinateur, 2026-09-13) — la grille compacte des zones-modèles (`EX-SCR-135`,
- * quatre lignes) dépend d'un `display: contents` sur `.kycar-market-zone-interactive` pour que ses
- * enfants (row1, prix, années, kilométrage, médiane, barre) deviennent des items nommés de la grille
- * de `.kycar-market-zone`. Une règle GLOBALE hors périmètre de ce lot, `src/app/app.css` :
- * `.kycar-app [role='button'] { display: inline-flex; ... }` (deux sélecteurs, spécificité 0-0-2-0),
- * l'emportait TOUJOURS sur ce `display: contents` (une seule classe, 0-0-1-0), quel que soit l'ordre
- * des feuilles — `.kycar-market-zone-interactive` porte `role="button"`. Le résultat : les rangées
- * 2 à 4 de la grille compacte se réduisaient à 0 px (rien n'y était plus placé, leur contenu étant
- * redevenu de simples enfants flex de la boîte réifiée), et le TEXTE de chaque zone débordait sur la
- * zone suivante — chevauchement visible à 360 px (mobile) ET à 768 px (tablette : le CONTENEUR de
- * requête, `.kycar-market-screen`, y mesure 736 px de large, sous le seuil `767.98px` de la même
- * `@container`, donc la même grille compacte s'y applique). Corrigé dans `market.css` en portant la
- * spécificité du sélecteur à 0-0-3-0 (`.kycar-market-zone .kycar-market-zone-interactive[role='button']`),
- * sans toucher à `src/app/app.css` (hors périmètre). Cette sonde mesure un invariant géométrique
- * déterministe indépendant du texte affiché : aucune ligne d'une zone ne déborde de sa propre boîte,
- * et aucune zone VISIBLE n'empiète sur la suivante — « visible » exclut le contenu scindé hors du
- * cadre d'un ancêtre défilant (`overflow: hidden|auto|scroll`), qu'un utilisateur ne voit qu'en
- * faisant défiler CETTE liste, jamais en superposition avec une autre carte.
+ * C-R1-04 (constat coordinateur, 2026-09-13, complété par une retouche du 2026-09-13) — la grille
+ * compacte des zones-modèles (`EX-SCR-135`, quatre lignes) dépend d'un `display: contents` sur
+ * `.kycar-market-zone-interactive` pour que ses enfants (row1, prix, années, kilométrage, médiane,
+ * barre) deviennent des items nommés de la grille de `.kycar-market-zone`. Une règle GLOBALE hors
+ * périmètre de ce lot, `src/app/app.css` : `.kycar-app [role='button'] { display: inline-flex; ... }`
+ * (deux sélecteurs, spécificité 0-0-2-0), l'emportait TOUJOURS sur ce `display: contents` (une seule
+ * classe, 0-0-1-0), quel que soit l'ordre des feuilles — `.kycar-market-zone-interactive` porte
+ * `role="button"`. Le résultat : les rangées 2 à 4 de la grille compacte se réduisaient à 0 px (rien
+ * n'y était plus placé, leur contenu étant redevenu de simples enfants flex de la boîte réifiée), et
+ * le TEXTE de chaque zone débordait sur la zone suivante — chevauchement visible à 360 px (mobile)
+ * ET à 768 px (tablette : le CONTENEUR de requête, `.kycar-market-screen`, y mesure 736 px de large,
+ * sous le seuil `767.98px` de la même `@container`, donc la même grille compacte s'y applique).
+ * Corrigé dans `market.css` en portant la spécificité du sélecteur à 0-0-3-0
+ * (`.kycar-market-zone .kycar-market-zone-interactive[role='button']`), sans toucher à
+ * `src/app/app.css` (hors périmètre).
  *
- * En construisant cette sonde, un SECOND défaut latent est apparu (même constat C-R1-04, cause
- * différente) : une carte dont le nombre de modèles vaut exactement
- * `modelesVisiblesAvantRepli + 1` les affiche TOUS par défaut (`view-model.ts` l. 369, évite un
- * « + 1 autre modèle » dégénéré). En régime compact/intermédiaire (bande ≥ 96 px), la liste NON
- * dépliée d'une telle carte peut dépasser les 480 px alloués — et jusqu'ici, seule la variante
- * `--expanded` de `.kycar-market-zone-list` recevait `min-height: 0`/`overflow-y: auto` ; la liste
- * REPLIÉE se contentait du `overflow: hidden` de la carte (`EX-SCR-124`), qui ROGNE (au lieu de
- * rendre défilable) tout excès — un ou plusieurs derniers modèles d'une telle carte devenaient
- * invisibles ET inaccessibles (aucun bouton de dépliement, `hasMoreModels` étant faux), en
- * violation de `EX-SCR-112`/`D-36` (« jamais masqués »). Corrigé en portant `min-height: 0`,
- * `max-height: 480px`, `overflow-y: auto` (et l'ombre de débord déjà utilisée par `--expanded`) sur
- * `.kycar-market-zone-list` de base : l'excès, désormais, se déroule au doigt au lieu de disparaître.
+ * Un SECOND défaut latent est apparu en construisant la sonde ci-dessous (cause différente) : une
+ * carte dont le nombre de modèles vaut exactement `modelesVisiblesAvantRepli + 1` les affiche TOUS
+ * par défaut (`view-model.ts` l. 369, évite un « + 1 autre modèle » dégénéré). En régime
+ * compact/intermédiaire (bande ≥ 96 px), la liste NON dépliée d'une telle carte peut dépasser les
+ * 480 px alloués — et jusqu'ici, seule la variante `--expanded` de `.kycar-market-zone-list`
+ * recevait `min-height: 0`/`overflow-y: auto` ; la liste REPLIÉE se contentait du
+ * `overflow: hidden` de la carte (`EX-SCR-124`), qui ROGNE (au lieu de rendre défilable) tout excès
+ * — un ou plusieurs derniers modèles d'une telle carte devenaient invisibles ET inaccessibles
+ * (aucun bouton de dépliement, `hasMoreModels` étant faux), en violation de `EX-SCR-112`/`D-36`
+ * (« jamais masqués »). Corrigé en portant `min-height: 0`, `max-height: 480px`, `overflow-y: auto`
+ * (et l'ombre de débord déjà utilisée par `--expanded`) sur `.kycar-market-zone-list` de base :
+ * l'excès, désormais, se déroule au doigt au lieu de disparaître.
+ *
+ * RETOUCHE (relecture du coordinateur sur `cr104-apres-mobile.png`) — un TROISIÈME défaut, une fois
+ * les deux premiers corrigés : à 360 px, la légende « (fourchette centrale (90 % des offres)) »
+ * fait passer la ligne prix sur DEUX lignes, portant la zone à CINQ lignes de texte dans une bande
+ * qui n'en compte que quatre (`EX-SCR-135`) ; la ligne médiane + barre débordait alors de ~15 px
+ * sous le trait de séparation de SA PROPRE zone, empiétant sur la suivante (et paraissant lui
+ * appartenir). Corrigé par DEUX changements complémentaires dans `market.css` : (a) la légende sort
+ * du flux VISUEL de la zone en compact seulement (`.kycar-market-zone-price-caption`, motif
+ * « visually hidden » — aucune valeur n'est retirée, `D-36` : la légende reste dans le DOM, `title`
+ * la garde au survol, et l'en-tête de carte la porte déjà une fois) ; (b) `.kycar-market-zone` reçoit
+ * `flex: 0 0 auto` — sans `flex-shrink: 0` explicite, la « taille hypothétique » que l'algorithme
+ * flex calcule pour cette zone (à la fois item flex de `.kycar-market-zone-list` ET conteneur de
+ * grille) pouvait être légèrement INFÉRIEURE à la somme réellement rendue des pistes `auto` de sa
+ * propre grille dès que le contenu dépassait le plancher `min-height: 96px` (c'est la cause exacte
+ * du débordement : ni un `height` fixe — il n'y en a aucun — ni la cale de virtualisation
+ * `MODEL_ZONE_HEIGHT_PX` — qui ne fixe qu'un pas de défilement, jamais une propriété CSS de la zone
+ * — ni `align-items`, testé et disculpé). `min-height: 96px` reste inchangé (valeur gelée
+ * d'`EX-SCR-135`, sonde `tests/review/D6/responsive.test.ts`) ; si le contenu réel dépasse encore ce
+ * plancher, la bande grandit désormais correctement (jamais de `height` fixe, jamais
+ * d'`overflow: hidden` sur la zone elle-même).
+ *
+ * Cette sonde mesure deux invariants géométriques déterministes, indépendants du texte affiché :
+ * (1) CHAQUE enfant texte visible d'une zone reste dans la boîte de CETTE zone
+ * (`enfant.bottom ≤ zone.bottom + 1` et `enfant.top ≥ zone.top − 1`) ; (2) aucune zone VISIBLE
+ * n'empiète sur la suivante (`zone[n].bottom ≤ zone[n+1].top`). « Visible » exclut le contenu scindé
+ * hors du cadre d'un ancêtre défilant (`overflow: hidden|auto|scroll`), qu'un utilisateur ne voit
+ * qu'en faisant défiler CETTE liste, jamais en superposition avec une autre carte.
  */
 test('ACC-08bis — aucun chevauchement de texte entre zones-modèles, régimes compact et intermédiaire (EX-SCR-135, C-R1-04)', async ({
   page,
@@ -586,21 +610,13 @@ test('ACC-08bis — aucun chevauchement de texte entre zones-modèles, régimes 
 
   const problems = await page.evaluate(() => {
     const EPS = 0.5;
-    // Tolérance dédiée à « une ligne reste dans la boîte de SA PROPRE zone » : investigation
-    // (C-R1-04) — la dernière rangée de la grille compacte (médiane + barre) déborde de ~2 à 5 px
-    // sous le bord de sa propre zone dans TOUS les régimes/jeux testés, un écart PRÉEXISTANT et
-    // indépendant du bug corrigé ici (`display: contents`, tens de px de recouvrement visible,
-    // texte gras compris). Cause probable : la case `.kycar-market-zone` est un enfant flex de
-    // `.kycar-market-zone-list` (`flex: 0 1 auto`) ET un conteneur de grille ; avec `min-height`
-    // comme seul plancher explicite, le calcul « taille hypothétique » de l'item flex ne rejoue pas
-    // toujours le dimensionnement des pistes `auto` de la grille une fois le remplissage (padding)
-    // déduit, d'où un écart borné (mesuré ≤ 5 px, jamais davantage même avec le jeton d'effectif
-    // réduit ou le glyphe de biais, qui ajoutent une ligne). Relever `min-height: 96px` à une valeur
-    // qui absorbe cet écart romprait la valeur EXACTE d'EX-SCR-135 et sa sonde
-    // (`tests/review/D6/responsive.test.ts`, regex sur `min-height:\s*96px`) pour un gain cosmétique
-    // de quelques pixels sous le bord (masqué par la bordure `border-top` de la zone suivante) :
-    // hors périmètre de C-R1-04, consigné dans le rapport plutôt que corrigé en silence.
-    const BOX_EPS = 6;
+    // Retouche coordinateur (2026-09-13) : tolérance resserrée à 1 px pour « chaque enfant texte
+    // visible reste dans la boîte de sa propre zone » — la sonde initiale (tolérance 6 px, pour
+    // absorber un écart de sous-pixel documenté à l'époque) a laissé passer un débordement de
+    // ~15 px (légende de fourchette sur deux lignes, cf. l'en-tête de ce test) : elle n'était donc
+    // pas assez stricte pour ce défaut. Les deux causes (spécificité CSS, légende) sont corrigées ;
+    // 1 px n'est plus qu'un arrondi sous-pixel inoffensif.
+    const CHILD_EPS = 1;
     // Un contenu scindé hors du cadre visible d'un ancêtre défilant (`.kycar-market-zone-list`,
     // `.kycar-market-zone-list--expanded`, la fenêtre…) n'est pas un chevauchement pour
     // l'utilisateur : il faut faire défiler CE conteneur pour l'atteindre, jamais une autre carte
@@ -620,7 +636,34 @@ test('ACC-08bis — aucun chevauchement de texte entre zones-modèles, régimes 
       (z) => z.getBoundingClientRect().height > 0 && !isClippedOut(z),
     );
     const out: string[] = [];
-    // Les quatre « lignes » d'EX-SCR-135 : années et kilométrage PARTAGENT la ligne 3, à dessein.
+    // Tous les enfants texte VISIBLES d'une zone (retouche coordinateur : « chaque enfant », pas
+    // seulement les quatre lignes groupées) — les porteurs de VALEUR d'`EX-SCR-135` plus les jetons
+    // optionnels. La légende masquée (`.kycar-market-zone-price-caption`, compact) n'est PAS de ceux-
+    // là (elle ne porte aucune valeur, `D-36`) : elle n'est délibérément pas dans cette liste.
+    const childSelectors = [
+      '.kycar-market-zone-row1',
+      '.kycar-market-zone-price',
+      '.kycar-market-zone-year',
+      '.kycar-market-zone-mileage',
+      '.kycar-market-zone-median',
+      '.kycar-market-zone-share-bar',
+      '.kycar-market-low-sample-token',
+      '.kycar-market-sampling-bias',
+    ];
+    for (const zone of zones) {
+      const zr = zone.getBoundingClientRect();
+      for (const sel of childSelectors) {
+        const el = zone.querySelector<HTMLElement>(sel);
+        if (el === null) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) continue; // élément masqué (visually-hidden), non concerné
+        if (r.bottom > zr.bottom + CHILD_EPS || r.top < zr.top - CHILD_EPS) {
+          out.push(`${sel} hors de sa zone (top=${Math.round(r.top)} bottom=${Math.round(r.bottom)} zone=[${Math.round(zr.top)},${Math.round(zr.bottom)}])`);
+        }
+      }
+    }
+    // Les quatre « lignes » d'EX-SCR-135 : années et kilométrage PARTAGENT la ligne 3, à dessein —
+    // vérifie qu'elles restent dans cet ordre, sans chevaucher la ligne suivante.
     const lineSelectors: readonly (readonly string[])[] = [
       ['.kycar-market-zone-row1'],
       ['.kycar-market-zone-price'],
@@ -628,7 +671,6 @@ test('ACC-08bis — aucun chevauchement de texte entre zones-modèles, régimes 
       ['.kycar-market-zone-median'],
     ];
     for (const zone of zones) {
-      const zr = zone.getBoundingClientRect();
       const lines = lineSelectors
         .map((sels) =>
           sels
@@ -637,13 +679,6 @@ test('ACC-08bis — aucun chevauchement de texte entre zones-modèles, régimes 
             .map((el) => el.getBoundingClientRect()),
         )
         .filter((rects) => rects.length > 0);
-      for (const rects of lines) {
-        for (const r of rects) {
-          if (r.top < zr.top - BOX_EPS || r.bottom > zr.bottom + BOX_EPS) {
-            out.push(`ligne hors de sa zone (top=${Math.round(r.top)} bottom=${Math.round(r.bottom)} zone=[${Math.round(zr.top)},${Math.round(zr.bottom)}])`);
-          }
-        }
-      }
       for (let i = 1; i < lines.length; i++) {
         const prevMaxBottom = Math.max(...lines[i - 1].map((r) => r.bottom));
         const curMinTop = Math.min(...lines[i].map((r) => r.top));
