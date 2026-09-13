@@ -554,9 +554,40 @@ button:disabled {
   min-height: 32px;
 }
 
-/* Un bouton est une boîte flex : sans cela le `min-height` laisse son texte collé en haut. */
-.kycar-app button,
-.kycar-app [role='button'] {
+/* Un bouton est une boîte flex : sans cela le `min-height` laisse son texte collé en haut.
+ *
+ * `C-R1-04` — CAUSE RACINE, corrigée ici (`data-fix-2`, phase 3.5). Ce bloc s'appliquait à
+ * `.kycar-app [role='button']` **avec la spécificité d'un sélecteur ordinaire** (0-0-2-0). Or un
+ * `role='button'` n'est pas une carrosserie : c'est un rôle ARIA, que l'application pose sur des
+ * composants qui déclarent EUX-MÊMES leur boîte. Trois éléments le portent — le `<rect>` d'une barre
+ * d'histogramme (`Histogram.tsx`, où aucune de ces propriétés ne s'applique : c'est de la géométrie
+ * SVG), l'en-tête de carte-marque (`.kycar-market-card-header`) et la zone-modèle
+ * (`.kycar-market-zone-interactive`) — et pour les deux derniers cette règle ÉCRASAIT ce que
+ * `market.css` déclare, à une classe (0-0-1-0). Conséquence mesurée en 2.10 : en régime compact, la
+ * zone-modèle doit devenir `display: contents` pour que ses champs rejoignent la grille à quatre
+ * rangées de sa zone ; le `display: inline-flex` d'ici la réifiait en boîte, la rangée 1 absorbait
+ * tout le contenu (`grid-template-rows` mesuré à `90px 0px 0px 0px`) et le texte débordait sur la
+ * zone suivante. `fix-screens-3` l'avait contournée par spécificité dans `market.css` ; la voici
+ * traitée à la source.
+ *
+ * Le remède est `:where()`, dont la spécificité vaut ZÉRO : ces déclarations restent un DÉFAUT —
+ * elles s'appliquent à tout `role='button'` qui ne dit rien de sa boîte — mais n'importe quelle
+ * règle de composant les emporte désormais, quel que soit l'ordre des feuilles. Ce qui change
+ * effectivement : la zone-modèle retrouve son `gap: 2px` et son `min-width: 0` (elle les déclare, ils
+ * étaient écrasés à 4px et 32px) et son `display: contents` compact passe sans contournement ;
+ * l'en-tête de carte retrouve son `gap: var(--space-2)`. Le PLANCHER DE CIBLE TACTILE ci-dessus
+ * (`min-height`) garde en revanche sa spécificité ordinaire : `EX-SCR-21` est une exigence
+ * d'accessibilité, pas un défaut de mise en page, et un composant n'a pas à pouvoir passer dessous.
+ */
+.kycar-app button {
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 0.25rem);
+}
+
+:where(.kycar-app [role='button']) {
   min-width: 32px;
   display: inline-flex;
   align-items: center;
@@ -589,8 +620,13 @@ button:disabled {
     min-height: 44px;
   }
 
-  .kycar-app button,
-  .kycar-app [role='button'] {
+  /* `C-R1-04` : même partage qu'au-dessus — plancher de cible tactile à spécificité ordinaire,
+     boîte à spécificité nulle (`:where()`), voir le commentaire du bloc de base. */
+  .kycar-app button {
+    min-width: 44px;
+  }
+
+  :where(.kycar-app [role='button']) {
     min-width: 44px;
   }
 

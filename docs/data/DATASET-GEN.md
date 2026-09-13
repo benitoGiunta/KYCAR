@@ -7,8 +7,8 @@ aucune valeur : les paramètres restent dans les quinze tables `docs/data/datase
 telles quelles à l'exécution.
 
 **Amont** : `docs/data/DATA-MODEL.md` (couche source, 31 contraintes), `data/schema/*.schema.json`,
-`docs/data/DATASET-SPEC.md` (61 règles, 26 anomalies, 110 sondes), `reports/data/DATA-LEAD-DECISIONS.md`
-(D3-01 … D3-17). **Aval** : `data-review` (phase 3.3) écrit les 110 sondes d'après `probes.json` et
+`docs/data/DATASET-SPEC.md` (61 règles, 26 anomalies, 111 sondes), `reports/data/DATA-LEAD-DECISIONS.md`
+(D3-01 … D3-17). **Aval** : `data-review` (phase 3.3) écrit les sondes d'après `probes.json` et
 les fait passer **sans les modifier** (D-31/D-32) ; `fixture-provider` (3.3) lit les fixtures.
 
 ---
@@ -286,10 +286,12 @@ seuil de 60 s du critère S5, validation comprise.
 
 ### 5.4 Autocontrôle `npm run data:check`
 
-**71 sondes rejouées** (`P-69` ajoutée par `DR3-07`). Profil `test` : **0 écart**, 3 dettes consignées
-au §6 (`P-10` et `P-11` → **EG-01**, `P-57` → **EG-11**). Profil `dev` : **0 écart**, 4 dettes
-(`P-23`, `P-55` et `P-58` → **EG-12**, `P-57` → **EG-11**) — les écarts de bruit d'échantillonnage du
-volume réduit sont désormais **affichés comme dettes**, jamais comptés en écart (`DR3-19`).
+**75 sondes rejouées** (`P-69` ajoutée par `DR3-07`, `P-24bis` par `DR3-22`, plus les trois contrôles
+`P-BL*` de la baseline). Profil `test` : **0 écart**, 3 dettes consignées au §6 (`P-10` et `P-11` →
+**EG-01**, `P-57` → **EG-11**). Profil `dev` : **0 écart**, **3** dettes (`P-23` et `P-58` →
+**EG-12**, `P-57` → **EG-11**) — les écarts de bruit d'échantillonnage du volume réduit sont
+**affichés comme dettes**, jamais comptés en écart (`DR3-19`) ; `P-55` en est **sortie** avec
+`DR3-24`, sa tolérance tenant désormais compte de l'effectif.
 
 Trois contrôles ne prouvaient pas ce que leur nom annonçait, et la revue 3.3 les a pris en défaut
 (`DATA-REVIEW` §7.4). Ils sont corrigés :
@@ -297,8 +299,8 @@ Trois contrôles ne prouvaient pas ce que leur nom annonçait, et la revue 3.3 l
 | Contrôle | Ce qu'il faisait | Ce qu'il fait |
 |---|---|---|
 | `P-68` | `add('P-68', …, true)` — **aucune** tolérance évaluée, et comptait « prix **ou** images » | mesure la part de survivantes dont le **prix affiché** change et la part de baisses, avec les tolérances [14 %, 20 %] et [80 %, 88 %] |
-| `P-55` | **30** champs **inconditionnels** nommés dans une liste en dur, sur les 82 de `baseRates` | **58** champs mesurés au profil test, chacun sur sa population **éligible** ; les non observables et les populations de moins de 100 lignes sont **nommées** et écartées |
-| `P-72` | effectif attendu = `taux × N` pour **toutes** les anomalies | effectif attendu = `taux × base déclarée`, les effectifs de base étant recomptés sur les **lignes livrées** |
+| `P-55` | **30** champs **inconditionnels** nommés dans une liste en dur, sur les 82 de `baseRates` | **59** champs mesurés **aux deux profils**, chacun sur sa population **éligible**, avec la tolérance `max(±25 % relatifs, ±3 erreurs-types)` (`DR3-24`) ; seules les populations non observables et **vides** sont nommées et écartées — plus aucun plancher d'effectif |
+| `P-72` | effectif attendu = `taux × N` pour **toutes** les anomalies | effectif attendu = `taux × base déclarée`, les effectifs de base étant recomptés sur les **lignes livrées** ; depuis `DR3-23`, **une ligne par code** (réalisé / somme des attendus, part de chaque `A-nn` entre crochets) et non plus par `A-nn` |
 
 Relevé du profil `test`, snapshot S0 :
 
@@ -545,30 +547,40 @@ sonde est donc inatteignable **avec les paramètres de la spécification elle-m�
 demanderait soit une autre loi latente, soit un couple de champs à taux plus élevés. Consigné, non
 contourné.
 
-### EG-12 — profil `dev` : **sept** sondes dans le bruit d'échantillonnage (étendue par `DR3-19`)
+### EG-12 — profil `dev` : **six** sondes dans le bruit d'échantillonnage (étendue par `DR3-19`, réduite par `DR3-24`)
 
 À 5 000 annonces, `P-23` (36,6 % contre un plancher à 38 % pour une valeur de conception à 38,1 % —
-tout écart d'échantillonnage la fait basculer), `P-55` (`offerType` 1,3 % contre 1,0 %, soit 65
-absences observées pour 50 attendues, 2,1 σ) et `P-58` (1,73 contre 1,8) sortent de leur tolérance. Ce
-ne sont **pas** des défauts du générateur : les mêmes sondes sont vertes au profil `test`, qui est le
-profil que l'application charge (D3-01). Les tolérances relatives de `P-55` sont structurellement
-inatteignables au volume `dev` pour les champs dont le taux de référence est inférieur à 1 %.
+tout écart d'échantillonnage la fait basculer) et `P-58` (1,73 contre 1,8) sortent de leur tolérance.
+Ce ne sont **pas** des défauts du générateur : les mêmes sondes sont vertes au profil `test`, qui est
+le profil que l'application charge (D3-01).
 
 **Extension `DR3-19`.** La revue 3.3 en a mesuré **cinq**, pas trois : `P-18` (diesel 2024 4,65 %
 contre ≤ 4,5 %), `P-37` (prime électrique 0,93) et `P-38` (prime professionnelle 0,99) relèvent de la
 même cause. `P-45` s'y ajoute après la correction `DR3-04` : au volume `dev`, `M1_LOW` ne compte
 qu'une quinzaine d'annonces dans les cellules à `n_price ≥ 30` et l'erreur-type du κ y dépasse sa
-propre valeur. La liste est donc **`P-18`, `P-23`, `P-37`, `P-38`, `P-45`, `P-55`, `P-58`**, et elle
+propre valeur.
+
+**Réduction `DR3-24`.** `P-55` **sort** de la liste. Son cas était le seul dont la cause fût une
+tolérance *relative* trop étroite pour l'effectif — et c'est précisément ce que la décision `D3-27`
+réécrite corrige, en portant la tolérance à `max(±25 % relatifs, ±3 erreurs-types)` **à tous les
+profils** et **sans plancher d'effectif** (`DATASET-SPEC.md` §5). Mettre une sonde hors portée est un
+retrait, pas une tolérance : la sonde est désormais **opposable au profil `dev`**, y mesure **79
+champs** (contre 71 auparavant) et y est **verte**. Le cas d'`offerType` cité ci-dessus — 1,3 % contre
+1,0 %, 65 absences pour 50 attendues — vaut **2,1 erreurs-types** et tombe donc dans la bande.
+
+La liste est donc **`P-18`, `P-23`, `P-37`, `P-38`, `P-45`, `P-58`**, et elle
 n'est plus seulement écrite ici : chacune de ces sondes porte désormais `"portee": "snapshot test"`
 dans `probes.json`, `npm run data:check` les affiche en **DETTE `EG-12`** au profil `dev` au lieu de
 les compter en écart, et la suite `tests/data/` les marque avec le même dispositif
 (`IS_TEST_PROFILE ? it : it.fails`). Au profil `test` elles restent **opposables**, et vertes.
 
-### EG-13 … EG-20 — écarts ouverts par la phase 3.4 (`data-fix`)
+### EG-13 … EG-23 — écarts ouverts par les phases 3.4 (`data-fix`) et 3.5 (`data-fix-2`)
 
-Les correctifs des dix-neuf constats `DR3-nn` de la revue 3.3 ont ouvert huit écarts nouveaux à la
-première rédaction de `DATASET-SPEC.md`. Tous sont **amendés dans la spécification elle-même**, avec
-leur démonstration ; ils sont récapitulés ici parce que `DATASET-GEN.md` est le journal du générateur.
+Les correctifs des dix-neuf constats `DR3-nn` de la revue 3.3 ont ouvert **huit** écarts nouveaux à la
+première rédaction de `DATASET-SPEC.md` (`EG-13` … `EG-20`) ; les quatre constats `DR3-21` … `DR3-24`
+de la re-revue delta en ont ouvert **trois** de plus (`EG-21` … `EG-23`, phase 3.5). Tous sont
+**amendés dans la spécification elle-même**, avec leur démonstration ; ils sont récapitulés ici parce
+que `DATASET-GEN.md` est le journal du générateur.
 
 | # | Écart | Constat | Ce qui a changé |
 |---|---|---|---|
@@ -580,6 +592,9 @@ leur démonstration ; ils sont récapitulés ici parce que `DATASET-GEN.md` est 
 | **EG-18** | La composition des **entrantes** est déduite de la stationnarité (`entrées ∝ stock/d`, acceptation-rejet), l'inclinaison d'âge `exp(−0,02 a)` est retirée ; une **révision** de prix n'est comptée que si elle déplace le prix **affiché**. | `DR3-07`, `DR3-06` | La médiane montait de 5,6 % là où `P-69` exige un recul ; elle recule de **1,43 %**. Les révisions observables passent de 10,2 % à **16,3 %**. |
 | **EG-19** | Le calibrage de complétude porte sur la population **éligible** du champ ; `isPluginHybrid` est soumis au modèle pour ses **deux** valeurs ; la classe de CO₂ porte la branche WLTP quand elle est le dernier champ du bloc. | `DR3-05` | Trois champs conditionnels sortaient de ±25 % (jusqu'à −69 %). Mesure : **78 champs, 0 hors tolérance** au profil test. |
 | **EG-20** | Le code 3 (**Coupé**) est servi par quatre segments, non deux ; les attendus du parcours P1 du §1.4 sont **recalculés**. | `DR3-14` | Tous les coupés relevaient de `sportive` (55 000 €) et `luxe` (95 000 €) : le parcours P1 rendait 30 offres pour 230–280 annoncées. Mesure : **672 coupés → 156 offres**, part de coupés 3,4 % (`P-24` ∈ [2,0 % ; 3,5 %]). |
+| **EG-21** | Le mélange du segment `sportive` redevient à dominante **coupé** (0,38 contre 0,25) ; un tiers du segment porte les codes 6 et 1 (berlines et compactes sportives) ; le code 2 (**Cabriolet**) est servi par **trois** segments et non un ; sonde neuve `P-24bis`. | `DR3-22` | `DR3-14` avait retourné `sportive` de 60/40 à 25/75 sans le dire, pour tenir la borne haute de `P-24` en déplaçant une part que **rien** ne contraignait (cabriolets +81 %). Mesure, profil `test` : coupé **3,18 %**, cabriolet **1,73 %**, rapport **1,84**, P1 **137 offres sur 33 marques** (plancher 120 / 10). |
+| **EG-22** | La tolérance de `P-55` devient `max(±25 % relatifs, ±3 erreurs-types)`, **à tous les profils** et **sans plancher d'effectif** ; `P-55` quitte EG-12. | `DR3-24`, `D3-27` réécrite | Le plancher `n ≥ 100` et la mise hors portée du profil `dev` retiraient de la mesure au lieu de tolérer : `consumption.electricCombined` (96 lignes éligibles au profil `test`) n'avait de taux mesuré à **aucun** volume commité. Mesure : **79 champs, 0 hors tolérance** aux deux profils. |
+| **EG-23** | `A-11` déclare la base « annonces à prix affiché » et la restriction de cellule passe dans `vivier` ; les trois compteurs de base comparent la chaîne **exactement** et refusent une base inconnue. La sortie `P-72` de `data:check` imprime **une ligne par code**. | `DR3-21`, `DR3-23` | La base d'`A-11` annonçait une restriction que le dénominateur n'appliquait pas (+39 % au profil `test`, +246 % au profil `dev`) ; la sortie affichait +800 % sur `REGION_UNRESOLVED` là où l'accord est parfait (**90/90**). |
 
 Trois écarts de **documentation** les accompagnent, sans effet sur la donnée : `snapshotIdPattern` de
 `profiles.json` corrigé et l'identifiant de conception déplacé sous `designSnapshotIdPattern`

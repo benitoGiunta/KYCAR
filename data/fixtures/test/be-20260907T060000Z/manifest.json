@@ -11,10 +11,10 @@
  },
  "file": "listings.ndjson.gz",
  "listingCount": 20000,
- "sha256": "33d88a12ecb7ba7a6e4d1698b1e5b222ebadf808aa4056f7b4d1a79d12862245",
- "sha256Gz": "96b03c4d284455f9241b5887344cb025a8a21108cf6096af7bb43e829b4f6ee6",
+ "sha256": "786b093ca664fa50ef944dbc6b96306376245d4e9b8e198187a7bc6823b36cb8",
+ "sha256Gz": "b88dc1befb854b5d5f43cffba4818888b88917b1fe65d14d641a10d37e37a065",
  "uncompressedBytes": 29718361,
- "compressedBytes": 2706393,
+ "compressedBytes": 2706676,
  "previousSnapshotId": null,
  "groundTruth": [
   {
@@ -20923,5 +20923,5 @@
    }
   }
  ],
- "note": "generateur kycar-dataset-gen 1.0.0, graine 1264141121, profil test. specification DATASET-SPEC.md sha256 001d15659eab6567, hachage combine des 15 tables et des 2 schemas 280828cd2e015ad2. identifiant de conception (profiles.json) be-fixture-test-20260907-4b594341. 2361 entrees de verite terrain sur 20000 lignes. 15 filtres non alimentes sur 53 retenus de classe enumeree ou bornee (atype financeratefrom financerateto leasingratefrom leasingrateto lsdufrom lsduto lsyeinmifrom lstagr powertype ensticker zipr ocs_listing sort desc). Parametres complets, mesures et correspondances : generation.json depose a cote."
+ "note": "generateur kycar-dataset-gen 1.0.0, graine 1264141121, profil test. specification DATASET-SPEC.md sha256 001d15659eab6567, hachage combine des 15 tables et des 2 schemas bf015d593570bace. identifiant de conception (profiles.json) be-fixture-test-20260907-4b594341. 2361 entrees de verite terrain sur 20000 lignes. 15 filtres non alimentes sur 53 retenus de classe enumeree ou bornee (atype financeratefrom financerateto leasingratefrom leasingrateto lsdufrom lsduto lsyeinmifrom lstagr powertype ensticker zipr ocs_listing sort desc). Parametres complets, mesures et correspondances : generation.json depose a cote."
 }

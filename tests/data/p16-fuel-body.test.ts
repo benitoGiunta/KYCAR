@@ -170,6 +170,42 @@ describe('P-23 … P-27 — carrosserie, boîte, couleurs', () => {
     expect(share).toBeLessThanOrEqual(0.035);
   });
 
+  // SONDE NEUVE — constat `DR3-22`, `data-fix-2` (phase 3.5).
+  //
+  // POURQUOI ELLE EXISTE. La correction de `DR3-14` avait déplacé le mélange du segment `sportive`
+  // de 60 % coupé / 40 % cabriolet à 25 / 75, ce qui INVERSE l'ordre du marché (une sportive
+  // d'occasion est plus souvent un coupé qu'un cabriolet) et faisait monter la part de cabriolets de
+  // 81 % — sans qu'aucune sonde, ni `probes.json`, ni `DATASET-SPEC.md`, ne la nomme. Une part
+  // mesurée avait donc été tenue en déplaçant une part NON mesurée. Le remède n'est pas seulement de
+  // rétablir le mélange : c'est de rendre la part de cabriolets opposable, pour qu'elle ne puisse
+  // plus servir de variable d'ajustement.
+  //
+  // CE QU'ELLE OPPOSE, ET D'OÙ VIENNENT LES DEUX BORNES.
+  //  (a) `part(coupé) > part(cabriolet)` — l'ORDRE DU MARCHÉ. Cette assertion n'est pas une
+  //      tolérance de calibrage : c'est le fait que `DR3-22` nomme, et il est vérifiable sans
+  //      chiffre. C'est elle qui interdit de refaire l'inversion.
+  //  (b) `part(cabriolet) ∈ [1,0 % ; 2,5 %]` — HYPOTHÈSE ÉCRITE (E4) HS-02 : aucune série publique
+  //      belge ne donne la part des cabriolets dans le STOCK d'occasion (même trou de source que
+  //      H5 pour les segments, `segments.json:source`). La bande est posée sur l'ordre de grandeur
+  //      des deux états connus du jeu — 1,51 % avant `DR3-14`, 2,74 % après — élargie vers le bas
+  //      d'un demi-point pour laisser respirer une régénération, et fermée en haut SOUS la valeur
+  //      qu'avait produite l'inversion, de sorte que le défaut constaté rende la sonde rouge.
+  //      Mesure après correction : 1,729 % au profil test, 1,433 % au profil dev.
+  it('P-24bis — part de la carrosserie Cabriolet (code 2) dans [0,010 ; 0,025], et strictement sous la part de coupés', () => {
+    const snap = s0();
+    const known = snap.rows.filter((r) => r.bodyType !== undefined);
+    const cabriolet = known.filter((r) => r.bodyType === 2).length / known.length;
+    const coupe = known.filter((r) => r.bodyType === 3).length / known.length;
+    measure(
+      'P-24bis',
+      `${pct(cabriolet)} de cabriolets contre ${pct(coupe)} de coupés sur ${known.length} annonces à carrosserie connue ` +
+        `(rapport coupé/cabriolet ${(coupe / cabriolet).toFixed(2)})`,
+    );
+    expect(cabriolet).toBeGreaterThanOrEqual(0.01);
+    expect(cabriolet).toBeLessThanOrEqual(0.025);
+    expect(coupe, 'ordre du marché : plus de coupés que de cabriolets (DR3-22)').toBeGreaterThan(cabriolet);
+  });
+
   it('R-DATA-07 — P-25 : boîtes A ou S, 2010 ≤ 30 %, 2024 ≥ 60 %, croissance monotone (1 inversion)', () => {
     const snap = s0();
     const shareAuto = (year: number): { share: number; n: number } => {

@@ -13,7 +13,7 @@
   "dataset-spec/profiles.json": "1dc9887ab5c9b95262c44aa0aa8df2aa2477729cddaa7aba59345f42069bb3df",
   "dataset-spec/makes.json": "298db4f2621a594f1530249f073beadbcd5db930795f03b6307a73f4ee9cf948",
   "dataset-spec/models.json": "655474d68a2ba1b86c4cd7bde47f0a20dc5c73ad9fbbb41e35928a5cdc65f594",
-  "dataset-spec/segments.json": "0ad6bb0f25847ed24ceb36cec2190ac5faee75f297cf050975a8efd51ea05511",
+  "dataset-spec/segments.json": "004eb849afac7c8b68c8b9bce819dc6f17392100add0a6fd60f83abdab8c1974",
   "dataset-spec/fuel-year.json": "b63e5e48f17d18b1706ac99a0b3ff8a5b922862542376735cdf25574b332ebe3",
   "dataset-spec/age-and-mileage.json": "5bae721bc076235dcfc6812728dfefca3a49be5df42bfb1450227f9ffa62e2d7",
   "dataset-spec/price-model.json": "2e3e0d8d847d9f5b6f86c774009e1fa03e551d1f0c9057b516d28c30f2b5b2aa",
@@ -23,15 +23,15 @@
   "dataset-spec/missingness.json": "5823a14c66579205206b75a7b2bd8383f5efeb0a6bf9958bc2472836f0699de7",
   "dataset-spec/equipment.json": "e16e8b829cb2c358f62ee20274a4fa51dd30772b9bc40e71cb8e7c58a75db400",
   "dataset-spec/snapshot-dynamics.json": "52151bf81f447dc518747dbd9f2b69226a147f114080c4580a9bf201848b29f6",
-  "dataset-spec/anomalies.json": "bfe0ca859796e644d131b9b40458070d2f78ae43f250cc199c199e94b6494a98",
-  "dataset-spec/probes.json": "c6e4a326bd4b4098a2496ee4aaaf6ab7a0eed5fb8aa9e46708cee73c2f9ab478",
+  "dataset-spec/anomalies.json": "6e9d3f37a369f4d51d0b1f44890cbb1945c621bfacadd8f8c4cbfb24022dcbac",
+  "dataset-spec/probes.json": "6a11ad6acfe6848eaf17b722cf423e85a22f2ef4f0ccd1cb14bd7381593e6228",
   "reference/taxonomy.json": "441ef614f5d6784496e6d71f29d018f8dd381a7bf07015ea3069cd0ef66d84b9",
   "reference/filters-scope.json": "bcbcfdb93ede61b2046bc91c4eeabea8606222471853a1ad118a2036b7dfb0ed",
   "schema/as24-listing.schema.json": "3539259b0aec3b8b816398777f4a084462a19031b4980ecaf8939bc35569ad94",
   "schema/snapshot-manifest.schema.json": "575807e90e2ff7b89c28e76bc2a948a527c93c99f85eb0ebf4e5fcc569ed0e15",
   "DATASET-SPEC.md": "001d15659eab65676cd4a258784cd803fb0937bda0dda9d6f4bb6defc3179747"
  },
- "combinedSha256": "280828cd2e015ad26afcd48569ab122823fa886efd15792b932fe98f5c2a54b2",
+ "combinedSha256": "bf015d593570bace6a69c5d64e388f155983054b0272e962cb35795ce65cce68",
  "schemaValidator": "ajv 8.20.0",
  "missingnessNormalizer": 0.5632821791817701,
  "apportionment": {
@@ -99,7 +99,7 @@
    "target": 48
   },
   "A-11": {
-   "base": "annonces a prix affiche de cellules (make, model) a |F| >= 30",
+   "base": "annonces a prix affiche",
    "baseCount": 19272,
    "target": 67
   },

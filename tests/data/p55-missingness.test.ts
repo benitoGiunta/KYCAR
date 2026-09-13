@@ -91,13 +91,24 @@ interface FieldMeasure {
   observed: number;
   n: number;
   relative: number;
+  /** Demi-largeur ABSOLUE de l'intervalle de conformité : `max(0,25 × référence, 3 erreurs-types)`. */
+  tolerance: number;
+  /** Écart absolu observé, en nombre d'erreurs-types de la référence. */
+  sigmas: number;
+  within: boolean;
 }
 
-function measureAbsence(): { tracked: FieldMeasure[]; skipped: string[]; tooSmall: string[] } {
+/**
+ * Erreur-type de la proportion d'absence SOUS LA RÉFÉRENCE : `√(p(1−p)/n)`. Elle est calculée sur la
+ * valeur de référence, pas sur la valeur observée — c'est la loi que la sonde oppose à la donnée.
+ */
+const standardError = (p: number, n: number): number => (n <= 0 ? Number.POSITIVE_INFINITY : Math.sqrt((p * (1 - p)) / n));
+
+function measureAbsence(): { tracked: FieldMeasure[]; skipped: string[]; empty: string[] } {
   const snap = s0();
   const tracked: FieldMeasure[] = [];
   const skipped: string[] = [];
-  const tooSmall: string[] = [];
+  const empty: string[] = [];
   for (const [field, base] of Object.entries(miss.baseRates)) {
     const elig = Object.prototype.hasOwnProperty.call(ELIGIBILITY, field) ? ELIGIBILITY[field] : undefined;
     if (elig === null) {
@@ -105,43 +116,83 @@ function measureAbsence(): { tracked: FieldMeasure[]; skipped: string[]; tooSmal
       continue;
     }
     const pop = elig === undefined ? snap.rows : snap.rows.filter(elig);
-    if (pop.length < 100) {
-      tooSmall.push(`${field} (n=${pop.length})`);
+    // Une population VIDE n'est pas une petite population : aucun taux n'y est définissable. Elle
+    // est nommée dans la mesure, jamais tue. Ce n'est pas un plancher d'effectif (D3-27).
+    if (pop.length === 0) {
+      empty.push(field);
       continue;
     }
     const absent = pop.filter((r) => at(r, field) === undefined).length;
     const observed = absent / pop.length;
     const relative = base === 0 ? (observed === 0 ? 0 : Number.POSITIVE_INFINITY) : Math.abs(observed - base) / base;
-    tracked.push({ field, base, observed, n: pop.length, relative });
+    const se = standardError(base, pop.length);
+    const tolerance = Math.max(0.25 * base, 3 * se);
+    const gap = Math.abs(observed - base);
+    tracked.push({
+      field,
+      base,
+      observed,
+      n: pop.length,
+      relative,
+      tolerance,
+      sigmas: se === 0 ? (gap === 0 ? 0 : Number.POSITIVE_INFINITY) : gap / se,
+      within: gap <= tolerance,
+    });
   }
-  return { tracked, skipped, tooSmall };
+  return { tracked, skipped, empty };
 }
 
 describe('P-55, P-56 — taux d’absence par champ', () => {
-  // PORTÉE AMENDÉE — constat DR3-19, `data-fix` (phase 3.4). `P-55` figurait DÉJÀ parmi les sondes
-  // qu'EG-12 déclare hors de portée au volume `dev` (avec `P-23` et `P-58`), sans que la sonde le
-  // matérialise. Elle le fait maintenant, avec le même dispositif que les autres. Motif : à
-  // n = 5 000 la population éligible de plusieurs champs conditionnels tombe sous le millier, et la
-  // bande de ±25 % relatifs y vaut moins de deux erreurs-types — `offerType` sort à 1,30 % pour
-  // 1,00 % de référence (65 absences observées pour 50 attendues, soit 2,1 erreurs-types) alors que
-  // le modèle est calibré à `E[p] = 0,0100` exactement. Au profil `test`, qui est celui que
-  // l'application charge (D3-01), la sonde est VERTE sur les 78 champs mesurables.
-  devSamplingNoise('R-DATA-11 — P-55 : chaque champ de baseRates à ±25 % relatifs de sa valeur de référence', () => {
-    const { tracked, skipped, tooSmall } = measureAbsence();
-    const breaches = tracked.filter((t) => t.relative > 0.25).sort((a, b) => b.relative - a.relative);
+  // TOLÉRANCE AMENDÉE — constat `DR3-24`, décision **`D3-27` réécrite** (`D3-37`), `data-fix-2`
+  // (phase 3.5), **justification D-31**.
+  //
+  // CE QUI ÉTAIT EN PLACE, ET POURQUOI IL NE TENAIT PAS. Deux dispositifs se superposaient, aucun
+  // n'était décidé : (a) un PLANCHER `n ≥ 100`, posé par le reviewer, qui écartait purement et
+  // simplement de la mesure tout champ à petite population éligible — `consumption.electricCombined`
+  // (96 lignes éligibles au profil test, 27 au profil dev) n'avait donc de taux d'absence mesuré à
+  // AUCUN volume commité ; (b) la sonde entière rendue non opposable au profil `dev` (EG-12,
+  // `DR3-19`), au motif que la bande de ±25 % relatifs y vaut moins de deux erreurs-types pour
+  // plusieurs champs. Les deux traitent le même mal — une bande RELATIVE est trop étroite quand la
+  // population est petite — et tous deux le traitent en RETIRANT de la mesure, ce qui est un
+  // affaiblissement, pas une tolérance.
+  //
+  // CE QUI EST DÉCIDÉ. `D3-27` (réécrite le 2026-09-13) : un champ est conforme si sa mesure tombe
+  // dans `référence ± max(25 % relatifs, 3 erreurs-types)`, À TOUS LES PROFILS, SANS plancher
+  // d'effectif. L'erreur-type est celle de la proportion SOUS LA RÉFÉRENCE, `√(p(1−p)/n)` : c'est la
+  // loi que la sonde oppose à la donnée, pas la donnée qui fixe sa propre marge. La bande relative
+  // reste seule active dès que `n` est grand (elle atteint 3 erreurs-types à `n ≥ 816` pour
+  // `p = 0,15`) ; elle est élargie exactement là où elle était plus étroite que le bruit qu'une
+  // donnée conforme produit.
+  //
+  // POURQUOI CE N'EST PAS UN AFFAIBLISSEMENT. La sonde mesure désormais **79** champs au lieu de 78
+  // au profil test et **79** au lieu de 71 au profil dev, `consumption.electricCombined` compris, et
+  // elle est OPPOSABLE aux deux profils (le dispositif `devSamplingNoise` disparaît pour `P-55`,
+  // EG-12 revient à six sondes). Un champ écarté par un plancher n'est pas un champ conforme : il
+  // n'est pas mesuré. Un champ dans une bande de 3 erreurs-types est un champ dont l'écart à la
+  // référence n'est pas distinguable du bruit d'échantillonnage — ce qui est la seule chose qu'un
+  // effectif fini permette d'affirmer.
+  it('R-DATA-11 — P-55 : chaque champ de baseRates dans référence ± max(25 % relatifs, 3 erreurs-types)', () => {
+    const { tracked, skipped, empty } = measureAbsence();
+    const breaches = tracked.filter((t) => !t.within).sort((a, b) => b.sigmas - a.sigmas);
     measure(
       'P-55',
       `${tracked.length} champs mesurés, ${breaches.length} hors tolérance ; ` +
-        `écartés (population non observable) : ${skipped.join(', ')} ; population < 100 : ${tooSmall.join(', ') || 'aucun'}`,
+        `écartés (population non observable) : ${skipped.join(', ')} ; population vide : ${empty.join(', ') || 'aucune'}`,
     );
     for (const b of breaches) {
       measure(
         'P-55',
-        `  HORS TOLÉRANCE ${b.field} : observé ${pct(b.observed)} contre ${pct(b.base)} de référence (n=${b.n}, écart relatif ${(b.relative * 100).toFixed(1)} %)`,
+        `  HORS TOLÉRANCE ${b.field} : observé ${pct(b.observed)} contre ${pct(b.base)} de référence (n=${b.n}, ` +
+          `écart relatif ${(b.relative * 100).toFixed(1)} %, ${b.sigmas.toFixed(2)} erreurs-types, bande ±${(b.tolerance * 100).toFixed(2)} pt)`,
       );
     }
-    const worst = tracked.reduce((a, b) => (b.relative > a.relative ? b : a));
-    measure('P-55', `écart relatif maximal ${(worst.relative * 100).toFixed(1)} % (${worst.field})`);
+    const worstRel = tracked.reduce((a, b) => (b.relative > a.relative ? b : a));
+    const worstSig = tracked.reduce((a, b) => (b.sigmas > a.sigmas ? b : a));
+    measure(
+      'P-55',
+      `écart relatif maximal ${(worstRel.relative * 100).toFixed(1)} % (${worstRel.field}, ${worstRel.sigmas.toFixed(2)} e.t.) · ` +
+        `écart maximal en erreurs-types ${worstSig.sigmas.toFixed(2)} (${worstSig.field}, ${(worstSig.relative * 100).toFixed(1)} % relatifs, n=${worstSig.n})`,
+    );
     expect(breaches.map((b) => b.field)).toEqual([]);
   });
 

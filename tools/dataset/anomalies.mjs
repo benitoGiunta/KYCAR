@@ -76,14 +76,21 @@ const THERMAL_CATEGORIES = new Set(['B', 'D', '2', '3', 'L', 'C', 'M', 'O']);
  *   - `withPowerHp` esperance du nombre d'annonces portant `powerHp` apres le modele de completude.
  */
 export function baseCount(base, counts) {
-  if (base.startsWith('annonces a prix affiche')) return counts.quoted;
+  // DR3-21 - COMPARAISON EXACTE, JAMAIS PAR PREFIXE. `A-11` declarait la base « annonces a prix
+  // affiche DE CELLULES (make, model) A |F| >= 30 » ; le `startsWith` la ramenait silencieusement a
+  // « annonces a prix affiche », et le champ annoncait donc une restriction que le denominateur
+  // n'appliquait pas (+39 % au profil test, +246 % au profil dev). La restriction est devenue un
+  // `vivier` (voir `baseVsVivier`), et une base inconnue est desormais REFUSEE au lieu d'etre
+  // absorbee : une restriction ecrite dans `base` par erreur arrete la generation.
+  if (base === 'annonces a prix affiche') return counts.quoted;
   if (base === 'annonces professionnelles') return counts.pro;
   if (base === "annonces d'offerType U, J ou O") return counts.usedOffer;
   if (base === 'annonces thermiques') return counts.thermal;
   if (base === 'annonces hybrides') return counts.hybrid;
   if (base === 'annonces portant powerHp') return counts.withPowerHp;
   if (base === 'annonces a prix sur demande') return counts.onRequest;
-  return counts.total;
+  if (base === 'toutes') return counts.total;
+  throw new Error(`anomalies.json : base « ${base} » inconnue de baseCount (DR3-21 : une restriction de vivier ne s'ecrit pas dans le champ base)`);
 }
 
 /** Effectif vise = `round(taux x base declaree)`. */

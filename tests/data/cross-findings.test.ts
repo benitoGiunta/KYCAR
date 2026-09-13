@@ -247,8 +247,8 @@ describe('dataset-gen — EG-10 : P-12 doit exclure les lignes déclarées FIRST
   });
 });
 
-describe('Contrôle de couverture — 110 sondes du contrat', () => {
-  it('les 110 identifiants de probes.json sont tous couverts par un test de tests/data/', async () => {
+describe('Contrôle de couverture — 111 sondes du contrat', () => {
+  it('les 111 identifiants de probes.json sont tous couverts par un test de tests/data/', async () => {
     const { readdirSync, readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
     const { REPO_ROOT, probesTable } = await import('./harness');

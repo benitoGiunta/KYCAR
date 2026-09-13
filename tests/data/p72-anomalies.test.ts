@@ -34,10 +34,22 @@ const anomalies = specTable<{ anomalies: AnomalyDef[] }>('anomalies');
 
 const THERMAL = new Set(['B', 'D', '2', '3', 'L', 'C', 'M', 'O']);
 
-/** Effectif de la population de base d'une anomalie, telle que `anomalies.json` la nomme. */
+/**
+ * Effectif de la population de base d'une anomalie, telle que `anomalies.json` la nomme.
+ *
+ * SONDE AMENDÉE — constat `DR3-21`, `data-fix-2` (phase 3.5), **justification D-31**. La
+ * reconnaissance se faisait par PRÉFIXE : `base` valant « annonces a prix affiche **de cellules
+ * (make, model) a |F| >= 30** » (`A-11`) était ramenée à « annonces a prix affiche », et la sonde
+ * mesurait donc l'attendu sur une population que le champ ne déclarait pas. Elle partageait l'angle
+ * mort du générateur — c'est très exactement le défaut que `DR3-10` demandait de fermer partout.
+ * La restriction est passée dans le champ `vivier` d'`anomalies.json` (mécanisme `baseVsVivier`,
+ * déjà employé pour `A-04` et `A-16`) et la reconnaissance est désormais EXACTE : une base inconnue
+ * fait ÉCHOUER la sonde au lieu d'être absorbée. Aucune tolérance n'a bougé, aucune population
+ * mesurée n'a changé — la sonde ne peut plus mesurer autre chose que ce que le champ déclare.
+ */
 function baseCount(sn: Snapshot, base: string): number {
   const rows = sn.rows;
-  if (base.startsWith('annonces a prix affiche')) return rows.filter((r) => priceStatus(r) === 'QUOTED').length;
+  if (base === 'annonces a prix affiche') return rows.filter((r) => priceStatus(r) === 'QUOTED').length;
   if (base === 'annonces professionnelles') return rows.filter((r) => r.seller?.type === 'D').length;
   if (base === "annonces d'offerType U, J ou O")
     return rows.filter((r) => r.offerType === 'U' || r.offerType === 'J' || r.offerType === 'O').length;
@@ -45,7 +57,8 @@ function baseCount(sn: Snapshot, base: string): number {
   if (base === 'annonces hybrides') return rows.filter((r) => r.fuelCategory === '2' || r.fuelCategory === '3').length;
   if (base === 'annonces portant powerHp') return rows.filter((r) => r.powerHp !== undefined).length;
   if (base === 'annonces a prix sur demande') return rows.filter((r) => priceStatus(r) === 'ON_REQUEST').length;
-  return rows.length; // « toutes »
+  if (base === 'toutes') return rows.length;
+  throw new Error(`anomalies.json : base « ${base} » inconnue (DR3-21 : une restriction de vivier ne s’écrit pas dans le champ base)`);
 }
 
 describe('P-72 … P-74, P-101 — effectifs, vérité terrain, exclusion mutuelle', () => {
