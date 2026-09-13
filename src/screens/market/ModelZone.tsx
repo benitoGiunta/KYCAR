@@ -35,20 +35,30 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
           conteneur `role="button"`, jamais un DESCENDANT — un contrôle interactif natif imbriqué dans
           un élément à rôle interactif est une violation axe-core (`nested-interactive`), relevée sur
           les 120 zones-modèles de l'écran A. `EX-SCR-117` (bande entière cliquable) reste intact : le
-          `role="button"` ci-dessous couvre toujours nom, effectif, chevron, fourchettes et barre. */}
+          `role="button"` ci-dessous couvre toujours nom, effectif, chevron, fourchettes et barre.
+          `EX-SCR-21`/ACC-08 (C-R1-03) : la case NATIVE fait 13×13 px, sous les seuils de cible tactile
+          (44 px en compact, 32 px en intermédiaire/large). Le `<label>` qui l'enveloppe reste lui
+          aussi un SIBLING (il ne descend pas dans `.kycar-market-zone-interactive`) ; sa boîte est
+          dimensionnée en CSS (`.kycar-market-zone-compare-target`) pour porter la cible tactile,
+          la case restant à l'intérieur et cliquable normalement via l'association implicite
+          label -> input (aucun `id`/`for` requis). */}
       {canCompare && props.onToggleCompare !== undefined ? (
-        <input
-          type="checkbox"
-          class="kycar-market-zone-compare"
-          aria-label={`Comparer ${zone.label}`}
-          checked={props.isInCompareSelection}
-          disabled={!props.isInCompareSelection && props.compareAtCapacity}
+        <label
+          class="kycar-market-zone-compare-target"
           title={!props.isInCompareSelection && props.compareAtCapacity ? '4 modèles au maximum — retirez-en un pour en ajouter un autre' : undefined}
-          onClick={(e: JSX.TargetedMouseEvent<HTMLInputElement>) => {
-            e.stopPropagation();
-            props.onToggleCompare?.(zone.makeId, zone.modelId, !props.isInCompareSelection);
-          }}
-        />
+        >
+          <input
+            type="checkbox"
+            class="kycar-market-zone-compare"
+            aria-label={`Comparer ${zone.label}`}
+            checked={props.isInCompareSelection}
+            disabled={!props.isInCompareSelection && props.compareAtCapacity}
+            onClick={(e: JSX.TargetedMouseEvent<HTMLInputElement>) => {
+              e.stopPropagation();
+              props.onToggleCompare?.(zone.makeId, zone.modelId, !props.isInCompareSelection);
+            }}
+          />
+        </label>
       ) : null}
 
       <div

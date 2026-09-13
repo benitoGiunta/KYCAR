@@ -207,8 +207,9 @@
 }
 
 /* Zone-modele - EX-SCR-112, 72px en regime large. `D8-14` (a11y, nested-interactive) : la case de
-   comparaison (`.kycar-market-zone-compare`) est un sibling de `.kycar-market-zone-interactive`
-   (role="button"), jamais un descendant - la ligne est donc une rangee flex a deux colonnes. */
+   comparaison (`.kycar-market-zone-compare`, enveloppee dans `.kycar-market-zone-compare-target`)
+   est un sibling de `.kycar-market-zone-interactive` (role="button"), jamais un descendant - la
+   ligne est donc une rangee flex a deux colonnes. */
 .kycar-market-zone {
   display: flex;
   flex-direction: row;
@@ -219,9 +220,31 @@
   border-top: 1px solid var(--color-border);
 }
 
-.kycar-market-zone-compare {
+/* `EX-SCR-21`/ACC-08 (C-R1-03) : la case a cocher native (13x13 px) est bien en-deca des seuils de
+   cible tactile (44 px en compact, 32 px en intermediaire/large, EX-SCR-20). Le `<label>` qui
+   l'enveloppe (sibling au meme titre, D8-14) porte donc la cible : sa propre boite - pas celle de
+   la case - est dimensionnee ici. Mobile-first : 44 px par defaut (regime compact), reduit a 32 px
+   des 768 px (intermediaire ET large, EX-SCR-20) - au moins 32 px partout, jamais 13 px. */
+.kycar-market-zone-compare-target {
   flex-shrink: 0;
-  margin-top: 3px;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .kycar-market-zone-compare-target {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
+
+.kycar-market-zone-compare {
+  margin: 0;
 }
 
 .kycar-market-zone-interactive {
@@ -372,7 +395,8 @@
 /* Regime compact (< 768px) - EX-SCR-135 : la zone-modele passe a 96px, 4 lignes. */
 /* `EX-SCR-135`/DR-143 (D8-12) : la zone-modèle compacte passe sur QUATRE lignes distinctes
    (« 1: nom+effectif ; 2: prix ; 3: années+km ; 4: médiane+barre »), plus une colonne étroite pour la
-   case de comparaison (D8-14, sibling du `role="button"` depuis l'a11y de ModelZone.tsx) — grille
+   cible de comparaison (`.kycar-market-zone-compare-target`, D8-14, sibling du `role="button"` depuis
+   l'a11y de ModelZone.tsx ; C-R1-03/ACC-08, dimensionnée à 44 px pour la cible tactile) — grille
    nommée sur la racine, `.kycar-market-zone-interactive` ET `.kycar-market-zone-ranges` deviennent
    transparents (`display: contents`) pour que leurs enfants rejoignent directement cette grille. */
 @container (max-width: 767.98px) {
@@ -388,7 +412,7 @@
     align-items: center;
     row-gap: 2px;
   }
-  .kycar-market-zone-compare { grid-area: cmp; }
+  .kycar-market-zone-compare-target { grid-area: cmp; }
   .kycar-market-zone-interactive { display: contents; }
   .kycar-market-zone-row1 { grid-area: row1; }
   .kycar-market-zone-ranges { display: contents; }
