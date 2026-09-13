@@ -592,6 +592,13 @@ succès **génériques** (S1–S5 du PLAN-2 §2.4) applicables à chaque lot, pl
 de l'interface, pas des écrans). Aucun cycle : chaque arête va d'un lot antérieur vers un lot
 postérieur dans l'ordre topologique `D1 < D2 < {D3,D4,D5,D9} < {D6,D7} < D8`.
 
+**Amendement 3.5 (D3-38, 2026-09-13).** Une arête **D4 → D3** s'ajoute : `src/providers` importe les
+fonctions PURES du moteur (`src/engine/quantiles.ts`, `implausible`, `flags`) pour que l'agrégation mode 1
+des providers synthétique et fixture suive la même définition que le moteur (quantile de type 7
+EX-DATA-62, sentinelle EX-DATA-19(2), axe année EX-DATA-25 — constat DR3-20). Le graphe reste acyclique :
+le moteur n'importe aucun provider. L'ordre topologique devient `D1 < D2 < {D4,D5,D9} < D3 < {D6,D7} < D8` ;
+l'extraction de ces fonctions dans `src/types/` est une dette v2.
+
 ---
 
 ## 8. Matrice choix technique → exigence justificatrice
