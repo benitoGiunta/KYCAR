@@ -171,12 +171,26 @@
 }
 
 /* Liste de zones-modeles. */
+/* `C-R1-04` (constat coordinateur, 2026-09-13) : le plafond de carte (`EX-SCR-124` regle 1,
+   636 px, ci-dessous) supposait que « c'est la liste de zones qui absorbe la contrainte et se
+   reduit » (commentaire d'origine) - mais SEULE la variante `--expanded` recevait le
+   `min-height: 0`/`overflow-y: auto` necessaires a ce retrecissement (sans quoi la « taille
+   minimale automatique » d'un enfant flex a `overflow: visible` reste la somme des hauteurs
+   MINIMALES de ses zones, qu'aucun `flex-shrink` ne peut entamer). En regime compact/intermediaire
+   (bande a 96 px, EX-SCR-135), une carte a EXACTEMENT `modelesVisiblesAvantRepli + 1` modeles
+   affiche TOUS ses modeles par defaut (`view-model.ts`, evite un « + 1 autre modele » degenere) :
+   pour 7 modeles a ~105 px chacun, la liste NON depliee depassait deja les 480 px alloues et le
+   `overflow: hidden` de la carte (regle suivante) rognait silencieusement le(s) dernier(s)
+   modele(s) - prix/annees/kilometrage/mediane/effectif rendus INVISIBLES et INACCESSIBLES (aucun
+   bouton de repli n'existe puisque `hasMoreModels` est faux dans ce cas), en violation de
+   `EX-SCR-112`/`D-36` (« jamais masques »). Ces regles s'appliquent donc a TOUTE liste de zones,
+   pliee ou depliee : l'exces devient defilable (et visuellement signale par l'ombre de debord),
+   jamais coupe. */
 .kycar-market-zone-list {
   display: flex;
   flex-direction: column;
-}
-
-.kycar-market-zone-list--expanded {
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: 480px;
   overflow-y: auto;
   /* `EX-SCR-124` regle 1 (ACC-09) : ombre portee haute et basse signalant le debord (mesure
@@ -193,11 +207,6 @@
   /* `border-box` : le cadre de 1 px de la carte fait partie des 636 px mesures (638 sinon). */
   box-sizing: border-box;
   max-height: 636px;
-}
-
-.kycar-market-zone-list--expanded {
-  flex: 1 1 auto;
-  min-height: 0;
 }
 
 .kycar-market-card-header,
@@ -413,7 +422,21 @@
     row-gap: 2px;
   }
   .kycar-market-zone-compare-target { grid-area: cmp; }
-  .kycar-market-zone-interactive { display: contents; }
+  /* `C-R1-04` (constat coordinateur, 2026-09-13) : `src/app/app.css` porte une règle GLOBALE de
+     cible tactile, `.kycar-app [role='button'] { display: inline-flex; ... }` (deux sélecteurs,
+     spécificité 0-0-2-0), hors périmètre de ce lot. `.kycar-market-zone-interactive` a `role="button"`
+     et n'est qu'UNE classe (spécificité 0-0-1-0) : cette règle globale l'emportait TOUJOURS sur le
+     `display: contents` ci-dessous, quel que soit l'ordre des feuilles, et le remettait en
+     `inline-flex`. Une fois réifié en boîte flex réelle, `.kycar-market-zone-interactive` cessait de
+     « disparaître » pour la grille : ses enfants (`row1`, `ranges` et ses champs, `share-bar`)
+     n'étaient plus des items de grille nommés mais de simples enfants flex empilés DANS cette boîte,
+     qui devenait elle-même le SEUL item auto-placé dans la première rangée (« row1 ») — d'où
+     `grid-template-rows` mesuré à `90px 0px 0px 0px` : la rangée 1 absorbait tout le contenu (prix,
+     années, kilométrage, médiane, barre), et les rangées 2 à 4 restaient vides. Le contenu débordait
+     donc de la boîte de la zone et RECOUVRAIT le texte de la zone suivante (chevauchement visible en
+     compact, cases « Comparer » incluses). Le sélecteur ci-dessous porte trois sélecteurs simples
+     (spécificité 0-0-3-0) pour battre la règle globale sans la modifier (hors périmètre de ce lot). */
+  .kycar-market-zone .kycar-market-zone-interactive[role='button'] { display: contents; }
   .kycar-market-zone-row1 { grid-area: row1; }
   .kycar-market-zone-ranges { display: contents; }
   .kycar-market-zone-price { grid-area: price; }
