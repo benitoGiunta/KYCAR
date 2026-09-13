@@ -3,7 +3,9 @@
  * =================================================================================================
  * `EX-NFR-9` — premier affichage utile de l'écran de mode 1 sur une connexion simulée 4G
  *   (≈ 4 Mb/s, latence 150 ms) : ≤ 2 000 ms (p95). Simulée par CDP `Network.emulateNetworkConditions`,
- *   cache navigateur VIDÉ et désactivé — c'est la mesure « premier visiteur ».
+ *   cache navigateur VIDÉ et désactivé — c'est la mesure « premier visiteur ». **Le jalon asserté
+ *   est le PREMIER CHIFFRE**, pas l'ossature : depuis `D3-31` (correction de `C-3.5-01`), les deux
+ *   sont mesurés ET bornés, et c'est le second qui dit quand l'utilisateur voit une donnée.
  * `EX-NFR-7` — rendu initial du nuage jusqu'à 5 000 points : ≤ 500 ms (p95).
  * `EX-NFR-8` — interaction continue de 10 s sur le nuage : au moins 95 % des fenêtres glissantes
  *   d'une seconde à ≥ 30 images/s ; la mesure PUBLIE le nombre de fenêtres, le nombre de fenêtres en
@@ -76,7 +78,11 @@ function slidingFps(frames: readonly number[]): { windows: number; bad: number; 
  *
  * Depuis la phase 3.5 la source par défaut est un jeu de fixtures TÉLÉCHARGÉ (`D3-01`) : l'écart
  * entre les deux jalons est devenu la mesure la plus importante du chargement (constat `C-3.5-01`,
- * `reports/remediation-2.8/mvp-integrate.md` §6.2).
+ * `reports/remediation-2.8/mvp-integrate.md` §7.2). `D3-31` l'a refermé — agrégats mode 1
+ * précalculés servis en 12 Kio gzip, annonces différées, métadonnées préchargées en parallèle des
+ * référentiels — et le jalon « premier chiffre » est donc ASSERTÉ ici, au même budget que
+ * l'ossature. Le publier sans l'asserter n'avait de sens que tant que la correction était hors
+ * d'atteinte.
  */
 async function measureFirstUsefulPaint(
   page: Page,
@@ -145,16 +151,14 @@ test.describe('Budgets de performance mesurés au navigateur', () => {
       'EX-NFR-9 — ossature de l’écran A en 4G (4 Mb/s, 150 ms)',
       `${samples.map((s) => `${s} ms`).join(' / ')} — médiane ${median(samples)} ms, max ${Math.max(...samples)} ms, ${(transferred / 1024).toFixed(0)} Kio transférés au total`,
     );
-    // `C-3.5-01` — PUBLIÉ, non asserté. Le jalon « premier chiffre » dépasse le budget de 2 000 ms
-    // depuis que la source par défaut est un jeu de fixtures téléchargé (2,7 Mio gzip pour un
-    // snapshot du profil `test`). L'écart est un CONSTAT remonté au coordinateur : le corriger
-    // suppose soit des agrégats mode 1 précalculés au manifest, soit un profil plus léger par
-    // défaut — deux décisions hors du périmètre de cet agent (`D3-01`, `src/providers/fixture`).
-    // Le publier sans l'asserter est la seule façon de ne pas le taire sans le maquiller.
+    // `C-3.5-01` CORRIGÉ (`D3-31`) — le jalon « premier chiffre » est désormais ASSERTÉ, au même
+    // budget que l'ossature. `snapshotKio` mesure ce que le fichier d'ANNONCES a coûté au moment de
+    // la lecture : il est chargé en arrière-plan pour le mode 2 et n'est plus sur le chemin du
+    // premier chiffre — la mesure le publie pour que ce fait reste vérifiable, pas pour l'excuser.
     mesure(
       testInfo,
-      'EX-NFR-9 — PREMIER CHIFFRE affiché en 4G (constat C-3.5-01, publié, non asserté)',
-      `${chiffres.map((s) => `${s} ms`).join(' / ')} — médiane ${median(chiffres)} ms contre un budget de ${NFR9_BUDGET_MS} ms ; snapshot de fixtures ${snapshotKio.toFixed(0)} Kio gzip`,
+      'EX-NFR-9 — PREMIER CHIFFRE affiché en 4G (jalon asserté depuis D3-31)',
+      `${chiffres.map((s) => `${s} ms`).join(' / ')} — médiane ${median(chiffres)} ms, max ${Math.max(...chiffres)} ms, budget ${NFR9_BUDGET_MS} ms ; annonces (hors chemin critique) ${snapshotKio.toFixed(0)} Kio gzip`,
     );
 
     await cdp.send('Network.emulateNetworkConditions', {
@@ -166,7 +170,9 @@ test.describe('Budgets de performance mesurés au navigateur', () => {
     // Budget exprimé en p95 : sur cinq mesures d'une machine partagée (le serveur `vite preview`
     // tourne sur le même hôte), la MÉDIANE est l'estimateur stable ; la série complète est publiée
     // ci-dessus pour que la marge réelle soit lisible.
-    expect(median(samples)).toBeLessThanOrEqual(NFR9_BUDGET_MS);
+    expect(median(samples), 'EX-NFR-9 — ossature de l’écran A').toBeLessThanOrEqual(NFR9_BUDGET_MS);
+    // Et le jalon qui compte pour l'utilisateur : le premier EFFECTIF rendu (`D3-31`).
+    expect(median(chiffres), 'EX-NFR-9 — premier chiffre de l’écran A').toBeLessThanOrEqual(NFR9_BUDGET_MS);
   });
 
   test('EX-NFR-9bis — premier affichage utile d’une URL DÉJÀ filtrée, en 4G simulée', async ({ page, context }, testInfo) => {

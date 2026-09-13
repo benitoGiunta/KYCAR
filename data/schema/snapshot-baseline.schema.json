@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kycar.local/schema/snapshot-baseline/1.0.0",
   "title": "SnapshotBaseline",
-  "description": "Agregats mode 1 PRECALCULES d'un snapshot de fixtures (D3-31) : le fichier baseline.json depose a cote de manifest.json. Il porte ce que l'ecran de mode 1 affiche AVANT la premiere annonce — les MakeAggregate de la selection VIDE, l'effectif de cette selection, et les statistiques d'ingestion que le SnapshotDescriptor publie. Il est DERIVE des octets du NDJSON par le code du provider (tools/dataset/baseline.ts, npm run data:baseline) et lie a eux par snapshotId et producedFrom.sha256 : une baseline calculee sur d'autres octets est refusee avant d'avoir servi le moindre chiffre. Documentation : docs/data/DATA-MODEL.md §8.",
+  "description": "Agregats mode 1 PRECALCULES d'un snapshot de fixtures (D3-31) : le fichier baseline.json depose a cote de manifest.json. Il porte ce que l'ecran de mode 1 affiche AVANT la premiere annonce — les MakeAggregate de la selection VIDE, l'effectif de cette selection, et les statistiques d'ingestion que le SnapshotDescriptor publie. Il est DERIVE des octets du NDJSON par le code du provider (tools/dataset/baseline.ts, npm run data:baseline) et lie a eux par snapshotId et producedFrom.sha256 : une baseline calculee sur d'autres octets est refusee avant d'avoir servi le moindre chiffre. Documentation : docs/data/DATA-MODEL.md §6bis.",
   "x-kycar-schema-version": "1.0.0",
   "type": "object",
   "additionalProperties": false,
