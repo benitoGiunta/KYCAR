@@ -20,6 +20,8 @@
 
 ## 1. Résumé et verdict
 
+> **État au 2026-09-13 (rev 2)** — ce §1 et les §2 à §9 décrivent la **revue initiale** (rev 1, commit `6b66e0c`). Le verdict de la porte **G9b** est rendu au **§10** « Re-revue delta », après `data-fix` (3.4), `mvp-integrate` et `fixture-perf` (3.5).
+
 **152 sondes exécutables** dans `tests/data/` (14 fichiers), couvrant **les 110 sondes du contrat
 `probes.json`** — vérifié par une sonde de couverture — plus la revue de structure, les cohérences
 croisées, la vérité terrain réciproque et l'exploitabilité produit.
@@ -534,3 +536,201 @@ Les **136 sondes vertes** (137 sur `dev`) sont la **suite de non-régression des
 tourne sur `dev` en **14,7 s** et sur `test` en **44,5 s**. Les **16 rouges** portent chacune
 l'identifiant de son constat dans son titre et doivent être rendues vertes **sans être modifiées**
 (D-31 / D-32) ; les **3 dettes ratifiées** restent en `it.fails` annoté, jamais en `skip`.
+
+
+---
+
+## 10. Re-revue delta (rev 2, 2026-09-13) — verdict G9b
+
+> Agent `data-review`, **rev 2**, relancé par message (D3-30). Arbre principal `/home/user/KYCAR`,
+> branche `claude/kycar-project-ffcplk` @ `0d5e39f`. **Lecture seule partout sauf cette section** :
+> aucune sonde, aucun fichier de `src/`, `tools/`, `data/` ou `tests/` n'a été modifié par moi.
+>
+> Delta jugé : `data-fix` (`423cc91`, `1578c1c`, `d3a3d74` — rapport `reports/data/data-fix.md`,
+> décisions D3-25…D3-30), `mvp-integrate` (`reports/remediation-2.8/mvp-integrate.md`, constat
+> `C-3.5-03`), `fixture-perf` (`766f5e7`…, D3-31/D3-34, artefact `baseline.json`).
+>
+> **Vérifié d'abord** : `git log --stat 766f5e7 -- data/fixtures` n'ajoute que **six**
+> `baseline.json` (36 408 lignes insérées, 0 supprimée) ; **aucun `listings.ndjson.gz` ni aucun
+> `manifest.json` n'a été touché par le lot `fixture-perf`**. La dernière régénération des données
+> est bien `d3a3d74` (`data-fix`).
+>
+> Tous les chiffres du §10 sont produits par **mes propres scripts**, écrits dans le bac à sable de
+> session et jamais dans le dépôt : un chargeur NDJSON autonome, et une **réimplémentation
+> indépendante de M1 et M2** écrite depuis la spécification (`EX-DATA-88`, `EX-DATA-90/92`,
+> `EX-DATA-19(2)`) — ni `tools/dataset/check.mjs`, ni `tools/dataset/cells.mjs`, ni `tests/data/harness.ts`.
+
+### 10.1 Portes rejouées
+
+| Porte | Commande | Sortie |
+|---|---|---|
+| Sondes de données, `dev` | `npm run test:data` | **152 / 152**, 14 fichiers, 28,4 s, sortie 0 |
+| Sondes de données, `test` | `KYCAR_DATA_PROFILE=test npm run test:data` | **152 / 152**, 14 fichiers, 48,8 s, sortie 0 |
+| Contrat des providers | `npm run test:contract` | **93 / 93**, 3 fichiers (dont `baseline-artifact` 10 et `ground-truth`), sortie 0 |
+| Schéma + artefacts, `dev` | `npm run data:validate -- --profile dev` | `RESULTAT : profil conforme` — 3 × 5 000 lignes, 3 baselines liées au `sha256` du manifest, 135 marques, Σ effectifs = `selectionCount` 4 997 |
+| Schéma + artefacts, `test` | `npm run data:validate -- --profile test` | `RESULTAT : profil conforme` — 3 × 20 000 lignes, 262 marques, `selectionCount` 19 986 |
+| Contrôles du générateur, `dev` | `npm run data:check -- --profile dev` | **74 sondes rejouées, 0 écart, 4 dettes** (P-23 EG-12, P-55 EG-12, P-57 EG-11, P-58 EG-12) |
+| Contrôles du générateur, `test` | `npm run data:check -- --profile test` | **74 sondes rejouées, 0 écart, 3 dettes** (P-10 EG-01, P-11 EG-01, P-57 EG-11) |
+| Artefact précalculé | `npm run data:baseline -- --check` | `RESULTAT : artefacts conformes` |
+
+**Aucune sortie non verte.** Les 16 sondes rouges de la rev 1 sont vertes, les 3 dettes ratifiées
+restent en `it.fails` annoté, et deux sondes de plus (`P-45`, `P-55`) rejoignent ce dispositif au
+seul profil `dev` (EG-12 étendue, DR3-19).
+
+### 10.2 Les onze sondes touchées, jugées une à une
+
+Verdicts : **LÉGITIME** · **LÉGITIME AVEC RÉSERVE** (principe juste, borne trop lâche ou trop ad hoc)
+· **ILLÉGITIME**. Règle D-31/D-32 appliquée : le doute profite à la sonde d'origine.
+
+| # | Sonde | Fichier:ligne | Modification | Verdict | Motif et **recalcul indépendant** |
+|---|---|---|---|---|---|
+| 1 | `R-DATA-07` (`P-25`) | `tests/data/p16-fuel-body.test.ts:173` | ne compte plus que les inversions **significatives** (> 2 erreurs-types de la différence de deux proportions), toujours ≤ 1 ; extrémités 2010 ≤ 30 % et 2024 ≥ 60 % **inchangées** | **LÉGITIME** | J'ai recalculé la série de la part de boîtes A/S par année sur le NDJSON : **2010 16,67 % (n = 294) · 2024 69,55 % (n = 693) · 3 inversions brutes, 0 significative** — exactement les trois couples publiés par `data-fix` avec les mêmes écarts-types (2012→2013 −0,04 pt / 0,02 e.t. · 2015→2016 −2,08 pt / 0,96 e.t. · 2018→2019 −1,50 pt / 0,89 e.t.). L'espérance d'inversions que je mesure sur les **seize** couples vaut **3,24** (`data-fix` annonce 1,93 : son total sur les neuf couples non détaillés est sous-estimé — l'écart va **dans le sens de la démonstration**). Une tolérance d'« au plus une inversion » sur une série de 17 proportions binomiales est inatteignable sur une donnée conforme. |
+| 2 | `R-DATA-08` (`P-45`) — tolérance | `tests/data/p31-price.test.ts:327` | la tolérance `[0,25 ; 0,60]` porte désormais sur le **κ normalisé** `κ / κ_max`, **mêmes bornes numériques** | **LÉGITIME AVEC RÉSERVE** | Recalculé de bout en bout avec **mon** détecteur M1 : `κ = 0,0136` sur `n = 10 165`, `p_a = 52,59 %`, `p_b = 2,22 %`, `p_e = 0,4757`, **`κ_max = 0,0402`**, `κ/κ_max = 0,3373` — **identique au chiffre publié**, à la quatrième décimale. La borne basse de 0,25 est six fois au-dessus du maximum arithmétique : inatteignabilité **confirmée**. **Réserve** : seule la borne **basse** a été re-justifiée. La borne **haute de 0,60**, choisie jadis pour un κ brut, devient sur l'échelle normalisée un plafond que le jeu frôlerait si la corrélation s'améliorait (mesure 0,3373, marge 0,26) — un générateur **meilleur** ferait rougir la sonde. J'aurais retenu `κ/κ_max ≥ 0,25` opposable et le haut **publié sans assertion**, ou relevé à 0,90. |
+| 3 | `R-DATA-08` (`P-45`) — portée | même ligne | passe sous `devSamplingNoise` (`IS_TEST_PROFILE ? it : it.fails`) | **LÉGITIME** | Mesuré au profil `dev` par mon détecteur : `p_b = 0,68 %` sur `n = 2 363`, `κ = −0,0001`, `κ_max = 0,0133`, `κ/κ_max = −0,0081`. À une quinzaine de `M1_LOW`, l'erreur-type du κ dépasse sa valeur : la sonde y mesure du bruit. |
+| 4 | `R-DATA-01` (`P-02`) | `tests/data/p01-volume-composition.test.ts:86` | le motif n'est plus **recopié en dur** dans la sonde : il est **lu** dans `profiles.json:snapshotIdPatternRegex` | **LÉGITIME AVEC RÉSERVE** | Vérifié : `profiles.json` publie `snapshotIdPatternRegex = ^[a-z]{2}-\d{8}T\d{6}Z$`, **caractère pour caractère le `pattern` de `data/schema/snapshot-manifest.schema.json:23`**, et les six identifiants livrés le satisfont. La correction est celle que DR3-01 demandait. **Réserve** : une sonde qui lit son attendu dans la table qu'elle contrôle ne peut plus échouer si la table est relâchée. Le point fixe manque : j'aurais ajouté `expect(profilesTable.snapshotIdPatternRegex).toBe(schemaManifest.properties.snapshotId.pattern)` — c'est le schéma, pas `profiles.json`, qui est le contrat validé. |
+| 5 | `C-P3-3` | `tests/data/cross-findings.test.ts:23-45` | `expect(declaredPattern).toContain('be-fixture-')` → `not.toContain('be-fixture-')` **et** `designSnapshotIdPattern` le contient | **LÉGITIME** | L'assertion d'origine **ratifiait** le défaut : elle devenait rouge dès sa correction. Vérifié dans le fichier : `snapshotIdPattern = be-<AAAAMMJJ>T<hhmmss>Z`, `designSnapshotIdPattern = be-fixture-<profil>-<AAAAMMJJ>-<graine hex 8>` — l'identifiant de conception survit là où il a un sens (`generation.json`). |
+| 6 | `S-05` | `tests/data/structure-schema-adapter.test.ts:146` | la liste attendue de `dependentSchemas.wltp` gagne `co2EmissionsUnit` | **LÉGITIME** | Les deux sondes du **même fichier** étaient mutuellement exclusives : `S-05` figeait l'état livré, `R-DATA-24` (**non modifiée**) exigeait l'ajout. Vérifié : la liste vaut désormais `co2Emissions, co2EmissionsUnit, consumption, efficiencyClass` et `R-DATA-24` mesure **0 ligne livrée** portant `co2EmissionsUnit` en branche WLTP. La garde est passée de la discipline du générateur au schéma. |
+| 7 | `C-P3-8` | `tests/data/cross-findings.test.ts:78-105` | `expect(onRequestExpected).toBe(rows.length)` → `.toBe(0)` | **LÉGITIME** | Même classe : l'assertion figeait le défaut. Recompté sur le manifest : **8 déclarations `A-20` au profil test, toutes à `expected.status = QUOTED`**, `expected.flag = PRICE_ON_REQUEST_WITH_AMOUNT` — ce qu'`EX-DATA-32` impose et ce que l'adaptateur faisait déjà. Le dictionnaire est normatif ; c'est le manifest qui demandait à l'ingestion une chose interdite. |
+| 8 | `R-DATA-05` | `tests/data/p16-fuel-body.test.ts:262` | la table des carrosseries autorisées par segment n'est plus recopiée : elle est **lue** dans `segments.json:bodyTypeMapping` | **LÉGITIME AVEC RÉSERVE** | Lire la table est juste **pour l'intention déclarée** de la sonde (« la carrosserie écrite appartient à l'ensemble fermé du segment »), et sans cela DR3-14 était incorrigible. **Réserve, sérieuse** : la sonde ratifie désormais **tout** ce que la table dira, et la table a changé au-delà de ce que le `$comment` justifie — voir **DR3-22** (le segment `sportive` passe de 60 % coupé / 40 % cabriolet à **25 % / 75 %**, sans justification). J'aurais gardé, **en plus** de la lecture, deux invariants indépendants de la table : `utilitaire`/`monospace` ne produisent jamais 2 ni 3, et la part de cabriolets reste bornée (aucune sonde ne la contraint aujourd'hui). |
+| 9 | `R-DATA-28` (`P1`) | `tests/data/product-fitness.test.ts:86` | plancher d'offres `≥ 230` → **`≥ 120`** ; coupés avant filtres `≥ 400` → **`≥ 450`** ; marques `≥ 10` inchangé | **LÉGITIME AVEC RÉSERVE** | Recalculé sur le NDJSON du profil test : `bodyType = 3` → **672 coupés**, puis `prix ≤ 20 000 €` et `km ≤ 100 000` → **156 offres sur 35 marques et 16 années** (rev 1 : 31 offres). La mesure et l'ordre de grandeur publiés sont exacts, et le plancher 120 vaut ≈ `156 − 3·√156` : il est **principé**. **Réserve** : le plancher des coupés avant filtres, porté à 450 pour une mesure de **672**, est à **8,7 erreurs-types** sous la mesure — trois fois plus lâche que le premier. J'aurais retenu **590** (`672 − 3·√672`), par cohérence avec la règle appliquée à l'autre borne. |
+| 10 | `R-DATA-11` (`P-55`) | `tests/data/p55-missingness.test.ts:129` | passe sous `devSamplingNoise` | **LÉGITIME** | `P-55` figurait **déjà** dans EG-12 sans que la sonde le matérialise (rev 1 §7.3 DR3-19). Au profil `test` la sonde reste opposable et verte sur 78 champs. La conséquence pour le champ `consumption.electricCombined`, elle, reste ouverte : voir DR3-05 au §10.3 et **DR3-24** au §10.5. |
+| 11 | `ground-truth` `VERSION_AMBIGUOUS` (D3-29) | `tests/contract/ground-truth.test.ts:499` | `expect(erased).toBe(4)` → `.toBe(0)` (édition hors périmètre déclarée par `data-fix`) | **LÉGITIME** | L'assertion portait son propre aveu (« écart mesuré, **à consigner en constat** ») : elle figeait C-P3-12, pas un contrat. Recompté sur les trois snapshots `test` **et** sur `dev` (que la sonde lit) : **300 déclarations `VERSION_*` par snapshot, 0 sans `modelVersion` dans la ligne, 0 déclaration orpheline sur 2 361**. Le constat est **clos**, pas maquillé. |
+| 12 | `ground-truth` `C-P3-11` (D3-34 a) | `tests/contract/ground-truth.test.ts:432-458` | assertions **retournées** : `versionStoplist` et `versionDriveBadges` **non vides**, 0 survivante — au lieu de « la liste d'arrêt n'est chargée nulle part » | **LÉGITIME** | La sonde d'origine restait verte **pour une mauvaise raison** : `D3-21` avait corrigé les deux chargeurs de production, mais le chargeur du **harnais** de `tests/contract/` ne lisait toujours pas les deux fichiers — elle ne prouvait plus rien de l'application. Vérifié dans `src/providers/tweedehands/testFixtures.ts:48-49` : les deux `import.meta.glob` de `version-stoplist.json` et `version-lexicon.json` sont là. La deuxième barrière R3 d'`EX-DATA-29` étape 3 est effective **et le harnais ingère avec le référentiel de l'application**, ce qui rend opposables les 93 cas du contrat. |
+
+**Bilan : 8 LÉGITIME · 4 LÉGITIME AVEC RÉSERVE · 0 ILLÉGITIME.** Aucune sonde n'a été affaiblie pour
+passer ; les quatre réserves portent sur des bornes trop lâches ou non re-justifiées, jamais sur le
+principe de la correction. Elles sont reportées en réserves nommées de la porte (§10.7).
+
+### 10.3 Les 19 constats de la rev 1 — statut un par un
+
+Tous les chiffres de la colonne « recalcul » sont les miens, sur les fixtures régénérées `d3a3d74`.
+
+#### MAJEURS
+
+| # | Statut | Recalcul indépendant |
+|---|---|---|
+| **DR3-02** — `A-04` ne franchit pas la borne, 13 déclarations sans conséquence | **CLOS** | Sur les **six** snapshots (3 × test, 3 × dev) : `60/60` (test) et `15/15` (dev) déclarations `MILEAGE_IMPLAUSIBLE_FOR_AGE` dépassent **200 000 km/an**, **0** avec un âge indéterminable, **0** au-dessus de la borne canonique de 1,5 M km (maximum injecté **1 450 000 km**), **0** cumul avec `A-05` ou une unité `mi`. La forme (b), indétectable par construction, est retirée. Rev 1 : 37/50 et 13 sans conséquence. |
+| **DR3-03** — tolérance de `P-25` inatteignable | **CLOS** (spécification amendée, sonde suivie) | §10.2 ligne 1 : 3 inversions brutes, **0 significative**, espérance mesurée 3,24 inversions. |
+| **DR3-04** — κ de `P-45` inatteignable | **CLOS AVEC RÉSERVE** | §10.2 ligne 2 : `κ_max = 0,0402` confirmé au chiffre près, `κ/κ_max = 0,3373`. Réserve sur la borne haute. |
+| **DR3-05** — trois champs conditionnels hors des ±25 % | **CLOS AVEC RÉSERVE** | Recalculé sur la population **éligible** (branche de mesure d'`EX-DATA-60`, mêmes règles que ma table `ELIGIBILITY`) au profil test : `isPluginHybrid` **16,01 %** (n = 2 674, réf. 15 % → +6,7 % relatif, **dans la bande**) ; `wltp.consumptionElectricCombined` **14,37 %** (n = 2 095, −4,2 %, **dans la bande**). Rev 1 : 4,59 % et 10,42 %. **Réserve** : `consumption.electricCombined` reste à **20,83 % pour 15 %** (n = **96**, +38,9 % relatif) — hors bande, mais **écarté de la mesure par le plancher `n ≥ 100` que j'avais moi-même posé**. À `n = 96` l'écart ne vaut que **1,60 erreur-type** : la donnée est compatible avec la référence, mais elle n'est **pas prouvée**. La dette **D3-27** ratifiée pour ce cas n'est pas appliquée (voir **DR3-24**). |
+| **DR3-06** — `P-68` : 10,24 % de révisions observables | **CLOS** | Appariement des survivantes par identifiant, prix affiché comparé : `be-20260914` **16,90 %** (2 917 / 17 265) dont **83,85 %** à la baisse ; `be-20260921` **16,82 %** (2 917 / 17 339) dont **83,51 %**. Tolérances [14 % ; 20 %] et [80 % ; 88 %] : **tenues**. Mon effectif de survivantes diffère légèrement de celui du générateur (17 265 vs 17 910) parce que je n'apparie que les lignes dont **les deux** prix sont affichés ; le taux, lui, est le même à 0,6 point. `manifest.delta.priceRevisedCount` compte désormais **3 056 / 3 054** révisions **effectives**. |
+| **DR3-07** — `P-69` : la médiane monte de 5,6 % | **CLOS** | Médiane du prix affiché : **16 222,5 → 15 990 → 15 990 €**, soit **−1,43 %** de S0 à S2 (tolérance : baisse ≤ 3 %). Contrôle du **même ensemble** de 16 118 survivantes sur les trois snapshots : **16 950 → 16 914,5 → 16 862,5 €** (−0,52 %), **monotone décroissante**. Le renouvellement du stock ne fait plus dériver la composition : l'acceptation-rejet en `1/d` remplace l'inclinaison d'âge de `R-52`. La sonde n'a **pas** été modifiée. |
+| **DR3-08** — rappel de M1 à 36 % | **CLOS** | **Réimplémentation indépendante de M1** (cascade `C₁ → C₂ → C₃`, `n_price ≥ 12`, sentinelle relative `0,10 × médianeRéf(C)`, barrières de Tukey `k = 1,5` sur `ln(prix)`, quantile de type 7) sur les lignes dédoublonnées : **48/48 signalées au profil test (100,00 %)**, **12/12 au profil dev**, **0 écartée** par `PRICE_IMPLAUSIBLE_IN_CELL`. Rev 1 : 18/50, dont 32 écartées. Le plancher absolu de 250 € a bien cédé la place au seuil **relatif à la cellule**. |
+| **DR3-09** — rappel de M2 à 51,4 % | **CLOS** | **Réimplémentation indépendante de M2** (points `F` à prix/année/km valides, OLS à ridge `1e-9·trace/3` et Cholesky, MAD × 1,4826, passe de trimming à `\|z\| < 3,5`, recentrage `m_r`, seuil ±2,5, cellule choisie par la première règle satisfaite d'`EX-DATA-86`) : **61/67 signalées au profil test (91,04 %)** — 3 évaluées non signalées, 3 sans verdict — et **16/17 au profil dev (94,12 %)**. Ces chiffres sont **identiques, un par un**, à ceux que `data-fix` publie ; le rappel dépasse les 85 % exigés avec 6 points de marge. |
+| **DR3-10** — cinq taux appliqués à `N` au lieu de leur base | **CLOS AVEC RÉSERVE** | J'ai recompté **moi-même** les bases sur le fichier livré (test : `toutes` 20 000 · prix affiché **19 280** · sur demande **608** · PRO **13 735** · `powerHp` **19 233** · `offerType U/J/O` **19 764**) et confronté chaque **code** à `taux × base déclarée` : `CROSS_SELLER_DUPLICATE` 110 / 109,9 · `DUPLICATE_LISTING_ID` 14 / 13,7 · `DUPLICATE_VALUE_CONFLICT` 34 / 34,3 · `HYBRID_CATEGORY_UNRESOLVED` 20 / 20,0 · `PRICE_ON_REQUEST_WITH_AMOUNT` 8 / 7,9 · `REGION_UNRESOLVED` 90 / 90,0 (`A-19` + `A-21`, même code) · M1 48 / 48,2 · M2 67 / 67,5. **Les cinq groupes de la rev 1 (+46 %, +46 %, +46 %, +658 %, +3 189 %) sont rentrés dans les ±20 %.** **Réserve** : il reste **une** base qui annonce ce qu'elle n'applique pas — `A-11` (voir **DR3-21**). |
+| **DR3-11** — 61 valeurs injectées introuvables | **CLOS** | Sur les trois snapshots test : **2 361 déclarations, 0 orpheline, 300 `VERSION_*` dont 0 sans `modelVersion`**. La table `ANOMALY_PROTECTED_FIELDS` protège le champ porteur **en consommant le tirage**, donc sans décaler le motif d'absence des autres champs — `P-70` (survivantes non révisées identiques champ à champ) reste à **0 écart** au `data:check`. |
+| **DR3-13** — TVA déductible acceptée en silence sur un `PRIVATE` | **CLOS** | Deux vérifications. (a) Les fixtures : sur les six snapshots, **0** annonce à `seller.type = P` porte `prices.public.isTaxDeductible` (les 12 300 occurrences que j'avais d'abord comptées relevaient d'une erreur de lecture de ma part — `D` est le **professionnel**, `P` le particulier). (b) L'adaptateur : `src/providers/adapters/as24/adapt.ts` (bloc « # 10 ») **écarte** la valeur vers INCONNU et pose `ENUM_UNKNOWN` pour le **couple** (vendeur, TVA), pour `P` comme pour `PRIVATE`, `true` comme `false`. La sonde `S-08`, **non modifiée**, est verte. |
+| **DR3-14** — parcours P1 à 31 offres | **CLOS AVEC RÉSERVE** | §10.2 ligne 9 : 672 coupés → **156 offres, 35 marques, 16 années** ; part de coupés **3,39 %** sur 19 840 annonces à carrosserie connue (tolérance `P-24` [2,0 ; 3,5]). **Réserve** : la correction de `segments.json` va au-delà de ce qu'elle justifie (**DR3-22**), et la densité par marque reste faible (voir `C-3.5-03` ci-dessous). |
+| **DR3-15** — `DUPLICATE_VALUE_CONFLICT` pour deux notions | **OUVERT, dette D3-26 ratifiée** | Recompté : **34/34** paires ont des identifiants **différents** et le **même** `dealerBucket` — c'est bien une republication intra-vendeur, qu'`ARB-54` réserve à une divergence entre deux occurrences du **même** identifiant. Le constat est consigné dans `anomalies.json:A-07b.constatDR3_15` avec le jeu de modifications exact. Le report est **motivé** (renommage = changement de contrat, `tests/contract/ground-truth.test.ts` indexé par code) : **dette acceptable**. |
+
+#### MINEURS
+
+| # | Statut | Recalcul indépendant |
+|---|---|---|
+| **DR3-01** — `snapshotIdPattern` | **CLOS** | §10.2 lignes 4 et 5. |
+| **DR3-12** — `dependentSchemas.wltp` | **CLOS** | §10.2 ligne 6 ; `R-DATA-24` (non modifiée) verte. |
+| **DR3-16** — `POWER_OUT_OF_RANGE` inatteignable | **OUVERT, dette D3-28 ratifiée** | Recompté : **12 déclarations `A-13`, valeurs 1 et 9 999, 0 hors du domaine `[1, 9999]`**. `A-13` est requalifiée en signal de vraisemblance dans `anomalies.json` et ajoutée à la liste `inatteignables`, mais reste au manifest — statu quo assumé et écrit. **Dette acceptable** : la valeur servie **est** absurde, ce qui a une valeur de test. |
+| **DR3-17** — trois écarts de documentation | **CLOS** | `missingness.json:conditionalAbsence` complété (12 entrées marquées `DR3-17`) et `baseRatesNote` ajoutée ; **HG-05** publie `TRIM_WORDS` et sa règle de choix — `P-54` est désormais vérifiable **sans reconstruire un classifieur** (mon hypothèse HR-03 tombe) ; `snapshot-dynamics.json:deltaUnitOfCount` dit que l'écart entre `enteredCount` et le nombre d'identifiants distincts vaut exactement le nombre de doublons `A-07`. |
+| **DR3-18** — `REGION_UNRESOLVED` et `A-20` | **CLOS** | Recompté au manifest test S0 : `REGION_UNRESOLVED` porte un `detail` **normé** — `prefixe postal non resolu` **80** (avec `expected.flagExpected = true`) et `pays hors marche` **10** (`flagExpected = false`) : les deux situations que `DATA-MODEL` §3.1 sépare sont désormais distinguables **sans relire la ligne**. `A-20` : **8/8** déclarations à `expected.status = QUOTED`. |
+| **DR3-19** — portée par profil | **CLOS** | Diff `probes.json` `6b66e0c..HEAD` : **exactement six** sondes changent de portée — `P-18`, `P-23`, `P-37`, `P-38`, `P-55`, `P-58` passent de `snapshot` à `snapshot test`, ce sont **précisément** celles que DR3-19 nommait (`P-45`, `P-10`, `P-11`, `P-72`, `P-75`, `P-76`, `P-05` l'étaient déjà). **Aucune autre sonde n'a été relâchée par cette voie** — je l'ai vérifié champ par champ sur les 110. `data:check --profile dev` les affiche en DETTE `EG-12` au lieu d'un écart. |
+
+#### Constats hérités des autres lots
+
+| # | Statut | Verdict |
+|---|---|---|
+| **`C-3.5-03`** (`mvp-integrate`) — densité du parcours P1 au profil test, « 32 offres sur 17 marques », **à confirmer par `data-review`** | **CLOS AVEC RÉSERVE — la mesure a changé de base** | Le chiffre de `mvp-integrate` a été relevé **avant** la régénération `d3a3d74`. Je mesure aujourd'hui **156 offres sur 35 marques et 16 années** au profil test (36 offres / 15 marques au profil `dev`). **La propriété du jeu est acceptable pour le parcours cible de `docs/00-CONTEXT.md`** : le mode 1 y demande « quelles marques et quels modèles existent, combien d'offres pour chaque couple, **les fourchettes de prix / année / kilométrage de chacun** » — 35 cartes-marques alimentées le rendent, et le parcours **exerce les deux régimes d'affichage**, ce qui a une valeur de recette. **Réserve écrite** : seules **4 marques sur 35** atteignent `n ≥ 12`, le seuil au-dessous duquel l'écran bascule sur la « fourchette observée », et **aucune** n'atteint les `\|F\| ≥ 30` de M2 — 31 cartes sur 35 montrent donc la fourchette observée. Ce n'est **pas un défaut** (la conjonction carrosserie × prix × kilométrage est légitimement sélective sur 20 000 annonces) ; c'est une **décision de commanditaire** si l'on veut que P1 montre la présentation nominale : il faudrait augmenter le volume du profil servi ou la part de coupés à prix modéré. À porter à l'acceptance rev 3, pas à `data-fix`. |
+| **`C-P3-11`** (`fixture-perf`, D3-34 a) | **CLOS** | §10.2 ligne 12. |
+| **`C-P3-14` / `C-R1-01`** (ouverture du profil test) | hors de mon périmètre | Le `test:contract` publie `baseline servie 9 ms` (budget S4 2 000 ms) et `annonces ingérées 2 762 ms` (budget 10 000 ms) : je le note, je ne le juge pas. |
+
+### 10.4 La baseline précalculée (`baseline.json`, D3-31/D3-34)
+
+J'ai recalculé les agrégats **à partir du NDJSON seul**, sans instancier le provider, sur **les six
+snapshots** des deux profils commités.
+
+| Contrôle | Mesure | Verdict |
+|---|---|---|
+| Liaison aux octets | `producedFrom.sha256` = `manifest.sha256` et `snapshotId` = `manifest.snapshotId` sur **6/6** artefacts | **conforme** — l'artefact ne peut pas se détacher du fichier qu'il résume |
+| `selectionCount` | 19 986 / 19 986 (test) et 4 997 / 4 997 (dev), soit le nombre d'identifiants **distincts** du fichier (14 et 3 doublons `A-07` retirés) | **conforme** |
+| Une ligne par marque, même effectif | **262/262** marques au profil test, **135/135** au profil dev, **0 écart d'effectif** sur les 6 snapshots (contrôle exhaustif, pas un échantillon) | **conforme** |
+| `min` / `max` de `price` et `year` | **0 écart** sur les 6 snapshots (786 bornes comparées au profil test) | **conforme** |
+| Bloc `year` | `year` est le **`productionYear`** de la source (canonique `modelYear`, `adapt.ts` # 24), pas l'année de première immatriculation : `n`, `min`, `max`, `p05`, `p50`, `p95` **exacts** sur les marques contrôlées | **conforme** |
+| Quantiles `p05` / `p50` / `p95` | **voir DR3-20** — ils suivent le **rang le plus proche `x_⌈p·n⌉`**, jamais l'interpolation de type 7 qu'`EX-DATA-62` impose : **6 954 quantiles comparés sur les 6 snapshots, 6 954 reproduits exactement par le rang le plus proche, 3 653 seulement par le type 7** | **NON CONFORME à `EX-DATA-62`** |
+| Garde R3 sur l'artefact | `R-DATA-21` balaie désormais **40** fichiers JSON sous `data/schema`, `data/fixtures` et `docs/data/dataset-spec` (33 en rev 1 : les **6** `baseline.json` et le schéma `snapshot-baseline.schema.json` sont couverts **automatiquement**), **0 clé interdite** | **conforme** — la garde n'a pas eu besoin d'être étendue à la main |
+| Couverture par `data:validate` | 12 contrôles par snapshot (schéma, `snapshotId`, `sha256`, version de schéma, effectif annoncé, Σ effectifs = `selectionCount`, effectif d'ingestion, lignes lues = retenues + rejetées + doublons, effectif de métrique ≤ effectif de marque, bornes nulles ⟺ `n = 0`) | **substantielle, mais aveugle sur les valeurs** : rien ne compare une **valeur de quantile** à une définition |
+| Couverture par `data:check` | `P-BL1` (présence et liaison aux octets), `P-BL2` (`selectionCount` = identifiants distincts), `P-BL3` (une ligne par marque, même effectif, ordre décroissant) | **même angle mort** |
+| Couverture par `tests/contract/baseline-artifact.test.ts` | compare l'artefact à `aggregateByMake(batch, null, 1)`, **la fonction même qui l'a produit** | **tautologique sur la convention** : elle prouve que l'artefact est fidèle à l'ingestion, elle ne peut pas voir que la convention diverge du dictionnaire et du moteur |
+
+**Contrôle manquant, à écrire (constat, pas correction)** : aucune sonde ne confronte
+`baseline.json` à `aggregate(batch, toutes les lignes, …)` de `src/engine/aggregate.ts`, c'est-à-dire
+au calcul **du moteur**. C'est ce contrôle qui aurait levé DR3-20 dès la livraison de `fixture-perf`.
+
+### 10.5 Nouveaux constats
+
+| # | Sévérité | Constat | Preuve (recalcul) | Correction attendue | Pour |
+|---|---|---|---|---|---|
+| **DR3-20** | **MAJEUR** | **Les quantiles servis en mode 1 — et désormais **figés** dans les six `baseline.json` commités — sont des percentiles « au rang le plus proche » `x_⌈p·n⌉`, alors qu'`EX-DATA-62` (`draft-data-dictionary.md:898`, « définition unique et **non négociable** ») impose le **quantile de type 7**.** La cause est `src/providers/synthetic/aggregate.ts:35` (`nearestRank`), employé par `aggregateByMake`/`aggregateByModel` des providers **synthetic ET fixture** (`FixtureDataProvider.ts:374, 428`). Deux divergences en découlent : (a) avec le **moteur**, `src/engine/quantiles.ts:56` (`quantileType7`), qui sert la même entité gelée `MetricRange` ; (b) avec le **provider `tweedehands`**, `src/providers/tweedehands/aggregate.ts:52`, qui interpole (type 7). Deux providers remplissent donc le même contrat avec deux définitions, et le provider **par défaut depuis 3.5** est celui qui ne suit pas le dictionnaire. S'ajoute une divergence d'**échantillon** : le moteur écarte de `price` les annonces sous le seuil relatif de Σ (`EX-DATA-19(2)`), pas le provider — **274** lignes au profil test, **83** au profil dev. | Profil test, snapshot S0 : **293 des 768** quantiles de prix par marque diffèrent entre les deux conventions, écart relatif maximal **85,76 %** (18 005 € : marque 16420, `p50`, `n = 2`, rang le plus proche **2 990 €** contre type 7 **20 995 €**) ; profil dev **167/399**, écart maximal **78,99 %**. Sur l'ensemble des six snapshots, **6 954/6 954** quantiles de l'artefact sont reproduits par `x_⌈p·n⌉` et **3 653** seulement par le type 7. Aucune sonde de `tests/data/` ni de `tests/contract/` ne mentionne `EX-DATA-62`. | **Arbitrage dû avant G9** : soit corriger `nearestRank` en type 7 (`src/providers/synthetic/aggregate.ts`) et **régénérer les six `baseline.json`** (`npm run data:baseline`), soit amender `EX-DATA-62` par une dette `D3-nn` écrite qui dise laquelle des deux conventions est la définition du produit. Dans les deux cas, une **sonde de contrat** confrontant `baseline.json` à `aggregate()` du moteur, rouge aujourd'hui. | **coordinateur** (arbitrage), puis `mvp-integrate` ou un agent provider |
+| **DR3-21** | MINEUR | **`A-11` déclare une base que le générateur n'applique pas** — reliquat de DR3-10. `anomalies.json:A-11.base` dit « annonces à prix affiché **de cellules (make, model) à `\|F\| ≥ 30`** », alors que le taux 0,0035 est appliqué à **toutes** les annonces à prix affiché. C'est exactement le défaut que DR3-10 demandait de fermer partout : « le champ ne doit pas annoncer une chose et le fichier en produire une autre ». `data:check` partage l'angle mort (il prend lui aussi « prix affiché »). | Recompté : au profil test, **165 cellules** `(make, model)` atteignent `n_price ≥ 30` et couvrent **13 745** annonces ; `0,0035 × 13 745 = 48,1` contre **67** réalisées (**+39 %**). Au profil dev : **1 402** annonces couvertes, attendu **4,9** contre **17** réalisées (**+246 %**). Sur la base « prix affiché » (19 280 / 4 820) l'accord est parfait : 67,5 et 16,9. | Déplacer la restriction du champ `base` vers le champ **`vivier`**, comme cela a été fait pour `A-04` et `A-16` (`baseVsVivier`), et étendre le contrôle `P-72` de `data:check` à la distinction. | `data-fix` |
+| **DR3-22** | MINEUR | **La correction de DR3-14 a compensé une distribution mesurée par une distribution non mesurée, sans le dire.** Le `$comment` de `segments.json:bodyTypeMapping` justifie — correctement — l'ajout du code 3 (Coupé) aux segments `citadine` (7,0 %) et `compacte` (6,5 %). Il ne dit **rien** de l'autre moitié du changement : le segment `sportive` passe de **60 % coupé / 40 % cabriolet** à **25 % coupé / 75 % cabriolet**, ce qui **inverse l'ordre du marché** (une sportive d'occasion est plus souvent un coupé qu'un cabriolet) et n'a d'autre effet que de maintenir la part de coupés sous la borne haute de `P-24`. | Distribution des carrosseries, profil test S0, **avant** `data-fix` : coupé **2,41 %**, cabriolet **1,51 %** (rapport 1,60). **Après** : coupé **3,39 %**, cabriolet **2,74 %** (rapport 1,24) — la part de cabriolets a augmenté de **+81 %**. **Aucune sonde ne contraint la part de cabriolets** : ni `probes.json`, ni `DATASET-SPEC.md`, ni `tests/data/` ne la nomment. | Rétablir un mélange `sportive` à dominante coupé et rééquilibrer les poids de `citadine`/`compacte` pour que `P-24` reste dans [2,0 ; 3,5] ; **ou** justifier l'inversion par une source, comme le fait le reste de `segments.json`. Ajouter une sonde sur la part de cabriolets, faute de quoi elle restera ajustable sans contrôle. | `data-fix` |
+| **DR3-23** | MINEUR | **La sortie `P-72` de `data:check` est trompeuse pour les codes partagés.** Elle imprime une ligne par `A-nn` mais un effectif **réalisé par code** : `A-19:90/10.0@20000` et `A-21:90/80.0@20000` se lisent comme un écart de **+800 %** alors que le code unique `REGION_UNRESOLVED` réalise 90 pour 90 attendues (10 + 80). Même forme pour `A-10`/`A-11` (`OUTLIER_M1_*` / `M2_*`). | Vérifié : `REGION_UNRESOLVED` réalisé **90**, attendu `0,0005 × 20 000 + 0,004 × 20 000 = 90,0` — l'accord est parfait, c'est l'**affichage** qui alarme. | Imprimer une ligne par **code** (réalisé / somme des attendus), ou la part imputée à chaque `A-nn`. | `data-fix` |
+| **DR3-24** | MINEUR | **La dette `D3-27` est ratifiée mais ni appliquée ni fidèlement rédigée.** Le journal la ratifie comme « tolérance élargie pour les champs à base < **200** lignes au profil **dev** ; profil test inchangé ». Or (a) `data-fix` écrit explicitement qu'il **ne l'a pas appliquée** ; (b) sa proposition était tout autre — `max(±25 % relatifs, ±3 erreurs-types)`, valable **à tous les profils** ; (c) le dispositif réellement en place est le plancher `n ≥ 100` **du reviewer**, actif aux **deux** profils. Conséquence : `consumption.electricCombined` n'a de taux d'absence mesuré **à aucun volume commité**. | Recalculé : population éligible **96** lignes au profil test (27 au profil dev), taux d'absence **20,83 %** pour une référence de 15 % (**+38,9 % relatif**, mais **1,60 erreur-type** seulement — compatible avec la référence, donc ni fautif ni prouvé). | Réécrire `D3-27` pour dire ce qui est décidé, puis **soit** appliquer la tolérance `max(±25 % relatifs, ±3 e.t.)` — qui rend le plancher `n ≥ 100` inutile et la sonde opposable sur **tous** les champs —, **soit** consigner que le taux de ce champ n'est pas prouvé aux volumes commités. | coordinateur, puis `data-fix` |
+
+**Aucun BLOQUANT.** J'ai pesé DR3-20 à cette aune : au sens strict de mon barème (« donnée fausse
+affichable »), un `p50` qui n'est pas le quantile que le dictionnaire définit **est** une valeur
+fausse affichée, et l'écart atteint 18 005 € sur une marque à deux annonces. Je le tiens néanmoins
+en **MAJEUR**, et je dis pourquoi : le défaut est **antérieur** aux deux lots que cette re-revue
+juge (il date de l'agrégation du lot D3 ; `D3-31` n'a fait que la **figer** dans un fichier commité),
+il ne rend aucune ligne du jeu de données fausse, et sur un effectif impair il coïncide avec le type 7.
+Il n'en reste pas moins **dû avant G9**.
+
+### 10.6 Hypothèses écrites (E4) de la rev 2
+
+| # | Hypothèse | Où elle sert |
+|---|---|---|
+| HR2-01 | Mes réimplémentations de M1 et M2 dérivent le **canonique** depuis la source par les règles d'`adapt.ts` que j'ai relues, sans exécuter l'adaptateur : prix = `round(prices.public.price)` valide si `250 ≤ p ≤ 5 000 000` (`PRICE_SENTINEL_ABSOLUTE_EUR` et annexe A), année valide si `firstRegistrationDate` est un `AAAA-MM` licite dans `[1900 ; année + 1]`, kilométrage valide si l'unité est `km`, `0 ≤ km ≤ 1 500 000` et hors `SUSPECT_ZERO_MILEAGE`, `modelId` résolu ⟺ `model` présent. Que cette dérivation soit **la bonne** est prouvé a posteriori : les rappels que j'obtiens (48/48, 61/67, 12/12, 16/17) et le κ (0,0136 / 0,0402) sont **identiques** à ceux du moteur de production. | §10.2 lignes 2-3, §10.3 DR3-08/DR3-09 |
+| HR2-02 | Les lignes sont **dédoublonnées par identifiant** (première occurrence conservée) avant tout calcul, comme le provider les sert : 19 986 lignes au profil test, 4 997 au profil dev. L'arbitrage réel d'`EX-DATA-15` diffère du mien, mais il porte sur **14** lignes et n'a déplacé aucun des contrôles ci-dessus (les 262 effectifs par marque de la baseline sont exacts avec cette règle). | §10.3, §10.4 |
+| HR2-03 | Pour DR3-05, la **population éligible** de chaque champ conditionnel est celle de ma table `ELIGIBILITY` de la rev 1, reconstruite à l'identique (branche de mesure = `WLTP` si le bloc `wltp` existe, sinon `NEDC` si `co2Emissions`, `consumption` ou `efficiencyClass` existe, sinon `NONE`). | §10.3 DR3-05, §10.5 DR3-24 |
+| HR2-04 | Pour DR3-06, une « survivante » est une annonce dont **les deux** snapshots portent un prix affiché numérique. Le générateur compte des survivantes sans cette condition (17 910 contre mes 17 265) ; les deux taux ne diffèrent que de 0,6 point et tombent tous deux dans la tolérance. | §10.3 DR3-06 |
+| HR2-05 | Pour DR3-20, la « convention du moteur » est celle de `src/engine/quantiles.ts` (`quantileType7`, l'algorithme littéral d'`EX-DATA-62`) et la « convention du provider » celle de `nearestRank`. Je n'ai **pas** exécuté le moteur sur le lot ingéré : je compare deux formules explicites à un même multiensemble de valeurs, celui que je lis dans le NDJSON — et dont l'exactitude est attestée par les 6 954/6 954 reproductions au rang le plus proche et par les 262/262 effectifs par marque. | §10.4, §10.5 DR3-20 |
+
+### 10.7 Verdict — porte G9b
+
+Critères de `docs/plans/PLAN-3-fixture-data-mvp.md` §3.4 : « **chaque constat BLOQUANT/MAJEUR corrigé
+(sonde verte) ou en dette écrite `D3-nn`** ; **fixtures régénérées et re-commitées avec leur
+manifest** ».
+
+| Critère | Verdict | Preuve |
+|---|---|---|
+| Chaque MAJEUR de la rev 1 corrigé ou en dette écrite | **ATTEINT** | 12 des 13 corrigés, **sonde verte sans qu'elle soit affaiblie** pour 11 d'entre eux (les deux sondes dont la tolérance a changé, `P-25` et `P-45`, portent une démonstration d'inatteignabilité que j'ai **vérifiée par recalcul**) ; `DR3-15` en dette **D3-26**, motivée par le périmètre de contrat |
+| Chaque MINEUR corrigé ou en dette | **ATTEINT** | 5 corrigés, `DR3-16` en dette **D3-28** |
+| Fixtures régénérées et re-commitées avec leur manifest | **ATTEINT** | `d3a3d74` : 6 `listings.ndjson.gz`, 6 `manifest.json`, 6 `generation.json` ; `data:validate` conforme aux deux profils ; budgets tenus (test 8 180 000 / 8 388 608 octets gz, dev 2 083 390 / 2 097 152) |
+| Zéro BLOQUANT ouvert | **ATTEINT** | aucun |
+| Sondes exécutables, non régressées | **ATTEINT** | 152/152 aux deux profils, contrat 93/93, `data:check` 74 sondes / 0 écart |
+| **Constats nouveaux traités** | **NON ATTEINT** | **DR3-20 est un MAJEUR ouvert sans dette écrite** |
+
+> ## **G9b : FRANCHIE SOUS RÉSERVES NOMMÉES**
+>
+> Le travail de `data-fix` est **solide et honnête** : les douze MAJEURS que j'avais posés sont
+> corrigés dans la donnée ou dans une spécification amendée avec démonstration, aucune sonde n'a été
+> affaiblie pour passer, et les quatre corrections les plus délicates (rappel de M1, rappel de M2,
+> stationnarité de la médiane, bases des taux d'anomalie) sont **reproduites au chiffre près par mon
+> propre code**. La porte est franchie sur ses critères écrits. Les cinq réserves ci-dessous doivent
+> être tranchées avant **G9**, pas avant G9b.
+
+| Réserve | Origine | Qui agit | Quoi | Sonde qui le prouvera |
+|---|---|---|---|---|
+| **R1 — MAJEUR** | `DR3-20` : la baseline commitée et les agrégats mode 1 violent `EX-DATA-62` (rang le plus proche au lieu du type 7) et divergent du moteur et du provider `tweedehands` | **coordinateur** (arbitrage : corriger ou écrire une dette `D3-nn` qui dise quelle convention est la définition du produit), puis `mvp-integrate` ou un agent provider | corriger `nearestRank` en `quantileType7` dans `src/providers/synthetic/aggregate.ts` et **régénérer les six `baseline.json`** ; **ou** amender `EX-DATA-62` par écrit | **sonde neuve de `tests/contract/`** : pour chaque snapshot commité, `baseline.json.rows` doit être **égal champ à champ** à `aggregate(batch, toutes les lignes, …).makeAggregates` de `src/engine/aggregate.ts` — **rouge aujourd'hui** sur 293 quantiles au profil test |
+| **R2 — MINEUR** | `DR3-21` : `A-11.base` annonce une restriction que le générateur n'applique pas | `data-fix` | déplacer la restriction vers `vivier` (`baseVsVivier`), aligner `data:check` | `R-DATA-19` (`P-72`) étendue : l'effectif attendu d'`A-11` calculé **sur la base déclarée** |
+| **R3 — MINEUR** | `DR3-22` : `sportive` passe à 75 % de cabriolets sans justification, part de cabriolets +81 % et non contrainte | `data-fix` | rétablir un mélange à dominante coupé (ou sourcer l'inversion) et rééquilibrer `citadine`/`compacte` pour tenir `P-24` | sonde neuve sur la **part de cabriolets** (`bodyType = 2`), tolérance sourcée, à côté de `P-24` |
+| **R4 — MINEUR** | `DR3-23` : la sortie `P-72` de `data:check` affiche un écart de +800 % là où l'accord est parfait | `data-fix` | imprimer une ligne par **code** | `data:check --profile test` relu : `REGION_UNRESOLVED 90/90` |
+| **R5 — MINEUR** | `DR3-24` : `D3-27` ratifiée, non appliquée, et rédigée autrement que proposée ; `consumption.electricCombined` sans taux prouvé | **coordinateur**, puis `data-fix` | réécrire `D3-27`, puis appliquer `max(±25 % relatifs, ±3 e.t.)` **ou** consigner que le champ n'est pas prouvé | `R-DATA-11` (`P-55`) mesurant **79** champs au lieu de 78, `consumption.electricCombined` compris |
+
+Dettes existantes **revérifiées et acceptables en l'état** : **D3-26** (renommage d'`A-07b`,
+34/34 paires confirmées, changement de contrat), **D3-28** (`A-13` inatteignable, 12 déclarations,
+valeurs 1 et 9 999 dans le domaine), **EG-01 / D3-19** (`P-10`, `P-11`), **EG-11 / D3-20** (`P-57`,
+mesuré 0,074), **D3-29** (édition hors périmètre de `ground-truth`, §10.2 ligne 11), **D3-34 (a)**
+(sonde `C-P3-11` retournée, §10.2 ligne 12).
+
+Ce que devient la suite `tests/data/` : les **152 sondes** sont désormais **toutes vertes aux deux
+profils** et constituent la suite de non-régression des données ; les 5 dettes (`P-10`, `P-11`,
+`P-57` aux deux profils, `P-45` et `P-55` au seul profil `dev`) restent en `it.fails` **annoté**,
+jamais en `skip`.
