@@ -435,21 +435,21 @@
     row-gap: 2px;
   }
   .kycar-market-zone-compare-target { grid-area: cmp; }
-  /* `C-R1-04` (constat coordinateur, 2026-09-13) : `src/app/app.css` porte une règle GLOBALE de
-     cible tactile, `.kycar-app [role='button'] { display: inline-flex; ... }` (deux sélecteurs,
-     spécificité 0-0-2-0), hors périmètre de ce lot. `.kycar-market-zone-interactive` a `role="button"`
-     et n'est qu'UNE classe (spécificité 0-0-1-0) : cette règle globale l'emportait TOUJOURS sur le
-     `display: contents` ci-dessous, quel que soit l'ordre des feuilles, et le remettait en
-     `inline-flex`. Une fois réifié en boîte flex réelle, `.kycar-market-zone-interactive` cessait de
-     « disparaître » pour la grille : ses enfants (`row1`, `ranges` et ses champs, `share-bar`)
-     n'étaient plus des items de grille nommés mais de simples enfants flex empilés DANS cette boîte,
-     qui devenait elle-même le SEUL item auto-placé dans la première rangée (« row1 ») — d'où
-     `grid-template-rows` mesuré à `90px 0px 0px 0px` : la rangée 1 absorbait tout le contenu (prix,
-     années, kilométrage, médiane, barre), et les rangées 2 à 4 restaient vides. Le contenu débordait
-     donc de la boîte de la zone et RECOUVRAIT le texte de la zone suivante (chevauchement visible en
-     compact, cases « Comparer » incluses). Le sélecteur ci-dessous porte trois sélecteurs simples
-     (spécificité 0-0-3-0) pour battre la règle globale sans la modifier (hors périmètre de ce lot). */
-  .kycar-market-zone .kycar-market-zone-interactive[role='button'] { display: contents; }
+  /* HISTORIQUE `C-R1-04` (constat coordinateur, 2026-09-13 ; cause racine corrigée par `data-fix-2`
+     en 3.5). `src/app/app.css` portait une règle GLOBALE de cible tactile,
+     `.kycar-app [role='button'] { display: inline-flex; ... }`, à spécificité ordinaire (0-0-2-0).
+     `.kycar-market-zone-interactive` a `role="button"` et n'est qu'UNE classe (0-0-1-0) : la règle
+     globale l'emportait TOUJOURS sur le `display: contents` ci-dessous, quel que soit l'ordre des
+     feuilles, et la réifiait en boîte flex. La zone cessait alors de « disparaître » pour la grille :
+     ses enfants (`row1`, `ranges` et ses champs, `share-bar`) n'étaient plus des items de grille
+     nommés mais de simples enfants flex empilés DANS cette boîte, elle-même seul item auto-placé de
+     la première rangée — d'où `grid-template-rows` mesuré à `90px 0px 0px 0px`, les rangées 2 à 4
+     vides et le contenu débordant sur la zone SUIVANTE. Le contournement d'alors était un sélecteur
+     à trois sélecteurs simples (`.kycar-market-zone .kycar-market-zone-interactive[role='button']`,
+     0-0-3-0) qui battait la règle globale sans la modifier, celle-ci étant hors périmètre.
+     Depuis 3.5, `app.css` pose sa boîte par `:where(.kycar-app [role='button'])`, de spécificité
+     NULLE : une simple classe suffit, et le contournement est retiré. */
+  .kycar-market-zone-interactive { display: contents; }
   .kycar-market-zone-row1 { grid-area: row1; }
   .kycar-market-zone-ranges { display: contents; }
   .kycar-market-zone-price { grid-area: price; }
