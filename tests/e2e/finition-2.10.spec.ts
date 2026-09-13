@@ -519,6 +519,67 @@ test('ACC-08 — gouttière de grille, rayon des contrôles et cibles tactiles (
 });
 
 /*
+ * C-R1-05 (constat coordinateur D3-39, 2026-09-13) — `.kycar-market-card-header` déclare
+ * `min-height: 72px` (`market.css`) mais le plancher de cible tactile GLOBAL d'`app.css`
+ * (`.kycar-app [role='button'] { min-height: 32px }`, et sa variante compacte à 44px), à
+ * spécificité 0-0-2-0 contre 0-0-1-0 pour l'en-tête, l'emportait TOUJOURS : l'en-tête rendait
+ * 32 px en large/intermédiaire et 44 px en compact au lieu des 72 px normatifs
+ * (`EX-SCR-107`/`EX-SCR-108`), amputant chaque carte-marque de 40 px (le calcul de `EX-SCR-122` —
+ * 588 px repliés — pose 72 px d'en-tête). `EX-SCR-135` (régime compact) ne dit rien d'une hauteur
+ * d'en-tête différente : la valeur large s'applique donc à tous les régimes (hypothèse E4).
+ * Corrigé dans `src/app/app.css` en réunissant `min-height` au bloc `:where(.kycar-app
+ * [role='button'])` déjà utilisé par `C-R1-04` (spécificité nulle) : le plancher reste le DÉFAUT
+ * pour tout `[role='button']` qui ne déclare pas sa propre hauteur, mais un composant qui déclare
+ * une valeur plus grande (l'en-tête de carte, 72px) n'est plus écrasé.
+ */
+test('C-R1-05 — en-tête de carte-marque à 72 px (EX-SCR-107)', async ({ page }, testInfo) => {
+  const regime = regimeOf(testInfo);
+  await open(page, `/marche${P1_QUERY}`);
+
+  // Même précaution déterministe qu'ACC-08 (D-31) : attendre que les cartes soient arrivées puis
+  // stables (300 ms sans changement de compte) avant de mesurer leur en-tête.
+  await page.waitForFunction(
+    () => document.querySelectorAll('.kycar-market-card-header').length > 0,
+    null,
+    { timeout: 60_000 },
+  );
+  await page.waitForFunction(
+    () => {
+      const w = window as unknown as { __cr105LastCount?: number; __cr105StableSince?: number };
+      const n = document.querySelectorAll('.kycar-market-card-header').length;
+      const now = Date.now();
+      if (w.__cr105LastCount !== n) {
+        w.__cr105LastCount = n;
+        w.__cr105StableSince = now;
+        return false;
+      }
+      return now - (w.__cr105StableSince ?? now) >= 300;
+    },
+    null,
+    { timeout: 60_000 },
+  );
+
+  const heights = await page.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLElement>('.kycar-market-card-header'))
+      .filter((el) => el.getBoundingClientRect().width > 0)
+      .map((el) => Math.round(el.getBoundingClientRect().height)),
+  );
+
+  // `EX-SCR-135` ne décrit aucune hauteur d'en-tête propre au régime compact : la valeur large de
+  // `EX-SCR-107` (72 px) s'applique par défaut aux trois régimes (hypothèse E4).
+  const attendu = 72;
+  const minMesure = heights.length === 0 ? -1 : Math.min(...heights);
+  mesure(
+    testInfo,
+    `C-R1-05 — en-tête de carte-marque (${regime})`,
+    `${heights.length} en-têtes visibles, hauteur min=${minMesure} px (attendu ≥ ${attendu})`,
+  );
+
+  expect(heights.length).toBeGreaterThan(0);
+  for (const h of heights) expect(h).toBeGreaterThanOrEqual(attendu);
+});
+
+/*
  * C-R1-04 (constat coordinateur, 2026-09-13, complété par une retouche du 2026-09-13) — la grille
  * compacte des zones-modèles (`EX-SCR-135`, quatre lignes) dépend d'un `display: contents` sur
  * `.kycar-market-zone-interactive` pour que ses enfants (row1, prix, années, kilométrage, médiane,
