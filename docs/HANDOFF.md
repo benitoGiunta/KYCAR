@@ -64,16 +64,27 @@ test conforme. **Non rejoués** : `npm test` complet (sondes de revue ≈ 1 108,
 profil test, **`npm run test:e2e` complet** (dernier état connu : rouge avant `mvp-integrate`, réaligné
 par lui mais non revalidé de bout en bout).
 
+**Reprise du 2026-09-13 (session `kycar-a1`, décisions D3-33 → D3-36)** — étapes 1, 2 et 4 de la procédure
+ci-dessous FAITES : portes complètes rejouées ; **`fixture-perf` livré et fusionné** (`9c0e593`, D3-31 clos) : `baseline.json`
+précalculé par le vrai provider (`npm run data:baseline`), annonces différées, ouverture idempotente, préchargement
+parallèle — **`EX-NFR-9` tenu et asserté sur les 3 projets** (premier chiffre ≈ 1,53–1,55 s pour 2 s, 250 Kio sur le
+chemin critique, snapshot transféré 1,00×) ; **`fix-screens-3` livré et fusionné** (`bb11ad0`) : cibles tactiles des
+cases « Comparer » (C-R1-03) et débordement des zones-modèles en compact (C-R1-04, préexistant), sondes ACC-08
+déterministe + ACC-08bis. Contrat 93/93. **E2E 3 projets : 323 verts, 25 ignorés, 3 `test.fail()` D8-15, 0 échec
+inattendu.** Reste : étape 3 (re-revue delta → G9b), un lot de retouches mineures (C-3.5-02, C-3.5-05, règle globale
+`[role='button']` d'`app.css`), étape 5 (`acceptance` rev 3 → G9), étape 6 (clôture). Rapports :
+`reports/data/fixture-perf.md`, `reports/remediation-2.8/fix-screens-3.md`.
+
 **Procédure de reprise (dans cet ordre)** :
-1. `git checkout claude/kycar-project-ffcplk && git pull`, `npm ci` si `node_modules` absent ; lire
+1. ✅ (2026-09-13) `git checkout claude/kycar-project-ffcplk && git pull`, `npm ci` si `node_modules` absent ; lire
    D3-31/D3-32, `reports/remediation-2.8/mvp-integrate.md` §7, `reports/data/data-fix.md` §5–§6.
-2. **Rejouer les portes complètes** : `npm test`, `KYCAR_DATA_PROFILE=test npm run test:data`,
+2. ✅ (2026-09-13, D3-33/D3-35/D3-36) **Rejouer les portes complètes** : `npm test`, `KYCAR_DATA_PROFILE=test npm run test:data`,
    `npm run test:contract`, puis `npm run test:e2e` (port 4180 libre, `reuseExistingServer: false`).
    Objectif E2E : 0 échec inattendu, 3 `test.fail()` D8-15. Tout échec = constat à traiter avant la suite.
 3. **Re-revue delta `data-review`** (Opus/high, nouvel agent, lecture seule sauf `reports/data/DATA-REVIEW.md`
    §10) : rejouer `tests/data/` dev + test, juger une à une les 9 sondes amendées par `data-fix`, statuer
    **G9b**. Si rouge : `data-fix` (Opus/high) sur la sonde concernée, puis delta.
-4. **`fixture-perf`** (Opus/high, D3-31) : agrégats mode 1 précalculés au manifest + lecture par le provider,
+4. ✅ (2026-09-13, D3-34) **`fixture-perf`** (Opus/high, D3-31) : agrégats mode 1 précalculés au manifest + lecture par le provider,
    mode 2 différé, référentiels et snapshot en parallèle ; mesure `EX-NFR-9` au **premier chiffre** (le jalon
    2.9 mesurait le squelette) ≤ 2 000 ms en 4G sur `fixture:test` ; sonde de contrat.
 5. **`acceptance` rev 3** (Fable/max) sur le build fixture : E2E 3 projets, axe, budgets (NFR-6/7/8/9),
@@ -81,7 +92,7 @@ par lui mais non revalidé de bout en bout).
 6. Clôture : `EXECUTION-LOG.md` (chantier 3), ce handoff, `CLAUDE.md` §5 (décomptes), push. Livraison
    (fusion `main`, tag) = décision explicite du commanditaire.
 
-**Dettes ouvertes du plan 3** : D3-19 (P-10/P-11 effectifs par modèle vs mix segment), D3-20 (EG-08/09/11),
+**Dettes ouvertes du plan 3** : `fixture:perf` sans `baseline.json` (D3-34 c), `coverageNote` affichée par aucun écran (D3-34 d, à statuer en acceptance), D3-19 (P-10/P-11 effectifs par modèle vs mix segment), D3-20 (EG-08/09/11),
 D3-26 (renommage `DUPLICATE_VALUE_CONFLICT`, v2), D3-27 (P-55 petites populations), D3-28 (A-13 non
 retrouvable), D3-31 (`EX-NFR-9`, à corriger), ACC-16 partiel (libellés du bandeau : câblé par mvp-integrate,
 à vérifier en recette), D8-43 résiduel (ACC non couverts par 2.10 : aucun, sauf vérification en recette).
