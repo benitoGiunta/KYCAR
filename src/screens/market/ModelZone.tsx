@@ -35,20 +35,30 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
           conteneur `role="button"`, jamais un DESCENDANT — un contrôle interactif natif imbriqué dans
           un élément à rôle interactif est une violation axe-core (`nested-interactive`), relevée sur
           les 120 zones-modèles de l'écran A. `EX-SCR-117` (bande entière cliquable) reste intact : le
-          `role="button"` ci-dessous couvre toujours nom, effectif, chevron, fourchettes et barre. */}
+          `role="button"` ci-dessous couvre toujours nom, effectif, chevron, fourchettes et barre.
+          `EX-SCR-21`/ACC-08 (C-R1-03) : la case NATIVE fait 13×13 px, sous les seuils de cible tactile
+          (44 px en compact, 32 px en intermédiaire/large). Le `<label>` qui l'enveloppe reste lui
+          aussi un SIBLING (il ne descend pas dans `.kycar-market-zone-interactive`) ; sa boîte est
+          dimensionnée en CSS (`.kycar-market-zone-compare-target`) pour porter la cible tactile,
+          la case restant à l'intérieur et cliquable normalement via l'association implicite
+          label -> input (aucun `id`/`for` requis). */}
       {canCompare && props.onToggleCompare !== undefined ? (
-        <input
-          type="checkbox"
-          class="kycar-market-zone-compare"
-          aria-label={`Comparer ${zone.label}`}
-          checked={props.isInCompareSelection}
-          disabled={!props.isInCompareSelection && props.compareAtCapacity}
+        <label
+          class="kycar-market-zone-compare-target"
           title={!props.isInCompareSelection && props.compareAtCapacity ? '4 modèles au maximum — retirez-en un pour en ajouter un autre' : undefined}
-          onClick={(e: JSX.TargetedMouseEvent<HTMLInputElement>) => {
-            e.stopPropagation();
-            props.onToggleCompare?.(zone.makeId, zone.modelId, !props.isInCompareSelection);
-          }}
-        />
+        >
+          <input
+            type="checkbox"
+            class="kycar-market-zone-compare"
+            aria-label={`Comparer ${zone.label}`}
+            checked={props.isInCompareSelection}
+            disabled={!props.isInCompareSelection && props.compareAtCapacity}
+            onClick={(e: JSX.TargetedMouseEvent<HTMLInputElement>) => {
+              e.stopPropagation();
+              props.onToggleCompare?.(zone.makeId, zone.modelId, !props.isInCompareSelection);
+            }}
+          />
+        </label>
       ) : null}
 
       <div
@@ -86,7 +96,13 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
                 ligne de la grille à 4 lignes, sans dupliquer la moindre règle ici. */}
             <span class="kycar-market-zone-price" title={zone.price.caption}>
               {zone.price.label}
-              {zone.price.available ? ` (${zone.price.caption})` : ''}
+              {/* `EX-SCR-135`/C-R1-04 (coordinateur, 2026-09-13) : la légende fait déborder la ligne
+                  prix sur deux lignes à 360 px (compact), portant la zone à cinq lignes de texte
+                  dans une bande qui n'en compte que quatre — masquée visuellement dans ce SEUL
+                  régime (`.kycar-market-zone-price-caption`, `market.css`), jamais retirée du DOM :
+                  l'en-tête de carte la porte déjà une fois, et `title` ci-dessus la garde au survol
+                  dans tous les régimes. */}
+              {zone.price.available ? <span class="kycar-market-zone-price-caption"> ({zone.price.caption})</span> : null}
               {/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil, provider réel seulement. */}
               {zone.price.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
             </span>

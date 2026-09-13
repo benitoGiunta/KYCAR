@@ -398,11 +398,52 @@ test('ACC-07 — G1 + ses exclusions nommées = Σ (EX-SCR-178)', async ({ page 
  * ACC-08 — `EX-SCR-21` : gouttières, rayons, cibles tactiles
  * ============================================================================================== */
 
+/*
+ * D-31 (constat coordinateur C-R1-03, 2026-09-13) — correction de sonde justifiée.
+ * `open()` (`_helpers.ts`) n'attend que le premier rendu utile de l'écran A : effectif dans la barre
+ * de synthèse + au moins une carte-marque (`waitForMarket`). Les zones-modèles (et leur case
+ * « Comparer ») arrivent APRÈS, dans un second aller différé à la boucle d'inactivité
+ * (`loadAllModels`, `src/app.tsx` ~l. 413, `EX-NFR-9`) : avant la fusion de `fixture-perf`, ce
+ * second aller se terminait quasi immédiatement (jeu de données réduit), la mesure ci-dessous
+ * tombait presque toujours APRÈS son arrivée et ACC-08 ne voyait donc jamais l'état transitoire.
+ * Depuis `fixture-perf` (D3-31), l'ingestion différée retarde cet aller : la mesure, prise juste
+ * après `open()`, tombait désormais AVANT l'arrivée des zones et ne les comptait jamais parmi les
+ * cibles interactives (0 case « Comparer » vue). Le test était donc dépendant d'un état transitoire
+ * non garanti par aucun contrat — un défaut de la SONDE, pas de l'écran. La correction attend un
+ * état déterministe (nombre de `.kycar-market-zone-compare` STABLE pendant 300 ms) avant de mesurer ;
+ * aucun seuil du test ne change (44/32 px, gouttières 16/20/24, rayon 4). Voir aussi le correctif
+ * produit de la case elle-même (cible agrandie via `.kycar-market-zone-compare-target`,
+ * `src/screens/market/ModelZone.tsx`/`market.css`) que cette attente a révélé sous ce seuil.
+ */
 test('ACC-08 — gouttière de grille, rayon des contrôles et cibles tactiles (EX-SCR-21)', async ({
   page,
 }, testInfo) => {
   const regime = regimeOf(testInfo);
   await open(page, `/marche${P1_QUERY}`);
+
+  // D-31 — attendre l'arrivée ET la stabilisation des zones-modèles (second aller différé,
+  // `EX-NFR-9`) avant de mesurer les cibles tactiles ; sans quoi la mesure dépend du timing de
+  // `loadAllModels` plutôt que d'un état d'écran garanti.
+  await page.waitForFunction(
+    () => document.querySelectorAll('.kycar-market-zone-compare').length > 0,
+    null,
+    { timeout: 60_000 },
+  );
+  await page.waitForFunction(
+    () => {
+      const w = window as unknown as { __acc08LastCount?: number; __acc08StableSince?: number };
+      const n = document.querySelectorAll('.kycar-market-zone-compare').length;
+      const now = Date.now();
+      if (w.__acc08LastCount !== n) {
+        w.__acc08LastCount = n;
+        w.__acc08StableSince = now;
+        return false;
+      }
+      return now - (w.__acc08StableSince ?? now) >= 300;
+    },
+    null,
+    { timeout: 60_000 },
+  );
 
   const m = await page.evaluate(() => {
     const grid = document.querySelector('.kycar-market-grid');
@@ -475,6 +516,193 @@ test('ACC-08 — gouttière de grille, rayon des contrôles et cibles tactiles (
   // mesurer (`minRadius === -1`), le rayon est alors éprouvé par les autres régimes.
   if (m.minRadius !== -1) expect(m.minRadius).toBeGreaterThanOrEqual(4);
   expect(offenders).toEqual([]);
+});
+
+/*
+ * C-R1-04 (constat coordinateur, 2026-09-13, complété par une retouche du 2026-09-13) — la grille
+ * compacte des zones-modèles (`EX-SCR-135`, quatre lignes) dépend d'un `display: contents` sur
+ * `.kycar-market-zone-interactive` pour que ses enfants (row1, prix, années, kilométrage, médiane,
+ * barre) deviennent des items nommés de la grille de `.kycar-market-zone`. Une règle GLOBALE hors
+ * périmètre de ce lot, `src/app/app.css` : `.kycar-app [role='button'] { display: inline-flex; ... }`
+ * (deux sélecteurs, spécificité 0-0-2-0), l'emportait TOUJOURS sur ce `display: contents` (une seule
+ * classe, 0-0-1-0), quel que soit l'ordre des feuilles — `.kycar-market-zone-interactive` porte
+ * `role="button"`. Le résultat : les rangées 2 à 4 de la grille compacte se réduisaient à 0 px (rien
+ * n'y était plus placé, leur contenu étant redevenu de simples enfants flex de la boîte réifiée), et
+ * le TEXTE de chaque zone débordait sur la zone suivante — chevauchement visible à 360 px (mobile)
+ * ET à 768 px (tablette : le CONTENEUR de requête, `.kycar-market-screen`, y mesure 736 px de large,
+ * sous le seuil `767.98px` de la même `@container`, donc la même grille compacte s'y applique).
+ * Corrigé dans `market.css` en portant la spécificité du sélecteur à 0-0-3-0
+ * (`.kycar-market-zone .kycar-market-zone-interactive[role='button']`), sans toucher à
+ * `src/app/app.css` (hors périmètre).
+ *
+ * Un SECOND défaut latent est apparu en construisant la sonde ci-dessous (cause différente) : une
+ * carte dont le nombre de modèles vaut exactement `modelesVisiblesAvantRepli + 1` les affiche TOUS
+ * par défaut (`view-model.ts` l. 369, évite un « + 1 autre modèle » dégénéré). En régime
+ * compact/intermédiaire (bande ≥ 96 px), la liste NON dépliée d'une telle carte peut dépasser les
+ * 480 px alloués — et jusqu'ici, seule la variante `--expanded` de `.kycar-market-zone-list`
+ * recevait `min-height: 0`/`overflow-y: auto` ; la liste REPLIÉE se contentait du
+ * `overflow: hidden` de la carte (`EX-SCR-124`), qui ROGNE (au lieu de rendre défilable) tout excès
+ * — un ou plusieurs derniers modèles d'une telle carte devenaient invisibles ET inaccessibles
+ * (aucun bouton de dépliement, `hasMoreModels` étant faux), en violation de `EX-SCR-112`/`D-36`
+ * (« jamais masqués »). Corrigé en portant `min-height: 0`, `max-height: 480px`, `overflow-y: auto`
+ * (et l'ombre de débord déjà utilisée par `--expanded`) sur `.kycar-market-zone-list` de base :
+ * l'excès, désormais, se déroule au doigt au lieu de disparaître.
+ *
+ * RETOUCHE (relecture du coordinateur sur `cr104-apres-mobile.png`) — un TROISIÈME défaut, une fois
+ * les deux premiers corrigés : à 360 px, la légende « (fourchette centrale (90 % des offres)) »
+ * fait passer la ligne prix sur DEUX lignes, portant la zone à CINQ lignes de texte dans une bande
+ * qui n'en compte que quatre (`EX-SCR-135`) ; la ligne médiane + barre débordait alors de ~15 px
+ * sous le trait de séparation de SA PROPRE zone, empiétant sur la suivante (et paraissant lui
+ * appartenir). Corrigé par DEUX changements complémentaires dans `market.css` : (a) la légende sort
+ * du flux VISUEL de la zone en compact seulement (`.kycar-market-zone-price-caption`, motif
+ * « visually hidden » — aucune valeur n'est retirée, `D-36` : la légende reste dans le DOM, `title`
+ * la garde au survol, et l'en-tête de carte la porte déjà une fois) ; (b) `.kycar-market-zone` reçoit
+ * `flex: 0 0 auto` — sans `flex-shrink: 0` explicite, la « taille hypothétique » que l'algorithme
+ * flex calcule pour cette zone (à la fois item flex de `.kycar-market-zone-list` ET conteneur de
+ * grille) pouvait être légèrement INFÉRIEURE à la somme réellement rendue des pistes `auto` de sa
+ * propre grille dès que le contenu dépassait le plancher `min-height: 96px` (c'est la cause exacte
+ * du débordement : ni un `height` fixe — il n'y en a aucun — ni la cale de virtualisation
+ * `MODEL_ZONE_HEIGHT_PX` — qui ne fixe qu'un pas de défilement, jamais une propriété CSS de la zone
+ * — ni `align-items`, testé et disculpé). `min-height: 96px` reste inchangé (valeur gelée
+ * d'`EX-SCR-135`, sonde `tests/review/D6/responsive.test.ts`) ; si le contenu réel dépasse encore ce
+ * plancher, la bande grandit désormais correctement (jamais de `height` fixe, jamais
+ * d'`overflow: hidden` sur la zone elle-même).
+ *
+ * Cette sonde mesure deux invariants géométriques déterministes, indépendants du texte affiché :
+ * (1) CHAQUE enfant texte visible d'une zone reste dans la boîte de CETTE zone
+ * (`enfant.bottom ≤ zone.bottom + 1` et `enfant.top ≥ zone.top − 1`) ; (2) aucune zone VISIBLE
+ * n'empiète sur la suivante (`zone[n].bottom ≤ zone[n+1].top`). « Visible » exclut le contenu scindé
+ * hors du cadre d'un ancêtre défilant (`overflow: hidden|auto|scroll`), qu'un utilisateur ne voit
+ * qu'en faisant défiler CETTE liste, jamais en superposition avec une autre carte.
+ */
+test('ACC-08bis — aucun chevauchement de texte entre zones-modèles, régimes compact et intermédiaire (EX-SCR-135, C-R1-04)', async ({
+  page,
+}, testInfo) => {
+  const regime = regimeOf(testInfo);
+  test.skip(regime === 'large', 'la bande large (EX-SCR-112, 72 px) ne suit pas la grille à 4 lignes compacte visée par C-R1-04');
+  // `DENSE_QUERY` (pas `P1_QUERY`) : il faut des cartes à beaucoup de modèles pour que la grille
+  // compacte soit exercée sur assez de zones consécutives — c'est le jeu qui a servi aux captures
+  // du constat C-R1-04 (`reports/remediation-2.8/fix-screens-3/avant-mobile.png`).
+  await open(page, `/marche${DENSE_QUERY}`);
+
+  // Même attente déterministe que ACC-08 (D-31) : au moins une case « Comparer », puis un compte
+  // stable pendant 300 ms, avant de mesurer la géométrie des zones-modèles.
+  await page.waitForFunction(
+    () => document.querySelectorAll('.kycar-market-zone-compare').length > 0,
+    null,
+    { timeout: 60_000 },
+  );
+  await page.waitForFunction(
+    () => {
+      const w = window as unknown as { __acc08bisLastCount?: number; __acc08bisStableSince?: number };
+      const n = document.querySelectorAll('.kycar-market-zone-compare').length;
+      const now = Date.now();
+      if (w.__acc08bisLastCount !== n) {
+        w.__acc08bisLastCount = n;
+        w.__acc08bisStableSince = now;
+        return false;
+      }
+      return now - (w.__acc08bisStableSince ?? now) >= 300;
+    },
+    null,
+    { timeout: 60_000 },
+  );
+
+  const problems = await page.evaluate(() => {
+    const EPS = 0.5;
+    // Retouche coordinateur (2026-09-13) : tolérance resserrée à 1 px pour « chaque enfant texte
+    // visible reste dans la boîte de sa propre zone » — la sonde initiale (tolérance 6 px, pour
+    // absorber un écart de sous-pixel documenté à l'époque) a laissé passer un débordement de
+    // ~15 px (légende de fourchette sur deux lignes, cf. l'en-tête de ce test) : elle n'était donc
+    // pas assez stricte pour ce défaut. Les deux causes (spécificité CSS, légende) sont corrigées ;
+    // 1 px n'est plus qu'un arrondi sous-pixel inoffensif.
+    const CHILD_EPS = 1;
+    // Un contenu scindé hors du cadre visible d'un ancêtre défilant (`.kycar-market-zone-list`,
+    // `.kycar-market-zone-list--expanded`, la fenêtre…) n'est pas un chevauchement pour
+    // l'utilisateur : il faut faire défiler CE conteneur pour l'atteindre, jamais une autre carte
+    // ne vient s'y superposer. On exclut donc les zones entièrement hors du cadre d'un ancêtre non
+    // `overflow: visible` (verticalement — ces listes ne défilent qu'en Y).
+    const isClippedOut = (el: HTMLElement): boolean => {
+      const r = el.getBoundingClientRect();
+      for (let node = el.parentElement; node !== null; node = node.parentElement) {
+        const cs = getComputedStyle(node);
+        if (cs.overflowY === 'visible') continue;
+        const nr = node.getBoundingClientRect();
+        if (r.bottom <= nr.top + EPS || r.top >= nr.bottom - EPS) return true;
+      }
+      return false;
+    };
+    const zones = Array.from(document.querySelectorAll<HTMLElement>('.kycar-market-zone')).filter(
+      (z) => z.getBoundingClientRect().height > 0 && !isClippedOut(z),
+    );
+    const out: string[] = [];
+    // Tous les enfants texte VISIBLES d'une zone (retouche coordinateur : « chaque enfant », pas
+    // seulement les quatre lignes groupées) — les porteurs de VALEUR d'`EX-SCR-135` plus les jetons
+    // optionnels. La légende masquée (`.kycar-market-zone-price-caption`, compact) n'est PAS de ceux-
+    // là (elle ne porte aucune valeur, `D-36`) : elle n'est délibérément pas dans cette liste.
+    const childSelectors = [
+      '.kycar-market-zone-row1',
+      '.kycar-market-zone-price',
+      '.kycar-market-zone-year',
+      '.kycar-market-zone-mileage',
+      '.kycar-market-zone-median',
+      '.kycar-market-zone-share-bar',
+      '.kycar-market-low-sample-token',
+      '.kycar-market-sampling-bias',
+    ];
+    for (const zone of zones) {
+      const zr = zone.getBoundingClientRect();
+      for (const sel of childSelectors) {
+        const el = zone.querySelector<HTMLElement>(sel);
+        if (el === null) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) continue; // élément masqué (visually-hidden), non concerné
+        if (r.bottom > zr.bottom + CHILD_EPS || r.top < zr.top - CHILD_EPS) {
+          out.push(`${sel} hors de sa zone (top=${Math.round(r.top)} bottom=${Math.round(r.bottom)} zone=[${Math.round(zr.top)},${Math.round(zr.bottom)}])`);
+        }
+      }
+    }
+    // Les quatre « lignes » d'EX-SCR-135 : années et kilométrage PARTAGENT la ligne 3, à dessein —
+    // vérifie qu'elles restent dans cet ordre, sans chevaucher la ligne suivante.
+    const lineSelectors: readonly (readonly string[])[] = [
+      ['.kycar-market-zone-row1'],
+      ['.kycar-market-zone-price'],
+      ['.kycar-market-zone-year', '.kycar-market-zone-mileage'],
+      ['.kycar-market-zone-median'],
+    ];
+    for (const zone of zones) {
+      const lines = lineSelectors
+        .map((sels) =>
+          sels
+            .map((sel) => zone.querySelector<HTMLElement>(sel))
+            .filter((el): el is HTMLElement => el !== null)
+            .map((el) => el.getBoundingClientRect()),
+        )
+        .filter((rects) => rects.length > 0);
+      for (let i = 1; i < lines.length; i++) {
+        const prevMaxBottom = Math.max(...lines[i - 1].map((r) => r.bottom));
+        const curMinTop = Math.min(...lines[i].map((r) => r.top));
+        if (curMinTop < prevMaxBottom - EPS) {
+          out.push(`chevauchement interne entre lignes ${i - 1} et ${i} (bas=${Math.round(prevMaxBottom)} haut=${Math.round(curMinTop)})`);
+        }
+      }
+    }
+    for (let i = 1; i < zones.length; i++) {
+      const prev = zones[i - 1].getBoundingClientRect();
+      const cur = zones[i].getBoundingClientRect();
+      if (cur.top < prev.bottom - EPS) {
+        out.push(`chevauchement entre zones ${i - 1} et ${i} (bas zone précédente=${Math.round(prev.bottom)} haut zone suivante=${Math.round(cur.top)})`);
+      }
+    }
+    return { count: zones.length, out };
+  });
+
+  mesure(
+    testInfo,
+    `ACC-08bis — chevauchement (${regime})`,
+    `${problems.count} zones examinées · ${problems.out.length} chevauchement(s)${problems.out.length > 0 ? ' : ' + problems.out.slice(0, 8).join(' | ') : ''}`,
+  );
+  expect(problems.out).toEqual([]);
 });
 
 /* ================================================================================================
