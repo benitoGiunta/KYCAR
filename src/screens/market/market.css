@@ -218,7 +218,19 @@
 /* Zone-modele - EX-SCR-112, 72px en regime large. `D8-14` (a11y, nested-interactive) : la case de
    comparaison (`.kycar-market-zone-compare`, enveloppee dans `.kycar-market-zone-compare-target`)
    est un sibling de `.kycar-market-zone-interactive` (role="button"), jamais un descendant - la
-   ligne est donc une rangee flex a deux colonnes. */
+   ligne est donc une rangee flex a deux colonnes.
+   `EX-SCR-135`/C-R1-04 (coordinateur, 2026-09-13) - `flex: 0 0 auto` : cette zone est a la fois un
+   ITEM flex de `.kycar-market-zone-list` (`display: flex; flex-direction: column`) ET un conteneur
+   de GRILLE en compact, dimensionne par `min-height` seule (jamais de `height` fixe). Sans
+   `flex-shrink: 0` explicite (`flex-shrink: 1` est la valeur INITIALE, meme sans pression d'espace
+   dans la liste), la "taille hypothetique" que l'algorithme flex calcule pour cet item peut etre
+   legerement INFERIEURE a la somme reellement rendue des pistes `auto` de sa propre grille (ecart
+   mesure jusqu'a ~15 px en compact des que le contenu textuel pousse la grille au-dela du plancher
+   de 96 px) : le texte de la derniere ligne (mediane + barre) debordait alors sous le trait de
+   separation de SA PROPRE zone, empietant sur la zone SUIVANTE. `flex: 0 0 auto` retire toute
+   ambiguite : la boite prend EXACTEMENT sa taille naturelle (le plancher `min-height`, ou son
+   contenu si celui-ci le depasse - jamais l'inverse), sans jamais fixer de `height` ni recourir a
+   `overflow: hidden` sur la zone elle-meme. */
 .kycar-market-zone {
   display: flex;
   flex-direction: row;
@@ -227,6 +239,7 @@
   min-height: 72px;
   padding: var(--space-1) var(--space-3);
   border-top: 1px solid var(--color-border);
+  flex: 0 0 auto;
 }
 
 /* `EX-SCR-21`/ACC-08 (C-R1-03) : la case a cocher native (13x13 px) est bien en-deca des seuils de
@@ -444,6 +457,30 @@
   .kycar-market-zone-mileage { grid-area: mileage; }
   .kycar-market-zone-median { grid-area: median; }
   .kycar-market-zone-share-bar { grid-area: bar; }
+
+  /* `EX-SCR-135`/C-R1-04 (coordinateur, 2026-09-13) : « (fourchette centrale (90 % des offres)) »
+     fait passer la ligne prix sur DEUX lignes à 360 px, portant la zone à CINQ lignes de texte dans
+     une bande qui n'en compte que quatre (`EX-SCR-135`) — la cinquième ligne (débordement de la
+     légende) poussait la ligne médiane+barre sous le trait de séparation de la zone, la faisant
+     paraître appartenir au modèle SUIVANT. La légende est déjà portée une fois par l'en-tête de
+     carte (médiane/fourchette de la marque) ; elle sort donc du flux VISUEL de CETTE zone en
+     compact seulement (aucune valeur — min/max/P5/P95/médiane/effectif — n'est retirée, `D-36` :
+     seule la légende qualificative disparaît de l'écran, `title` la garde au survol, et le texte
+     reste dans le DOM, lisible par les technologies d'assistance qui parcourent le contenu — jamais
+     `display: none`/`aria-hidden`). Motif « visually hidden » redéfini LOCALEMENT (même raison que
+     `.kycar-token__ineffective-note`, `filter-band.css` : ce fichier est monté seul, l'en-tête de ce
+     fichier l'explique, `.kycar-visually-hidden` d'`app.css` n'y est pas garanti chargé). */
+  .kycar-market-zone-price-caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
 }
 
 /* Feuille de tri compacte - EX-SCR-135 (DR-072) : declencheur 44px, liste d'options native (<details>,

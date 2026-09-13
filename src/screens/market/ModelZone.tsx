@@ -96,7 +96,13 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
                 ligne de la grille à 4 lignes, sans dupliquer la moindre règle ici. */}
             <span class="kycar-market-zone-price" title={zone.price.caption}>
               {zone.price.label}
-              {zone.price.available ? ` (${zone.price.caption})` : ''}
+              {/* `EX-SCR-135`/C-R1-04 (coordinateur, 2026-09-13) : la légende fait déborder la ligne
+                  prix sur deux lignes à 360 px (compact), portant la zone à cinq lignes de texte
+                  dans une bande qui n'en compte que quatre — masquée visuellement dans ce SEUL
+                  régime (`.kycar-market-zone-price-caption`, `market.css`), jamais retirée du DOM :
+                  l'en-tête de carte la porte déjà une fois, et `title` ci-dessus la garde au survol
+                  dans tous les régimes. */}
+              {zone.price.available ? <span class="kycar-market-zone-price-caption"> ({zone.price.caption})</span> : null}
               {/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil, provider réel seulement. */}
               {zone.price.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
             </span>
