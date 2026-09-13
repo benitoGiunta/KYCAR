@@ -140,25 +140,17 @@ test.describe('Budgets de performance mesurés au navigateur', () => {
     const transferred = await page.evaluate(() =>
       performance.getEntriesByType('resource').reduce((sum, r) => sum + ((r as PerformanceResourceTiming).transferSize || 0), 0),
     );
-    const snapshotKio = await page.evaluate(
-      () =>
-        (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
-          .filter((r) => r.name.includes('.ndjson.gz'))
-          .reduce((sum, r) => sum + (r.transferSize || 0), 0) / 1024,
-    );
     mesure(
       testInfo,
       'EX-NFR-9 — ossature de l’écran A en 4G (4 Mb/s, 150 ms)',
       `${samples.map((s) => `${s} ms`).join(' / ')} — médiane ${median(samples)} ms, max ${Math.max(...samples)} ms, ${(transferred / 1024).toFixed(0)} Kio transférés au total`,
     );
     // `C-3.5-01` CORRIGÉ (`D3-31`) — le jalon « premier chiffre » est désormais ASSERTÉ, au même
-    // budget que l'ossature. `snapshotKio` mesure ce que le fichier d'ANNONCES a coûté au moment de
-    // la lecture : il est chargé en arrière-plan pour le mode 2 et n'est plus sur le chemin du
-    // premier chiffre — la mesure le publie pour que ce fait reste vérifiable, pas pour l'excuser.
+    // budget que l'ossature.
     mesure(
       testInfo,
       'EX-NFR-9 — PREMIER CHIFFRE affiché en 4G (jalon asserté depuis D3-31)',
-      `${chiffres.map((s) => `${s} ms`).join(' / ')} — médiane ${median(chiffres)} ms, max ${Math.max(...chiffres)} ms, budget ${NFR9_BUDGET_MS} ms ; annonces (hors chemin critique) ${snapshotKio.toFixed(0)} Kio gzip`,
+      `${chiffres.map((s) => `${s} ms`).join(' / ')} — médiane ${median(chiffres)} ms, max ${Math.max(...chiffres)} ms, budget ${NFR9_BUDGET_MS} ms`,
     );
 
     await cdp.send('Network.emulateNetworkConditions', {
@@ -167,12 +159,51 @@ test.describe('Budgets de performance mesurés au navigateur', () => {
       downloadThroughput: -1,
       uploadThroughput: -1,
     });
+
+    // Le fichier d'annonces est chargé EN ARRIÈRE-PLAN depuis `D3-31` : au moment où le premier
+    // chiffre s'affiche, il est encore en vol et ne figure donc dans AUCUNE entrée de `performance`.
+    // Le compter là aurait donné « 0 Kio » — un contrôle qui passe sans rien prouver. On attend donc
+    // qu'il se termine (bride réseau déjà levée : les OCTETS ne dépendent pas du débit), puis on
+    // laisse trois secondes de plus pour qu'un SECOND téléchargement, s'il existait, ait le temps
+    // d'apparaître à son tour.
+    const snapshotBytes = await page.evaluate(async (budgetMs: number) => {
+      const total = (): number =>
+        (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+          .filter((r) => r.name.includes('.ndjson.gz'))
+          .reduce((sum, r) => sum + (r.transferSize || 0), 0);
+      const until = Date.now() + budgetMs;
+      while (Date.now() < until && total() === 0) {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      await new Promise((r) => setTimeout(r, 3_000));
+      return total();
+    }, 60_000);
     // Budget exprimé en p95 : sur cinq mesures d'une machine partagée (le serveur `vite preview`
     // tourne sur le même hôte), la MÉDIANE est l'estimateur stable ; la série complète est publiée
     // ci-dessus pour que la marge réelle soit lisible.
     expect(median(samples), 'EX-NFR-9 — ossature de l’écran A').toBeLessThanOrEqual(NFR9_BUDGET_MS);
     // Et le jalon qui compte pour l'utilisateur : le premier EFFECTIF rendu (`D3-31`).
     expect(median(chiffres), 'EX-NFR-9 — premier chiffre de l’écran A').toBeLessThanOrEqual(NFR9_BUDGET_MS);
+
+    // `C-R1-02` — LE SNAPSHOT N'EST TÉLÉCHARGÉ QU'UNE FOIS. La recette a mesuré 5 359 Kio pour un
+    // fichier de 2 680 Kio : le délai de 5 000 ms d'`EX-NFR-21` rejetait une ouverture encore en
+    // vol, et le réessai en relançait une seconde, sur le même tuyau. La référence est DÉRIVÉE du
+    // manifest du snapshot servi (`D3-24`), jamais figée ; la tolérance de 10 % couvre les en-têtes
+    // HTTP que `transferSize` compte en plus du corps, et rien de plus — un second téléchargement
+    // ferait 200 %.
+    const attendu = (await derived()).snapshotCompressedBytes;
+    mesure(
+      testInfo,
+      'C-R1-02 — octets d’annonces transférés pour UNE visite (arrière-plan compris)',
+      `${(snapshotBytes / 1024).toFixed(0)} Kio transférés pour un snapshot de ${(attendu / 1024).toFixed(0)} Kio ` +
+        `(${(snapshotBytes / attendu).toFixed(2)} fois le fichier)`,
+    );
+    // Le fichier DOIT avoir été téléchargé (sinon la borne haute ne prouverait rien)…
+    expect(snapshotBytes, 'C-R1-02 — les annonces sont bien chargées en arrière-plan').toBeGreaterThan(
+      attendu * 0.9,
+    );
+    // …et UNE SEULE fois.
+    expect(snapshotBytes, 'C-R1-02 — le snapshot n’est téléchargé qu’une fois').toBeLessThanOrEqual(attendu * 1.1);
   });
 
   test('EX-NFR-9bis — premier affichage utile d’une URL DÉJÀ filtrée, en 4G simulée', async ({ page, context }, testInfo) => {

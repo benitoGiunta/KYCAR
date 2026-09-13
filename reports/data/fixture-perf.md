@@ -28,6 +28,31 @@ Le jalon lui-même avait dû être corrigé en 3.5 : `measureFirstUsefulPaint` a
 mesurés (`ossature`, `premierChiffre`) ; le second était **publié mais non asserté**, faute d'une
 correction à portée de l'agent qui l'avait trouvé.
 
+### Deux constats du coordinateur, reçus pendant le lot
+
+**`C-R1-01`** — `npm run test:contract` échouait sur l'arbre principal, machine à vide :
+« ouverture du profil test (garde-fou de non-régression) : expected 3334 to be less than 2500 »
+(3 094 ms puis 3 334 ms). Deux demandes : dédoubler la notion d'« ouverture » (baseline servie /
+ingestion complète) et borner chacune séparément, avec justification écrite de toute retouche de
+seuil ; et livrer `test:contract` **100 % vert**. Traité en §4.3 (sondes modifiées) et §4.2.
+
+**`C-R1-02`** — la suite E2E complète rejouée sur `HEAD` (321 verts) publiait, en 4G :
+« PREMIER CHIFFRE : médiane **14 549 ms** (desktop) / 14 742 ms (tablet) ; snapshot de fixtures
+**5 359 Kio** » pour un fichier de 2 680 Kio — **le snapshot était téléchargé deux fois**. Cause
+confirmée : `DataController.start()` enveloppe `openSnapshot() + fetchBaselineAggregates()` dans un
+délai de 5 000 ms (`EX-NFR-21`, `delaysMs: [1000, 2000, 4000]`) ; en 4G l'ouverture dépassait ce
+délai, la promesse était rejetée **mais le téléchargement continuait**, et le réessai — trouvant
+`state` encore vide — relançait une ouverture complète. Deux téléchargements en concurrence sur le
+même tuyau : chacun deux fois plus lent.
+
+Mesure faite ici, hors harnais, sur le build **d'avant** (§8.1) : **une seule** copie du snapshot,
+premier chiffre à 7 891 ms. L'écart avec la recette n'infirme pas le constat, il le précise —
+c'est un **effet de seuil** : `start()` démarrait vers 2,5 s et l'ouverture se terminait vers
+7,5 s, soit **au bord exact** des 5 000 ms. Sur une machine un peu plus chargée (trois projets
+Playwright en série), le délai expire, le réessai part, et la mesure double. Un défaut qui dépend de
+la charge est un défaut, pas un hasard : il est traité pour lui-même en §2.5, indépendamment du fait
+que `D3-31` en supprime déjà la cause.
+
 ---
 
 ## 2. Conception retenue
@@ -123,6 +148,26 @@ Le schéma `data/schema/snapshot-baseline.schema.json` est **lu mais non haché*
 combiné du générateur (`tables.mjs`) : c'est le contrat d'un artefact **dérivé**, pas une entrée de
 la génération. L'y mettre aurait changé la `note` de chaque manifest, donc obligé à régénérer des
 fixtures que rien n'a fait bouger.
+
+### 2.5 Une seule ouverture en vol, une seule ingestion (`C-R1-02`)
+
+Deux défauts de la même famille, tous deux corrigés dans le provider :
+
+1. **`openSnapshot` n'était pas idempotente** : deux appels concurrents — exactement ce que produit
+   le réessai d'`EX-NFR-21` sur une ouverture qui a dépassé son délai — repartaient de zéro chacun.
+   La promesse d'ouverture est désormais **mémorisée tant qu'elle est en vol** et partagée par tous
+   les appelants ; elle est oubliée à la fin (succès : `state` prend le relais ; échec : le réessai
+   en relance une vraie). Sonde : deux `openSnapshot()` concurrents, puis un troisième, puis une
+   demande de mode 2 → **le flux d'annonces est ouvert UNE fois** et l'artefact lu UNE fois.
+2. **Une ingestion en échec restait mémorisée** — défaut que j'ai introduit avec le chargement
+   différé, trouvé en relisant le chemin d'erreur : une coupure réseau d'une seconde aurait condamné
+   le mode 2 pour toute la session, les trois réessais du contrôleur rejouant la MÊME promesse déjà
+   rejetée. La promesse est maintenant oubliée sur échec **de transport** ; une **divergence**, elle,
+   n'est jamais réessayée (elle ne vient pas du transport). Sonde : un chargeur qui échoue une fois
+   puis réussit → premier appel rejeté, second servi, chargeur appelé deux fois.
+
+`data-controller.ts` n'a pas été touché : le délai de 5 000 ms reste ce qu'il est, et il n'est plus
+approché — l'ouverture coûte désormais quelques dizaines de millisecondes (§8.3).
 
 ### 2.4 Parallélisme du démarrage (cause (b))
 
@@ -329,3 +374,126 @@ mon artefact invérifiable — et surtout, aurait laissé la suite de contrat pa
 ---
 
 ## 8. Mesures 4G — protocole et résultats
+
+### 8.1 Protocole
+
+Build de **production**, servi par `vite preview` sur le port **4181** (le 4180 était pris par la
+suite E2E du coordinateur pendant une partie du lot). Chromium préinstallé, pilote CDP :
+`Network.clearBrowserCache`, `Network.setCacheDisabled: true`, `Network.emulateNetworkConditions`
+avec **4 Mb/s descendants et 150 ms de latence** — le profil `FOURG` de `perf.spec.ts`, à la valeur
+près. Jalons relevés exactement comme dans le harnais : `.kycar-market-card` (ossature) puis
+`.kycar-market-card-count` (premier chiffre), horloge partie au `goto`. **3 exécutions** par cas,
+série complète publiée. Script : `perf-4g.mjs` (bloc-notes de session, hors dépôt).
+
+L'**avant** est mesuré sur la MÊME machine, dans le MÊME worktree, en rétablissant `src/` et
+`vite.config.ts` au commit de départ `f880e26` (`git checkout f880e26 -- src vite.config.ts`), en
+rebâtissant, puis en restaurant. Les fixtures, elles, ne changent pas : le code d'avant ignore
+simplement `baseline.json`. C'est donc bien le même jeu, la même machine, le même serveur — seul le
+code diffère.
+
+### 8.2 Résultats
+
+| Profil servi | | Ossature (3 exéc., max) | **Premier chiffre** (3 exéc., médiane / max) | Kio avant le premier chiffre |
+|---|---|---|---|---|
+| `fixture:test` (défaut `D3-01`) | **avant** | 1 480 / 1 489 / 1 543 → **1 543** | 7 866 / 7 891 / 8 230 → **7 891 / 8 230** | **2 913,5** |
+| | **après** | 1 492 / 1 494 / 1 533 → **1 533** | 1 495 / 1 498 / 1 540 → **1 498 / 1 540** | **249,7** |
+| `fixture:dev` | **avant** | 1 487 / 1 535 / 1 575 → **1 575** | 3 788 / 4 037 / 4 109 → **4 037 / 4 109** | **915,8** |
+| | **après** | 1 492 / 1 493 / 1 517 → **1 517** | 1 496 / 1 498 / 1 525 → **1 498 / 1 525** | **244,4** |
+
+**Verdict `EX-NFR-9` : TENU sur les deux profils.** Médiane 1 498 ms et maximum 1 540 ms contre un
+budget de 2 000 ms, soit **25 % de marge sur la médiane** et 23 % sur le pire des trois. Le premier
+chiffre passe de 7 891 à 1 498 ms au profil `test` (**× 5,3**) et de 4 037 à 1 498 ms au profil `dev`
+(**× 2,7**). Les deux profils convergent vers la même valeur — c'est attendu : le chemin critique ne
+dépend plus de la taille du jeu.
+
+Deuxième fait, plus parlant que le gain : **l'ossature et le premier chiffre coïncident désormais**
+(1 492 ms et 1 495 ms sur la meilleure exécution, 3 ms d'écart). L'écran ne peint plus un squelette
+qu'il faudrait remplacer six secondes plus tard ; il peint des chiffres.
+
+### 8.3 Le chemin d'ouverture tient LARGEMENT sous les 5 000 ms d'`EX-NFR-21` (`C-R1-02`)
+
+Relevé des ressources du chemin critique, profil `test`, après :
+
+```
+/assets/index-*.js                                       122,0 Kio  responseEnd  580 ms
+/reference/taxonomy.json                                  65,6 Kio  responseEnd  940 ms
+/reference/filters.json                                   17,4 Kio  responseEnd  841 ms
+/fixtures/test/be-.../baseline.json                       13,7 Kio  responseEnd 1329 ms
+/assets/index-*.css                                        6,9 Kio  responseEnd  340 ms
+… (15 vocabulaires, filters-scope, index.json, manifest.min.json)
+                                                total    249,7 Kio  premier chiffre 1498 ms
+```
+
+Les trois documents du jeu (index, manifest allégé, baseline) sont demandés **en parallèle** des
+référentiels et terminés à **1 329 ms** ; le premier chiffre tombe à **1 498 ms**. La séquence
+`openSnapshot() + fetchBaselineAggregates()` — qui trouve ces trois réponses **déjà mémorisées** —
+est donc majorée par ces **169 ms**, rendu et peinture compris : **3,4 % du délai de 5 000 ms**.
+La condition posée par `C-R1-02` (« tenir largement sous 5 s ») est tenue avec un facteur ~30.
+
+### 8.4 Le snapshot n'est téléchargé qu'une fois (`C-R1-02`)
+
+Hors harnais, en laissant tourner 8 à 25 s après le premier chiffre pour qu'un second
+téléchargement ait le temps d'apparaître :
+
+| | Avant | Après |
+|---|---|---|
+| `fixture:test` — octets `/fixtures/` après repos | 2 682,6 Kio | **2 695,4 Kio** (une copie de 2 680 Kio + 15 Kio de métadonnées) |
+| `fixture:dev` — idem | — | **692,4 Kio** (682 + 10) |
+| `.ndjson.gz` : entrées relevées | 1 (`@7 439 ms`) | 1 (`@7 002 ms`, en arrière-plan) |
+
+Sur cette machine, **le double téléchargement ne se reproduit pas non plus sur le build d'avant** :
+l'ouverture y finissait à 7,5 s pour un `start()` vers 2,5 s, c'est-à-dire **juste au bord** des
+5 000 ms. C'est ce qui explique l'écart avec la recette du coordinateur (14,5 s, 5 359 Kio) : trois
+projets Playwright en série sur la même machine suffisent à faire basculer le seuil. Le défaut est
+donc **corrigé pour lui-même** (§2.5, ouverture idempotente) et pas seulement rendu improbable par
+la rapidité nouvelle de l'ouverture.
+
+### 8.5 Le harnais, rejoué
+
+Port 4181, projet `desktop` uniquement, ports 4180 et 4181 vérifiés libres avant lancement (le
+coordinateur avait terminé sa suite) :
+
+```
+KYCAR_E2E_PORT=4181 npx playwright test -g "EX-NFR-9" --project=desktop
+```
+
+```
+[MESURE] EX-NFR-9 — ossature de l'écran A en 4G : 1544 / 1512 / 1510 / 1511 / 1528 ms
+         — médiane 1512 ms, max 1544 ms, 250 Kio transférés au total
+[MESURE] EX-NFR-9 — PREMIER CHIFFRE affiché en 4G (jalon asserté depuis D3-31) :
+         1559 / 1531 / 1523 / 1526 / 1544 ms — médiane 1531 ms, max 1559 ms, budget 2000 ms
+[MESURE] EX-NFR-9 — ossature de l'écran A sur URL filtrée : médiane 1521 ms, max 1551 ms
+  2 passed (1.1m)
+```
+
+Le contrôle `C-R1-02` de ce même test a d'abord publié « **0 Kio** transférés pour un snapshot de
+2 679 Kio » : au moment du premier chiffre, le fichier d'annonces est encore **en vol** et ne figure
+dans aucune entrée `performance`. Une borne haute satisfaite par zéro octet ne prouve rien — la
+sonde a donc été **corrigée avant d'être livrée** : elle attend la fin du téléchargement d'arrière-
+plan (bride réseau levée : les octets ne dépendent pas du débit), laisse trois secondes de plus pour
+qu'un second téléchargement ait le temps d'apparaître, puis encadre le total **des deux côtés** —
+au moins 0,9 fois le fichier (il a bien été chargé) et au plus 1,1 fois (il ne l'a été qu'une fois).
+Résultat du rejeu : *(voir §8.6)*.
+
+### 8.6 Rejeu final du harnais après renforcement de la sonde
+
+```
+KYCAR_E2E_PORT=4181 npx playwright test -g "EX-NFR-9 —" --project=desktop
+```
+
+```
+[MESURE] EX-NFR-9 — ossature de l'écran A en 4G : 1556 / 1529 / 1523 / 1509 / 1508 ms
+         — médiane 1523 ms, max 1556 ms, 250 Kio transférés au total
+[MESURE] EX-NFR-9 — PREMIER CHIFFRE affiché en 4G (jalon asserté depuis D3-31) :
+         1575 / 1553 / 1537 / 1521 / 1520 ms — médiane 1537 ms, max 1575 ms, budget 2000 ms
+[MESURE] C-R1-02 — octets d'annonces transférés pour UNE visite (arrière-plan compris) :
+         2680 Kio transférés pour un snapshot de 2679 Kio (1.00 fois le fichier)
+  1 passed (34.0s)
+```
+
+**`EX-NFR-9` est asserté et tenu dans le harnais** : médiane 1 537 ms, maximum 1 575 ms, budget
+2 000 ms. **`C-R1-02` est asserté et tenu** : exactement une fois le fichier (1,00).
+
+Seuls `EX-NFR-9` et `EX-NFR-9bis` ont été rejoués, sur un seul projet (`desktop`), conformément à la
+mission. **La suite E2E complète reste à rejouer par le coordinateur**, sur les trois projets — en
+particulier `EX-NFR-9` sur `tablet` et `mobile`, où la recette avait relevé 14 742 ms et 8 195 ms.

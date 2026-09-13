@@ -244,6 +244,41 @@ function miniWorkspace(name: string): { root: string; snapshotId: string } {
   return { root, snapshotId: MINI_LATEST_SNAPSHOT_ID };
 }
 
+describe('C-R1-02 — deux ouvertures concurrentes ne téléchargent pas deux fois', () => {
+  it('openSnapshot appelée deux fois de suite n’ouvre qu’UN flux d’annonces', async () => {
+    const profile: FixtureProfile = 'dev';
+    if (!existsSync(resolve(FIXTURE_ROOT, profile))) return;
+    const entry = buildProfileIndexFromDisk(FIXTURE_ROOT, profile).snapshots.at(-1) as { snapshotId: string };
+    const inner = createNodeFixtureLoader(FIXTURE_ROOT);
+    let opens = 0;
+    let baselines = 0;
+    const counting: FixtureLoader = {
+      ...inner,
+      loadBaseline(p2, e2) {
+        baselines += 1;
+        return inner.loadBaseline?.(p2, e2) ?? Promise.resolve(null);
+      },
+      openListings(p2, e2) {
+        opens += 1;
+        return inner.openListings(p2, e2);
+      },
+    };
+    const provider = providerOn(FIXTURE_ROOT, profile, entry.snapshotId, { loader: counting });
+
+    // Deux appels CONCURRENTS — le cas exact du réessai d'`EX-NFR-21` sur une ouverture encore en
+    // vol : la recette 2.9 y a mesuré le snapshot du profil test téléchargé DEUX fois.
+    const [h1, h2] = await Promise.all([provider.openSnapshot(), provider.openSnapshot()]);
+    expect(h1.descriptor.snapshotId).toBe(h2.descriptor.snapshotId);
+    // Et un troisième appel APRÈS coup, plus une demande de mode 2 : toujours un seul flux.
+    await provider.openSnapshot();
+    await provider.whenIngested();
+    await provider.fetchListingColumns(h1, 'FULL');
+
+    expect(opens, 'le flux d’annonces n’est ouvert qu’une fois').toBe(1);
+    expect(baselines, 'l’artefact précalculé n’est lu qu’une fois').toBe(1);
+  });
+});
+
 describe('D3-31 — un échec de transport sur les annonces reste réessayable', () => {
   it('la deuxième demande relance l’ingestion au lieu de rejouer le même rejet', async () => {
     const profile: FixtureProfile = 'dev';

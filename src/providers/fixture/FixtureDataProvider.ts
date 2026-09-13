@@ -224,6 +224,10 @@ export class FixtureDataProvider implements DataProvider {
    * baseline elle-même.
    */
   private divergence: string | null = null;
+  /**
+   * Ouverture EN VOL, partagée par tous les appelants (`C-R1-02`). `null` = aucune en cours.
+   */
+  private opening: Promise<SnapshotHandle> | null = null;
 
   constructor(options: FixtureProviderOptions) {
     this.ref = options.referenceData;
@@ -255,10 +259,38 @@ export class FixtureDataProvider implements DataProvider {
     };
   }
 
+  /**
+   * `C-R1-02` — UNE SEULE OUVERTURE EN VOL, PARTAGÉE.
+   *
+   * La recette 2.9 a mesuré le snapshot du profil `test` **téléchargé deux fois** (5 359 Kio pour un
+   * fichier de 2 680 Kio) : `DataController.start()` enveloppe `openSnapshot` dans un délai de
+   * 5 000 ms (`EX-NFR-21`) ; en 4G l'ouverture le dépassait, la promesse était rejetée, mais le
+   * téléchargement continuait en arrière-plan — et le réessai, trouvant `state` encore vide,
+   * relançait TOUT. Deux téléchargements en concurrence sur le même tuyau : chacun deux fois plus
+   * lent, et le premier chiffre à 14,5 s au lieu de 7,9 s.
+   *
+   * `D3-31` supprime la cause (l'ouverture ne coûte plus que quelques Kio), mais pas le défaut : un
+   * appelant qui abandonne et réessaie ne doit JAMAIS provoquer un second téléchargement. La
+   * promesse d'ouverture est donc mémorisée et partagée par tous les appelants tant qu'elle est en
+   * vol ; elle est oubliée quand elle se termine (succès → `state` prend le relais ; échec → le
+   * réessai en relance une vraie).
+   */
   async openSnapshot(request?: OpenSnapshotRequest): Promise<SnapshotHandle> {
     if (this.state !== null && request?.forceRefresh !== true) {
       return { descriptor: this.state.descriptor };
     }
+    const inFlight = this.opening;
+    if (inFlight !== null) return inFlight;
+    const pending = this.doOpenSnapshot();
+    this.opening = pending;
+    try {
+      return await pending;
+    } finally {
+      if (this.opening === pending) this.opening = null;
+    }
+  }
+
+  private async doOpenSnapshot(): Promise<SnapshotHandle> {
     const startedAt = Date.now();
     this.state = null;
     this.lastIngestMs = null;
