@@ -111,6 +111,14 @@ export function loadTables() {
     hashes,
     'schema/snapshot-manifest.schema.json',
   );
+  // Schema de l'artefact de baseline (D3-31). LU MAIS NON HACHE dans `hashes` : ce n'est pas une
+  // ENTREE de la generation, c'est le contrat d'un artefact DERIVE, produit apres coup par
+  // `tools/dataset/baseline.ts`. L'inclure dans le hachage combine changerait la `note` de chaque
+  // manifest — donc exigerait de regenerer des fixtures que rien n'a fait bouger.
+  const baselineSchema = JSON.parse(
+    readFileSync(join(SCHEMA_DIR, 'snapshot-baseline.schema.json')).toString('utf8'),
+  );
+
   // Le document de specification lui-meme : sa version est le hachage de son texte.
   const specDoc = readFileSync(join(ROOT, 'docs', 'data', 'DATASET-SPEC.md'));
   hashes['DATASET-SPEC.md'] = sha256(specDoc);
@@ -142,6 +150,7 @@ export function loadTables() {
     filtersScope,
     listingSchema,
     manifestSchema,
+    baselineSchema,
     hashes,
     combinedHash: combined,
   };

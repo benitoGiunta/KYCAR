@@ -11,8 +11,8 @@ import { createRequire } from 'node:module';
 
 const require_ = createRequire(import.meta.url);
 
-/** Compile les deux schemas et rend deux validateurs. */
-export function buildValidators(listingSchema, manifestSchema) {
+/** Compile les schemas et rend un validateur par document. `baselineSchema` est optionnel. */
+export function buildValidators(listingSchema, manifestSchema, baselineSchema) {
   const Ajv2020 = require_('ajv/dist/2020');
   const addFormats = require_('ajv-formats');
   const AjvCtor = Ajv2020.default ?? Ajv2020;
@@ -23,6 +23,7 @@ export function buildValidators(listingSchema, manifestSchema) {
     engine: `ajv ${require_('ajv/package.json').version}`,
     listing: ajv.compile(listingSchema),
     manifest: ajv.compile(manifestSchema),
+    baseline: baselineSchema === undefined ? null : ajv.compile(baselineSchema),
   };
 }
 

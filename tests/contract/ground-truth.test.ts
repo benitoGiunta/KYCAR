@@ -413,7 +413,23 @@ describe.skipIf(!available)('vérité terrain — les 27 codes du manifest sont 
     expect(highWithinBound + highBeyondBound + lowSide).toBe(entries.length);
   });
 
-  it('VERSION_FULLY_STRIPPED — CONSTAT C-P3-11 : la liste d’arrêt d’EX-DATA-30 n’est chargée nulle part', () => {
+  /**
+   * `D3-31` — SONDE AMENDÉE, avec justification écrite (règle D-31).
+   *
+   * Écrite en 3.3, elle CONSTATAIT `C-P3-11` : « la liste d'arrêt d'`EX-DATA-30` n'est chargée nulle
+   * part », et l'assertion finale FIGEAIT le défaut (`versionStoplist` vide). `D3-21` a corrigé les
+   * deux chargeurs de production (`reference-loader.ts` navigateur, `reference-fs.ts` Node) ; la
+   * sonde est pourtant restée verte, parce que le chargeur du HARNAIS de ce dossier
+   * (`tweedehands/testFixtures.ts`) ne lisait toujours pas les deux fichiers. Elle ne prouvait donc
+   * plus rien de l'application — elle prouvait un trou du harnais.
+   *
+   * L'écart a été trouvé en 3.5 par le contrôle de divergence de l'artefact de baseline : le même
+   * snapshot ingéré avec le référentiel de production et avec celui du harnais ne donnait pas les
+   * mêmes compteurs (`unknownCountByField.modelVersionClean` : 208 contre 204). Le harnais est
+   * aligné ; la sonde constate désormais le comportement CORRIGÉ, mesure comprise : 20 anomalies
+   * déclarées, 20 dépouillées, 0 survivante.
+   */
+  it('VERSION_FULLY_STRIPPED — C-P3-11 corrigé (D3-21) : la liste d’arrêt est chargée et dépouille', () => {
     const entries = byAnomaly.get('VERSION_FULLY_STRIPPED') ?? [];
     const flagged: string[] = [];
     const survivors: string[] = [];
@@ -431,13 +447,17 @@ describe.skipIf(!available)('vérité terrain — les 27 codes du manifest sont 
       `[C-P3-11] VERSION_FULLY_STRIPPED : ${entries.length} déclarées, ${flagged.length} dépouillées, ` +
         `${survivors.length} survivantes ${JSON.stringify([...new Set(survivors)])}`,
     );
-    // La CAUSE, vérifiable ici même : `ReferenceData.versionStoplist` est VIDE, parce que ni
-    // `reference-loader.ts` (navigateur) ni `reference-fs.ts` (Node) ne lisent
-    // `data/reference/version-stoplist.json` — pourtant versionné et cité par EX-DATA-30. L'étape 3
-    // du pipeline EX-DATA-29 est donc INERTE dans toute l'application, et avec elle la DEUXIÈME
-    // BARRIÈRE R3 sur le seul texte libre conservé. Correctif hors périmètre (chargeurs D8).
-    expect(referenceData().versionStoplist, 'la liste d’arrêt EX-DATA-30 n’est pas chargée').toEqual([]);
-    expect(referenceData().versionDriveBadges, 'le lexique EX-DATA-29 étape 10 n’est pas chargé').toEqual([]);
+    // Plus AUCUNE survivante : les marqueurs promotionnels (« --- PROMO --- ») sont dépouillés,
+    // parce que l'étape 3 du pipeline `EX-DATA-29` n'est plus inerte. C'est la DEUXIÈME BARRIÈRE R3
+    // sur le seul texte libre conservé qui redevient effective.
+    expect(survivors, 'aucune version promotionnelle ne survit au dépouillement').toEqual([]);
+    expect(flagged.length).toBe(entries.length);
+    // La CAUSE d'hier, vérifiée à l'endroit : les deux fichiers d'`EX-DATA-30` / `EX-DATA-29`
+    // étape 10 sont chargés — par le navigateur, par les chargeurs Node, ET par le harnais de ce
+    // dossier. Un référentiel de test qui diverge de celui de l'application rendrait toute sonde
+    // verte de ce fichier muette sur le produit.
+    expect(referenceData().versionStoplist.length, 'liste d’arrêt EX-DATA-30 chargée').toBeGreaterThan(0);
+    expect(referenceData().versionDriveBadges.length, 'lexique EX-DATA-29 étape 10 chargé').toBeGreaterThan(0);
   });
 
   it('VERSION_AMBIGUOUS — CONSTAT C-P3-12 : quatre anomalies déclarées ont perdu leur version', () => {

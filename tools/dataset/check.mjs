@@ -515,6 +515,68 @@ export function runCheck(opts) {
   const de47 = s0.filter((o) => o.location.postalCodePrefix2 === '47').length;
   add('P-54', 'annonces du prefixe germanophone 47', String(de47), de47 > 0);
 
+  /* ---- D3-31 : agregats mode 1 precalcules (baseline.json) ------------------------------------------ */
+  //
+  // Ces trois sondes recoupent l'artefact avec des faits que le FICHIER porte, calcules ici sans le
+  // code du provider : c'est ce qui leur donne une valeur de controle. La comparaison exhaustive
+  // avec la baseline RECALCULEE par le provider, elle, vit dans `npm run data:baseline -- --check`
+  // et dans la sonde de contrat — la refaire ici en JS produirait un second moteur d'agregation.
+  const baselines = snaps.map((s) => s.baseline);
+  add(
+    'P-BL1',
+    'baseline.json present et lie aux octets de son snapshot',
+    baselines.every((b) => b !== null)
+      ? `${baselines.length} artefacts, ${baselines[0].rows.length} marques`
+      : 'ABSENT (npm run data:baseline)',
+    baselines.every(
+      (b, i) =>
+        b !== null &&
+        b.artifact === 'kycar-snapshot-baseline' &&
+        b.snapshotId === snaps[i].manifest.snapshotId &&
+        b.producedFrom.sha256 === snaps[i].manifest.sha256,
+    ),
+  );
+  if (baselines.every((b) => b !== null)) {
+    const distinctIds = parsed.map((p) => new Set(p.map((o) => o.id)).size);
+    add(
+      'P-BL2',
+      'baseline : selectionCount = identifiants DISTINCTS du fichier',
+      baselines.map((b, i) => `${b.selectionCount}/${distinctIds[i]}`).join(' '),
+      baselines.every((b, i) => b.ingest.rejectedCount > 0 || b.selectionCount === distinctIds[i]),
+    );
+    // Regroupement : les marques de l'artefact sont exactement celles du fichier (lignes retenues),
+    // et l'ordre est bien l'effectif decroissant que `aggregateByMake` promet.
+    const fromFile = parsed.map((objects) => {
+      const byMake = new Map();
+      const seen = new Set();
+      for (const o of objects) {
+        if (seen.has(o.id)) continue;
+        seen.add(o.id);
+        byMake.set(o.make, (byMake.get(o.make) ?? 0) + 1);
+      }
+      return byMake;
+    });
+    const grouping = baselines.every((b, i) => {
+      if (b.ingest.rejectedCount > 0) return true;
+      const m = fromFile[i];
+      if (m.size !== b.rows.length) return false;
+      for (const r of b.rows) if (m.get(r.makeId) !== r.listingCount) return false;
+      for (let k = 1; k < b.rows.length; k += 1) {
+        const prev = b.rows[k - 1];
+        const cur = b.rows[k];
+        if (prev.listingCount < cur.listingCount) return false;
+        if (prev.listingCount === cur.listingCount && prev.makeId > cur.makeId) return false;
+      }
+      return true;
+    });
+    add(
+      'P-BL3',
+      'baseline : une ligne par marque du fichier, meme effectif, ordre decroissant',
+      baselines.map((b, i) => `${b.rows.length}/${fromFile[i].size}`).join(' '),
+      grouping,
+    );
+  }
+
   /* ---- Forme des nombres --------------------------------------------------------------------------- */
   const decimalBad = snaps[0].lines.filter((l) => /"(co2Emissions|co2EmissionsCombined|consumptionCombined|consumptionElectricCombined|combined|electricCombined|capacity|co2EmissionInGramPerKmWithFallback|consumptionCombinedWithFallback)":-?\d+\.\d\d+/.test(l)).length;
   add('P-102', 'au plus une decimale (comparaison textuelle)', `${decimalBad} ligne(s)`, decimalBad === 0);

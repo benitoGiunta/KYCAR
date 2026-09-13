@@ -26,8 +26,21 @@ export {
   DEFAULT_LISTINGS_FILE,
   FIXTURE_BASE,
   createHttpFixtureLoader,
+  warmFixtureMeta,
   type HttpFixtureLoaderOptions,
 } from './loaders/http';
+
+export {
+  BASELINE_ARTIFACT,
+  BASELINE_ARTIFACT_VERSION,
+  BASELINE_FILE,
+  baselineRejectionReason,
+  diffBaseline,
+  isBaselineArtifact,
+  type BaselineIngestSummary,
+  type BaselineMeasurementCounts,
+  type SnapshotBaselineArtifact,
+} from './baseline-artifact';
 
 export type { FixtureLoader } from './loaders/types';
 
