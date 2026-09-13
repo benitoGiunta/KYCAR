@@ -200,7 +200,7 @@ correction est au bon endroit : **aucune ligne d'orchestration n'a eu à changer
 | `data/schema/` | `snapshot-baseline.schema.json` (nouveau) | contrat de l'artefact |
 | `data/fixtures/` | 6 × `baseline.json` (`dev` et `test`, 3 snapshots chacun) | **complétées et commitées** ; aucun octet d'annonce n'a bougé |
 | `tests/contract/` | `baseline-artifact.test.ts` (nouveau, 8 cas), `provider-contract.test.ts`, `ground-truth.test.ts` | sonde de l'artefact ; garde-fous d'ouverture dédoublés (`C-R1-01`) ; une sonde amendée (§4.3) |
-| `tests/e2e/` | `perf.spec.ts` | le jalon « premier chiffre » devient **asserté** |
+| `tests/e2e/` | `perf.spec.ts`, `_expected.ts` | le jalon « premier chiffre » devient **asserté** ; contrôle `C-R1-02` des octets d'annonces, référence dérivée du manifest (`snapshotCompressedBytes`) |
 | racine / docs | `package.json` (`data:baseline`), `vite.config.ts` (commentaire), `DEV.md`, `docs/data/DATA-MODEL.md` §6bis, `src/providers/README.md` | commande, documentation de l'artefact |
 
 Aucun changement de signature dans `src/providers/DataProvider.ts` ni dans `src/types/`.
@@ -214,7 +214,7 @@ provider, au lieu d'exploser au point d'appel.
 
 ### 4.1 Sonde de contrat, ROUGE d'abord
 
-`tests/contract/baseline-artifact.test.ts`, 8 cas. La démonstration de rougeur a été faite par
+`tests/contract/baseline-artifact.test.ts`, **10 cas**. La démonstration de rougeur a été faite par
 **mutation contrôlée** du provider (`useBaselineArtifact` par défaut à `false`, c'est-à-dire le
 comportement d'avant `D3-31`), puis annulée :
 
@@ -228,23 +228,37 @@ comportement d'avant `D3-31`), puis annulée :
 | 4a artefact d'un autre snapshot / d'autres octets | ✗ `to match /Agrégats précalculés REFUSÉS/` | ✓ |
 | 4b artefact démenti par les annonces | ✗ `to match /PRÉCALCULÉS/` | ✓ |
 
+Deux cas ont été ajoutés ensuite, sur des défauts trouvés en relisant les chemins d'erreur du
+chargement différé (§2.5) — eux aussi écrits avant leur correction :
+
+| Cas | Avant sa correction | Après |
+|---|---|---|
+| 5 `C-R1-02` : deux `openSnapshot()` concurrents → **un seul** flux d'annonces, un seul artefact lu | ✗ 2 flux ouverts | ✓ |
+| 6 un échec de transport sur les annonces reste **réessayable** | ✗ le second appel rejouait le même rejet mémorisé, chargeur appelé **une** seule fois | ✓ |
+
 Commande : `npx vitest run --config vitest.contract.config.ts tests/contract/baseline-artifact.test.ts`
-→ **8 passed (8)**, 22,3 s.
+→ **10 passed (10)**, 26,1 s.
 
 ### 4.2 Commandes de porte
 
+Toutes les commandes ci-dessous ont été rejouées sur l'état FINAL de la branche.
+
 | Commande | Sortie résumée | Verdict |
 |---|---|---|
-| `npm run build` | `tsc` app + worker + `vite build` ; 162 modules ; `index-*.js` 383,85 kB / **124,56 kB gzip** ; 0 erreur, 0 avertissement | vert |
-| `npm run lint` | `eslint .` — **code de sortie 0**, aucune sortie | vert |
+| `npm run build` | `tsc` app + worker + `vite build` ; 0 erreur, 0 avertissement | **0** |
+| `npm run lint` | `eslint .` — **code de sortie 0**, aucune sortie | **0** |
+| `npm run size` | `initial 135,69/300 KiB gzip` — `OK: within budget` (l'artefact est du réseau, pas du bundle) | **0** |
 | `npx vitest run src/providers/fixture --no-file-parallelism` | 19 passed (19) | vert |
-| `npm run test:contract` | **91 passed (91)**, 3 fichiers | vert |
+| `npx vitest run src/providers src/orchestration --no-file-parallelism` | **161 passed (161)**, 14 fichiers (contrôle de l'écart de périmètre §7.1) | vert |
+| `npm run test:contract` | **93 passed (93)**, 3 fichiers — dont les 10 cas neufs | vert |
 | `npm run test:data` (profil dev) | **152 passed (152)**, 14 fichiers | vert |
-| `npm run data:validate -- --profile dev` | `RESULTAT : profil conforme` — dont 8 contrôles neufs par snapshot sur `baseline.json` | vert |
+| `npm run data:validate -- --profile dev` | `RESULTAT : profil conforme` — dont **9 contrôles neufs par snapshot** sur `baseline.json` | vert |
 | `npm run data:validate -- --profile test` | `RESULTAT : profil conforme` | vert |
-| `npm run data:check -- --profile dev` | `72 sondes rejouees, 0 ecart(s), 4 dette(s) consignee(s)` (`P-23`, `P-55`, `P-57`, `P-58` — dettes préexistantes `EG-11`/`EG-12`) ; **`P-BL1`/`P-BL2`/`P-BL3` OK** | vert |
-| `npm run data:check -- --profile test` | *(voir §4.5)* | vert |
-| `npm run data:baseline -- --profile dev\|test --check` | *(voir §4.5)* | vert |
+| `npm run data:check -- --profile dev` | `74 sondes rejouees, 0 ecart(s), 4 dette(s) consignee(s)` (`P-23`, `P-55`, `P-57`, `P-58` — dettes préexistantes `EG-11`/`EG-12`) ; **`P-BL1`/`P-BL2`/`P-BL3` OK** | vert |
+| `npm run data:check -- --profile test` | `74 sondes rejouees, 0 ecart(s), 3 dette(s) consignee(s)` (`P-10`, `P-11` — `EG-01` ; `P-57` — `EG-11`, préexistantes) ; **`P-BL1`/`P-BL2`/`P-BL3` OK** | vert |
+| `npm run data:baseline -- --profile dev --check` | `RESULTAT : artefacts conformes` (3 snapshots) | vert |
+| `npm run data:baseline -- --profile test --check` | `RESULTAT : artefacts conformes` (3 snapshots) | vert |
+| `KYCAR_E2E_PORT=4181 npx playwright test -g "EX-NFR-9 —" --project=desktop` | premier chiffre médiane **1 537 ms** / budget 2 000 ms ; annonces **1,00 fois** le fichier ; 1 passed | vert |
 
 Les trois sondes neuves de `data:check` sont **recalculées depuis le NDJSON lui-même**, sans le code
 du provider — c'est ce qui leur donne une valeur de contrôle : `P-BL1` (présence et liaison aux
@@ -260,6 +274,8 @@ marque du fichier, même effectif, **ordre décroissant**).
 | idem — « ouverture du profil dev sous 2 000 ms » | publie désormais les **deux** jalons | Ne publier que l'ouverture ferait passer un chargement différé pour une ouverture instantanée. L'assertion (< 2 000 ms) est inchangée. |
 | `ground-truth.test.ts` — `VERSION_FULLY_STRIPPED` / `C-P3-11` | assertions **retournées** : `versionStoplist` et `versionDriveBadges` **non vides**, et **0 survivante** au lieu de « la liste d'arrêt n'est chargée nulle part » | La sonde FIGEAIT un défaut que `D3-21` a corrigé dans les deux chargeurs de production ; elle restait verte uniquement parce que le chargeur du HARNAIS ne lisait toujours pas les deux fichiers (§7.1). Elle ne prouvait plus rien de l'application. Elle constate maintenant le comportement corrigé, mesure comprise : **20 déclarées, 20 dépouillées, 0 survivante**. |
 | `perf.spec.ts` — `EX-NFR-9` | le jalon « premier chiffre » devient **asserté** (≤ 2 000 ms) ; le commentaire « publié, non asserté » disparaît | C'est l'objet même de la mission. |
+| `perf.spec.ts` — `EX-NFR-9` (suite) | **ajout** du contrôle `C-R1-02` : les octets d'annonces d'une visite sont encadrés entre 0,9 et 1,1 fois la taille du snapshot servi, lue de son manifest | Demande du coordinateur. Écrit d'abord comme une simple borne haute, il mesurait **0 Kio** et passait sans rien prouver (le fichier est encore en vol quand le premier chiffre s'affiche) : la sonde attend maintenant la fin du chargement d'arrière-plan et encadre des DEUX côtés (§8.5). |
+| `tests/e2e/_expected.ts` | **ajout** de `snapshotCompressedBytes`, lu du manifest du snapshot servi | `D3-24` : un attendu de recette se dérive des fixtures, jamais ne se fige. Aucune valeur existante n'est touchée. |
 
 Aucun `it.skip` / `test.skip` ajouté. Aucune sonde supprimée.
 
@@ -306,17 +322,20 @@ Chemin critique du premier chiffre, profil `test` : **≈ 2,9 Mio → ≈ 0,24 M
    en erreur. Deux nature d'écarts, deux réponses.
 3. **L'intégrité sha256 est vérifiée après l'affichage sur `dev`** (§2.2), conséquence assumée du
    différé ; déclarée dans la `coverageNote`.
-4. **Seuils des garde-fous de temps mur** : 10 000 ms pour l'ingestion complète (≈ 2× le pire relevé,
+4. **Tolérance de 10 % sur les octets d'annonces** (`C-R1-02`) : `transferSize` compte les
+   en-têtes HTTP en plus du corps — mesuré 2 680 Kio pour un fichier de 2 679 Kio, soit 0,04 %. 10 %
+   est large pour un en-tête et sans ambiguïté pour un second téléchargement, qui ferait 200 %.
+5. **Seuils des garde-fous de temps mur** : 10 000 ms pour l'ingestion complète (≈ 2× le pire relevé,
    4,7 s), 600 ms pour le recalcul Σ (marge sur 354 ms relevés). Ce sont des garde-fous de
    non-régression sur des chemins non normatifs, pas des budgets — §4.3 le dit dans le code.
-5. **`vite-node` pour le générateur** : déjà dans `node_modules/.bin` (vitest en dépend). Aucune
+6. **`vite-node` pour le générateur** : déjà dans `node_modules/.bin` (vitest en dépend). Aucune
    devDependency ajoutée, conformément à la mission.
-6. **L'artefact n'entre pas dans le hachage combiné du générateur** (§2.3) : c'est un dérivé, pas une
+7. **L'artefact n'entre pas dans le hachage combiné du générateur** (§2.3) : c'est un dérivé, pas une
    entrée.
-7. **`loadBaseline` est OPTIONNELLE** sur l'interface `FixtureLoader` : un chargeur écrit avant la
+8. **`loadBaseline` est OPTIONNELLE** sur l'interface `FixtureLoader` : un chargeur écrit avant la
    phase 3.5 (par exemple le `reversingLoader` de la suite de contrat) reste valide et retombe sur
    le chemin complet, sans qu'aucun test existant n'ait à être retouché.
-8. **Le NDJSON est téléchargé même si l'utilisateur ne va jamais en mode 2** : c'est ce que `D3-31`
+9. **Le NDJSON est téléchargé même si l'utilisateur ne va jamais en mode 2** : c'est ce que `D3-31`
    demande (« les annonces démarrent immédiatement en arrière-plan »). Un chargement paresseux
    jusqu'à l'entrée en mode 2 économiserait 2,7 Mio à un visiteur qui ne fait que regarder l'écran A,
    au prix d'une attente au moment où il clique. À arbitrer par le coordinateur si le budget de
@@ -364,12 +383,21 @@ mon artefact invérifiable — et surtout, aurait laissé la suite de contrat pa
    vrai) : les quatre phrases de refus/repli de ce lot voyagent par le descripteur, l'export CSV et
    le panneau Diagnostic, pas par un bandeau. Si l'on veut qu'un jeu servi sans artefact ou avec un
    artefact refusé se **voie**, il faut un bandeau — hors périmètre.
-5. **Chargement du NDJSON systématique** (hypothèse E4 n° 8) : à arbitrer si le volume de données
+5. **Chargement du NDJSON systématique** (hypothèse E4 n° 9) : à arbitrer si le volume de données
    du visiteur devient un critère.
 6. **`C-3.5-02`** (énoncé d'`EX-DATA-40` sur `ca`) et **`C-3.5-05`** (`Snapshot.sourceKind` resté
    `'REAL' | 'SYNTHETIC'` dans `src/types/entities.ts`) restent ouverts : hors périmètre, non touchés.
 7. **La suite E2E complète n'a pas été lancée** (interdit par la mission, et le port 4180 était pris
-   par le coordinateur) : seul `EX-NFR-9` a été rejoué, sur un port distinct — §8.
+   par le coordinateur pendant la majeure partie du lot) : seuls `EX-NFR-9` et `EX-NFR-9bis` ont été
+   rejoués, projet `desktop`, port 4181 — §8.5 et §8.6. **À rejouer par le coordinateur sur les trois
+   projets**, en particulier `EX-NFR-9` sur `tablet` (14 742 ms mesurés avant) et `mobile` (8 195 ms).
+   La mesure du coordinateur sur `mobile` n'affichait qu'UNE copie du snapshot (2 680 Kio) : ce projet
+   ne franchissait pas le seuil des 5 000 ms, ce qui corrobore l'explication de `C-R1-02` par la
+   charge (§1).
+8. **`getBatch()` devient une méthode qui peut LEVER** si l'ingestion n'est pas terminée (message
+   explicite, `whenIngested()` indiqué). Aucun appelant du dépôt n'était concerné (la suite de
+   contrat passe par `fetchListingColumns`), mais un banc écrit plus tard doit le savoir : le lot
+   colonnaire n'existe plus au retour d'`openSnapshot`.
 
 ---
 
