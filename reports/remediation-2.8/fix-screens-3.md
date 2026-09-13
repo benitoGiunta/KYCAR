@@ -369,6 +369,14 @@ $ KYCAR_E2E_PORT=4181 npx playwright test -g "ACC-08bis"
 
 ## 14. Arbitrage — un résidu de sous-pixel (≤ 5 px), NON corrigé, documenté
 
+> **CORRIGÉ EN RÉTOUCHE, voir §20.** L'arbitrage ci-dessous s'est avéré **erroné dans son diagnostic
+> de sévérité** : la relecture du coordinateur sur `cr104-apres-mobile.png` a montré un débordement
+> réel de ~15 px (pas ≤ 5), parce que le jeu de mesure que j'avais utilisé ici ne faisait *pas*
+> encore apparaître le cas où la légende de fourchette fait passer la ligne prix sur deux lignes
+> (§20). La CAUSE technique identifiée ci-dessous (item flex + conteneur de grille, `min-height`
+> comme seul plancher) était correcte, mais la conclusion (« résidu cosmétique, hors mandat ») ne
+> l'était pas. Conservé tel quel pour la traçabilité du raisonnement initial.
+
 En construisant `ACC-08bis`, la vérification « chaque ligne reste dans la boîte de sa propre zone »
 a d'abord échoué de façon universelle (chaque zone compacte, TOUJOURS) sur la dernière ligne
 (médiane + barre), qui déborde de ~2 à 5 px sous le bord de sa propre zone. Investigation : cette
@@ -455,13 +463,183 @@ Avant chaque run : `ss -ltnp | grep -E '4180|4181'` vide. Après chaque run :
   — le correctif du §12 (cause B) est scopé à `.kycar-market-zone-list`, propre à l'écran A ; une
   recherche transverse d'un pattern analogue ailleurs est hors périmètre de ce lot.
 
-## 19. Statut global
+## 19. Statut global (avant retouche)
 
 - C-R1-03 : `8f17b37`, `d716ed1` (voir §9).
-- C-R1-04 : `c63327f` — Fix two latent overflow defects behind the compact model-zone grid ;
-  `130122a` — Add ACC-08bis: deterministic no-overlap probe for compact model zones.
+- C-R1-04 (première vague) : `c63327f` — Fix two latent overflow defects behind the compact
+  model-zone grid ; `130122a` — Add ACC-08bis: deterministic no-overlap probe for compact model
+  zones.
 - Rapport et captures : ce fichier + `reports/remediation-2.8/fix-screens-3/` (6 PNG : 4 de C-R1-03,
   2 nouvelles de C-R1-04 ; l'avant de C-R1-04 réutilise `avant-mobile.png`, voir §16).
+
+**Ce statut a été dépassé par la retouche du §20** : la relecture par le coordinateur de
+`cr104-apres-mobile.png` (produite ci-dessus) a révélé un TROISIÈME défaut, non couvert par les deux
+premiers ni détecté par `ACC-08bis` dans sa version initiale (tolérance trop large). Voir §20 pour
+le diagnostic, la correction et les preuves, et §21 pour le statut final.
+
+---
+
+## 20. Retouche du coordinateur — relecture de `cr104-apres-mobile.png` (2026-09-13)
+
+### 20.1 Constat
+
+Le coordinateur a relu `cr104-apres-mobile.png` (§16, produite après les corrections du §12) et
+relevé que la QUATRIÈME ligne de chaque zone (médiane + barre) se rendait SOUS le trait de
+séparation de sa propre zone — visuellement, elle semblait appartenir au modèle SUIVANT (ex. :
+« méd. 8 900 € » de Golf apparaissait juste au-dessus de « Polo », comme si c'était sa médiane).
+Écart estimé à l'œil ≈ 15 px, PAS un résidu de sous-pixel ≤ 5 px comme je l'avais conclu à tort au
+§14. `cr104-apres-tablet.png` était, lui, correct.
+
+### 20.2 Cause — la légende de fourchette fait passer la zone à CINQ lignes
+
+À 360 px, la légende « (fourchette centrale (90 % des offres)) », concaténée au texte du prix dans
+le même `<span>` (`ModelZone.tsx`, `{zone.price.label}{zone.price.available ? ' (' + caption + ')' : ''}`),
+fait passer la ligne prix sur DEUX lignes. La zone compacte porte alors CINQ lignes de texte
+(nom+effectif, prix×2, années+km, médiane+barre) dans une bande dont la grille n'en prévoit que
+QUATRE (`EX-SCR-135`). C'est CE cas précis — prix sur deux lignes — que mon jeu de mesure du §14
+(zones sans caption longue, ou dont le contenu total restait proche du plancher) ne faisait pas
+apparaître assez fort pour dépasser ma tolérance de l'époque (`BOX_EPS = 6`) : le même mécanisme
+sous-jacent (item flex + conteneur de grille, §14) produit un écart proportionnel à l'AMPLEUR du
+dépassement du plancher `min-height: 96px`, qui grandit avec le nombre de lignes réelles.
+
+### 20.3 Corrections produit (`src/screens/market/ModelZone.tsx`, `src/screens/market/market.css`)
+
+**(1) La légende sort du flux VISUEL en régime compact seulement**, conformément à l'arbitrage du
+coordinateur : l'en-tête de carte la porte déjà une fois (« 1 950 – 18 990 € (fourchette centrale
+(90 % des offres)) », `MakeCard.tsx`) et les quatre lignes normatives d'`EX-SCR-135` ne la
+comptent pas. `ModelZone.tsx` isole la légende dans son propre `<span class="kycar-market-zone-price-caption">`
+(auparavant concaténée en texte brut) ; `market.css`, dans le régime compact uniquement, la rend
+« visually hidden » (motif standard `position:absolute; width:1px; height:1px; clip:rect(0,0,0,0); …`,
+redéfini LOCALEMENT dans ce fichier — même raison que `.kycar-token__ineffective-note` de
+`filter-band.css` : ce fichier est monté seul, `.kycar-visually-hidden` d'`app.css` n'y est pas
+garanti chargé). Aucune VALEUR n'est retirée (`D-36`) : le texte reste dans le DOM, `title` le garde
+au survol dans tous les régimes, et il n'est masqué QUE visuellement (jamais `display: none` ni
+`aria-hidden`, qui l'auraient retiré de l'arbre d'accessibilité). Je n'ai PAS retenu l'alternative
+« légende raccourcie et gardée visible » (ex. « (90 % des offres) ») : elle aurait exigé de vérifier
+empiriquement, pour chaque longueur de fourchette possible, qu'elle tient bien sur une ligne à
+360 px — un pari plus fragile que de simplement sortir la légende du flux, sachant qu'elle est déjà
+disponible une fois par carte.
+
+**(2) `.kycar-market-zone` reçoit `flex: 0 0 auto`.** Réponse à la question du coordinateur
+(« quelle règle donne à la bande une hauteur inférieure à son contenu ») : **aucune règle ne fixe
+une hauteur inférieure explicitement** — il n'y a ni `height` fixe, ni `overflow: hidden` sur la
+zone, ni aucun rôle joué par `MODEL_ZONE_HEIGHT_PX` (qui ne pilote qu'un pas de défilement pour la
+virtualisation de la LISTE, jamais une propriété CSS de la zone elle-même — vérifié, ce nom
+n'apparaît que dans `MakeCard.tsx`/`thresholds.ts`, jamais dans une valeur consommée par le CSS de
+la zone), ni `align-items` (testé isolément au §14, disculpé). La cause est une INTERACTION : cette
+zone est simultanément (a) un ITEM FLEX de `.kycar-market-zone-list` (`display: flex;
+flex-direction: column`) et (b) un CONTENEUR DE GRILLE dimensionné par `min-height` seule. Sans
+`flex-shrink: 0` explicite (`flex-shrink: 1` est la valeur INITIALE, même en l'absence de toute
+pression d'espace dans la liste), la « taille hypothétique » que l'algorithme de mise en page flex
+calcule pour cet item peut être légèrement — et, pour le cas à cinq lignes, largement — INFÉRIEURE à
+la somme réellement rendue des pistes `auto` de sa propre grille : la grille peint ses rangées à
+leur taille complète, mais la BOÎTE FLEX qui la contient reçoit une taille allouée plus petite, et le
+contenu de la dernière rangée déborde de cette boîte, empiétant sur la zone suivante. `flex: 0 0 auto`
+retire toute ambiguïté : l'item ne grandit ni ne rétrécit jamais au-delà de sa taille naturelle
+(le plancher `min-height`, ou son contenu si celui-ci le dépasse) — la bande grandit donc désormais
+correctement quand son contenu l'exige, sans jamais recourir à une hauteur fixe ni à un
+`overflow: hidden` sur la zone.
+
+Mesuré (zone « Golf », `?priceto=20000`, mobile 360 px) : avant `flex: 0 0 auto`, zone = 105 px,
+médiane+barre jusqu'à 111 px (6 px de débordement, résidu du §14) ; avec la légende ET
+`flex: 0 0 auto`, zone = 115 px, médiane+barre jusqu'à 111 px (4 px de marge, plus aucun
+débordement). `min-height: 96px` reste inchangé sur les deux régimes (`tests/review/D6/responsive.test.ts`
+toujours vert, regex `min-height:\s*96px` intacte).
+
+### 20.4 Sonde renforcée — `ACC-08bis`
+
+Recette exacte du coordinateur : pour CHAQUE `.kycar-market-zone` visible, la boîte de CHAQUE enfant
+texte visible (`row1`, `price`, `year`, `mileage`, `median`, `share-bar`, jeton d'effectif réduit,
+mention de biais) doit être incluse dans la boîte de la zone
+(`enfant.bottom ≤ zone.bottom + 1` et `enfant.top ≥ zone.top − 1`), en plus du non-chevauchement
+entre zones déjà présent. La tolérance `BOX_EPS = 6` du §14 est remplacée par `CHILD_EPS = 1`.
+
+**Rouge sur l'état courant** (juste après les corrections du §12, AVANT celles du §20.3 —
+`git stash` du couple `ModelZone.tsx`/`market.css`, test déjà renforcé) :
+
+```
+$ KYCAR_E2E_PORT=4181 npx playwright test -g "ACC-08bis"
+[MESURE] ACC-08bis — chevauchement (compact) : 144 zones examinées · 288 chevauchement(s) :
+  .kycar-market-zone-median hors de sa zone (top=1013 bottom=1027 zone=[902,1022]) |
+  .kycar-market-zone-share-bar hors de sa zone (top=1018 bottom=1024 zone=[902,1022]) | …
+  ✘ [mobile] (288 = 144 zones × 2 enfants en défaut, médiane + barre, sur TOUTES les zones)
+[MESURE] ACC-08bis — chevauchement (intermediate) : 180 zones examinées · 0 chevauchement(s)
+  ✓ [tablet] (les colonnes plus larges de l'intermédiaire n'ont jamais fait passer la légende sur
+    deux lignes — cohérent avec « `cr104-apres-tablet.png` est, lui, correct »)
+  1 skipped (desktop)
+  1 failed, 1 passed
+```
+
+**Vert après** (les deux corrections du §20.3 appliquées, rejoué 2× pour la stabilité) :
+
+```
+$ KYCAR_E2E_PORT=4181 npx playwright test -g "ACC-08bis"
+[MESURE] ACC-08bis — chevauchement (intermediate) : 180 zones examinées · 0 chevauchement(s)
+  ✓ [tablet]
+[MESURE] ACC-08bis — chevauchement (compact) : 144 zones examinées · 0 chevauchement(s)
+  ✓ [mobile]
+  1 skipped (desktop)
+  2 passed
+```
+
+### 20.5 Preuves (retouche)
+
+| # | Commande | Sortie résumée | Verdict |
+|---|---|---|---|
+| 1 | `npm run build` | 0 erreur | PASS |
+| 2 | `npm run lint` | code de sortie 0 | PASS |
+| 3 | `npx vitest run src/screens/market --no-file-parallelism` | 151/151 verts | PASS |
+| 4 | `npx vitest run --config vitest.review.config.ts tests/review/D6 --no-file-parallelism` | 106/106 verts (dont `structure-a11y.test.ts` : `collectText` traverse toujours le `<span>` de légende, insensible à son enveloppe) | PASS |
+| 5 | `KYCAR_E2E_PORT=4181 npx playwright test -g "ACC-08bis"` | rouge (288 problèmes mobile, 0 tablet) puis vert, détail §20.4, rejoué 2× | PASS |
+| 6 | `KYCAR_E2E_PORT=4181 npx playwright test -g "ACC-08"` (3 projets, ACC-08 + ACC-08bis) | ACC-08 : seuils/gouttières inchangés, 0 cible sous seuil ; ACC-08bis : 0/144, 0/180 | PASS |
+| 7 | `KYCAR_E2E_PORT=4181 npx playwright test tests/e2e/a11y.spec.ts -g "surface A"` (3 projets) | 0 violation axe (le `<span>` visually-hidden ne crée aucune violation) | PASS |
+| 8 | `KYCAR_E2E_PORT=4181 npx playwright test tests/e2e/finition-2.10.spec.ts -g "ACC-09\|ACC-10"` (3 projets) | inchangé : carte ≤ 636 px, liste dépliée ≤ 480 px, 12 cartes montées au plus | PASS |
+| 9 | `KYCAR_E2E_PORT=4181 npx playwright test tests/e2e/responsive.spec.ts -g "cartes-marques restent"` (3 projets) | `EX-SCR-122` inchangé : 6/6/4 zones visibles après repli selon régime | PASS |
+
+Avant chaque run : `ss -ltnp | grep -E '4180|4181'` vide. Après chaque run :
+`git checkout -- reports/e2e/results.json`, aucun `vite preview` résiduel.
+
+### 20.6 Captures (régénérées)
+
+`cr104-apres-mobile.png` et `cr104-apres-tablet.png` (§16) sont régénérées avec les corrections du
+§20.3 : sur mobile, chaque zone montre désormais ses quatre lignes sans débordement ni ambiguïté
+d'appartenance (prix sur une seule ligne, médiane+barre restant sous le nom du BON modèle) ; tablet
+reste inchangé visuellement (la légende y était déjà sur une ligne).
+
+### 20.7 Hypothèses (E4, retouche)
+
+- H7 : la légende masquée n'est retenue QUE pour le régime compact (`@container
+  max-width: 767.98px`) — comme établi en §11, ce seuil couvre AUSSI la tablette (conteneur à
+  736 px) ; la légende y est donc également masquée visuellement bien que `regimeOf()` la nomme
+  « intermediate » (cohérent avec le reste du traitement compact déjà appliqué à ce régime, §11).
+  Aucune sonde ne distingue ce cas, donc aucune régression possible sur ce point précis.
+- H8 : je n'ai pas ajouté `zone.price.caption` à `zone.ariaLabel` (qui resterait « <nom>, <n> offres »)
+  — l'`aria-label` explicite du conteneur `role="button"` prime de toute façon sur le contenu
+  descendant pour le NOM accessible de ce contrôle (ce texte n'a donc jamais été le nom accessible du
+  bouton, masqué ou non) ; le motif « visually hidden » retenu garde le texte disponible pour un
+  parcours du contenu par les technologies d'assistance (mode navigation), ce qui est la même
+  garantie que l'existant offrait déjà par le texte visible qu'il remplace — aucune régression
+  d'accessibilité introduite, mais aucune amélioration non plus (hors périmètre de C-R1-04).
+
+### 20.8 Hors périmètre / pour le coordinateur (retouche)
+
+- Le §14 (arbitrage initial, `BOX_EPS = 6`) s'est révélé être un diagnostic de sévérité incorrect :
+  je l'ai laissé en place avec un avertissement en tête (plutôt que de le supprimer) pour la
+  traçabilité de mon raisonnement, corrigé par cette retouche.
+- Comme au §18, `src/app/app.css` n'a pas été retouché.
+
+## 21. Statut final
+
+- C-R1-03 : `8f17b37`, `d716ed1`.
+- C-R1-04, première vague : `c63327f`, `130122a`.
+- C-R1-04, retouche coordinateur : `c1a8ede` — Fix a third overflow defect: price caption wraps the
+  compact band to 5 lines ; `73c3d64` — Strengthen ACC-08bis: every visible text child must stay in
+  its own zone.
+- Rapport et captures : ce fichier + `reports/remediation-2.8/fix-screens-3/` (6 PNG, `cr104-apres-*`
+  régénérées par la retouche).
+
+`git status` propre en fin de mission dans le worktree, hors ce rapport lui-même et son ultime
+commit.
 
 `git status` propre en fin de mission dans le worktree, hors ce rapport lui-même et son ultime
 commit.
