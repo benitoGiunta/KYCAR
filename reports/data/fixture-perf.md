@@ -6,7 +6,7 @@ branche `p3/fixture-perf`, départ `f880e26`. **Périmètre d'écriture tenu** :
 `tests/contract/`, `tests/e2e/perf.spec.ts`, `vite.config.ts` (commentaire), `docs/data/DATA-MODEL.md`,
 `DEV.md`, `src/providers/README.md`, ce rapport. **Un écart de périmètre déclaré** (§7.1) :
 `src/providers/tweedehands/testFixtures.ts`. **`src/providers/registry.ts` et
-`src/orchestration/data-controller.ts` n'ont PAS été modifiés** — §3.3 dit pourquoi ils n'ont pas
+`src/orchestration/data-controller.ts` n'ont PAS été modifiés** — §2.5 dit pourquoi ils n'ont pas
 eu à l'être.
 
 ---
@@ -149,9 +149,9 @@ combiné du générateur (`tables.mjs`) : c'est le contrat d'un artefact **déri
 la génération. L'y mettre aurait changé la `note` de chaque manifest, donc obligé à régénérer des
 fixtures que rien n'a fait bouger.
 
-### 2.5 Une seule ouverture en vol, une seule ingestion (`C-R1-02`)
+### 2.4 Une seule ouverture en vol, une seule ingestion (`C-R1-02`)
 
-Deux défauts de la même famille, tous deux corrigés dans le provider :
+Deux défauts de la même famille, tous deux corrigés dans le provider (§2.5 pour le parallélisme du démarrage, qui est un sujet distinct) :
 
 1. **`openSnapshot` n'était pas idempotente** : deux appels concurrents — exactement ce que produit
    le réessai d'`EX-NFR-21` sur une ouverture qui a dépassé son délai — repartaient de zéro chacun.
@@ -169,7 +169,7 @@ Deux défauts de la même famille, tous deux corrigés dans le provider :
 `data-controller.ts` n'a pas été touché : le délai de 5 000 ms reste ce qu'il est, et il n'est plus
 approché — l'ouverture coûte désormais quelques dizaines de millisecondes (§8.3).
 
-### 2.4 Parallélisme du démarrage (cause (b))
+### 2.5 Parallélisme du démarrage (cause (b))
 
 `src/main.tsx` : la **spécification** de source se résout sans référentiels
 (`resolveProviderSpec` est pure). Le bootstrap crée donc le chargeur HTTP, lance
