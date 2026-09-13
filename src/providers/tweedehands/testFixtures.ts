@@ -13,7 +13,15 @@
  * chargé par les fichiers de test du dossier. N'exécute aucune I/O réseau.
  */
 
-import { buildReferenceData, type RawFilters, type RawFiltersScope, type RawReferenceFile, type RawTaxonomy } from '../../types/reference';
+import {
+  buildReferenceData,
+  type RawFilters,
+  type RawFiltersScope,
+  type RawReferenceFile,
+  type RawTaxonomy,
+  type RawVersionLexicon,
+  type RawVersionStoplist,
+} from '../../types/reference';
 import type { ReferenceData } from '../../types/reference';
 import type { RawListing, RawSearchResponse } from './nextData';
 
@@ -30,6 +38,15 @@ export function loadRealReferenceData(): ReferenceData {
   const filtersMod = import.meta.glob('../../../data/reference/filters.json', { eager: true, import: 'default' });
   const scopeMod = import.meta.glob('../../../data/reference/filters-scope.json', { eager: true, import: 'default' });
   const refMods = import.meta.glob('../../../data/reference/references/*.json', { eager: true, import: 'default' });
+  // `D3-31` (écart relevé par la sonde de contrat de l'artefact de baseline) : ces DEUX fichiers
+  // manquaient ici alors que les deux autres chargeurs Node les lisent (`orchestration/reference-fs`,
+  // `engine/testkit`) et que le navigateur les charge (`reference-loader`). Sans eux,
+  // `versionStoplist` vaut `[]`, l'étape 3 du pipeline `EX-DATA-29` ne retire rien, et les tests de
+  // ce dossier — dont la SUITE DE CONTRAT — ingéraient les fixtures avec un référentiel qui n'est
+  // pas celui de l'application : `unknownCountByField.modelVersionClean` y comptait 204 au lieu de
+  // 208. Même défaut que `C-P3-11` / `D3-21`, sur le troisième chargeur.
+  const stoplistMod = import.meta.glob('../../../data/reference/version-stoplist.json', { eager: true, import: 'default' });
+  const lexiconMod = import.meta.glob('../../../data/reference/version-lexicon.json', { eager: true, import: 'default' });
 
   const taxonomy = Object.values(taxonomyMod)[0] as RawTaxonomy;
   const filters = Object.values(filtersMod)[0] as RawFilters;
@@ -42,7 +59,14 @@ export function loadRealReferenceData(): ReferenceData {
     referenceFiles[file.referenceType] = file;
   }
 
-  cached = buildReferenceData({ taxonomy, referenceFiles, filters, filtersScope });
+  cached = buildReferenceData({
+    taxonomy,
+    referenceFiles,
+    filters,
+    filtersScope,
+    versionStoplist: Object.values(stoplistMod)[0] as RawVersionStoplist,
+    versionLexicon: Object.values(lexiconMod)[0] as RawVersionLexicon,
+  });
   return cached;
 }
 

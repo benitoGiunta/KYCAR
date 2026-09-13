@@ -527,6 +527,76 @@ décider.
 
 ---
 
+## 6bis. Artefact d'agrégats précalculés — `baseline.json` (phase 3.5, `D3-31`)
+
+**Le problème mesuré.** Constat `C-3.5-01` : sur le build de production, en 4G simulée
+(4 Mb/s, 150 ms), l'écran de mode 1 affichait son squelette à ~1,5 s mais son **premier chiffre à
+7 800 ms**, pour un budget `EX-NFR-9` de **2 000 ms**. Cause : les 2 677 Kio gzip de
+`listings.ndjson.gz` étaient téléchargés ET ingérés avant le moindre agrégat — alors que l'écran de
+mode 1 n'a besoin que des agrégats **par marque** (262 lignes au profil `test`).
+
+**L'artefact.** Un troisième fichier est déposé dans chaque répertoire de snapshot, à côté de
+`manifest.json` et de `listings.ndjson.gz` :
+
+```
+data/fixtures/<profil>/<snapshotId>/
+  listings.ndjson.gz   les annonces (mode 2, et les sélections filtrées du mode 1)
+  manifest.json        ce qui a été généré, et sa vérité terrain
+  baseline.json        les agrégats mode 1 de la SÉLECTION VIDE   <- D3-31
+  generation.json      rapport latéral du générateur (jamais servi à l'application)
+```
+
+Schéma : `data/schema/snapshot-baseline.schema.json` (`$id`
+`https://kycar.local/schema/snapshot-baseline/1.0.0`). Contenu, en trois blocs :
+
+| Bloc | Ce qu'il porte | Pourquoi il est là |
+|---|---|---|
+| `rows` | les `MakeAggregate` de la sélection vide, dans l'ordre exact d'`aggregateByMake` | c'est ce que l'écran de mode 1 affiche |
+| `selectionCount` | l'effectif de cette sélection (annonces RETENUES) | le « n offres » d'`EX-SCR-46` |
+| `ingest` | `lineCount`, `listingCount`, rejets par motif, doublons, inconnus par champ, drapeaux d'ingestion, provenances de mesure | pour que le `SnapshotDescriptor` **et sa `coverageNote`** soient identiques, mot pour mot, avec ou sans artefact |
+
+**Poids.** 119 Kio bruts / **12,7 Kio gzip** au profil `test` (262 marques) ; 63 Kio bruts /
+7,8 Kio gzip au profil `dev` (135 marques). À comparer aux 2 677 Kio gzip d'annonces qu'il évite
+d'attendre.
+
+**Production.** `npm run data:baseline -- --profile dev|test|perf`
+(`tools/dataset/baseline.ts`, lancé par `vite-node`). Le script **instancie le vrai
+`FixtureDataProvider`** avec le chargeur disque et `useBaselineArtifact: false`, ouvre le snapshot
+par le chemin d'ingestion complète et sérialise ce que ce code a calculé. Aucune réimplémentation :
+un second calcul des percentiles, du dédoublonnage et des drapeaux aurait divergé du premier, et la
+divergence se serait vue sur des **chiffres affichés**. `--check` ne réécrit rien et compare.
+
+**Versionnement.** `artifactVersion` versionne le FORMAT de l'artefact ; `schemaVersion` recopie
+celle du manifest. Un **majeur inconnu d'`artifactVersion`** fait ignorer l'artefact (repli sur
+l'ingestion complète), jamais échouer l'ouverture : un artefact dérivé ne doit pas pouvoir rendre
+inutilisable un jeu de données intact. L'artefact n'entre PAS dans le hachage combiné du générateur
+(`tables.mjs`) : il est **dérivé** du NDJSON, pas une entrée de sa génération — l'y mettre
+obligerait à régénérer les fixtures pour un fichier calculé après elles.
+
+**Ce qui empêche un précalcul de mentir** — trois verrous, dans cet ordre :
+
+1. **avant de servir** : `snapshotId` et `producedFrom.sha256` doivent être ceux du manifest lu, et
+   `schemaVersion` la même ; sinon l'artefact est REFUSÉ, la raison est écrite dans la
+   `coverageNote`, et les agrégats sont recalculés sur les annonces ;
+2. **cohérence interne**, contrôlée par `npm run data:validate` : somme des `listingCount` de `rows`
+   = `selectionCount` = `ingest.listingCount` ; `lineCount` = retenues + rejetées + doublons ;
+   effectif de chaque métrique ≤ effectif de sa marque ; bornes nulles si et seulement si `n = 0` ;
+3. **après coup, contre les annonces elles-mêmes** : quand l'ingestion différée se termine, le
+   provider RECALCULE `aggregateByMake(batch, null, 1)` et compare champ à champ (`diffBaseline`).
+   Un écart met le snapshot en **erreur explicite** — plus aucune valeur n'est servie, pas même la
+   baseline déjà affichée — plutôt que de laisser vivre un chiffre que plus rien ne soutient.
+
+**Conséquence pour `dataset-gen`.** Régénérer un snapshot change son `sha256` : son `baseline.json`
+devient périmé et sera refusé (verrou 1). **Toute régénération de fixtures est suivie de
+`npm run data:baseline` sur le même profil**, et `npm run data:validate` le vérifie.
+
+**Absence.** Un snapshot sans `baseline.json` — jeu déposé chez un autre hébergeur, snapshot
+antérieur à la phase 3.5 — s'ouvre exactement comme avant : ingestion complète d'abord, mêmes
+valeurs, `coverageNote` qui le dit (« Agrégats de base NON précalculés »). Sur un profil du dépôt,
+en revanche, `data:validate` le compte en ÉCHEC : l'absence y est une régression, pas une option.
+
+---
+
 ## 7. Ce que `dataset-design` et `dataset-gen` doivent respecter
 
 Contraintes de **cohérence inter-champs** que le JSON Schema ne peut pas exprimer. Chacune est

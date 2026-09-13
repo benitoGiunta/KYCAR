@@ -44,6 +44,9 @@
  * Il ne connaît aucune valeur en dur. S'il n'arrive pas à ouvrir les fixtures, il échoue bruyamment
  * : un attendu manquant doit arrêter la recette, jamais la laisser passer avec un chiffre inventé.
  */
+import { statSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
+
 import { DataController } from '../../src/orchestration/data-controller';
 import { createInProcessEngineClient } from '../../src/orchestration/engine-inprocess';
 import { loadReferenceDataFromDisk } from '../../src/orchestration/reference-fs';
@@ -87,6 +90,13 @@ export interface DerivedExpectations {
   readonly corsa2017: number;
   /** Effectif de la cellule Volkswagen Golf, repère de densité du parcours de comparaison. */
   readonly golfTotal: number;
+  /**
+   * Taille du fichier d'annonces SERVI, en octets gzip, LUE du manifest du snapshot (`D3-24` : jamais
+   * figée). C'est la référence du contrôle de `C-R1-02` — le snapshot avait été mesuré téléchargé
+   * DEUX fois (5 359 Kio pour un fichier de 2 680 Kio) parce qu'un réessai relançait une ouverture
+   * déjà en vol.
+   */
+  readonly snapshotCompressedBytes: number;
 }
 
 /**
@@ -164,7 +174,19 @@ async function compute(): Promise<DerivedExpectations> {
     corsaTotal,
     corsa2017,
     golfTotal,
+    snapshotCompressedBytes: compressedBytesOf(provider),
   };
+}
+
+/**
+ * Taille gzip du fichier d'annonces du snapshot servi. Lue du manifest ; à défaut, mesurée sur le
+ * fichier. Jamais estimée : un attendu de recette qui devine ne prouve rien.
+ */
+function compressedBytesOf(provider: FixtureDataProvider): number {
+  const manifest = provider.getManifest();
+  if (typeof manifest.compressedBytes === 'number') return manifest.compressedBytes;
+  const file = manifest.file ?? 'listings.ndjson.gz';
+  return statSync(resolvePath('data/fixtures', E2E_FIXTURE_PROFILE, manifest.snapshotId, file)).size;
 }
 
 /** Les mêmes cardinaux que ceux composés par `SummaryBar` (`EX-SCR-106`, `marketModelCardinal`). */

@@ -36,8 +36,19 @@ lot qui l'ouvre en premier.
 | `npm run size` | garde de budget bundle (`tools/check-bundle-size.mjs`), a lancer apres `npm run build` |
 | `npm run test:contract` | suite de contrat des providers (`tests/contract/`), rejouee sur synthetic / fixture / mock 2dehands |
 | `npm run data:gen` | (re)genere les fixtures `data/fixtures/dev|test` — deterministe, a graine fixe |
-| `npm run data:validate` | schema, sha256, chainage des snapshots, garde R3, budgets de taille |
+| `npm run data:baseline` | (re)calcule les agregats mode 1 precalcules `baseline.json` d'un profil (`D3-31`) ; `--check` compare sans reecrire |
+| `npm run data:validate` | schema, sha256, chainage des snapshots, garde R3, budgets de taille, artefact `baseline.json` |
 | `npm run data:check` | sondes statistiques du jeu contre `docs/data/DATASET-SPEC.md` |
+
+**Apres toute regeneration de fixtures, relancer `data:baseline` sur le meme profil.** Regenerer
+change le `sha256` du NDJSON ; l'artefact `baseline.json` y est lie et serait alors REFUSE par le
+provider (chargement lent, sans erreur visible). `npm run data:validate` le detecte.
+
+```bash
+npm run data:gen      -- --profile test    # les trois snapshots du profil
+npm run data:baseline -- --profile test    # puis leurs agregats precalcules
+npm run data:validate -- --profile test    # et le controle des deux
+```
 
 ## Lancer l'application (lot D8)
 
@@ -52,6 +63,14 @@ Le point d'entree `src/main.tsx` assemble le cablage de production : `loadRefere
 La source par DEFAUT est le jeu de **fixtures** `fixture:test` : des annonces **fictives** a la
 forme AutoScout24, versionnees dans `data/fixtures/test` (3 snapshots de 20 000, NDJSON gzip +
 `manifest.json`). Ce ne sont ni des annonces reelles, ni une distribution calculee a la volee.
+
+**Chargement en deux temps (`D3-31`, correction de `C-3.5-01`).** L'ouverture d'un snapshot lit
+l'index du profil, le manifest allege et `baseline.json` — quelques dizaines de Kio — puis REND LA
+MAIN : l'ecran de mode 1 a ses chiffres. Le fichier d'annonces (2,7 Mio gzip au profil `test`) est
+telecharge en arriere-plan et n'est attendu qu'a l'entree en mode 2. Le bootstrap demande ces trois
+petits documents AVANT d'attendre les referentiels, et le chargeur memorise ses reponses. A
+l'arrivee des annonces, la baseline est recalculee et comparee a celle qui a ete servie : un ecart
+met le jeu en erreur explicite au lieu de laisser vivre un chiffre faux.
 
 Priorite de resolution : `?provider=<spec>` > `VITE_KYCAR_PROVIDER` > defaut `fixture:test`.
 Specifications reconnues : `fixture:test`, `fixture:dev`, `fixture:perf`, `synthetic`,

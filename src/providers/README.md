@@ -138,6 +138,17 @@ réellement servi (`src/app/source-notice.ts`).
   jour, puis signature stable. Le tri du NDJSON sert la diffabilité, jamais l'arbitrage.
 - **Baseline précalculée une fois** à l'ouverture (`ARCHITECTURE` §9.3 garde-fou 1) :
   `fetchBaselineAggregates` rend le même objet.
+- **Ouverture en DEUX TEMPS** (`D3-31`, correction de `C-3.5-01`) : `openSnapshot` lit l'index, le
+  manifest allégé et l'artefact `baseline.json` (12 Kio gzip au profil `test`), construit le
+  descripteur à partir de LUI, et rend la main. Les annonces (2,7 Mio gzip) sont téléchargées et
+  ingérées en arrière-plan ; `fetchAggregates`, `fetchSelectionCount`, `fetchListingColumns` et
+  `fetchListingsByIds` les attendent, `fetchBaselineAggregates` non. Trois verrous empêchent le
+  précalcul de mentir : l'artefact est lié à ses octets (`snapshotId` + `sha256`, vérifiés avant de
+  servir), un artefact douteux est REFUSÉ et la `coverageNote` le dit (repli sur l'ingestion
+  complète), et à l'arrivée des annonces la baseline est RECALCULÉE et comparée — un écart met le
+  jeu en erreur explicite au lieu de servir un chiffre que rien ne soutient. Sans artefact, le
+  comportement est celui d'avant `D3-31`, dit dans la `coverageNote`. Voir `DATA-MODEL` §6bis et
+  `npm run data:baseline`.
 - **Colonne `booleanFlags` remplie** (D3-10) : les dix booléens du dictionnaire, dont six tri-états.
 - **`unsupportedFilterIds`** vient de la MÊME compilation de sélection que `fetchSelectionCount`
   (D-33).
@@ -152,3 +163,7 @@ le provider synthétique, lui, le laisse vide.
 `unsupportedFilterIds` jamais tu, R3 (`scanForbiddenFields` sur ce qui sort du provider),
 déterminisme d'`openSnapshot`, cohérence baseline ↔ `fetchAggregates` sans filtre,
 `fetchSelectionCount` = somme des effectifs d'agrégat, budgets d'ouverture et de taille.
+`tests/contract/baseline-artifact.test.ts` y ajoute les quatre garanties de l'artefact précalculé
+(`D3-31`) : fidélité au recalcul complet sur les jeux commités, antériorité (la baseline est servie
+alors qu'aucun octet d'annonce n'a été lu), repli sans artefact, refus d'un artefact périmé ou
+démenti.

@@ -19,6 +19,7 @@
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report",
     "data:gen": "node tools/dataset/generate.mjs",
+    "data:baseline": "vite-node tools/dataset/baseline.ts --",
     "data:validate": "node tools/dataset/validate.mjs",
     "data:check": "node tools/dataset/check.mjs",
     "test:data": "tsc --noEmit -p tsconfig.data.json && vitest run --config vitest.data.config.ts"

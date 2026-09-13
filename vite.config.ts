@@ -67,6 +67,15 @@ function kycarReferenceData(): Plugin {
  * `1f 8b` (`src/providers/fixture/ndjson.ts`), ce qui le rend correct même si un hébergeur décide
  * de décoder à sa place.
  *
+ * **`baseline.json` d'un snapshot (`D3-31`)** : les agrégats mode 1 PRÉCALCULÉS, déposés par
+ * `npm run data:baseline` à côté du manifest. C'est le fichier que l'application télécharge pour
+ * peindre son premier chiffre (12 Kio gzip au profil `test`, contre 2 677 Kio d'annonces : constat
+ * `C-3.5-01`). Il n'a besoin d'aucun traitement particulier ici — il est servi comme tout fichier du
+ * dossier en dev, et recopié dans `dist/` au build par le `cpSync` ci-dessous — mais il est NOMMÉ
+ * dans cet en-tête pour qu'on ne l'ajoute pas un jour à `FIXTURE_BUILD_EXCLUDE` en croyant qu'il est
+ * un rapport latéral comme `generation.json`. Le retirer du build ferait retomber l'application sur
+ * le chemin lent, silencieusement (la `coverageNote` le dirait, aucun écran ne l'affiche).
+ *
  * **`index.json` d'un profil** : le provider a besoin de connaître les snapshots d'un profil sans
  * tâtonner (une requête 404 par répertoire supposé). Si le générateur a écrit
  * `data/fixtures/<profil>/index.json`, il est servi tel quel ; sinon ce plugin le SYNTHÉTISE en

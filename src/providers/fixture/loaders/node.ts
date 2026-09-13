@@ -20,6 +20,7 @@ import { createReadStream, existsSync, readFileSync, readdirSync, statSync } fro
 import { Readable } from 'node:stream';
 import { resolve } from 'node:path';
 
+import { BASELINE_FILE } from '../baseline-artifact';
 import type { FixtureProfileIndex, FixtureSnapshotEntry } from '../manifest';
 import { DEFAULT_LISTINGS_FILE } from './http';
 import type { FixtureLoader } from './types';
@@ -40,6 +41,22 @@ export function createNodeFixtureLoader(root: string = DEFAULT_FIXTURE_ROOT): Fi
     loadManifest(profile, entry) {
       const path = resolve(abs, profile, entry.dir, 'manifest.json');
       return Promise.resolve(JSON.parse(readFileSync(path, 'utf-8')) as unknown);
+    },
+
+    /**
+     * Agrégats précalculés (`D3-31`), s'ils sont là. Un fichier ILLISIBLE rend `null` comme un
+     * fichier absent : le provider recalcule alors sur les annonces, ce qui reste correct. Refuser
+     * d'ouvrir un jeu intact parce qu'un artefact DÉRIVÉ est abîmé perdrait une donnée valide pour
+     * un fichier qui se régénère (`npm run data:baseline`).
+     */
+    loadBaseline(profile, entry) {
+      const path = resolve(abs, profile, entry.dir, BASELINE_FILE);
+      if (!existsSync(path)) return Promise.resolve(null);
+      try {
+        return Promise.resolve(JSON.parse(readFileSync(path, 'utf-8')) as unknown);
+      } catch {
+        return Promise.resolve(null);
+      }
     },
 
     openListings(profile, entry) {

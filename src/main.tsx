@@ -2,6 +2,13 @@
  * KYCAR — Bootstrap réel de l'application (lot D8, source choisie par registre depuis la phase 3.3)
  * =================================================================================================
  * Assemble le câblage de PRODUCTION et monte la coquille `<App>` :
+ *   0. `warmFixtureMeta()`          — **D3-31** : dès la première ligne du bootstrap, les trois
+ *                                     petits documents du jeu de fixtures (index du profil, manifest
+ *                                     allégé, agrégats précalculés) sont demandés, SANS être
+ *                                     attendus. Cause (b) de `C-3.5-01` : les 15 référentiels
+ *                                     finissaient vers 1 250 ms et le snapshot ne commençait
+ *                                     qu'ensuite. Le chargeur mémorise ses réponses, donc
+ *                                     `openSnapshot` les retrouve sans un aller-retour de plus.
  *   1. `loadReferenceData()`        — taxonomie + vocabulaires servis sous `/reference/*` (EX-NFR-4).
  *   2. `resolveProvider()`          — la SOURCE est choisie par le registre (`src/providers/registry.ts`)
  *                                     selon `?provider=` puis `VITE_KYCAR_PROVIDER`, à défaut
@@ -21,8 +28,9 @@ import { DataController } from './orchestration/data-controller';
 import { loadReferenceData } from './orchestration/reference-loader';
 import { createAggregationEngine } from './engine/index';
 import { SyntheticDataProvider } from './providers/synthetic/index';
-import { resolveProvider } from './providers/registry';
-import { createHttpFixtureLoader } from './providers/fixture/loaders/http';
+import { resolveProvider, resolveProviderSpec, type ProviderSpec } from './providers/registry';
+import { createHttpFixtureLoader, warmFixtureMeta } from './providers/fixture/loaders/http';
+import type { FixtureLoader } from './providers/fixture/loaders/types';
 import {
   createSavedSearchStore,
   createFollowedModelStore,
@@ -37,12 +45,25 @@ async function bootstrap(): Promise<void> {
   const mountNode = document.getElementById('app');
   if (!mountNode) throw new Error('KYCAR: #app mount node not found in index.html');
 
+  const search = window.location.search;
+  const env = import.meta.env as unknown as Record<string, string | undefined>;
+
+  // `D3-31` — LE RÉSEAU D'ABORD, LES RÉFÉRENTIELS ENSUITE, LES DEUX EN MÊME TEMPS. La SPÉCIFICATION
+  // de source se résout sans référentiels (`resolveProviderSpec` est pure) : on peut donc lancer le
+  // préchargement des métadonnées du jeu AVANT d'attendre la taxonomie, au lieu d'attendre l'une
+  // pour commencer l'autre. Le chargeur est celui que le provider recevra : ses réponses sont
+  // mémorisées, rien n'est demandé deux fois.
+  const fixtureLoader = createHttpFixtureLoader();
+  const early = resolveProviderSpec({ search, env });
+  const warming = warmFixtureProfile(fixtureLoader, early.spec);
+
   const referenceData = await loadReferenceData();
   // Bascule sans recompilation (DF-2) : `?provider=fixture:dev`, `?provider=synthetic`, …
   const selection = resolveProvider({
     referenceData,
-    search: window.location.search,
-    env: import.meta.env as unknown as Record<string, string | undefined>,
+    search,
+    env,
+    fixtureLoader,
   });
   if (selection.warning !== null) {
     // L'avertissement voyage AUSSI par la `coverageNote` du snapshot et — depuis la phase 3.5 — par
@@ -74,6 +95,11 @@ async function bootstrap(): Promise<void> {
     preferences: createPreferencesStore(),
   };
 
+  // Relevé du préchargement quand la spécification retenue est bien celle qui a été préchargée
+  // (elle l'est toujours : même entrée, même fonction pure) ; sinon on relève celle qui est servie.
+  const fixtureSnapshotCount =
+    selection.spec === early.spec ? await warming : await warmFixtureProfile(fixtureLoader, selection.spec);
+
   render(
     <App
       controller={controller}
@@ -81,27 +107,24 @@ async function bootstrap(): Promise<void> {
       stores={stores}
       providerSpec={selection.spec}
       providerWarning={selection.warning}
-      fixtureSnapshotCount={await countFixtureSnapshots(selection.spec)}
+      fixtureSnapshotCount={fixtureSnapshotCount}
     />,
     mountNode,
   );
 }
 
 /**
- * Nombre de snapshots du profil de fixtures servi, pour l'étiquette de provenance (`EX-DATA-107` :
- * « profil test, 3 snapshots »). Lu de l'INDEX du profil — le même fichier, par le même chargeur,
- * que celui que le provider ouvre juste après : la réponse est en cache HTTP, et le chiffre est
- * RELEVÉ au lieu d'être écrit en dur dans un écran. Toute erreur rend `null` : la phrase dégrade
- * alors en « (profil test) » plutôt que d'annoncer un nombre faux.
+ * Précharge les métadonnées du profil de fixtures servi et rend son nombre de snapshots, pour
+ * l'étiquette de provenance (`EX-DATA-107` : « profil test, 3 snapshots »).
+ *
+ * Le chiffre est RELEVÉ de l'index du profil — le même fichier, par le même chargeur MÉMORISANT que
+ * celui que le provider emploiera juste après : ni requête en double (le cache HTTP est désactivé
+ * dans la recette `EX-NFR-9`), ni chiffre écrit en dur dans un écran. Une erreur rend `null` : la
+ * phrase dégrade alors en « (profil test) » plutôt que d'annoncer un nombre faux.
  */
-async function countFixtureSnapshots(spec: string): Promise<number | null> {
-  if (!spec.startsWith('fixture:')) return null;
-  try {
-    const index = await createHttpFixtureLoader().loadProfileIndex(spec.slice('fixture:'.length));
-    return index.snapshots.length;
-  } catch {
-    return null;
-  }
+function warmFixtureProfile(loader: FixtureLoader, spec: ProviderSpec): Promise<number | null> {
+  if (!spec.startsWith('fixture:')) return Promise.resolve(null);
+  return warmFixtureMeta(loader, spec.slice('fixture:'.length));
 }
 
 void bootstrap().catch((err: unknown) => {

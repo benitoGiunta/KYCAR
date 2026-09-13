@@ -12,18 +12,37 @@
  *   1. index du profil → choix du snapshot (le plus récent par `capturedAt`, ou celui qu'on demande) ;
  *   2. `manifest.json` → **contrôle de version de schéma AVANT toute ligne** (`DATA-MODEL` §6) :
  *      un majeur inconnu REFUSE l'ouverture, aucune ligne servie ;
- *   3. `listings.ndjson.gz` en FLUX (`ndjson.ts`) : décompression `DecompressionStream('gzip')` et
+ *   3. `baseline.json` → **agrégats mode 1 PRÉCALCULÉS** (`D3-31`), s'ils sont là et recevables :
+ *      `openSnapshot` construit le descripteur et la baseline À PARTIR D'EUX et REND LA MAIN. Les
+ *      annonces sont téléchargées et ingérées EN ARRIÈRE-PLAN, à partir de cet instant ;
+ *   4. sinon (artefact absent, d'un autre snapshot, d'un autre format) : chemin d'origine —
+ *      `listings.ndjson.gz` en FLUX (`ndjson.ts`), décompression `DecompressionStream('gzip')` et
  *      découpage ligne à ligne, sans jamais matérialiser le texte entier (budget ARB-55) ;
- *   4. adaptation ligne à ligne (`adapters/as24`), **garde R3 d'abord**, rejets comptés par motif ;
- *   5. dédoublonnage `EX-DATA-15` par les critères EXPLICITES de D3-15, indépendants de l'ordre du
- *      fichier ;
- *   6. assemblage colonnaire, puis **baseline précalculée une fois** (ARCHITECTURE §9.3 garde-fou 1 :
+ *      adaptation ligne à ligne (`adapters/as24`), **garde R3 d'abord**, rejets comptés par motif ;
+ *      dédoublonnage `EX-DATA-15` par les critères EXPLICITES de D3-15, indépendants de l'ordre du
+ *      fichier ; assemblage colonnaire ; baseline calculée UNE fois (ARCHITECTURE §9.3 garde-fou 1 :
  *      `fetchBaselineAggregates` rend le MÊME objet, jamais un recalcul).
  *
- * MODE 1 ET MODE 2. Le lot colonnaire complet est en mémoire : `mode2` est `SERVED`, sans plafond
- * d'échantillon imposé par la source. La compilation de sélection, l'agrégation et l'extraction de
- * sous-ensemble sont celles du lot D3 (`synthetic/selection.ts`, `aggregate.ts`, `columnar.ts`) —
- * les réécrire aurait produit un second moteur d'agrégation à faire diverger.
+ * **POURQUOI CE DÉDOUBLEMENT** (`C-3.5-01`, `D3-31`). L'écran A n'a besoin que des agrégats par
+ * marque — 262 lignes, quelques dizaines de Kio. En attendant les 2 677 Kio gzip d'annonces du
+ * profil `test`, il affichait son premier chiffre à 7 800 ms pour un budget `EX-NFR-9` de 2 000 ms.
+ * Les annonces ne servent qu'au MODE 2 (et aux sélections filtrées du mode 1) : les attendre pour
+ * afficher un agrégat déjà calculé, c'était faire payer à tout le monde ce dont personne n'avait
+ * encore besoin.
+ *
+ * **CE QUI EMPÊCHE LE PRÉCALCUL DE MENTIR.** Trois verrous, dans cet ordre : l'artefact est LIÉ à
+ * ses octets (`snapshotId` + `sha256` du manifest, vérifiés avant d'être servis) ; à l'arrivée des
+ * annonces, la baseline est RECALCULÉE et comparée à celle qui a été servie (`diffBaseline`) ; un
+ * écart met le snapshot en ERREUR EXPLICITE et toute demande ultérieure échoue avec sa phrase, au
+ * lieu de continuer sur un chiffre que plus rien ne soutient.
+ *
+ * MODE 1 ET MODE 2. Le lot colonnaire complet est en mémoire dès que l'ingestion est finie : `mode2`
+ * est `SERVED`, sans plafond d'échantillon imposé par la source. Les méthodes qui en dépendent
+ * (`fetchAggregates`, `fetchSelectionCount`, `fetchListingColumns`, `fetchListingsByIds`)
+ * l'ATTENDENT ; celles qui n'en dépendent pas (`fetchBaselineAggregates`) répondent tout de suite.
+ * La compilation de sélection, l'agrégation et l'extraction de sous-ensemble sont celles du lot D3
+ * (`synthetic/selection.ts`, `aggregate.ts`, `columnar.ts`) — les réécrire aurait produit un second
+ * moteur d'agrégation à faire diverger.
  *
  * CE QUE CE PROVIDER NE SAIT PAS FAIRE, ET LE DIT (`coverageNote`) : la provenance de mesure
  * (`co2Source`, `consumptionSource`) est DÉRIVÉE par l'adaptateur mais n'a aucune colonne dans
@@ -65,12 +84,20 @@ import {
 } from '../adapters/as24/adapt';
 import { assembleBatch } from '../adapters/as24/columnar';
 import { uuidToBytes } from '../adapters/as24/normalize';
+import {
+  baselineRejectionReason,
+  diffBaseline,
+  isBaselineArtifact,
+  type BaselineIngestSummary,
+  type SnapshotBaselineArtifact,
+} from './baseline-artifact';
 import { hasDuplicateValueConflict, preferCandidate, type DuplicateCandidate } from './dedupe';
 import {
   checkSchemaVersion,
   isSnapshotManifest,
   selectSnapshot,
   type FixtureProfile,
+  type FixtureSnapshotEntry,
   type SnapshotManifest,
 } from './manifest';
 import { readNdjsonStream } from './ndjson';
@@ -109,14 +136,44 @@ export interface FixtureProviderOptions {
    * silencieux).
    */
   readonly coverageWarning?: string | null;
+  /**
+   * Employer les agrégats mode 1 PRÉCALCULÉS (`baseline.json`, `D3-31`) quand le chargeur en sert.
+   * Défaut : `true`.
+   *
+   * `false` force le chemin d'ingestion complète — c'est ainsi que `tools/dataset/baseline.ts`
+   * PRODUIT l'artefact (il ne peut pas le lire pour l'écrire) et que la sonde de contrat compare le
+   * précalculé au recalculé. Aucun usage applicatif.
+   */
+  readonly useBaselineArtifact?: boolean;
+}
+
+/** Ce que l'ingestion des annonces produit : le lot colonnaire et ce qu'elle a mesuré. */
+interface IngestedListings {
+  readonly batch: ListingColumnBatch;
+  readonly summary: BaselineIngestSummary;
 }
 
 /** État d'un snapshot ouvert. */
 interface OpenState {
-  readonly batch: ListingColumnBatch;
   readonly descriptor: SnapshotDescriptor;
   readonly baseline: AggregateResult<MakeAggregate>;
   readonly manifest: SnapshotManifest;
+  /** Entrée d'index du snapshot ouvert : de quoi REJOUER une ingestion qui a échoué. */
+  readonly entry: FixtureSnapshotEntry;
+  /** Artefact précalculé retenu, ou `null` (chemin de repli) : c'est lui que l'ingestion confirme. */
+  readonly artifact: SnapshotBaselineArtifact | null;
+  /** Horodatage du début de l'ouverture, pour mesurer le jalon « annonces ingérées ». */
+  readonly startedAt: number;
+  /**
+   * Ingestion des annonces : promesse MÉMORISÉE — déjà résolue sur le chemin de repli, en cours sur
+   * le chemin précalculé. Une seule à la fois : deux appels concurrents de `fetchAggregates` ne
+   * doivent pas télécharger le fichier deux fois. Remise à `null` quand une tentative ÉCHOUE, pour
+   * que la suivante réessaie (`EX-NFR-21` : un échec de transport est réessayable ; c'est le
+   * `DataController` qui décide combien de fois).
+   */
+  listings: Promise<IngestedListings> | null;
+  /** Résultat de l'ingestion une fois disponible (accès synchrone des bancs et des sondes). */
+  ingested: IngestedListings | null;
   idByHex: Map<string, number> | null;
 }
 
@@ -147,9 +204,30 @@ export class FixtureDataProvider implements DataProvider {
   private readonly isoCountryCodes: ReadonlySet<string> | null;
   private readonly providerId: string;
   private readonly coverageWarning: string | null;
+  private readonly useBaselineArtifact: boolean;
   private state: OpenState | null = null;
-  /** Durée de la dernière ouverture, en millisecondes (mesure du budget S4 de la phase 3.3). */
+  /**
+   * Durée de la dernière ouverture, en millisecondes : le temps jusqu'à la BASELINE SERVIE, c'est-
+   * à-dire jusqu'au retour d'`openSnapshot`. C'est le jalon du budget S4 de la phase 3.3, et celui
+   * dont dépend `EX-NFR-9` — depuis `D3-31`, il ne comprend plus l'ingestion des annonces.
+   */
   private lastOpenMs = 0;
+  /**
+   * Durée entre le DÉBUT de l'ouverture et la fin de l'ingestion des annonces (mode 2 prêt), en
+   * millisecondes. `null` tant que l'ingestion n'est pas terminée. Publiée à part de `lastOpenMs` :
+   * confondre les deux ferait passer un chargement différé pour une ouverture instantanée.
+   */
+  private lastIngestMs: number | null = null;
+  /**
+   * Écart CONSTATÉ entre la baseline précalculée servie et celle recalculée sur les annonces. Non
+   * `null` = le snapshot est en erreur : plus aucune valeur n'est servie, ni les annonces, ni la
+   * baseline elle-même.
+   */
+  private divergence: string | null = null;
+  /**
+   * Ouverture EN VOL, partagée par tous les appelants (`C-R1-02`). `null` = aucune en cours.
+   */
+  private opening: Promise<SnapshotHandle> | null = null;
 
   constructor(options: FixtureProviderOptions) {
     this.ref = options.referenceData;
@@ -160,6 +238,7 @@ export class FixtureDataProvider implements DataProvider {
     this.isoCountryCodes = options.isoCountryCodes ?? null;
     this.providerId = options.providerId ?? `kycar-fixture-${options.profile}`;
     this.coverageWarning = options.coverageWarning ?? null;
+    this.useBaselineArtifact = options.useBaselineArtifact ?? true;
   }
 
   describe(): ProviderCapabilities {
@@ -180,11 +259,42 @@ export class FixtureDataProvider implements DataProvider {
     };
   }
 
+  /**
+   * `C-R1-02` — UNE SEULE OUVERTURE EN VOL, PARTAGÉE.
+   *
+   * La recette 2.9 a mesuré le snapshot du profil `test` **téléchargé deux fois** (5 359 Kio pour un
+   * fichier de 2 680 Kio) : `DataController.start()` enveloppe `openSnapshot` dans un délai de
+   * 5 000 ms (`EX-NFR-21`) ; en 4G l'ouverture le dépassait, la promesse était rejetée, mais le
+   * téléchargement continuait en arrière-plan — et le réessai, trouvant `state` encore vide,
+   * relançait TOUT. Deux téléchargements en concurrence sur le même tuyau : chacun deux fois plus
+   * lent, et le premier chiffre à 14,5 s au lieu de 7,9 s.
+   *
+   * `D3-31` supprime la cause (l'ouverture ne coûte plus que quelques Kio), mais pas le défaut : un
+   * appelant qui abandonne et réessaie ne doit JAMAIS provoquer un second téléchargement. La
+   * promesse d'ouverture est donc mémorisée et partagée par tous les appelants tant qu'elle est en
+   * vol ; elle est oubliée quand elle se termine (succès → `state` prend le relais ; échec → le
+   * réessai en relance une vraie).
+   */
   async openSnapshot(request?: OpenSnapshotRequest): Promise<SnapshotHandle> {
     if (this.state !== null && request?.forceRefresh !== true) {
       return { descriptor: this.state.descriptor };
     }
+    const inFlight = this.opening;
+    if (inFlight !== null) return inFlight;
+    const pending = this.doOpenSnapshot();
+    this.opening = pending;
+    try {
+      return await pending;
+    } finally {
+      if (this.opening === pending) this.opening = null;
+    }
+  }
+
+  private async doOpenSnapshot(): Promise<SnapshotHandle> {
     const startedAt = Date.now();
+    this.state = null;
+    this.lastIngestMs = null;
+    this.divergence = null;
 
     const index = await this.loader.loadProfileIndex(this.profile);
     const entry = selectSnapshot(index, this.requestedSnapshotId);
@@ -206,6 +316,298 @@ export class FixtureDataProvider implements DataProvider {
     const verdict = checkSchemaVersion(manifest.schemaVersion);
     if (!verdict.accepted) throw new Error(verdict.message ?? 'Version de schéma incompatible.');
 
+    // `D3-31` — les agrégats mode 1 précalculés, s'ils sont là ET recevables. `rejection` porte la
+    // phrase à publier quand ils sont là mais refusés : un refus se DIT, il ne s'oublie pas.
+    const { artifact, rejection } = await this.loadBaselineArtifact(manifest, entry);
+
+    if (artifact !== null) {
+      const descriptor = this.buildDescriptor(manifest, artifact.ingest, [
+        verdict.message,
+        this.deferredIntegrityNote(),
+        this.precomputedNote(artifact),
+        this.coverageWarning,
+      ]);
+      const baseline: AggregateResult<MakeAggregate> = {
+        snapshotId: manifest.snapshotId,
+        // EX-DATA-108 (DR-125) : la sélection VIDE se sérialise en chaîne vide.
+        selection: '',
+        selectionCount: artifact.selectionCount,
+        // §9.3 garde-fou 1 : le MÊME objet à chaque appel — ici, celui de l'artefact.
+        rows: artifact.rows,
+        unsupportedFilterIds: [],
+      };
+      const state: OpenState = {
+        descriptor,
+        baseline,
+        manifest,
+        entry,
+        artifact,
+        startedAt,
+        listings: null,
+        ingested: null,
+        idByHex: null,
+      };
+      this.state = state;
+      // L'ingestion part MAINTENANT, en arrière-plan, et sa promesse est mémorisée : le
+      // téléchargement des annonces recouvre le temps que l'utilisateur passe à lire l'écran A.
+      state.listings = this.startIngestion(state);
+      this.lastOpenMs = Date.now() - startedAt;
+      return { descriptor };
+    }
+
+    // Repli (`D3-31`) : pas d'artefact recevable → chemin d'origine, tout est ingéré AVANT de servir.
+    const { ingested, integrityNote } = await this.ingestListings(manifest, entry);
+    this.lastIngestMs = Date.now() - startedAt;
+
+    const descriptor = this.buildDescriptor(manifest, ingested.summary, [
+      verdict.message,
+      integrityNote,
+      rejection ?? this.missingPrecomputedNote(),
+      this.coverageWarning,
+    ]);
+
+    const baseline: AggregateResult<MakeAggregate> = {
+      snapshotId: manifest.snapshotId,
+      selection: '',
+      selectionCount: ingested.batch.rowCount,
+      // §9.3 garde-fou 1 : calculée UNE fois, ici, et servie à l'identique ensuite.
+      rows: aggregateByMake(ingested.batch, null, 1),
+      unsupportedFilterIds: [],
+    };
+
+    this.state = {
+      descriptor,
+      baseline,
+      manifest,
+      entry,
+      artifact: null,
+      startedAt,
+      listings: Promise.resolve(ingested),
+      ingested,
+      idByHex: null,
+    };
+    this.lastOpenMs = Date.now() - startedAt;
+    return { descriptor };
+  }
+
+  closeSnapshot(_handle: SnapshotHandle): Promise<void> {
+    // Idempotente. Le lot est conservé : le rouvrir coûterait une relecture complète du fichier, et
+    // `EX-NAV-23` ne demande qu'UN snapshot actif, pas sa destruction à la fermeture d'un écran.
+    return Promise.resolve();
+  }
+
+  /**
+   * Sert la baseline mode 1 SANS attendre les annonces (`D3-31`) : c'est tout l'objet du précalcul.
+   * Le même objet à chaque appel (§9.3 garde-fou 1). Si la baseline servie a été DÉMENTIE par les
+   * annonces, plus rien n'est servi — pas même elle (`ensureNoDivergence`).
+   */
+  // `async` (et non `Promise.resolve`) pour que le refus d'un jeu DÉMENTI arrive au consommateur
+  // sous la forme d'une promesse rejetée, comme toute autre erreur de provider : le contrôleur
+  // l'attrape dans son `try`, au lieu de la voir exploser au point d'appel.
+  async fetchBaselineAggregates(_handle: SnapshotHandle): Promise<AggregateResult<MakeAggregate>> {
+    const state = this.requireState();
+    this.ensureNoDivergence();
+    return state.baseline;
+  }
+
+  async fetchAggregates(
+    _handle: SnapshotHandle,
+    selection: SelectionQuery,
+    level: AggregateLevel,
+    makeScope?: number,
+  ): Promise<AggregateResult<MakeAggregate | ModelAggregate>> {
+    const { descriptor } = this.requireState();
+    // Une sélection quelconque se calcule sur les ANNONCES : on les attend (chargement différé).
+    const { batch } = await this.requireListings();
+    const compiled = compileSelection(batch, selection, this.ref);
+    const indices = selectRows(batch.rowCount, compiled);
+    // Couverture publiée seulement pour la sélection vide (interface §4) ; sinon NON_APPLICABLE.
+    const coverage = compiled.isEmpty ? 1 : null;
+    const rows =
+      level === 'MAKE'
+        ? aggregateByMake(batch, indices, coverage)
+        : aggregateByModel(batch, indices, coverage, makeScope);
+    return {
+      snapshotId: descriptor.snapshotId,
+      selection,
+      selectionCount: indices.length,
+      rows,
+      // D-03 : les identifiants que la compilation n'a pas su appliquer, jamais tus.
+      unsupportedFilterIds: compiled.unsupported,
+    };
+  }
+
+  /**
+   * D-33 : le compteur passe par la MÊME compilation que `fetchAggregates`, donc par la même liste
+   * `unsupported`. Un filtre non appliqué ne peut pas rendre ici un effectif différent de celui
+   * qu'`fetchAggregates` publierait.
+   */
+  async fetchSelectionCount(_handle: SnapshotHandle, selection: SelectionQuery): Promise<number> {
+    this.requireState();
+    const { batch } = await this.requireListings();
+    const compiled = compileSelection(batch, selection, this.ref);
+    if (compiled.isEmpty) return batch.rowCount;
+    let count = 0;
+    for (let i = 0; i < batch.rowCount; i += 1) if (compiled.predicate(i)) count += 1;
+    return count;
+  }
+
+  async fetchListingColumns(_handle: SnapshotHandle, tSelection: TSelectionQuery): Promise<ListingColumnBatch> {
+    const { descriptor } = this.requireState();
+    const { batch } = await this.requireListings();
+    const compiled = compileSelection(batch, tSelection, this.ref);
+    if (compiled.isEmpty) return batch; // le lot complet porte déjà `FULL`.
+    const indices = selectRows(batch.rowCount, compiled);
+    const key = sha256Hex(tSelection).slice(0, HASH_LENGTH);
+    return subsetBatch(batch, indices, descriptor.snapshotId, key);
+  }
+
+  async fetchListingsByIds(_handle: SnapshotHandle, listingIds: readonly string[]): Promise<ListingColumnBatch> {
+    const { descriptor } = this.requireState();
+    const { batch } = await this.requireListings();
+    const index = this.ensureIdIndex(batch);
+    const indices: number[] = [];
+    for (const id of listingIds) {
+      const i = index.get(id.toLowerCase());
+      if (i !== undefined) indices.push(i);
+    }
+    return subsetBatch(batch, indices, descriptor.snapshotId, `ids-${indices.length}`);
+  }
+
+  /* ---- Accès de mesure (bancs et suite de contrat) ------------------------------------------- */
+
+  /**
+   * Durée de la dernière ouverture, en ms : jusqu'à la BASELINE SERVIE (budget S4 : < 2 000 ms).
+   * Depuis `D3-31`, l'ingestion des annonces n'en fait plus partie — `getLastIngestMs()` la mesure.
+   */
+  getLastOpenMs(): number {
+    return this.lastOpenMs;
+  }
+
+  /**
+   * Durée écoulée entre le début de l'ouverture et la fin de l'ingestion des annonces (mode 2
+   * prêt), en ms, ou `null` tant qu'elle n'est pas terminée. Deux jalons, deux mesures : les
+   * confondre ferait passer un chargement différé pour une ouverture instantanée.
+   */
+  getLastIngestMs(): number | null {
+    return this.lastIngestMs;
+  }
+
+  /** Attend la fin de l'ingestion des annonces (bancs, sondes) et rend le lot colonnaire complet. */
+  async whenIngested(): Promise<ListingColumnBatch> {
+    return (await this.requireListings()).batch;
+  }
+
+  /**
+   * Ce que l'ingestion a MESURÉ, sous la forme exacte que porte l'artefact précalculé — c'est ce
+   * que `tools/dataset/baseline.ts` sérialise, et ce que la sonde de contrat compare. Exige que
+   * l'ingestion soit terminée (`whenIngested()`).
+   */
+  getIngestSummary(): BaselineIngestSummary {
+    const state = this.requireState();
+    if (state.ingested === null) {
+      throw new Error(
+        'FixtureDataProvider : statistiques d’ingestion demandées avant la fin du chargement des ' +
+          'annonces (D3-31). Attendez whenIngested().',
+      );
+    }
+    return state.ingested.summary;
+  }
+
+  /** Manifest du snapshot ouvert : la vérité terrain des anomalies y vit (`groundTruth`). */
+  getManifest(): SnapshotManifest {
+    return this.requireState().manifest;
+  }
+
+  /**
+   * Lot colonnaire complet (mesures de taille mémoire). SYNCHRONE : il exige que l'ingestion soit
+   * terminée. Elle l'est après n'importe quel appel mode 2 ou après `whenIngested()` ; sinon la
+   * méthode le DIT plutôt que de rendre un lot vide qui passerait pour un jeu sans annonces.
+   */
+  getBatch(): ListingColumnBatch {
+    const state = this.requireState();
+    if (state.ingested === null) {
+      throw new Error(
+        'FixtureDataProvider : les annonces sont encore en cours de chargement (D3-31, chargement ' +
+          'différé). Attendez whenIngested() ou un appel de mode 2 avant de demander le lot colonnaire.',
+      );
+    }
+    this.ensureNoDivergence();
+    return state.ingested.batch;
+  }
+
+  /* ---- Interne : agrégats précalculés et chargement différé (`D3-31`) ------------------------- */
+
+  /**
+   * Lit `baseline.json` s'il existe et décide s'il est RECEVABLE. Rend l'artefact retenu, ou la
+   * phrase qui dit pourquoi il ne l'est pas — jamais un refus muet, jamais un échec d'ouverture :
+   * le chemin d'ingestion complète reste toujours disponible et donne le même résultat, plus lentement.
+   */
+  private async loadBaselineArtifact(
+    manifest: SnapshotManifest,
+    entry: FixtureSnapshotEntry,
+  ): Promise<{ artifact: SnapshotBaselineArtifact | null; rejection: string | null }> {
+    if (!this.useBaselineArtifact || this.loader.loadBaseline === undefined) {
+      return { artifact: null, rejection: null };
+    }
+    let raw: unknown;
+    try {
+      raw = await this.loader.loadBaseline(this.profile, entry);
+    } catch {
+      // Un artefact injoignable n'est pas une donnée manquante : c'est un chemin plus lent.
+      return { artifact: null, rejection: null };
+    }
+    if (raw === null || raw === undefined) return { artifact: null, rejection: null };
+    if (!isBaselineArtifact(raw)) {
+      return {
+        artifact: null,
+        rejection:
+          'Un fichier d’agrégats précalculés a été trouvé mais n’a pas la forme attendue : il est ' +
+          'IGNORÉ et les agrégats sont recalculés sur les annonces.',
+      };
+    }
+    const reason = baselineRejectionReason(raw, manifest);
+    return reason === null ? { artifact: raw, rejection: null } : { artifact: null, rejection: reason };
+  }
+
+  /**
+   * Démarre l'ingestion des annonces EN ARRIÈRE-PLAN et mémorise sa promesse. À l'arrivée du lot,
+   * la baseline est RECALCULÉE et comparée à celle qui a déjà été servie : un écart n'est jamais
+   * absorbé — il met le snapshot en erreur, et toute demande ultérieure échoue en le nommant.
+   */
+  private startIngestion(state: OpenState): Promise<IngestedListings> {
+    const artifact = state.artifact;
+    const pending = (async (): Promise<IngestedListings> => {
+      const { ingested } = await this.ingestListings(state.manifest, state.entry);
+      if (artifact === null) return ingested;
+      const recomputed = {
+        rows: aggregateByMake(ingested.batch, null, 1),
+        selectionCount: ingested.batch.rowCount,
+        ingest: ingested.summary,
+      };
+      const diff = diffBaseline(artifact, recomputed);
+      if (diff !== null) {
+        this.divergence =
+          'Les agrégats précalculés de ce jeu de données ne correspondent pas aux annonces reçues ' +
+          `(${diff}). Aucune valeur n’est servie tant que l’écart n’est pas levé : régénérez ` +
+          'l’artefact (npm run data:baseline) ou vérifiez le fichier d’annonces.';
+        throw new Error(this.divergence);
+      }
+      if (this.state === state) state.ingested = ingested;
+      this.lastIngestMs = Date.now() - state.startedAt;
+      return ingested;
+    })();
+    // Sans ce `catch` de courtoisie, un échec d'ingestion que personne n'attend ENCORE remonterait
+    // en « unhandled rejection ». Les appelants réels, eux, reçoivent bien le rejet.
+    void pending.catch(() => undefined);
+    return pending;
+  }
+
+  /** Ouvre le flux, ingère, contrôle l'intégrité, assemble le lot colonnaire. */
+  private async ingestListings(
+    manifest: SnapshotManifest,
+    entry: FixtureSnapshotEntry,
+  ): Promise<{ ingested: IngestedListings; integrityNote: string }> {
     const ctx = createAs24Context({
       referenceData: this.ref,
       observedAt: manifest.capturedAt,
@@ -231,118 +633,71 @@ export class FixtureDataProvider implements DataProvider {
         'pas au-delà du profil dev. Le fichier est versionné et son sha256 figure au manifest.';
     }
 
-    const { batch } = assembleBatch(
-      report.rows,
-      report.listingIdBytes,
-      manifest.snapshotId,
-      'FULL',
-    );
-
-    const descriptor = this.buildDescriptor(manifest, report, [
-      verdict.message,
-      integrityNote,
-      this.coverageWarning,
-    ]);
-
-    const baseline: AggregateResult<MakeAggregate> = {
-      snapshotId: manifest.snapshotId,
-      // EX-DATA-108 (DR-125) : la sélection VIDE se sérialise en chaîne vide.
-      selection: '',
-      selectionCount: batch.rowCount,
-      // §9.3 garde-fou 1 : calculée UNE fois, ici, et servie à l'identique ensuite.
-      rows: aggregateByMake(batch, null, 1),
-      unsupportedFilterIds: [],
-    };
-
-    this.state = { batch, descriptor, baseline, manifest, idByHex: null };
-    this.lastOpenMs = Date.now() - startedAt;
-    return { descriptor };
-  }
-
-  closeSnapshot(_handle: SnapshotHandle): Promise<void> {
-    // Idempotente. Le lot est conservé : le rouvrir coûterait une relecture complète du fichier, et
-    // `EX-NAV-23` ne demande qu'UN snapshot actif, pas sa destruction à la fermeture d'un écran.
-    return Promise.resolve();
-  }
-
-  fetchBaselineAggregates(_handle: SnapshotHandle): Promise<AggregateResult<MakeAggregate>> {
-    return Promise.resolve(this.requireState().baseline);
-  }
-
-  fetchAggregates(
-    _handle: SnapshotHandle,
-    selection: SelectionQuery,
-    level: AggregateLevel,
-    makeScope?: number,
-  ): Promise<AggregateResult<MakeAggregate | ModelAggregate>> {
-    const { batch, descriptor } = this.requireState();
-    const compiled = compileSelection(batch, selection, this.ref);
-    const indices = selectRows(batch.rowCount, compiled);
-    // Couverture publiée seulement pour la sélection vide (interface §4) ; sinon NON_APPLICABLE.
-    const coverage = compiled.isEmpty ? 1 : null;
-    const rows =
-      level === 'MAKE'
-        ? aggregateByMake(batch, indices, coverage)
-        : aggregateByModel(batch, indices, coverage, makeScope);
-    return Promise.resolve({
-      snapshotId: descriptor.snapshotId,
-      selection,
-      selectionCount: indices.length,
-      rows,
-      // D-03 : les identifiants que la compilation n'a pas su appliquer, jamais tus.
-      unsupportedFilterIds: compiled.unsupported,
-    });
+    const { batch } = assembleBatch(report.rows, report.listingIdBytes, manifest.snapshotId, 'FULL');
+    return { ingested: { batch, summary: summaryOf(report) }, integrityNote };
   }
 
   /**
-   * D-33 : le compteur passe par la MÊME compilation que `fetchAggregates`, donc par la même liste
-   * `unsupported`. Un filtre non appliqué ne peut pas rendre ici un effectif différent de celui
-   * qu'`fetchAggregates` publierait.
+   * Attend les annonces (chargement différé) et refuse de servir si elles ont démenti la baseline.
+   *
+   * Une tentative qui ÉCHOUE est oubliée : la promesse mémorisée est remise à `null` pour que
+   * l'appel suivant en relance une. Sans cela, une coupure réseau d'une seconde condamnerait le
+   * mode 2 pour toute la durée de la session — les trois réessais d'`EX-NFR-21` rejoueraient tous
+   * la MÊME promesse déjà rejetée, et ne réessaieraient donc rien du tout. Une divergence, elle,
+   * n'est jamais réessayée : elle ne vient pas du transport, et la rejouer ne changerait rien.
    */
-  fetchSelectionCount(_handle: SnapshotHandle, selection: SelectionQuery): Promise<number> {
-    const { batch } = this.requireState();
-    const compiled = compileSelection(batch, selection, this.ref);
-    if (compiled.isEmpty) return Promise.resolve(batch.rowCount);
-    let count = 0;
-    for (let i = 0; i < batch.rowCount; i += 1) if (compiled.predicate(i)) count += 1;
-    return Promise.resolve(count);
-  }
-
-  fetchListingColumns(_handle: SnapshotHandle, tSelection: TSelectionQuery): Promise<ListingColumnBatch> {
-    const { batch, descriptor } = this.requireState();
-    const compiled = compileSelection(batch, tSelection, this.ref);
-    if (compiled.isEmpty) return Promise.resolve(batch); // le lot complet porte déjà `FULL`.
-    const indices = selectRows(batch.rowCount, compiled);
-    const key = sha256Hex(tSelection).slice(0, HASH_LENGTH);
-    return Promise.resolve(subsetBatch(batch, indices, descriptor.snapshotId, key));
-  }
-
-  fetchListingsByIds(_handle: SnapshotHandle, listingIds: readonly string[]): Promise<ListingColumnBatch> {
-    const { batch, descriptor } = this.requireState();
-    const index = this.ensureIdIndex();
-    const indices: number[] = [];
-    for (const id of listingIds) {
-      const i = index.get(id.toLowerCase());
-      if (i !== undefined) indices.push(i);
+  private async requireListings(): Promise<IngestedListings> {
+    const state = this.requireState();
+    if (state.ingested !== null) {
+      this.ensureNoDivergence();
+      return state.ingested;
     }
-    return Promise.resolve(subsetBatch(batch, indices, descriptor.snapshotId, `ids-${indices.length}`));
+    state.listings ??= this.startIngestion(state);
+    try {
+      const ingested = await state.listings;
+      this.ensureNoDivergence();
+      return ingested;
+    } catch (e) {
+      this.ensureNoDivergence();
+      if (this.state === state) state.listings = null;
+      throw e;
+    }
   }
 
-  /* ---- Accès de mesure (bancs et suite de contrat) ------------------------------------------- */
-
-  /** Durée de la dernière ouverture, en ms (budget S4 : < 2 000 ms sur le profil `dev`). */
-  getLastOpenMs(): number {
-    return this.lastOpenMs;
+  /** Lève si la baseline servie a été démentie par les annonces. */
+  private ensureNoDivergence(): void {
+    if (this.divergence !== null) throw new Error(this.divergence);
   }
 
-  /** Manifest du snapshot ouvert : la vérité terrain des anomalies y vit (`groundTruth`). */
-  getManifest(): SnapshotManifest {
-    return this.requireState().manifest;
+  /** Note d'intégrité du chemin DIFFÉRÉ : le contrôle a lieu, mais plus tard, et cela se dit. */
+  private deferredIntegrityNote(): string {
+    return this.verifySha256
+      ? 'Intégrité : le sha256 des octets non compressés est vérifié À L’ARRIVÉE des annonces ' +
+          '(chargement différé, D3-31) ; une rupture met le jeu en erreur explicite et aucune annonce ' +
+          'n’est alors servie.'
+      : `Intégrité NON vérifiée (profil ${this.profile}) : le hachage exigerait de conserver le flux ` +
+          'décompressé entier en mémoire, ce que le budget d’ouverture ne permet pas au-delà du profil ' +
+          'dev. Le fichier est versionné et son sha256 figure au manifest.';
   }
 
-  /** Lot colonnaire complet (mesures de taille mémoire). */
-  getBatch(): ListingColumnBatch {
-    return this.requireState().batch;
+  /** Note du chemin PRÉCALCULÉ : d'où viennent les chiffres affichés avant la première annonce. */
+  private precomputedNote(artifact: SnapshotBaselineArtifact): string {
+    return (
+      `Agrégats de base PRÉCALCULÉS (${artifact.producedBy.name}@${artifact.producedBy.version}, ` +
+      `provider ${artifact.producedBy.providerVersion}, D3-31) : l’écran de mode 1 est servi par ` +
+      `${artifact.rows.length} agrégats par marque lus à côté du manifest, sans attendre les annonces. ` +
+      'Les annonces sont chargées en arrière-plan pour le mode 2 ; à leur arrivée, la baseline est ' +
+      'RECALCULÉE et comparée à celle qui a été servie — un écart met le jeu en erreur explicite.'
+    );
+  }
+
+  /** Note du chemin de REPLI : l'artefact n'est pas là, l'ouverture est plus lente, et cela se dit. */
+  private missingPrecomputedNote(): string {
+    return (
+      'Agrégats de base NON précalculés pour ce snapshot (pas de baseline.json, D3-31) : ils ont été ' +
+      'calculés à l’ouverture, après le chargement complet des annonces. Les valeurs sont les mêmes ; ' +
+      'le premier affichage, lui, a attendu le fichier entier.'
+    );
   }
 
   /* ---- Interne -------------------------------------------------------------------------------- */
@@ -458,13 +813,18 @@ export class FixtureDataProvider implements DataProvider {
     };
   }
 
+  /**
+   * Construit le descripteur à partir des STATISTIQUES d'ingestion — celles que l'ingestion vient
+   * de mesurer, ou celles que l'artefact précalculé porte (`D3-31`). Les deux chemins passent par
+   * ici, et par la même note : c'est ce qui garantit qu'aucune valeur affichée ne dépend du chemin.
+   */
   private buildDescriptor(
     manifest: SnapshotManifest,
-    report: IngestReport,
+    ingest: BaselineIngestSummary,
     notes: readonly (string | null)[],
   ): SnapshotDescriptor {
-    const rowCount = report.rows.length;
-    const stripped = report.ingestFlagCounts['VERSION_FULLY_STRIPPED'] ?? 0;
+    const rowCount = ingest.listingCount;
+    const stripped = ingest.ingestFlagCounts['VERSION_FULLY_STRIPPED'] ?? 0;
     const marketplace: Marketplace = manifest.marketplace === 'nl' ? 'nl' : 'be';
     return {
       snapshotId: manifest.snapshotId,
@@ -481,14 +841,14 @@ export class FixtureDataProvider implements DataProvider {
       // le compte du manifest. Les rejets d'ingestion se lisent dans `rejectedByReason`, pas ici
       // (EX-DATA-46) — confondre les deux ferait tomber la couverture pour un motif qu'elle ne mesure pas.
       announcedListingCount: manifest.listingCount,
-      rejectedCount: report.rejectedCount,
-      rejectedByReason: report.rejectedByReason,
-      duplicateListingCount: report.duplicateListingCount,
-      duplicateValueConflictCount: report.duplicateValueConflictCount,
-      unknownCountByField: report.unknownCountByField,
-      ingestFlagCounts: report.ingestFlagCounts,
+      rejectedCount: ingest.rejectedCount,
+      rejectedByReason: ingest.rejectedByReason,
+      duplicateListingCount: ingest.duplicateListingCount,
+      duplicateValueConflictCount: ingest.duplicateValueConflictCount,
+      unknownCountByField: ingest.unknownCountByField,
+      ingestFlagCounts: ingest.ingestFlagCounts,
       versionStrippedRate: rowCount === 0 ? 0 : stripped / rowCount,
-      coverageNote: this.buildCoverageNote(manifest, report, notes),
+      coverageNote: this.buildCoverageNote(manifest, ingest, notes),
     };
   }
 
@@ -500,7 +860,7 @@ export class FixtureDataProvider implements DataProvider {
    */
   private buildCoverageNote(
     manifest: SnapshotManifest,
-    report: IngestReport,
+    ingest: BaselineIngestSummary,
     notes: readonly (string | null)[],
   ): string {
     const parts: string[] = [];
@@ -510,14 +870,14 @@ export class FixtureDataProvider implements DataProvider {
         `graine ${manifest.seed}. Ce n’est ni un marché réel, ni une distribution calculée à la volée.`,
     );
     parts.push(
-      `Ingestion : ${report.lineCount} lignes lues, ${report.rows.length} retenues, ` +
-        `${report.rejectedCount} rejetées, ${report.duplicateListingCount} doublons d’identifiant ` +
+      `Ingestion : ${ingest.lineCount} lignes lues, ${ingest.listingCount} retenues, ` +
+        `${ingest.rejectedCount} rejetées, ${ingest.duplicateListingCount} doublons d’identifiant ` +
         `arbitrés (critères D3-15 : complétude, date de mise à jour, signature — jamais l’ordre du fichier).`,
     );
     // Tailles ANNONCÉES par le manifest, jamais estimées : elles disent ce que le jeu pèse
     // réellement et rendent le budget `EX-NFR-3` vérifiable depuis l'application elle-même.
     const announced = manifest.listingCount;
-    const kept = report.rows.length;
+    const kept = ingest.listingCount;
     parts.push(
       `Taille : ${announced} annonces annoncées au manifest, ${kept} servies ` +
         `(couverture d’échantillon ${announced === 0 ? 'indéterminée' : `${((100 * kept) / announced).toFixed(1)} %`})` +
@@ -528,10 +888,10 @@ export class FixtureDataProvider implements DataProvider {
     parts.push(
       'Provenance de la mesure (co2Source, EX-DATA-35) : DÉRIVÉE par l’adaptateur mais sans colonne ' +
         `dans l’interface v1 (dette D8-32, statu quo D3-08) — distribution mesurée : ` +
-        `WLTP ${report.measurementCounts.WLTP}, NEDC ${report.measurementCounts.NEDC}, ` +
-        `indéterminée ${report.measurementCounts.UNKNOWN}.`,
+        `WLTP ${ingest.measurementCounts.WLTP}, NEDC ${ingest.measurementCounts.NEDC}, ` +
+        `indéterminée ${ingest.measurementCounts.UNKNOWN}.`,
     );
-    const notices = Object.entries(report.noticeCounts);
+    const notices = Object.entries(ingest.noticeCounts);
     parts.push(
       notices.length === 0
         ? 'Aucune condition hors vocabulaire des drapeaux d’ingestion détectée.'
@@ -554,16 +914,40 @@ export class FixtureDataProvider implements DataProvider {
     return this.state;
   }
 
-  private ensureIdIndex(): Map<string, number> {
+  private ensureIdIndex(batch: ListingColumnBatch): Map<string, number> {
     const state = this.requireState();
     if (state.idByHex === null) {
       const map = new Map<string, number>();
-      const { batch } = state;
       for (let i = 0; i < batch.rowCount; i += 1) map.set(hexOfUuid(batch.listingId, i * 16), i);
       state.idByHex = map;
     }
     return state.idByHex;
   }
+}
+
+/**
+ * Ce que l'ingestion a mesuré, réduit à ce que le DESCRIPTEUR et l'ARTEFACT publient. C'est la
+ * frontière exacte entre « ce qu'il faut relire le fichier pour savoir » et « ce qu'un précalcul
+ * peut porter » : tout ce qui est ici se précalcule, le reste (les lignes elles-mêmes) ne se
+ * précalcule pas.
+ */
+function summaryOf(report: IngestReport): BaselineIngestSummary {
+  return {
+    lineCount: report.lineCount,
+    listingCount: report.rows.length,
+    rejectedCount: report.rejectedCount,
+    rejectedByReason: report.rejectedByReason,
+    duplicateListingCount: report.duplicateListingCount,
+    duplicateValueConflictCount: report.duplicateValueConflictCount,
+    unknownCountByField: report.unknownCountByField,
+    ingestFlagCounts: report.ingestFlagCounts,
+    noticeCounts: report.noticeCounts,
+    measurementCounts: {
+      WLTP: report.measurementCounts.WLTP,
+      NEDC: report.measurementCounts.NEDC,
+      UNKNOWN: report.measurementCounts.UNKNOWN,
+    },
+  };
 }
 
 /** Relit les 16 octets d'un `listingId` sous sa forme canonique 8-4-4-4-12 minuscule. */

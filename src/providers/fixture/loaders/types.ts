@@ -13,7 +13,7 @@
 
 import type { FixtureProfileIndex, FixtureSnapshotEntry } from '../manifest';
 
-/** Accès aux fichiers d'un jeu de fixtures. Trois opérations, aucune de plus. */
+/** Accès aux fichiers d'un jeu de fixtures. Quatre opérations, dont une OPTIONNELLE. */
 export interface FixtureLoader {
   /** Nom lisible de la source, écrit dans les messages d'erreur (`/fixtures`, un chemin disque…). */
   readonly origin: string;
@@ -21,6 +21,16 @@ export interface FixtureLoader {
   loadProfileIndex(profile: string): Promise<FixtureProfileIndex>;
   /** Manifest d'un snapshot, tel quel (le provider en contrôle la forme et la version). */
   loadManifest(profile: string, entry: FixtureSnapshotEntry): Promise<unknown>;
+  /**
+   * Agrégats mode 1 PRÉCALCULÉS du snapshot (`baseline.json`, `D3-31`), tels quels, ou `null` quand
+   * il n'y en a pas.
+   *
+   * **Optionnelle, et rend `null` sans se plaindre** : un jeu déposé chez un autre hébergeur, un
+   * snapshot antérieur à la phase 3.5 ou un chargeur écrit avant elle n'en portent pas. Le provider
+   * retombe alors sur le chemin d'origine — ingestion complète AVANT de servir — et le DIT dans sa
+   * `coverageNote`. Une absence est un repli documenté, jamais un échec, jamais un silence.
+   */
+  loadBaseline?(profile: string, entry: FixtureSnapshotEntry): Promise<unknown>;
   /**
    * Flux d'octets du fichier d'annonces. Le provider ne suppose RIEN de la compression : il renifle
    * les octets magiques (`ndjson.ts`).
