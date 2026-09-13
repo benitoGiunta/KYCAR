@@ -17,6 +17,7 @@
  * gelée pour qu'il n'existe qu'une seule définition dans tout le code.
  */
 
+import type { SourceKind } from '../providers/DataProvider';
 import type { EnumValueDef, VocabularyName } from './vocabularies';
 
 export type { Listing } from './columns';
@@ -48,7 +49,13 @@ export interface Snapshot {
   readonly marketplace: 'be' | 'nl';
   /** ISO-8601 UTC. */
   readonly capturedAt: string;
-  readonly sourceKind: 'REAL' | 'SYNTHETIC';
+  /**
+   * C-3.5-05 : le littéral `'REAL' | 'SYNTHETIC'` était resté écrit ici alors que l'interface gelée
+   * `SourceKind` porte `FIXTURE` depuis la phase 3.3. Aucun chemin d'exécution ne construit cette
+   * entité (le runtime passe par `SnapshotDescriptor`), donc aucun cas où `FIXTURE` aurait été traité
+   * comme `REAL` — mais le type mentait sur son propre domaine.
+   */
+  readonly sourceKind: SourceKind;
   readonly providerVersion: string;
   readonly listingCount: number;
   /** Dénominateur de `sampleCoverage`, ou `null` si la source ne le fournit pas (ARB-01). */

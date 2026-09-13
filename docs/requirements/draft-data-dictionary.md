@@ -601,7 +601,7 @@ mécaniquement tout taux d'équipement.
 
 | # | Champ KYCAR | Libellé FR | Type / unité | Card. | Obl. | Source | Énum. | Normalisation | Validation | Si absent |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 74 | `countryCode` | Pays | `chaîne(2)` ISO-3166-1 alpha-2 | 1 | OBL | `listings[].location.countryCode` (OBSERVÉ) | — | majuscules ; **traduction obligatoire** du code marketplace vers l'ISO si la source sert un code marketplace (`B`→`BE`, `D`→`DE`, `A`→`AT`, `E`→`ES`, `F`→`FR`, `I`→`IT`, `L`→`LU`, `NL`→`NL`) | 2 lettres majuscules et code ISO existant sinon REJET — **exception nommée** : un code marketplace absent de la table de traduction (9ᵉ valeur non identifiée de `KYCAR_MARKETPLACE`) ne rejette pas l'annonce ; il donne `countryCode = INCONNU` + `MARKETPLACE_UNMAPPED` (`EX-DATA-40`) | REJET, sauf le cas de code marketplace non traduit ci-dessus → `INCONNU` |
+| 74 | `countryCode` | Pays | `chaîne(2)` ISO-3166-1 alpha-2 | 1 | OBL | `listings[].location.countryCode` (OBSERVÉ) | — | majuscules ; **traduction obligatoire** du code marketplace vers l'ISO si la source sert un code marketplace (`B`→`BE`, `D`→`DE`, `A`→`AT`, `E`→`ES`, `F`→`FR`, `I`→`IT`, `L`→`LU`, `NL`→`NL`, `ca`→`CA` **[amendée 3.5 — D3-07]**) | 2 lettres majuscules et code ISO existant sinon REJET — **exception nommée** : un code marketplace absent de la table de traduction (un code hors des **9** valeurs de `KYCAR_MARKETPLACE`, cas désormais réservé à un adaptateur de source réelle) ne rejette pas l'annonce ; il donne `countryCode = INCONNU` + `MARKETPLACE_UNMAPPED` (`EX-DATA-40`) | REJET, sauf le cas de code marketplace non traduit ci-dessus → `INCONNU` |
 | 75 | `regionCode` | Province / région | `énum` NUTS-2 | 0..1 | DER | `DÉRIVÉ : table § A.8 appliquée au code postal transitoire, puis code postal détruit` | `KYCAR_REGION` | majuscules, 4 caractères | ∈ vocabulaire du pays sinon INCONNU + `REGION_UNRESOLVED` | INCONNU |
 | 76 | `regionName` | Libellé de la région | `chaîne(48)` | 0..1 | DER | `DÉRIVÉ : libellé de regionCode dans data/reference/regions-be.json` | — | libellé FR canonique | — | INCONNU |
 | 77 | `postalCodePrefix2` | Zone postale (2 chiffres) | `chaîne(2)` | 0..1 | DER | `DÉRIVÉ : deux premiers caractères du code postal transitoire, puis code postal détruit` | — | conservé tel quel, chiffres uniquement | 2 chiffres sinon INCONNU | INCONNU |
@@ -613,12 +613,24 @@ Belgique en recherche et n'existe pas comme code ISO belge, qui est `BE` ; `L` v
 recherche et Liberia en ISO) — le sens recherche→ISO est déterminé, le sens ISO→recherche l'est
 aussi, mais un stockage en code propriétaire rendrait le modèle multi-pays de H1 inexploitable.
 
-Le vocabulaire `KYCAR_MARKETPLACE` compte 9 valeurs et cette table en traduit 8. Le neuvième code
-n'est **pas** identifié par les relevés disponibles : une valeur de marketplace absente de cette
-table donne `countryCode = INCONNU`, `ingestFlags += MARKETPLACE_UNMAPPED`, et l'annonce est
-**conservée** (aucun rejet). Aucune requête vers la source n'est construite pour un marketplace
-non traduit. Le neuvième marché est **hors périmètre H1** ; l'identifier relève de la dette de
-référentiel, pas de l'implémentation.
+**[amendée 3.5 — D3-07]** Le vocabulaire `KYCAR_MARKETPLACE` compte **9** valeurs et cette table les
+traduit **toutes les neuf**. La rédaction initiale disait « cette table en traduit 8, le neuvième code
+n'est pas identifié par les relevés disponibles » : la preuve était pourtant dans le dépôt depuis
+l'ingestion du schéma. L'OpenAPI versionné (`docs/reference/vendor/as24-listing-creation-openapi.yml`,
+`components.schemas.Marketplace`) énumère `at be ca de es fr it lu nl`, ce que confirment
+`components.schemas.Culture` (`fr-CA`, `en-CA`) et `Price.currency` (`CAD`) : la neuvième valeur est
+le **Canada**, et la traduction est **`ca` → `CA`**. Elle est en vigueur dans
+`src/types/vocabularies.ts` (`MARKETPLACE_VALUES`, `ca` à l'**index 8** — l'ordre des huit premiers
+codes est intangible, la valeur stockée dans `countryCode` étant l'index) et documentée dans
+`data/schema/as24-listing.schema.json`.
+
+Il reste **une** exception nommée, qui ne concerne plus aucun des neuf codes connus : une valeur de
+marketplace **hors** de ce vocabulaire — cas qu'un adaptateur de source réelle peut rencontrer, jamais
+les fixtures — donne `countryCode = INCONNU`, `ingestFlags += MARKETPLACE_UNMAPPED`, et l'annonce est
+**conservée** (aucun rejet). Aucune requête vers la source n'est construite pour un marketplace non
+traduit. `MARKETPLACE_UNMAPPED` est de ce fait **inatteignable** pour les neuf codes connus ; le
+drapeau est gardé comme garde de régression (voir aussi `D3-16` et `P-101`, qui l'excluent de la
+vérité terrain du générateur).
 
 ### Bloc Vendeur — seuls les attributs non identifiants
 
