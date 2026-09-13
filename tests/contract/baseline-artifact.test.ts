@@ -244,6 +244,36 @@ function miniWorkspace(name: string): { root: string; snapshotId: string } {
   return { root, snapshotId: MINI_LATEST_SNAPSHOT_ID };
 }
 
+describe('D3-31 — un échec de transport sur les annonces reste réessayable', () => {
+  it('la deuxième demande relance l’ingestion au lieu de rejouer le même rejet', async () => {
+    const profile: FixtureProfile = 'dev';
+    if (!existsSync(resolve(FIXTURE_ROOT, profile))) return;
+    const entry = buildProfileIndexFromDisk(FIXTURE_ROOT, profile).snapshots.at(-1) as { snapshotId: string };
+    const inner = createNodeFixtureLoader(FIXTURE_ROOT);
+    let attempts = 0;
+    const flaky: FixtureLoader = {
+      ...inner,
+      openListings(p2, e2) {
+        attempts += 1;
+        if (attempts === 1) return Promise.reject(new Error('coupure réseau simulée'));
+        return inner.openListings(p2, e2);
+      },
+    };
+    const provider = providerOn(FIXTURE_ROOT, profile, entry.snapshotId, { loader: flaky });
+
+    // L'ouverture RÉUSSIT quand même : la baseline ne dépend pas du fichier d'annonces.
+    const handle = await provider.openSnapshot();
+    expect((await provider.fetchBaselineAggregates(handle)).rows.length).toBeGreaterThan(0);
+
+    await expect(provider.fetchListingColumns(handle, 'FULL')).rejects.toThrow(/coupure réseau simulée/);
+    // Deuxième demande : une NOUVELLE tentative, pas le même rejet mémorisé. C'est ce qui rend les
+    // trois réessais d'`EX-NFR-21` autre chose qu'une répétition à vide.
+    const batch = await provider.fetchListingColumns(handle, 'FULL');
+    expect(batch.rowCount).toBeGreaterThan(0);
+    expect(attempts).toBe(2);
+  });
+});
+
 describe('D3-31 — sans artefact, avec un artefact périmé, avec un artefact démenti', () => {
   it('SANS artefact : mêmes valeurs, et la note de couverture le dit', async () => {
     const ws = miniWorkspace('missing');

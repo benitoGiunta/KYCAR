@@ -158,12 +158,20 @@ interface OpenState {
   readonly descriptor: SnapshotDescriptor;
   readonly baseline: AggregateResult<MakeAggregate>;
   readonly manifest: SnapshotManifest;
+  /** Entrée d'index du snapshot ouvert : de quoi REJOUER une ingestion qui a échoué. */
+  readonly entry: FixtureSnapshotEntry;
+  /** Artefact précalculé retenu, ou `null` (chemin de repli) : c'est lui que l'ingestion confirme. */
+  readonly artifact: SnapshotBaselineArtifact | null;
+  /** Horodatage du début de l'ouverture, pour mesurer le jalon « annonces ingérées ». */
+  readonly startedAt: number;
   /**
-   * Ingestion des annonces : promesse MÉMORISÉE, déjà résolue sur le chemin de repli, en cours sur
-   * le chemin précalculé. Une seule par ouverture — deux appels concurrents de `fetchAggregates` ne
-   * doivent pas télécharger le fichier deux fois.
+   * Ingestion des annonces : promesse MÉMORISÉE — déjà résolue sur le chemin de repli, en cours sur
+   * le chemin précalculé. Une seule à la fois : deux appels concurrents de `fetchAggregates` ne
+   * doivent pas télécharger le fichier deux fois. Remise à `null` quand une tentative ÉCHOUE, pour
+   * que la suivante réessaie (`EX-NFR-21` : un échec de transport est réessayable ; c'est le
+   * `DataController` qui décide combien de fois).
    */
-  readonly listings: Promise<IngestedListings>;
+  listings: Promise<IngestedListings> | null;
   /** Résultat de l'ingestion une fois disponible (accès synchrone des bancs et des sondes). */
   ingested: IngestedListings | null;
   idByHex: Map<string, number> | null;
@@ -296,10 +304,21 @@ export class FixtureDataProvider implements DataProvider {
         rows: artifact.rows,
         unsupportedFilterIds: [],
       };
+      const state: OpenState = {
+        descriptor,
+        baseline,
+        manifest,
+        entry,
+        artifact,
+        startedAt,
+        listings: null,
+        ingested: null,
+        idByHex: null,
+      };
+      this.state = state;
       // L'ingestion part MAINTENANT, en arrière-plan, et sa promesse est mémorisée : le
       // téléchargement des annonces recouvre le temps que l'utilisateur passe à lire l'écran A.
-      const listings = this.startIngestion(manifest, entry, startedAt, artifact);
-      this.state = { descriptor, baseline, manifest, listings, ingested: null, idByHex: null };
+      state.listings = this.startIngestion(state);
       this.lastOpenMs = Date.now() - startedAt;
       return { descriptor };
     }
@@ -328,6 +347,9 @@ export class FixtureDataProvider implements DataProvider {
       descriptor,
       baseline,
       manifest,
+      entry,
+      artifact: null,
+      startedAt,
       listings: Promise.resolve(ingested),
       ingested,
       idByHex: null,
@@ -521,14 +543,11 @@ export class FixtureDataProvider implements DataProvider {
    * la baseline est RECALCULÉE et comparée à celle qui a déjà été servie : un écart n'est jamais
    * absorbé — il met le snapshot en erreur, et toute demande ultérieure échoue en le nommant.
    */
-  private startIngestion(
-    manifest: SnapshotManifest,
-    entry: FixtureSnapshotEntry,
-    startedAt: number,
-    artifact: SnapshotBaselineArtifact,
-  ): Promise<IngestedListings> {
+  private startIngestion(state: OpenState): Promise<IngestedListings> {
+    const artifact = state.artifact;
     const pending = (async (): Promise<IngestedListings> => {
-      const { ingested } = await this.ingestListings(manifest, entry);
+      const { ingested } = await this.ingestListings(state.manifest, state.entry);
+      if (artifact === null) return ingested;
       const recomputed = {
         rows: aggregateByMake(ingested.batch, null, 1),
         selectionCount: ingested.batch.rowCount,
@@ -542,8 +561,8 @@ export class FixtureDataProvider implements DataProvider {
           'l’artefact (npm run data:baseline) ou vérifiez le fichier d’annonces.';
         throw new Error(this.divergence);
       }
-      if (this.state !== null) this.state.ingested = ingested;
-      this.lastIngestMs = Date.now() - startedAt;
+      if (this.state === state) state.ingested = ingested;
+      this.lastIngestMs = Date.now() - state.startedAt;
       return ingested;
     })();
     // Sans ce `catch` de courtoisie, un échec d'ingestion que personne n'attend ENCORE remonterait
@@ -586,12 +605,31 @@ export class FixtureDataProvider implements DataProvider {
     return { ingested: { batch, summary: summaryOf(report) }, integrityNote };
   }
 
-  /** Attend les annonces (chargement différé) et refuse de servir si elles ont démenti la baseline. */
+  /**
+   * Attend les annonces (chargement différé) et refuse de servir si elles ont démenti la baseline.
+   *
+   * Une tentative qui ÉCHOUE est oubliée : la promesse mémorisée est remise à `null` pour que
+   * l'appel suivant en relance une. Sans cela, une coupure réseau d'une seconde condamnerait le
+   * mode 2 pour toute la durée de la session — les trois réessais d'`EX-NFR-21` rejoueraient tous
+   * la MÊME promesse déjà rejetée, et ne réessaieraient donc rien du tout. Une divergence, elle,
+   * n'est jamais réessayée : elle ne vient pas du transport, et la rejouer ne changerait rien.
+   */
   private async requireListings(): Promise<IngestedListings> {
     const state = this.requireState();
-    const ingested = await state.listings;
-    this.ensureNoDivergence();
-    return ingested;
+    if (state.ingested !== null) {
+      this.ensureNoDivergence();
+      return state.ingested;
+    }
+    state.listings ??= this.startIngestion(state);
+    try {
+      const ingested = await state.listings;
+      this.ensureNoDivergence();
+      return ingested;
+    } catch (e) {
+      this.ensureNoDivergence();
+      if (this.state === state) state.listings = null;
+      throw e;
+    }
   }
 
   /** Lève si la baseline servie a été démentie par les annonces. */
