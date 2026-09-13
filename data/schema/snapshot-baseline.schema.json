@@ -142,13 +142,13 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["min", "max", "p05", "p50", "p95", "n"],
-      "description": "MetricRange de l'interface gelee (DataProvider) : min/max/p05/p50/p95 sur l'ECHANTILLON VALIDE d'EX-DATA-60, et n son effectif. Toutes les bornes sont null quand n vaut 0 — jamais 0, qui serait une valeur mesuree.",
+      "description": "MetricRange de l'interface gelee (DataProvider) : min/max/p05/p50/p95 sur l'ECHANTILLON VALIDE d'EX-DATA-60, et n son effectif. Toutes les bornes sont null quand n vaut 0 — jamais 0, qui serait une valeur mesuree. min et max sont des statistiques d'ordre, donc entieres comme les trois metriques (EX-DATA-111) ; p05/p50/p95 sont des quantiles de TYPE 7 (EX-DATA-62), interpoles lineairement et publies SANS arrondi intermediaire (EX-DATA-63) : ils sont donc reels, pas entiers. L'arrondi a l'euro / au kilometre / a l'annee est de PRESENTATION (EX-DATA-64) et appartient au rendu. Le schema exigeait integer jusqu'a la phase 3.5, ou il figeait la convention du rang le plus proche que DR3-20 a corrigee.",
       "properties": {
         "min": { "type": ["integer", "null"] },
         "max": { "type": ["integer", "null"] },
-        "p05": { "type": ["integer", "null"] },
-        "p50": { "type": ["integer", "null"] },
-        "p95": { "type": ["integer", "null"] },
+        "p05": { "type": ["number", "null"] },
+        "p50": { "type": ["number", "null"] },
+        "p95": { "type": ["number", "null"] },
         "n": { "type": "integer", "minimum": 0 }
       }
     },
