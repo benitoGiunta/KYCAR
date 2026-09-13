@@ -258,6 +258,7 @@ Toutes les commandes ci-dessous ont été rejouées sur l'état FINAL de la bran
 | `npm run data:check -- --profile test` | `74 sondes rejouees, 0 ecart(s), 3 dette(s) consignee(s)` (`P-10`, `P-11` — `EG-01` ; `P-57` — `EG-11`, préexistantes) ; **`P-BL1`/`P-BL2`/`P-BL3` OK** | vert |
 | `npm run data:baseline -- --profile dev --check` | `RESULTAT : artefacts conformes` (3 snapshots) | vert |
 | `npm run data:baseline -- --profile test --check` | `RESULTAT : artefacts conformes` (3 snapshots) | vert |
+| `npx vitest run --config vitest.review.config.ts tests/review/D9 tests/review/patho/valeurs.test.ts` | **100 passed (100)** — les 10 fichiers de sonde qui emploient `loadRealReferenceData()`, corrigé en §7.1 ; **aucune sonde de revue n'emploie le `FixtureDataProvider`** (vérifié par `grep`), donc le reste de `test:review` est hors de portée de ce lot | vert |
 | `KYCAR_E2E_PORT=4181 npx playwright test -g "EX-NFR-9 —" --project=desktop` | premier chiffre médiane **1 537 ms** / budget 2 000 ms ; annonces **1,00 fois** le fichier ; 1 passed | vert |
 
 Les trois sondes neuves de `data:check` sont **recalculées depuis le NDJSON lui-même**, sans le code
@@ -523,5 +524,5 @@ KYCAR_E2E_PORT=4181 npx playwright test -g "EX-NFR-9 —" --project=desktop
 2 000 ms. **`C-R1-02` est asserté et tenu** : exactement une fois le fichier (1,00).
 
 Seuls `EX-NFR-9` et `EX-NFR-9bis` ont été rejoués, sur un seul projet (`desktop`), conformément à la
-mission. **La suite E2E complète reste à rejouer par le coordinateur**, sur les trois projets — en
+mission. **La suite E2E complète, `npm test` et `npm run test:review` complets restent à rejouer par le coordinateur**, sur les trois projets — en
 particulier `EX-NFR-9` sur `tablet` et `mobile`, où la recette avait relevé 14 742 ms et 8 195 ms.
