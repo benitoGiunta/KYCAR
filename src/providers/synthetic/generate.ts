@@ -141,6 +141,19 @@ export interface MetricColumns {
   readonly makeId: ArrayLike<number>;
   readonly modelId: ArrayLike<number>;
   readonly ingestFlags: ArrayLike<number>;
+  /**
+   * Statut de prix (EX-DATA-18) : `V_price` n'admet que `QUOTED` (`isPriceValid` du moteur).
+   * Ajoutée en 3.5 (DR3-20) pour que l'agrégation du provider emploie LE prédicat du moteur et non
+   * une paraphrase. Remplie dans la passe de génération du noyau, JAMAIS par la matérialisation
+   * paresseuse des colonnes de présentation : le chemin critique ne paie rien de plus (DR-049).
+   */
+  readonly priceStatus: ArrayLike<number>;
+  /**
+   * `12·année + (mois−1)` de la PREMIÈRE IMMATRICULATION. Ajoutée en 3.5 (DR3-20) : `EX-DATA-25`
+   * impose `firstRegistrationYear` — « jamais `modelYear` » — comme axe année de TOUS les agrégats,
+   * et l'agrégation du provider lisait `modelYear`. Remplie, elle aussi, dans la passe du noyau.
+   */
+  readonly firstRegistrationYearMonth: ArrayLike<number>;
 }
 
 /**
@@ -695,6 +708,8 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
       makeId: core.cols.makeId,
       modelId: core.cols.modelId,
       ingestFlags: core.cols.ingestFlags,
+      priceStatus: core.cols.priceStatus,
+      firstRegistrationYearMonth: core.cols.firstRegistrationYearMonth,
     },
     get columns(): CoreColumns {
       materializePresentation(core);

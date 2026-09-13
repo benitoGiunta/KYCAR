@@ -1,81 +1,122 @@
 /**
  * KYCAR — Agrégation interne du provider synthétique (mode 1, EX-DATA-111)
  * =================================================================================================
- * Agrégation CORRECTE (percentiles exacts, effectifs entiers) mais volontairement simple : le moteur
+ * Agrégation CORRECTE (quantiles exacts, effectifs entiers) mais volontairement simple : le moteur
  * optimisé (balayage colonnaire, worker) est le lot D4, développé en parallèle. Ici, l'objectif est
  * un provider AUTONOME et TESTABLE — les agrégats se calculent directement sur les colonnes en
  * mémoire, SANS matérialiser la zone de chaînes (DR-049 : la baseline est sur le chemin critique du
  * premier affichage, les annonces individuelles n'y sont pas).
  *
- * `MetricRange` (min/max/p05/p50/p95/n) est calculé sur l'ÉCHANTILLON VALIDE d'EX-DATA-60 (DR-001) :
- * valeur connue (hors sentinelle `-1`) ET aucun drapeau d'ingestion qui la disqualifie —
- * `PRICE_SENTINEL_ABSOLUTE` / `PRICE_OUT_OF_RANGE` pour le prix (ARB-15 : l'annonce reste COMPTÉE
- * dans `listingCount`, elle sort seulement de `V_price`), `SUSPECT_ZERO_MILEAGE` /
- * `MILEAGE_OUT_OF_RANGE` pour le kilométrage. Les percentiles sont exacts par rang le plus proche
- * (EX-DATA-111 : métriques entières).
+ * UNE SEULE DÉFINITION DANS LE PRODUIT (`DR3-20`, arbitrage `D3-37`, phase 3.5)
+ * -------------------------------------------------------------------------------------------------
+ * Ce module servait jusqu'ici des percentiles « au RANG LE PLUS PROCHE » `x_⌈p·n⌉`, un échantillon de
+ * prix privé de la seule sentinelle ABSOLUE, et un axe année tiré de `modelYear`. Trois écarts avec
+ * la définition normative, dont les six `baseline.json` commités portaient la trace (6 954/6 954
+ * quantiles au rang le plus proche, 3 653 seulement conformes au type 7) :
  *
- * Les échantillons sont accumulés dans des `Int32Array` de taille exacte (deux passes) puis triés
- * par le tri natif des tableaux typés : à 100 000 lignes, cela divise par deux le coût de la
- * baseline par rapport à des tableaux JS triés par comparateur.
+ *   1. `EX-DATA-62` — « définition unique et NON NÉGOCIABLE » : tout quantile de KYCAR est le
+ *      **quantile de type 7** (interpolation linéaire entre statistiques d'ordre, convention R /
+ *      NumPy), calculé en double précision et SANS arrondi intermédiaire (`EX-DATA-63`) — l'arrondi
+ *      est de présentation, il appartient au rendu. `p05`/`p50`/`p95` ne sont donc plus des entiers.
+ *   2. `EX-DATA-19(2)` — la sentinelle RELATIVE `PRICE_IMPLAUSIBLE_IN_CELL` (`prix <
+ *      0,10 × médianeRéf(C)`, règle inapplicable sous 12 prix valides) exclut de `V_price` « au même
+ *      titre » que la sentinelle absolue ; l'annonce reste COMPTÉE dans `listingCount` (ARB-15).
+ *   3. `EX-DATA-25` — « l'axe année de TOUS les agrégats est `firstRegistrationYear`, jamais
+ *      `modelYear` » : `modelYear` reste un attribut d'annonce et un filtre, il n'alimente aucun
+ *      agrégat.
+ *
+ * Les trois points sont désormais servis par LE code du moteur (`src/engine/quantiles.ts`,
+ * `src/engine/implausible.ts`, `src/engine/flags.ts`), importé et non recopié : deux implémentations
+ * d'une définition « non négociable » sont exactement ce que `DR3-20` a coûté. La dépendance
+ * `src/providers` → `src/engine` est ACYCLIQUE dans le graphe de production (ces trois modules du
+ * moteur sont purs et ne dépendent que de `src/types` ; seul `src/engine/testkit.ts`, réservé aux
+ * tests et absent de `src/engine/index.ts`, remonte vers `src/providers`).
+ *
+ * `MetricRange` (min/max/p05/p50/p95/n) est calculé sur l'ÉCHANTILLON VALIDE d'EX-DATA-60 (DR-001) :
+ * valeur connue (hors sentinelle `-1`) ET aucun drapeau d'ingestion qui la disqualifie — statut
+ * `QUOTED`, `PRICE_SENTINEL_ABSOLUTE` / `PRICE_OUT_OF_RANGE` écartés pour le prix (ARB-15 : l'annonce
+ * reste COMPTÉE dans `listingCount`, elle sort seulement de `V_price`), `SUSPECT_ZERO_MILEAGE` /
+ * `MILEAGE_OUT_OF_RANGE` pour le kilométrage.
+ *
+ * Les échantillons sont accumulés dans des `Int32Array` (deux passes : compter, puis remplir) puis
+ * triés par le tri natif des tableaux typés : à 100 000 lignes, cela divise par deux le coût de la
+ * baseline par rapport à des tableaux JS triés par comparateur. Le seuil relatif d'`EX-DATA-19(2)`
+ * demande une passe PRÉALABLE sur les prix de la sélection (la médiane de référence de `C₃ = Σ`) —
+ * la même que le noyau fait déjà (`selectionImplausibleThreshold`) ; la passe de comptage compte
+ * alors un MAJORANT de `n_price` par groupe, et la passe de remplissage retient l'effectif exact.
  */
 
 import type { MakeAggregate, MetricRange, ModelAggregate } from '../DataProvider';
-import { MODEL_ID_UNRESOLVED, NUMERIC_UNKNOWN } from '../../types/sentinels';
-import { INGEST_FLAG_BIT } from '../../types/vocabularies';
+import { MODEL_ID_UNRESOLVED } from '../../types/sentinels';
+import {
+  isMileageValid,
+  isPriceValid,
+  isYearValid,
+  yearFromYearMonth,
+} from '../../engine/flags';
+import { implausibleInCellThreshold } from '../../engine/implausible';
+import { quantileFromSorted } from '../../engine/quantiles';
 import type { MetricColumns } from './generate';
 
-/** Masque des drapeaux qui excluent le PRIX de `V_price` (EX-DATA-60). */
-const PRICE_INVALID_MASK =
-  (1 << INGEST_FLAG_BIT.PRICE_SENTINEL_ABSOLUTE) | (1 << INGEST_FLAG_BIT.PRICE_OUT_OF_RANGE);
-/** Masque des drapeaux qui excluent le KILOMÉTRAGE de `V_mileage` (EX-DATA-60). */
-const MILEAGE_INVALID_MASK =
-  (1 << INGEST_FLAG_BIT.SUSPECT_ZERO_MILEAGE) | (1 << INGEST_FLAG_BIT.MILEAGE_OUT_OF_RANGE);
-
-/** Percentile par rang le plus proche sur un tableau trié croissant non vide (p dans [0, 1]). */
-function nearestRank(sorted: Int32Array, n: number, p: number): number {
-  const idx = Math.min(n - 1, Math.max(0, Math.ceil(p * n) - 1));
-  return sorted[idx] as number;
-}
-
-/** Construit un `MetricRange` à partir d'un échantillon DÉJÀ trié de `n` valeurs valides. */
-function rangeOfSorted(sorted: Int32Array, n: number): MetricRange {
+/**
+ * `MetricRange` d'un échantillon DÉJÀ TRIÉ croissant, de longueur exactement `n`.
+ *
+ * `p05`/`p50`/`p95` sont les quantiles de TYPE 7 (`EX-DATA-62`) du moteur — la MÊME fonction que
+ * `exactMetricStats`, sur les mêmes statistiques d'ordre, donc les mêmes doubles au bit près. Non
+ * arrondis (`EX-DATA-63`).
+ */
+function rangeOfSorted(sorted: Int32Array): MetricRange {
+  const n = sorted.length;
   if (n === 0) return { min: null, max: null, p05: null, p50: null, p95: null, n: 0 };
   return {
     min: sorted[0] as number,
     max: sorted[n - 1] as number,
-    p05: nearestRank(sorted, n, 0.05),
-    p50: nearestRank(sorted, n, 0.5),
-    p95: nearestRank(sorted, n, 0.95),
+    p05: quantileFromSorted(sorted, 0.05),
+    p50: quantileFromSorted(sorted, 0.5),
+    p95: quantileFromSorted(sorted, 0.95),
     n,
   };
 }
 
 /** Construit un `MetricRange` à partir de valeurs connues (déjà extraites, sentinelles exclues). */
 export function metricRange(values: number[]): MetricRange {
-  const n = values.length;
-  if (n === 0) return { min: null, max: null, p05: null, p50: null, p95: null, n: 0 };
   const sorted = Int32Array.from(values);
   sorted.sort();
-  return rangeOfSorted(sorted, n);
+  return rangeOfSorted(sorted);
 }
 
-/** Vrai si le PRIX de la ligne appartient à l'échantillon valide (EX-DATA-60). */
-function priceValid(batch: MetricColumns, i: number): boolean {
-  return (
-    (batch.priceEur[i] as number) !== NUMERIC_UNKNOWN &&
-    ((batch.ingestFlags[i] as number) & PRICE_INVALID_MASK) === 0
+/**
+ * Vrai si le PRIX de la ligne appartient à `V_price` au sens ABSOLU d'`EX-DATA-60` : statut
+ * `QUOTED`, valeur connue, ni `PRICE_SENTINEL_ABSOLUTE` ni `PRICE_OUT_OF_RANGE`. Le seuil RELATIF
+ * d'`EX-DATA-19(2)` s'applique APRÈS, sur cet ensemble-là (« privé des SEULES sentinelles absolues »).
+ */
+function priceValidAbsolute(batch: MetricColumns, i: number): boolean {
+  return isPriceValid(
+    batch.priceEur[i] as number,
+    batch.priceStatus[i] as number,
+    batch.ingestFlags[i] as number,
   );
 }
 
 /** Vrai si le KILOMÉTRAGE de la ligne appartient à l'échantillon valide (EX-DATA-60). */
 function mileageValid(batch: MetricColumns, i: number): boolean {
-  return (
-    (batch.mileageKm[i] as number) !== NUMERIC_UNKNOWN &&
-    ((batch.ingestFlags[i] as number) & MILEAGE_INVALID_MASK) === 0
-  );
+  return isMileageValid(batch.mileageKm[i] as number, batch.ingestFlags[i] as number);
 }
 
-/** Un groupe en cours d'accumulation : effectif total et trois échantillons métriques. */
+/** Année civile de PREMIÈRE IMMATRICULATION (EX-DATA-25), ou `null` si inconnue (EX-DATA-26). */
+function yearOf(batch: MetricColumns, i: number): number | null {
+  const ym = batch.firstRegistrationYearMonth[i] as number;
+  return isYearValid(ym) ? yearFromYearMonth(ym) : null;
+}
+
+/**
+ * Un groupe en cours d'accumulation : effectif total et trois échantillons métriques.
+ *
+ * `price` est alloué à la taille de l'échantillon ABSOLUMENT valide — un MAJORANT : la sentinelle
+ * relative d'`EX-DATA-19(2)`, qui dépend d'une médiane de la sélection entière, n'est connue qu'après
+ * la passe de comptage. `nPrice` porte l'effectif RÉELLEMENT retenu ; le `MetricRange` se lit donc
+ * sur `price.subarray(0, nPrice)`, jamais sur le tableau entier.
+ */
 interface Group {
   listingCount: number;
   nPrice: number;
@@ -96,14 +137,50 @@ function forEachRow(rowCount: number, rowIndices: Iterable<number> | null, visit
 }
 
 /**
- * Accumule les groupes en DEUX passes : la première compte (effectif total et effectif de chaque
- * métrique valide), la seconde remplit des `Int32Array` de taille exacte.
+ * Seuil relatif `0,10 × médianeRéf(C₃ = Σ)` de la sélection (`EX-DATA-19(2)`), ou `null` quand la
+ * règle ne s'applique pas (moins de 12 prix valides). `médianeRéf` est la médiane — de type 7, comme
+ * tout quantile — de `V_price(Σ)` privé des SEULES sentinelles absolues ; la règle relative n'entre
+ * jamais dans son propre calcul, et le passage est UNIQUE (aucune itération, aucun point fixe).
+ *
+ * Réplique EXACTE de `selectionImplausibleThreshold` du noyau, dont la signature exige un
+ * `ListingColumnBatch` et un `Int32Array` de lignes que ce module n'a pas : le RATIO, le PLANCHER
+ * d'effectif et la définition de la médiane viennent tous du moteur, seule la boucle est locale.
+ *
+ * La cellule est celle de la SÉLECTION (`C₃ = Σ`, `EX-DATA-86`), jamais celle d'un groupe : le même
+ * seuil sert la sélection, les groupes marque et les groupes modèle — sans quoi l'invariant I3
+ * (`Σ n(marque) = n(Σ)`) tomberait. `makeScope` d'`aggregateByModel` ne restreint que les groupes
+ * ÉMIS, pas la sélection : il n'entre donc pas dans ce calcul.
+ */
+function selectionRelativeThreshold(
+  batch: MetricColumns,
+  rowIndices: Iterable<number> | null,
+): number | null {
+  const prices: number[] = [];
+  forEachRow(batch.rowCount, rowIndices, (i) => {
+    if (priceValidAbsolute(batch, i)) prices.push(batch.priceEur[i] as number);
+  });
+  if (prices.length === 0) return null;
+  const sorted = Float64Array.from(prices).sort();
+  return implausibleInCellThreshold(quantileFromSorted(sorted, 0.5), sorted.length);
+}
+
+/** Vrai si le prix de la ligne entre dans `V_price` : validité absolue ET au-dessus du seuil relatif. */
+function priceInSample(batch: MetricColumns, i: number, threshold: number | null): boolean {
+  if (!priceValidAbsolute(batch, i)) return false;
+  return threshold === null || (batch.priceEur[i] as number) >= threshold;
+}
+
+/**
+ * Accumule les groupes en DEUX passes : la première compte (effectif total, majorant de l'effectif de
+ * prix, effectifs exacts de kilométrage et d'année), la seconde remplit les `Int32Array`.
  * @param keyOf clé de groupe d'une ligne, ou `-1` pour l'écarter.
+ * @param threshold seuil relatif d'`EX-DATA-19(2)` de la sélection, ou `null`.
  */
 function accumulate(
   batch: MetricColumns,
   rowIndices: Iterable<number> | null,
   keyOf: (i: number) => number,
+  threshold: number | null,
 ): Map<number, Group> {
   const groups = new Map<number, Group>();
   const counts = new Map<number, [number, number, number, number]>();
@@ -116,9 +193,9 @@ function accumulate(
       counts.set(key, c);
     }
     c[0] += 1;
-    if (priceValid(batch, i)) c[1] += 1;
+    if (priceValidAbsolute(batch, i)) c[1] += 1;
     if (mileageValid(batch, i)) c[2] += 1;
-    if ((batch.modelYear[i] as number) !== NUMERIC_UNKNOWN) c[3] += 1;
+    if (yearOf(batch, i) !== null) c[3] += 1;
   });
   for (const [key, c] of counts) {
     groups.set(key, {
@@ -135,7 +212,7 @@ function accumulate(
     const key = keyOf(i);
     if (key < 0) return;
     const g = groups.get(key) as Group;
-    if (priceValid(batch, i)) {
+    if (priceInSample(batch, i, threshold)) {
       g.price[g.nPrice] = batch.priceEur[i] as number;
       g.nPrice += 1;
     }
@@ -143,8 +220,8 @@ function accumulate(
       g.mileage[g.nMileage] = batch.mileageKm[i] as number;
       g.nMileage += 1;
     }
-    const y = batch.modelYear[i] as number;
-    if (y !== NUMERIC_UNKNOWN) {
+    const y = yearOf(batch, i);
+    if (y !== null) {
       g.year[g.nYear] = y;
       g.nYear += 1;
     }
@@ -154,13 +231,15 @@ function accumulate(
 
 /** Fige les trois échantillons d'un groupe en `MetricRange` (tri natif des tableaux typés). */
 function rangesOf(g: Group): { price: MetricRange; mileage: MetricRange; year: MetricRange } {
-  g.price.sort();
+  // `price` est un MAJORANT (voir `Group`) : on ne trie et ne lit que les `nPrice` premières cases.
+  const price = g.price.subarray(0, g.nPrice);
+  price.sort();
   g.mileage.sort();
   g.year.sort();
   return {
-    price: rangeOfSorted(g.price, g.nPrice),
-    mileage: rangeOfSorted(g.mileage, g.nMileage),
-    year: rangeOfSorted(g.year, g.nYear),
+    price: rangeOfSorted(price),
+    mileage: rangeOfSorted(g.mileage),
+    year: rangeOfSorted(g.year),
   };
 }
 
@@ -170,7 +249,7 @@ function rangesOf(g: Group): { price: MetricRange; mileage: MetricRange; year: M
  * par ligne et par passe. Réservé au chemin de la BASELINE (`rowIndices === null`), le seul qui soit
  * sur le chemin critique du premier affichage (DR-049).
  */
-function accumulateByMakeDense(batch: MetricColumns): Map<number, Group> {
+function accumulateByMakeDense(batch: MetricColumns, threshold: number | null): Map<number, Group> {
   const makeCol = batch.makeId;
   let maxMakeId = 0;
   for (let i = 0; i < batch.rowCount; i += 1) {
@@ -185,9 +264,9 @@ function accumulateByMakeDense(batch: MetricColumns): Map<number, Group> {
   for (let i = 0; i < batch.rowCount; i += 1) {
     const m = makeCol[i] as number;
     total[m] = (total[m] as number) + 1;
-    if (priceValid(batch, i)) nPrice[m] = (nPrice[m] as number) + 1;
+    if (priceValidAbsolute(batch, i)) nPrice[m] = (nPrice[m] as number) + 1;
     if (mileageValid(batch, i)) nMileage[m] = (nMileage[m] as number) + 1;
-    if ((batch.modelYear[i] as number) !== NUMERIC_UNKNOWN) nYear[m] = (nYear[m] as number) + 1;
+    if (yearOf(batch, i) !== null) nYear[m] = (nYear[m] as number) + 1;
   }
   const groups = new Map<number, Group>();
   const byMake: (Group | undefined)[] = new Array(size);
@@ -207,7 +286,7 @@ function accumulateByMakeDense(batch: MetricColumns): Map<number, Group> {
   }
   for (let i = 0; i < batch.rowCount; i += 1) {
     const g = byMake[makeCol[i] as number] as Group;
-    if (priceValid(batch, i)) {
+    if (priceInSample(batch, i, threshold)) {
       g.price[g.nPrice] = batch.priceEur[i] as number;
       g.nPrice += 1;
     }
@@ -215,8 +294,8 @@ function accumulateByMakeDense(batch: MetricColumns): Map<number, Group> {
       g.mileage[g.nMileage] = batch.mileageKm[i] as number;
       g.nMileage += 1;
     }
-    const y = batch.modelYear[i] as number;
-    if (y !== NUMERIC_UNKNOWN) {
+    const y = yearOf(batch, i);
+    if (y !== null) {
       g.year[g.nYear] = y;
       g.nYear += 1;
     }
@@ -281,10 +360,11 @@ export function aggregateByMake(
   coverage: number | null,
 ): MakeAggregate[] {
   const makeCol = batch.makeId;
+  const threshold = selectionRelativeThreshold(batch, rowIndices);
   const groups =
     rowIndices === null
-      ? accumulateByMakeDense(batch)
-      : accumulate(batch, rowIndices, (i) => makeCol[i] as number);
+      ? accumulateByMakeDense(batch, threshold)
+      : accumulate(batch, rowIndices, (i) => makeCol[i] as number, threshold);
   const modelCounts = distinctModelCountByMake(batch, rowIndices);
   const rows: MakeAggregate[] = [];
   for (const [makeId, g] of groups) {
@@ -315,11 +395,17 @@ export function aggregateByModel(
   const makeCol = batch.makeId;
   const modelCol = batch.modelId;
   // Clé composite entière : `makeId × 1 000 000 + modelId` (identifiants < 10^6, taxonomie réelle).
-  const groups = accumulate(batch, rowIndices, (i) => {
-    const makeId = makeCol[i] as number;
-    if (makeScope !== undefined && makeId !== makeScope) return -1;
-    return makeId * 1_000_000 + (modelCol[i] as number);
-  });
+  const threshold = selectionRelativeThreshold(batch, rowIndices);
+  const groups = accumulate(
+    batch,
+    rowIndices,
+    (i) => {
+      const makeId = makeCol[i] as number;
+      if (makeScope !== undefined && makeId !== makeScope) return -1;
+      return makeId * 1_000_000 + (modelCol[i] as number);
+    },
+    threshold,
+  );
   const rows: ModelAggregate[] = [];
   for (const [key, g] of groups) {
     rows.push({
