@@ -536,13 +536,15 @@ button:disabled {
 .kycar-app button,
 .kycar-app select,
 .kycar-app summary,
-.kycar-app [role='button'],
 .kycar-app input[type='search'],
 .kycar-app input[type='text'],
 .kycar-app input[type='number'],
 .kycar-app label {
   min-height: 32px;
 }
+
+/* `[role='button']` est retiré du bloc ci-dessus depuis `C-R1-05` : voir le commentaire de
+   `:where(.kycar-app [role='button'])` plus bas, où sa règle de `min-height` a été déplacée. */
 
 .kycar-app a {
   display: inline-flex;
@@ -575,9 +577,28 @@ button:disabled {
  * règle de composant les emporte désormais, quel que soit l'ordre des feuilles. Ce qui change
  * effectivement : la zone-modèle retrouve son `gap: 2px` et son `min-width: 0` (elle les déclare, ils
  * étaient écrasés à 4px et 32px) et son `display: contents` compact passe sans contournement ;
- * l'en-tête de carte retrouve son `gap: var(--space-2)`. Le PLANCHER DE CIBLE TACTILE ci-dessus
- * (`min-height`) garde en revanche sa spécificité ordinaire : `EX-SCR-21` est une exigence
- * d'accessibilité, pas un défaut de mise en page, et un composant n'a pas à pouvoir passer dessous.
+ * l'en-tête de carte retrouve son `gap: var(--space-2)`.
+ *
+ * `C-R1-05` (constat coordinateur D3-39, 2026-09-13) — CORRECTION du paragraphe qui suivait ici
+ * (« le plancher de cible tactile (`min-height`) garde en revanche sa spécificité ordinaire :
+ * `EX-SCR-21` est une exigence d'accessibilité ... un composant n'a pas à pouvoir passer dessous »).
+ * Ce raisonnement traitait `min-height` comme un PLAFOND qu'un composant chercherait à contourner,
+ * alors que c'est un PLANCHER : un composant qui déclare une valeur PLUS GRANDE que le plancher
+ * (`.kycar-market-card-header`, 72px, `EX-SCR-107`) ne « passe » jamais dessous, il le dépasse déjà.
+ * Le vrai problème est ailleurs : CSS ne fait pas de `max()` entre deux déclarations concurrentes de
+ * la même propriété, la règle qui GAGNE remplace entièrement l'autre — y compris quand elle est plus
+ * PETITE que ce que le composant demandait. Mesuré (`data-fix-2`, `reports/data/data-fix-2.md` §9) :
+ * `.kycar-market-card-header` (0-0-1-0, `min-height: 72px` dans `market.css`) perdait contre la règle
+ * `min-height` de ce fichier (alors 0-0-2-0, 32px en large / 44px en compact) et rendait 32/44px au
+ * lieu de 72px, amputant chaque carte-marque de 40px (le calcul `EX-SCR-122` — 588px repliés — pose
+ * 72px d'en-tête). Même remède que ci-dessus : `min-height` rejoint `:where(.kycar-app
+ * [role='button'])`, spécificité nulle. Les deux autres porteurs de `role='button'` restent couverts
+ * PAR DÉFAUT (rien ne les bat) : la zone-modèle (`.kycar-market-zone-interactive` ne déclare aucun
+ * `min-height` propre — sa hauteur vient du contenu et du plancher de `.kycar-market-zone`, 72px en
+ * large / 96px en compact, largement au-dessus du seuil tactile) et le `<rect>` d'histogramme (SVG,
+ * `min-height` sans effet sur cet élément). Les AUTRES cibles du plancher (`button`, `select`,
+ * `summary`, `input`, `label`, `a`) restent à spécificité ordinaire dans le bloc ci-dessus : aucune
+ * n'a montré de composant réclamant une hauteur propre supérieure au plancher.
  */
 .kycar-app button {
   min-width: 32px;
@@ -588,6 +609,7 @@ button:disabled {
 }
 
 :where(.kycar-app [role='button']) {
+  min-height: 32px;
   min-width: 32px;
   display: inline-flex;
   align-items: center;
@@ -608,7 +630,6 @@ button:disabled {
   .kycar-app button,
   .kycar-app select,
   .kycar-app summary,
-  .kycar-app [role='button'],
   .kycar-app input[type='search'],
   .kycar-app input[type='text'],
   .kycar-app input[type='number'],
@@ -620,13 +641,19 @@ button:disabled {
     min-height: 44px;
   }
 
-  /* `C-R1-04` : même partage qu'au-dessus — plancher de cible tactile à spécificité ordinaire,
-     boîte à spécificité nulle (`:where()`), voir le commentaire du bloc de base. */
+  /* `C-R1-04`/`C-R1-05` : même partage qu'au-dessus — boîte et plancher de cible tactile
+     réunis à spécificité nulle (`:where()`) pour `[role='button']`, voir le commentaire du bloc
+     de base. `.kycar-market-card-header` ne redéclare pas de `min-height` propre au régime
+     compact (aucune exigence ne le demande, `EX-SCR-135` est muet sur l'en-tête de carte : la
+     valeur large de `EX-SCR-107`, 72px, s'applique donc à tous les régimes, hypothèse E4) ; ce
+     plancher à 44px reste néanmoins le défaut pour tout futur `[role='button']` qui n'aurait pas
+     sa propre hauteur. */
   .kycar-app button {
     min-width: 44px;
   }
 
   :where(.kycar-app [role='button']) {
+    min-height: 44px;
     min-width: 44px;
   }
 
