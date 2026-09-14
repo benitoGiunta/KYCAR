@@ -66,8 +66,8 @@ par lui mais non revalidé de bout en bout).
 
 **LIVRÉ le 2026-09-14 — `v0.1.0`** (D3-45) : après `fix-app-4`, `fix-screens-5`, ACC-25 (harnais) et `fix-app-5` (ACC-26), la recette
 rev 5 sur `e39b3d3` a rendu G9 **FRANCHIE SOUS RÉSERVES NOMMÉES** et l'avis « livrer tel quel » ; `claude/kycar-project-ffcplk`
-fusionnée `--no-ff` dans `main` (`5fe7e89`, poussé), notes `docs/RELEASE-NOTES-v0.1.0.md`. **Le tag `v0.1.0` n'a PAS pu être poussé
-depuis la session** (403 sur `refs/tags/*`) : à poser depuis la machine locale, compte perso, sur `5fe7e89` (commande exacte en D3-45). **Plan 3 clos.** Reliquat v0.1.1 :
+fusionnée `--no-ff` dans `main` (`5fe7e89`, poussé), notes `docs/RELEASE-NOTES-v0.1.0.md`. Le tag `v0.1.0` (refusé depuis la session, 403 sur `refs/tags/*`) a été **posé par le
+commanditaire depuis sa machine le 2026-09-14** et pointe sur `5fe7e89` (vérifié par `git ls-remote`). **Livraison complète.** **Plan 3 clos.** Reliquat v0.1.1 :
 ACC-22, ACC-23, ACC-27 (présentation), dettes D3-19/20/26/27/28, D3-34 c, D3-39b/c, D3-40b, D3-42a/b, D3-43a/b, D3-44a,
 D8-15, D8-43 résiduel ; hors plan : AC-01 (provider réel), `DataProvider` v2. Toute nouvelle branche de travail part de `main`.
 
