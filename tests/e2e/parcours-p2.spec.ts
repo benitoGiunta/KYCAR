@@ -543,3 +543,243 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     expect(url.searchParams.get('priceto')).toBe('20000');
   });
 });
+
+/* ================================================================================================
+ * ACC-19 — « Convertir la sélection en filtre » (recette rev 3 §8, `EX-SCR-158`/`184`, `D-03`)
+ * ================================================================================================
+ * Constat : après un brossage de 310 annonces, le bouton retirait `selx`/`sely` de l'URL et ne
+ * posait AUCUN filtre — URL `?priceto=20000`, 331 offres, un seul jeton, aucun bandeau, sur les deux
+ * projections. Cause : deux navigations (`onApplyFilters` puis `onUiChange`), la seconde sérialisant
+ * la sélection PÉRIMÉE par-dessus la première. `E2E-06` ne vérifiait que la PRÉSENCE des boutons.
+ *
+ * Ce que la sonde exige, pour chaque projection :
+ *   1. l'URL porte les jetons de prix, d'année et de kilométrage issus du brossage, et plus
+ *      `selx`/`sely` ;
+ *   2. le bandeau de filtres montre plus d'un jeton ;
+ *   3. l'effectif affiché est celui de la sélection brossée, **dérivé** : il n'est jamais inférieur
+ *      au nombre de lignes que « Voir ces annonces » donne pour le MÊME brossage (la boîte
+ *      englobante contient toutes les annonces brossées), jamais supérieur à l'effectif d'avant, et
+ *      il est retrouvé à l'identique en rouvrant l'URL produite dans un contexte neuf ;
+ *   4. le retour arrière rend EXACTEMENT l'URL brossée : une seule entrée d'historique (`EX-NAV-2x`).
+ */
+test.describe('ACC-19 — la conversion du brossage pose RÉELLEMENT les filtres', () => {
+  /** Bornes d'un brossage réel, relevées sur l'URL produite. */
+  const bornes = (search: string): Record<string, string | null> => {
+    const p = new URLSearchParams(search);
+    return {
+      pricefrom: p.get('pricefrom'),
+      priceto: p.get('priceto'),
+      kmfrom: p.get('kmfrom'),
+      kmto: p.get('kmto'),
+      fregfrom: p.get('fregfrom'),
+      fregto: p.get('fregto'),
+      selx: p.get('selx'),
+      sely: p.get('sely'),
+    };
+  };
+
+  for (const projection of ['Nuée empilée', 'Prix × année'] as const) {
+    test(`projection « ${projection} » : brosser → convertir pose les filtres de la sélection`, async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        regimeOf(testInfo) === 'compact',
+        'EX-NFR-19 : sous 768 px le nuage est servi en projection 2D dégradée, brossage désactivé par contrat',
+      );
+      const base = `${P2_PATH}?priceto=20000`;
+      await open(page, base);
+      if (projection === 'Prix × année') {
+        await page.locator('[data-graph="G4"]').getByRole('tab', { name: projection }).click();
+        await page.waitForFunction(() => window.location.search.includes('g4v='), null, { timeout: 20_000 });
+      }
+
+      const sigmaAvant = await readSelectionCount(page);
+      await brushScatter(page);
+      await page.waitForFunction(() => window.location.search.includes('selx='), null, { timeout: 20_000 });
+      const brossee = `${new URL(page.url()).pathname}${new URL(page.url()).search}`;
+      const selectionnees = parseInteger(await page.locator('.kycar-scatter-selcount').innerText());
+      expect(selectionnees).toBeGreaterThan(0);
+
+      // (a) référence : ce que le MÊME brossage donne à l'écran D (« Voir ces annonces », `sel`).
+      await page.getByRole('button', { name: 'Voir ces annonces' }).click();
+      await expect(page.locator('.kycar-listings-head')).toBeVisible({ timeout: 60_000 });
+      const lignes = parseInteger(await page.locator('.kycar-listings-scope').innerText());
+      mesure(
+        testInfo,
+        `ACC-19 — ${projection} : brossées / listées / Σ avant`,
+        `${selectionnees} brossées · ${lignes} lignes · Σ ${sigmaAvant}`,
+      );
+
+      // (b) retour à l'URL brossée (EX-NAV-18 : le rendu est une fonction pure de l'URL), puis
+      //     conversion — c'est l'action mise en cause par ACC-19.
+      await open(page, brossee);
+      await expect(page.locator('.kycar-scatter-selcount')).toContainText('sélectionnées', { timeout: 30_000 });
+      await page.getByRole('button', { name: 'Convertir la sélection en filtre' }).click();
+      await page.waitForFunction(() => !window.location.search.includes('selx='), null, { timeout: 20_000 });
+
+      const apres = new URL(page.url());
+      const posees = bornes(apres.search);
+      mesure(testInfo, `ACC-19 — ${projection} : URL après conversion`, `${apres.pathname}${apres.search}`);
+
+      // 1. les bornes brossées sont DANS l'URL, le brossage n'y est plus.
+      expect(posees.selx).toBeNull();
+      expect(posees.sely).toBeNull();
+      expect(posees.pricefrom).not.toBeNull();
+      expect(posees.priceto).not.toBeNull();
+      expect(posees.kmfrom).not.toBeNull();
+      expect(posees.kmto).not.toBeNull();
+      expect(posees.fregfrom).not.toBeNull();
+      expect(posees.fregto).not.toBeNull();
+      expect(Number(posees.pricefrom)).toBeLessThanOrEqual(Number(posees.priceto));
+
+      // 2. le bandeau de filtres le montre : plus d'un jeton (il n'y en avait qu'un, « Prix : ≤ … »).
+      await expect.poll(() => page.locator('.kycar-token').count(), { timeout: 20_000 }).toBeGreaterThan(1);
+
+      // 3. l'effectif affiché est celui de la sélection brossée, DÉRIVÉ.
+      await expect.poll(() => readSelectionCount(page), { timeout: 30_000 }).toBeLessThan(sigmaAvant);
+      const sigmaApres = await readSelectionCount(page);
+      mesure(testInfo, `ACC-19 — ${projection} : Σ après conversion`, String(sigmaApres));
+      // La boîte englobante contient toutes les annonces brossées : l'effectif ne peut donc PAS
+      // tomber sous ce que « Voir ces annonces » listait — SAUF si une borne brossée sort du
+      // domaine relevé sur AutoScout24 (`pricefrom` commence à 500 €, `EX-NAV-21` classe 2). Dans
+      // ce cas la borne est ramenée au domaine et l'écart est DIT par `ET-URL-CORRIGEE` : c'est une
+      // correction sincère, pas un silence (`D-03`). La sonde exige l'un ou l'autre, jamais un
+      // effectif rogné sans explication.
+      const corrections = await page.locator('.kycar-banner-url-corrected').allInnerTexts();
+      mesure(
+        testInfo,
+        `ACC-19 — ${projection} : bandeau de correction`,
+        corrections.join(' | ').replace(/\n/g, ' ') || '(aucun)',
+      );
+      if (corrections.length === 0) {
+        expect(sigmaApres).toBeGreaterThanOrEqual(lignes);
+      } else {
+        expect(corrections.join(' ')).toMatch(/ramenée au domaine/i);
+        expect(sigmaApres).toBeGreaterThan(lignes * 0.95);
+      }
+
+      // 4. une seule entrée d'historique : le retour arrière rend EXACTEMENT l'URL brossée.
+      await page.goBack();
+      await page.waitForFunction(() => window.location.search.includes('selx='), null, { timeout: 20_000 });
+      expect(`${new URL(page.url()).pathname}${new URL(page.url()).search}`).toBe(brossee);
+      await expect.poll(() => readSelectionCount(page), { timeout: 30_000 }).toBe(sigmaAvant);
+
+      // 3bis. l'effectif n'est pas figé : rouvrir l'URL produite dans un contexte neuf le retrouve.
+      await open(page, `${apres.pathname}${apres.search}`);
+      expect(await readSelectionCount(page)).toBe(sigmaApres);
+    });
+  }
+
+  /**
+   * Brossage du CADRE ENTIER : le rectangle couvre le canvas d'un bord à l'autre, donc toute la
+   * nuée tracée, quels que soient les points extrêmes. Il est ainsi IDEMPOTENT — deux brossages
+   * successifs rendent la même boîte englobante — là où le rectangle 5 %–95 % de `brushScatter`
+   * rogne un peu plus à chaque passage (les extrêmes se replacent sur les bords après chaque
+   * filtrage). C'est ce qu'il faut pour atteindre le cas « la conversion n'ajoute aucun filtre ».
+   */
+  const brossageCadreEntier = async (page: Page): Promise<void> => {
+    const canvas = page.locator('[data-graph="G4"] canvas');
+    await canvas.scrollIntoViewIfNeeded();
+    let box = await canvas.boundingBox();
+    expect(box, 'canvas G4 absent ou invisible').not.toBeNull();
+    if (box === null) return;
+
+    // L'en-tête de la coquille et le bandeau de filtres sont COLLANTS, et ils GRANDISSENT au fil du
+    // parcours (un bandeau `ET-URL-CORRIGEE` s'ajoute après la première conversion, les jetons de
+    // filtres s'allongent) : le coin supérieur du canvas peut passer DESSOUS. Le `mousedown` tombe
+    // alors sur le bandeau — le geste n'atteint jamais le nuage. On fait donc défiler la page
+    // jusqu'à ce que le coin de départ appartienne vraiment au canvas.
+    const elementAu = (x: number, y: number): Promise<{ tag: string; bas: number } | null> =>
+      page.evaluate(
+        ([px, py]) => {
+          const el = document.elementFromPoint(px as number, py as number);
+          if (el === null) return null;
+          const r = el.getBoundingClientRect();
+          return { tag: el.tagName, bas: r.bottom };
+        },
+        [x, y],
+      );
+
+    for (let essai = 0; essai < 4; essai++) {
+      const dessus = await elementAu(box.x + 2, box.y + 2);
+      if (dessus === null || dessus.tag === 'CANVAS') break;
+      await page.mouse.wheel(0, -(dessus.bas - box.y + 16));
+      await page.waitForTimeout(200);
+      box = (await canvas.boundingBox()) ?? box;
+    }
+
+    const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
+    const x1 = Math.min(box.x + box.width - 1, viewport.width - 2);
+    const y1 = Math.min(box.y + box.height - 1, viewport.height - 2);
+    await page.mouse.move(box.x + 2, box.y + 2);
+    await page.mouse.down();
+    await page.mouse.move(x1, y1, { steps: 12 });
+    await page.mouse.up();
+  };
+
+  test('une conversion qui ne pose aucun filtre nouveau le DIT (D-03, jamais un silence)', async ({
+    page,
+  }, testInfo) => {
+    test.skip(regimeOf(testInfo) === 'compact', 'EX-NFR-19 : brossage désactivé par contrat en régime dégradé');
+    await open(page, `${P2_PATH}?priceto=20000`);
+
+    // Le premier brossage du cadre entier pose la boîte englobante de toute la nuée ; les suivants
+    // reposent la MÊME boîte (elle est déjà le domaine des points restants). Au plus tard au
+    // troisième passage — le temps que la borne de prix ramenée au domaine AS24 se stabilise — la
+    // conversion n'a plus rien à ajouter : c'est le cas à éprouver.
+    const cles = ['pricefrom', 'priceto', 'kmfrom', 'kmto', 'fregfrom', 'fregto'] as const;
+    const lire = (): Record<string, string | null> => {
+      const p = new URL(page.url()).searchParams;
+      return Object.fromEntries(cles.map((k) => [k, p.get(k)]));
+    };
+
+    for (let passage = 1; passage <= 4; passage++) {
+      // Le geste est rejoué si l'écran était encore en recalcul au moment du `mousedown` (le canvas
+      // est remonté à la fin du recalcul, et le glissement se perd) : c'est une fragilité du
+      // HARNAIS, pas un écart du produit — le fait mesuré est ce que fait la CONVERSION.
+      for (let essai = 1; essai <= 3; essai++) {
+        await expect(page.locator('[data-graph="G4"] canvas')).toBeVisible({ timeout: 30_000 });
+        // Le nuage est REPEINT (et son canvas remonté) à la fin du recalcul : on attend que son
+        // étiquette accessible soit stable avant de glisser, sinon le geste part sur un élément
+        // qui n'existe plus à l'instant du `mouseup`.
+        let etiquette = '';
+        await expect
+          .poll(
+            async () => {
+              const actuelle = await page.locator('[data-graph="G4"] canvas').getAttribute('aria-label');
+              const stable = actuelle !== null && actuelle === etiquette;
+              etiquette = actuelle ?? '';
+              return stable;
+            },
+            { timeout: 30_000, intervals: [600, 600, 600, 600, 600] },
+          )
+          .toBe(true);
+        await brossageCadreEntier(page);
+        try {
+          await page.waitForFunction(() => window.location.search.includes('selx='), null, { timeout: 8_000 });
+          break;
+        } catch (e) {
+          if (essai === 3) throw e;
+        }
+      }
+      const avant = lire();
+      const sigma = await readSelectionCount(page);
+      await page.getByRole('button', { name: 'Convertir la sélection en filtre' }).click();
+      await page.waitForFunction(() => !window.location.search.includes('selx='), null, { timeout: 20_000 });
+      const apres = lire();
+      const identiques = cles.every((k) => avant[k] === apres[k]);
+      const messages = await page.locator('.kycar-banner-message').allInnerTexts();
+      mesure(
+        testInfo,
+        `ACC-19 — conversion sans effet, passage ${passage}`,
+        `filtres inchangés=${identiques} · message=${messages.join(' | ').replace(/\n/g, ' ') || '(aucun)'}`,
+      );
+      if (!identiques) continue;
+      // Aucun filtre ajouté : l'action doit le DIRE, et l'effectif ne doit pas bouger.
+      expect(messages.join(' ')).toMatch(/aucun filtre/i);
+      await expect.poll(() => readSelectionCount(page), { timeout: 30_000 }).toBe(sigma);
+      return;
+    }
+    throw new Error('le brossage du cadre entier n’a jamais reposé la même boîte englobante en 4 passages');
+  });
+});

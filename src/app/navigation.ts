@@ -14,6 +14,8 @@
  */
 
 import { matchRoute, type ModelDistributionRoute, type ModelListingsRoute } from '../state/router';
+import type { SelectionState } from '../state/filter-types';
+import type { FilterValue } from '../types/selection';
 
 export type AppView =
   | { readonly kind: 'market' }
@@ -79,3 +81,42 @@ export function routeOfView(
   }
   return null;
 }
+
+/* ================================================================================================
+ * Pose d'un correctif de filtres (`ACC-19`) — fusion pure, et le message du cas « sans effet »
+ * ============================================================================================== */
+
+/**
+ * Fusionne un correctif de filtres dans une sélection, SANS muter l'entrée. Une valeur `undefined`,
+ * `null` ou une liste vide RETIRE le filtre (`EX-NAV-8` : une valeur vidée n'est jamais sérialisée
+ * `param=`) — c'est ce que le double-clic sur un histogramme (`EX-SCR-149`) et le retrait d'un jeton
+ * du bandeau envoient.
+ *
+ * Extraite d'`app.tsx` (`applyFilters`) par la remédiation `ACC-19` : la coquille doit pouvoir
+ * PRÉVOIR la requête résultante avant de naviguer, pour savoir si la conversion d'un brossage change
+ * réellement quelque chose — et le dire quand ce n'est pas le cas (`D-03`).
+ */
+export function mergeSelectionPatch(
+  selection: SelectionState,
+  patch: Readonly<Record<string, FilterValue | undefined | null>>,
+): SelectionState {
+  const next: Record<string, FilterValue> = { ...selection };
+  for (const [id, value] of Object.entries(patch)) {
+    if (value === undefined || value === null || (Array.isArray(value) && value.length === 0)) {
+      delete next[id];
+    } else {
+      next[id] = value;
+    }
+  }
+  return next;
+}
+
+/**
+ * `EX-SCR-158`/`184` et `D-03` — « Convertir la sélection en filtre » quand la boîte englobante du
+ * brossage est DÉJÀ celle des filtres actifs : l'action est licite, elle ne pose simplement aucun
+ * filtre nouveau. Elle ne doit pas se taire pour autant : un bouton qui semble ne rien faire est
+ * indiscernable du bouton mort qu'`ACC-19` a relevé.
+ */
+export const BRUSH_NO_NEW_FILTER_MESSAGE =
+  'La sélection brossée tient déjà entièrement dans les filtres actifs : aucun filtre n’a été ajouté, ' +
+  'seul le brossage a été retiré.';

@@ -14,7 +14,17 @@
  */
 import { test, expect } from '@playwright/test';
 
-import { derived, mesure, open, readMarketSummary, waitForMarket } from './_helpers';
+import {
+  applyFilterSheet,
+  derived,
+  mesure,
+  open,
+  openFilterSheet,
+  openNav,
+  readMarketSummary,
+  regimeOf,
+  waitForMarket,
+} from './_helpers';
 
 /** Le texte que doit porter l'étiquette d'un jeu de fixtures, quel que soit l'écran. */
 const FIXTURE_TEXT = /jeu de données fictif à la forme autoscout24/i;
@@ -123,5 +133,106 @@ test.describe('DF-2 — la bascule de source est un paramètre d’URL', () => {
     expect(text).toMatch(/non branchée/i);
     expect(text).toMatch(/AC-01/);
     await expect(page.locator('.kycar-footer-diagnostic dd').nth(1)).toHaveText('FIXTURE');
+  });
+});
+
+/* ================================================================================================
+ * ACC-20 — la bascule de source SURVIT dans l'URL (recette rev 3 §8, `DF-2`, `EX-NAV-21`, `D-03`)
+ * ================================================================================================
+ * Constat : toute URL portant `?provider=` était réécrite SANS le paramètre dès le chargement, avec
+ * le bandeau « Paramètre « provider » corrigé : paramètre inconnu ignoré » — alors que la source
+ * demandée AVAIT été appliquée. Un `F5` ou la copie de l'URL revenaient donc à `fixture:test`, et le
+ * bandeau annonçait « ignoré » ce qui avait été appliqué (contraire à `D-03`).
+ *
+ * `DF-2` : `?provider=` est « le plus explicite, et le SEUL qui se partage dans un lien ». Ce qui se
+ * partage doit survivre au chargement, à la pose d'un filtre, à un changement d'écran et à un
+ * rechargement — c'est ce que ces sondes exercent, dans cet ordre.
+ */
+test.describe('ACC-20 — le paramètre de bascule survit à chaque écriture d’URL', () => {
+  test('?provider=synthetic : conservé au chargement, sans bandeau « corrigé »', async ({ page }, testInfo) => {
+    await page.goto('/marche?provider=synthetic', { waitUntil: 'commit' });
+    await waitForMarket(page);
+
+    const url = new URL(page.url());
+    mesure(testInfo, 'ACC-20 — URL après chargement', `${url.pathname}${url.search}`);
+    expect(url.searchParams.get('provider')).toBe('synthetic');
+
+    // Aucun bandeau de correction d'URL : le paramètre est RÉSERVÉ, pas « inconnu » (EX-NAV-21).
+    await expect(page.locator('.kycar-banner-url-corrected')).toHaveCount(0);
+    const banners = await page.locator('.status-banner').allInnerTexts();
+    expect(banners.filter((b) => /corrigé|corrigée/i.test(b))).toEqual([]);
+    // La source demandée est bien celle qui sert.
+    await expect(page.locator('.kycar-footer-diagnostic dd').nth(1)).toHaveText('SYNTHETIC');
+  });
+
+  test('?provider=synthetic : conservé après la pose d’un filtre, un changement d’écran et un F5', async ({
+    page,
+  }, testInfo) => {
+    const compact = regimeOf(testInfo) === 'compact';
+    await page.goto('/marche?provider=synthetic', { waitUntil: 'commit' });
+    await waitForMarket(page);
+
+    // (1) pose d'un filtre réel : l'URL est réécrite par la coquille.
+    await openFilterSheet(page, compact);
+    await page.locator('.kycar-primary-line').getByLabel('Prix à', { exact: true }).fill('20000');
+    await applyFilterSheet(page, compact);
+    await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
+    const afterFilter = new URL(page.url());
+    mesure(testInfo, 'ACC-20 — URL après pose d’un filtre', `${afterFilter.pathname}${afterFilter.search}`);
+    expect(afterFilter.searchParams.get('provider')).toBe('synthetic');
+    expect(afterFilter.searchParams.get('priceto')).toBe('20000');
+
+    // (2) navigation vers un autre écran, puis retour : le paramètre voyage avec l'utilisateur.
+    await openNav(page);
+    await page.getByRole('link', { name: 'Recherches', exact: true }).click();
+    await expect(page.locator('#kycar-main h1').first()).toBeVisible({ timeout: 20_000 });
+    expect(new URL(page.url()).searchParams.get('provider')).toBe('synthetic');
+    await page.goBack();
+    await waitForMarket(page);
+    expect(new URL(page.url()).searchParams.get('provider')).toBe('synthetic');
+
+    // (3) rechargement : la source servie est encore la source demandée (le cœur d'ACC-20).
+    await page.reload({ waitUntil: 'commit' });
+    await waitForMarket(page);
+    expect(new URL(page.url()).searchParams.get('provider')).toBe('synthetic');
+    await expect(page.locator('.kycar-footer-diagnostic dd').nth(1)).toHaveText('SYNTHETIC');
+    await expect(page.locator('.kycar-banner-source')).toContainText(/données synthétiques/i);
+  });
+
+  test('?provider=<inconnu> : le repli est dit ET la demande reste lisible dans l’URL (D-03)', async ({
+    page,
+  }, testInfo) => {
+    await page.goto('/marche?provider=carrosserie-de-mon-oncle', { waitUntil: 'commit' });
+    await waitForMarket(page);
+
+    // Décision fix-app-4 (recommandation du coordinateur) : la valeur inconnue est CONSERVÉE — une
+    // URL partageable doit montrer ce qui a été DEMANDÉ ; ce qui est SERVI est dit par le bandeau.
+    const url = new URL(page.url());
+    mesure(testInfo, 'ACC-20 — URL après repli de source', `${url.pathname}${url.search}`);
+    expect(url.searchParams.get('provider')).toBe('carrosserie-de-mon-oncle');
+    await expect(page.locator('.kycar-banner-source-fallback')).toBeVisible();
+    // Le repli se dit par `ET-SOURCE-REPLI`, jamais par « paramètre inconnu ignoré ».
+    await expect(page.locator('.kycar-banner-url-corrected')).toHaveCount(0);
+    await expect(page.locator('.kycar-footer-diagnostic dd').nth(1)).toHaveText('FIXTURE');
+  });
+});
+
+/* ================================================================================================
+ * ACC-24 — la `coverageNote` est lisible quelque part (`D3-34 (d)`, décision : ligne Diagnostic)
+ * ============================================================================================== */
+test.describe('ACC-24 — note de couverture du snapshot', () => {
+  test('le panneau Diagnostic porte une ligne « Note de couverture » non vide', async ({ page }, testInfo) => {
+    await open(page, '/marche');
+    const ligne = page
+      .locator('.kycar-footer-diagnostic dl > div')
+      .filter({ hasText: 'Note de couverture' });
+    await expect(ligne).toHaveCount(1);
+    // Le panneau Diagnostic est un `<details>` REPLIÉ : `innerText` d'un contenu non rendu est vide.
+    // On lit le texte du document (`textContent`), comme les autres sondes du panneau (`toHaveText`).
+    const texte = ((await ligne.locator('dd').textContent()) ?? '').trim();
+    mesure(testInfo, 'ACC-24 — note de couverture', texte.replace(/\n/g, ' ').slice(0, 200));
+    expect(texte.length).toBeGreaterThan(20);
+    expect(texte).not.toBe('—');
+    expect(texte).not.toBe('aucune');
   });
 });

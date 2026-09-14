@@ -15,7 +15,7 @@ import type { DataController, Mode2Payload, StartResult } from './orchestration/
 import type { ReferenceData } from './types/reference';
 import type { ModelAggregate } from './providers/DataProvider';
 import type { SelectionState } from './state/filter-types';
-import { assembleUrl, serializeQuery } from './state/url-codec';
+import { assembleUrl, carryReservedParams, serializeQuery } from './state/url-codec';
 import { loadQuery, type Correction } from './state/corrections';
 import { serializeSelection } from './types/selection';
 import { FILTER_DEFAULTS } from './state/filter-registry';
@@ -60,7 +60,15 @@ import { MentionsPage } from './screens/mentions/index';
 import type { SelectionInput } from './types/index';
 import type { VocabularyName } from './types/vocabularies';
 import { MEDIA_QUERY_MOBILE, MEDIA_QUERY_TABLET } from './styles/breakpoints';
-import { resolveView, routeOfView, currentLocation, type AppView } from './app/navigation';
+import {
+  BRUSH_NO_NEW_FILTER_MESSAGE,
+  currentLocation,
+  mergeSelectionPatch,
+  resolveView,
+  routeOfView,
+  type AppView,
+} from './app/navigation';
+import { DIAGNOSTIC_FOLD_THRESHOLD, coverageNoteValue } from './app/diagnostics';
 import { removalPatchFor, topRestrictiveFilters } from './app/restrictive-filters';
 import { fixtureProfileOf, footerSourceLine, sourceNotice } from './app/source-notice';
 import { CapExceededError } from './persistence/index';
@@ -184,14 +192,25 @@ export function App(props: AppProps): JSX.Element {
   const [location, setLocation] = useState(currentLocation);
   const view = useMemo<AppView>(() => resolveView(location.pathname), [location.pathname]);
 
+  /**
+   * `ACC-20` — POINT DE PASSAGE UNIQUE de toute écriture d'URL (filtre, état d'interface, changement
+   * d'écran, canonisation de route). Les paramètres RÉSERVÉS de l'URL courante (`provider`, lu par
+   * `main.tsx` AVANT le routeur) y sont reconduits : sans cela, la première sérialisation effaçait
+   * la bascule de source et un `F5` revenait au défaut, alors que `DF-2` en fait « le seul
+   * paramètre qui se partage dans un lien ». La reconduction est lue sur `window.location` au
+   * moment de l'appel — c'est l'URL que le navigateur porte VRAIMENT, et `pushState` la met à jour
+   * de façon synchrone : deux navigations successives restent cohérentes.
+   */
   const navigate = useCallback((url: string, mode: 'push' | 'replace' = 'push'): void => {
+    const source = typeof window !== 'undefined' && window.location ? window.location.search : '';
+    const target = carryReservedParams(url, source);
     if (typeof window !== 'undefined' && window.history) {
-      if (mode === 'replace') window.history.replaceState({}, '', url);
-      else window.history.pushState({}, '', url);
+      if (mode === 'replace') window.history.replaceState({}, '', target);
+      else window.history.pushState({}, '', target);
     }
-    const qIndex = url.indexOf('?');
-    const pathname = qIndex === -1 ? url : url.slice(0, qIndex);
-    const search = qIndex === -1 ? '' : url.slice(qIndex);
+    const qIndex = target.indexOf('?');
+    const pathname = qIndex === -1 ? target : target.slice(0, qIndex);
+    const search = qIndex === -1 ? '' : target.slice(qIndex);
     setLocation({ pathname, search });
   }, []);
 
@@ -464,7 +483,9 @@ export function App(props: AppProps): JSX.Element {
     }
     const canonical = assembleUrl(
       location.pathname,
-      serializeQuery(selection, uiObj, { filterDefaults: FILTER_DEFAULTS }),
+      // `ACC-20` : la canonisation ne doit pas être le dernier endroit où la bascule de source
+      // disparaît — les paramètres réservés reçus sont réémis avec la requête corrigée.
+      serializeQuery(selection, uiObj, { filterDefaults: FILTER_DEFAULTS, reserved: parsedQuery.reserved }),
     ).url;
     setUrlCorrections(parsedQuery.corrections);
     setCorrectedFrom(location.search);
@@ -941,14 +962,7 @@ export function App(props: AppProps): JSX.Element {
    */
   const applyFilters = useCallback(
     (patch: SelectionInput, extraUi: Readonly<Record<string, string>> = {}): void => {
-      const next: SelectionState = { ...selection };
-      for (const [id, value] of Object.entries(patch)) {
-        if (value === undefined || value === null || (Array.isArray(value) && value.length === 0)) {
-          delete (next as Record<string, unknown>)[id];
-        } else {
-          (next as Record<string, unknown>)[id] = value;
-        }
-      }
+      const next = mergeSelectionPatch(selection, patch);
       const q = serializeQuery(next, extraUi, { filterDefaults: FILTER_DEFAULTS });
       // `EX-SCR-38bis` : le bandeau `ET-URL-CORRIGEE` vit jusqu'au prochain changement de filtre.
       setUrlCorrections([]);
@@ -1071,6 +1085,12 @@ export function App(props: AppProps): JSX.Element {
       ['Conflits de valeur sur doublon', String(d?.duplicateValueConflictCount ?? '—')],
       ['Journal des rejets d’ingestion', d === null || d === undefined ? '—' : `${d.rejectedCount} rejetées — ${counts(d.rejectedByReason)}`],
       ['Versions élaguées (taux)', d === null || d === undefined ? '—' : d.versionStrippedRate.toFixed(3)],
+      // `ACC-24` / `D3-34 (d)` — la `coverageNote` du snapshot (régime de vérification du `sha256`,
+      // artefact précalculé refusé, conditions hors vocabulaire, provenance CO₂, repli de source)
+      // n'était lisible que dans la ligne `# couverture` des CSV. Aucun chiffre n'en dépend : elle
+      // n'appelle pas de bandeau, mais elle a sa place ICI — dernière ligne, pour ne déplacer aucune
+      // des précédentes.
+      ['Note de couverture', coverageNoteValue(d?.coverageNote)],
     ];
   }, [start, controller, currentQuery, regime]);
 
@@ -1752,7 +1772,20 @@ export function App(props: AppProps): JSX.Element {
           }}
           onSaveSearch={() => saveCurrentSearch(defaultSearchName())}
           onUiChange={(next) => applyUiState(next)}
-          onApplyFilters={(patch) => applyFilters(patch)}
+          /* `ACC-19` (`EX-SCR-158`/`184`, `D-03`) — « Convertir la sélection en filtre » envoie le
+             correctif de filtres ET l'état d'interface sans brossage : UNE seule écriture d'URL,
+             donc une seule entrée d'historique, et plus de seconde navigation qui resérialisait la
+             sélection périmée par-dessus les filtres qui venaient d'être posés. Si la boîte
+             englobante brossée n'ajoute AUCUN filtre, l'action ne se tait pas. */
+          onApplyFilters={(patch, nextUi) => {
+            const extraUi =
+              nextUi === undefined
+                ? {}
+                : (Object.fromEntries(writeDistributionUiState(nextUi)) as Record<string, string>);
+            const posed = serializeQuery(mergeSelectionPatch(selection, patch), {}, { filterDefaults: FILTER_DEFAULTS });
+            applyFilters(patch, extraUi);
+            if (nextUi !== undefined && posed === currentQuery) setBanner(BRUSH_NO_NEW_FILTER_MESSAGE);
+          }}
           onViewBrushedListings={(sel) =>
             applyUiState({ ...EMPTY_UI_STATE, sel }, listingsPath(makeId, modelId))
           }
@@ -2090,7 +2123,19 @@ function AppFooter(props: {
           {props.diagnostics.map(([label, value]) => (
             <div key={label}>
               <dt>{label}</dt>
-              <dd>{value}</dd>
+              {/* `ACC-24` — une valeur LONGUE (la note de couverture dépasse 1 500 caractères) est
+                  pliée dans un `<details>` : le texte reste ENTIER dans le document — jamais
+                  tronqué — mais il ne noie pas les quatorze autres lignes du panneau. */}
+              <dd>
+                {value.length > DIAGNOSTIC_FOLD_THRESHOLD ? (
+                  <details class="kycar-diagnostic-long">
+                    <summary>{`${value.slice(0, 120).trimEnd()}… (${value.length} caractères)`}</summary>
+                    <p>{value}</p>
+                  </details>
+                ) : (
+                  value
+                )}
+              </dd>
             </div>
           ))}
         </dl>
