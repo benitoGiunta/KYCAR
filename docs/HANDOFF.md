@@ -64,6 +64,17 @@ test conforme. **Non rejoués** : `npm test` complet (sondes de revue ≈ 1 108,
 profil test, **`npm run test:e2e` complet** (dernier état connu : rouge avant `mvp-integrate`, réaligné
 par lui mais non revalidé de bout en bout).
 
+**État au 2026-09-14 (fin de la reprise, D3-37 → D3-41)** — étapes 1 à 5 de la procédure FAITES. Lots fusionnés depuis
+le 13 : `fixture-perf` (`9c0e593`), `fix-screens-3` (`bb11ad0`), `data-fix-2` (`5727937`), `fix-providers-3` (`9e36484`,
+quantiles type 7 + axe année EX-DATA-25, contrat 105), `fix-screens-4` (`ad3d050`, en-tête de carte 72 px) ; `data:baseline`
+rejoué en dernière écriture. **G9b** franchie sous réserves (toutes levées), **G9 FRANCHIE SOUS RÉSERVES NOMMÉES**
+(`reports/ACCEPTANCE.md` rev 3 : E2E 323 verts / 3 `test.fail()` D8-15 / 0 inattendu, axe 37/37, EX-NFR-9 ≈ 1,5 s, recalcul
+indépendant 4 716/4 716). **Reste avant le tag `v0.1.0`** (proposition D3-41, en attente du go du commanditaire) : ACC-19
+(« Convertir la sélection en filtre » inerte) et ACC-20 (`?provider=` effacé de l'URL) par `fix-app-4` ; ACC-17 (arrondi des
+années EX-DATA-64) et ACC-21 (médiane affichée pour n ≤ 4, EX-SCR-33) par `fix-screens-5` ; **ACC-18** (médiane A ≠ B sur
+159/1 464 modèles, sentinelle EX-DATA-19(2) sur Σ) = arbitrage de spécification ; puis `acceptance` rev 4 delta. Étape 6
+(clôture : EXECUTION-LOG chantier 3 ✅ fait, ce handoff ✅, CLAUDE.md §5 ✅) faite pour l'état courant.
+
 **Reprise du 2026-09-13 (session `kycar-a1`, décisions D3-33 → D3-36)** — étapes 1, 2 et 4 de la procédure
 ci-dessous FAITES : portes complètes rejouées ; **`fixture-perf` livré et fusionné** (`9c0e593`, D3-31 clos) : `baseline.json`
 précalculé par le vrai provider (`npm run data:baseline`), annonces différées, ouverture idempotente, préchargement
@@ -81,13 +92,13 @@ inattendu.** Reste : étape 3 (re-revue delta → G9b), un lot de retouches mine
 2. ✅ (2026-09-13, D3-33/D3-35/D3-36) **Rejouer les portes complètes** : `npm test`, `KYCAR_DATA_PROFILE=test npm run test:data`,
    `npm run test:contract`, puis `npm run test:e2e` (port 4180 libre, `reuseExistingServer: false`).
    Objectif E2E : 0 échec inattendu, 3 `test.fail()` D8-15. Tout échec = constat à traiter avant la suite.
-3. **Re-revue delta `data-review`** (Opus/high, nouvel agent, lecture seule sauf `reports/data/DATA-REVIEW.md`
+3. ✅ (2026-09-13, D3-37) **Re-revue delta `data-review`** (Opus/high, nouvel agent, lecture seule sauf `reports/data/DATA-REVIEW.md`
    §10) : rejouer `tests/data/` dev + test, juger une à une les 9 sondes amendées par `data-fix`, statuer
    **G9b**. Si rouge : `data-fix` (Opus/high) sur la sonde concernée, puis delta.
 4. ✅ (2026-09-13, D3-34) **`fixture-perf`** (Opus/high, D3-31) : agrégats mode 1 précalculés au manifest + lecture par le provider,
    mode 2 différé, référentiels et snapshot en parallèle ; mesure `EX-NFR-9` au **premier chiffre** (le jalon
    2.9 mesurait le squelette) ≤ 2 000 ms en 4G sur `fixture:test` ; sonde de contrat.
-5. **`acceptance` rev 3** (Fable/max) sur le build fixture : E2E 3 projets, axe, budgets (NFR-6/7/8/9),
+5. ✅ (2026-09-14, D3-41) **`acceptance` rev 3** (Fable/max) sur le build fixture : E2E 3 projets, axe, budgets (NFR-6/7/8/9),
    P1/P2 sur données fictives, statut des ACC et des DR3 → `reports/ACCEPTANCE.md` rev 3, **porte G9**.
 6. Clôture : `EXECUTION-LOG.md` (chantier 3), ce handoff, `CLAUDE.md` §5 (décomptes), push. Livraison
    (fusion `main`, tag) = décision explicite du commanditaire.
