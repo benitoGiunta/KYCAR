@@ -30,7 +30,7 @@ de l'avancement).
   - **Build 0/0 · lint 0 · `npm test` = 675 tests unitaires + 1 091 sondes de revue, tous verts ·
     E2E 264 tests, 0 échec inattendu, 3 `test.fail()` attendus (dette D8-15) · bundle 116,6 Kio gzip
     (< 300, chunk worker compris) · recalcul p95 181 ms (< 200) · chargement 4G max 1,76 s (< 2 s).**
-- **Toutes les phases du plan 2 sont closes ; le projet est à l'arrêt.** Prochaines actions possibles,
+- **Plans 2 et 3 clos, `v0.1.0` livrée le 2026-09-14 (voir §0bis).** Historique de la clôture du plan 2 : Prochaines actions possibles,
   toutes sur décision explicite du commanditaire : (1) livraison = fusion de `claude/kycar-project-ffcplk`
   dans `main` + tag `v0.1.0` (avis de l'acceptance : prêt, réserves nommées) ; (2) phase 2.10 « finition
   visuelle » sur la dette D8-43 (`ACCEPTANCE.md` §8 = cahier des charges, ACC-06 puis ACC-16 en tête) ;
@@ -63,6 +63,12 @@ build 0/0, bundle 131,8 / 300 Kio gzip, unitaires 757, contrat 83, `test:data` d
 test conforme. **Non rejoués** : `npm test` complet (sondes de revue ≈ 1 108, attendues vertes), `test:data`
 profil test, **`npm run test:e2e` complet** (dernier état connu : rouge avant `mvp-integrate`, réaligné
 par lui mais non revalidé de bout en bout).
+
+**LIVRÉ le 2026-09-14 — `v0.1.0`** (D3-45) : après `fix-app-4`, `fix-screens-5`, ACC-25 (harnais) et `fix-app-5` (ACC-26), la recette
+rev 5 sur `e39b3d3` a rendu G9 **FRANCHIE SOUS RÉSERVES NOMMÉES** et l'avis « livrer tel quel » ; `claude/kycar-project-ffcplk`
+fusionnée `--no-ff` dans `main`, tag annoté `v0.1.0`, notes `docs/RELEASE-NOTES-v0.1.0.md`. **Plan 3 clos.** Reliquat v0.1.1 :
+ACC-22, ACC-23, ACC-27 (présentation), dettes D3-19/20/26/27/28, D3-34 c, D3-39b/c, D3-40b, D3-42a/b, D3-43a/b, D3-44a,
+D8-15, D8-43 résiduel ; hors plan : AC-01 (provider réel), `DataProvider` v2. Toute nouvelle branche de travail part de `main`.
 
 **État au 2026-09-14 (fin de la reprise, D3-37 → D3-41)** — étapes 1 à 5 de la procédure FAITES. Lots fusionnés depuis
 le 13 : `fixture-perf` (`9c0e593`), `fix-screens-3` (`bb11ad0`), `data-fix-2` (`5727937`), `fix-providers-3` (`9e36484`,
