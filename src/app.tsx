@@ -72,8 +72,8 @@ import { DIAGNOSTIC_FOLD_THRESHOLD, coverageNoteValue } from './app/diagnostics'
 import {
   DEFAULT_BOOT_SOURCE,
   decideSourceNavigation,
-  planNavigation,
   shortSourceLabel,
+  specOfUrl,
   type BootSource,
 } from './app/source-navigation';
 import { removalPatchFor, topRestrictiveFilters } from './app/restrictive-filters';
@@ -776,6 +776,9 @@ export function App(props: AppProps): JSX.Element {
    * la source qu'elles nomment. Leur effectif actuel n'est PAS calculé : il porterait sur le jeu
    * servi ici, alors que l'effectif figé de la carte vient d'un autre jeu — la soustraction des deux
    * (« − 64 785 offres depuis le 14/09 », recette rev 4) n'est un écart de marché sur aucune source.
+   * Le critère est la source de CRÉATION (celle qui a produit `effectifInitial`), pas celle que
+   * « Ouvrir » servira : une recherche enregistrée sans paramètre de source, listée dans une session
+   * amorcée ailleurs, tombe elle aussi dans ce cas — c'est le même écart entre deux jeux.
    */
   const [otherSourceById, setOtherSourceById] = useState<ReadonlyMap<string, string>>(new Map());
   useEffect(() => {
@@ -786,14 +789,14 @@ export function App(props: AppProps): JSX.Element {
       const next = new Map<string, number | null>();
       if (view.kind === 'savedSearches') {
         const others = new Map<string, string>();
-        // La requête courante sert à reconduire les réservés (`ACC-20`), exactement comme
-        // `navigate` : la carte annonce donc ce que « Ouvrir » fera, pas autre chose. Elle est lue
-        // sur `window` et non sur l'état : c'est l'URL que le navigateur porte VRAIMENT.
-        const here = typeof window !== 'undefined' && window.location ? window.location.search : '';
         for (const record of stores.saved.list()) {
-          const plan = planNavigation(record.value.url, here, bootSource);
-          if (plan.mode === 'full') {
-            others.set(record.value.id, shortSourceLabel(plan.targetSpec));
+          // `ACC-26` — source de CRÉATION de la recherche, lue sur l'URL enregistrée TELLE QUELLE
+          // (sans reconduction) : c'est elle qui a produit l'`effectifInitial` figé de la carte.
+          // Une URL qui ne nomme aucune source a été enregistrée sous la source « sans paramètre »
+          // — depuis `ACC-20`, une session sur une autre source aurait porté le paramètre (E4).
+          const createdUnder = specOfUrl(record.value.url, bootSource);
+          if (createdUnder !== bootSource.spec) {
+            others.set(record.value.id, shortSourceLabel(createdUnder));
             continue;
           }
           const query = record.value.url.split('?')[1] ?? '';

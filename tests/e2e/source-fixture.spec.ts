@@ -322,6 +322,28 @@ test.describe('ACC-26 — ouvrir une recherche enregistrée sous une AUTRE sourc
     await expect(page.locator('.kycar-banner-source')).toContainText(FIXTURE_TEXT);
   });
 
+  test('enregistrée SANS `?provider=` (donc sous la source par défaut), listée dans une session SYNTHETIC : aucun écart', async ({
+    page,
+  }, testInfo) => {
+    // Une recherche enregistrée depuis une URL qui ne NOMME aucune source a été créée sous la source
+    // par défaut (`ACC-20` garantit qu'une session non par défaut aurait porté le paramètre). Son
+    // effectif figé vient donc de CETTE source : la session synthétique qui la liste ne peut pas lui
+    // opposer un effectif actuel — ce serait le même écart entre deux sources qu'`ACC-26`.
+    await open(page, '/marche?priceto=20000');
+    await expect(diagnosticSource(page)).toHaveText('FIXTURE');
+    await saveSearch(page, 'Budget 20k par défaut');
+
+    await page.goto('/recherches?provider=synthetic', { waitUntil: 'commit' });
+    await expect(page.locator('#kycar-main h1').first()).toBeVisible({ timeout: 60_000 });
+    const row = savedRow(page, 'Budget 20k par défaut');
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    const carte = (await row.innerText()).replace(/\n+/g, ' · ');
+    mesure(testInfo, 'ACC-26 — carte d’une recherche enregistrée sans paramètre', carte);
+    await expect(row.locator('.kycar-saved-delta')).toHaveCount(0);
+    expect(carte).not.toMatch(/offres actuellement/);
+    expect(carte).toMatch(/source\s*:\s*fixtures, profil test/i);
+  });
+
   test('MÊME source : l’ouverture reste une navigation INTERNE (aucun rechargement inutile)', async ({
     page,
   }, testInfo) => {

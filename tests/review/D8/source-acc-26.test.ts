@@ -31,6 +31,7 @@ import {
   decideSourceNavigation,
   planNavigation,
   shortSourceLabel,
+  specOfUrl,
   type BootSource,
 } from '../../../src/app/source-navigation';
 import { DEFAULT_PROVIDER_SPEC, PROVIDER_REGISTRY } from '../../../src/providers/registry';
@@ -122,6 +123,17 @@ describe('R-D8-ACC26-02 — une valeur qui RETOMBE sur le défaut ne provoque au
     expect(plan.mode).toBe('internal');
   });
 
+  it('recherche enregistrée SANS `provider` : sa source de CRÉATION est celle « sans paramètre »', () => {
+    // `ACC-20` garantit qu'une session sur une autre source aurait écrit le paramètre dans l'URL
+    // enregistrée (E4) : une URL muette a donc été enregistrée sous la source « sans paramètre ».
+    expect(specOfUrl('/marche?priceto=20000', BOOT_SYNTHETIC)).toBe(DEFAULT_PROVIDER_SPEC);
+    expect(specOfUrl('/marche?priceto=20000', BOOT_SYNTHETIC)).not.toBe(BOOT_SYNTHETIC.spec);
+    // Mais « Ouvrir » la servira sous la source de la session (reconduction `ACC-20`) : les deux
+    // lectures diffèrent, et c'est la source de CRÉATION qui gouverne l'effectif figé de la carte.
+    expect(planNavigation('/marche?priceto=20000', '?provider=synthetic', BOOT_SYNTHETIC).mode).toBe('internal');
+    expect(specOfUrl('/marche?priceto=20000', BOOT_DEFAULT)).toBe(BOOT_DEFAULT.spec);
+  });
+
   it('AUCUNE BOUCLE : rejouer la décision sur la cible d’une navigation complète donne « interne »', () => {
     const first = planNavigation('/marche?priceto=20000&provider=synthetic', '', BOOT_DEFAULT);
     expect(first.mode).toBe('full');
@@ -191,7 +203,11 @@ describe('R-D8-ACC26-05 — câblage de la décision dans la coquille et dans le
     expect(start).toBeGreaterThan(-1);
     const body = app.slice(start, app.indexOf('// ---- Handlers d’écran A', start));
     const code = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-    expect(code).toMatch(/planNavigation\(/);
+    // Le critère est la source de CRÉATION, lue sur l'URL enregistrée SANS reconduction : c'est elle
+    // qui a produit `effectifInitial`. La reconduction (`ACC-20`) dirait ce que « Ouvrir » sert, pas
+    // d'où vient le chiffre figé — et laisserait passer l'écart des recherches sans paramètre.
+    expect(code).toMatch(/specOfUrl\(record\.value\.url, bootSource\)/);
+    expect(code).not.toMatch(/carryReservedParams\(/);
     expect(code).toMatch(/countForSelection/);
   });
 

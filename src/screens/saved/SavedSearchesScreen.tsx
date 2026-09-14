@@ -143,8 +143,9 @@ function SavedRow(props: {
   readonly onDelete: (id: string) => void;
   /** `EX-SCR-212`/`213` (DR-089). `undefined` = pas encore résolu, `null` = indisponible. */
   readonly currentCount?: number | null;
-  /** `ACC-26` — libellé court de la source que l'URL de la recherche NOMME, si ce n'est pas celle
-   * qui est servie. Présent ⇒ aucun effectif actuel, aucun écart : la carte nomme la source. */
+  /** `ACC-26` — libellé court de la source sous laquelle la recherche a été ENREGISTRÉE, quand ce
+   * n'est pas celle qui est servie. Présent ⇒ aucun effectif actuel, aucun écart : la carte nomme
+   * la source d'où vient son effectif figé, et renvoie à l'ouverture pour un chiffre à jour. */
   readonly otherSourceLabel?: string;
   /** `EX-SCR-213` (D8-31) — `snapshotId` courant, pour la condition d'affichage de l'écart. */
   readonly currentSnapshotId?: string;
@@ -218,7 +219,7 @@ function SavedRow(props: {
             ré-amorce l'application dessus et recalcule alors sur la bonne source. */}
         {props.otherSourceLabel !== undefined ? (
           <p class="kycar-saved-current kycar-saved-current--other-source">
-            source&nbsp;: {props.otherSourceLabel} — ouvrir pour recalculer
+            source&nbsp;: {props.otherSourceLabel} (à la création) — ouvrir pour recalculer
           </p>
         ) : current === undefined ? (
           <p class="kycar-saved-current kycar-market-skeleton-block" aria-hidden="true" />
