@@ -73,7 +73,7 @@ import {
   type BrushRange,
   type SelRestriction,
 } from './url-state';
-import { formatPrice, formatKm, formatYear, formatPower, formatMonthYear } from './format';
+import { formatPrice, formatKm, formatYearStat, formatPower, formatMonthYear } from './format';
 import './distribution.css';
 
 /** Résolveurs de libellés (fournis par D8/ReferenceData) — défaut = code brut. */
@@ -475,7 +475,7 @@ export function DistributionScreen(props: DistributionScreenProps) {
         )}
         <div class="kycar-stat-line">
           <span title={`n = ${stats.mileage.n}`}>km médian {statOrDash(stats.mileage.p50, formatKm)}</span>
-          <span title={`n = ${stats.year.n}`}>1ʳᵉ immat. médiane {statOrDash(stats.year.p50, formatYear)}</span>
+          <span title={`n = ${stats.year.n}`}>1ʳᵉ immat. médiane {statOrDash(stats.year.p50, (v) => formatYearStat(v, 'p05'))}</span>
           <span title={particulier ? `n = ${particulier.n}` : undefined}>
             {particulier && !isEmptySelection ? `${particulier.pct.toFixed(0)} % particuliers` : '— % particuliers'}
           </span>
