@@ -184,7 +184,7 @@ test.describe('ACC-20 — le paramètre de bascule survit à chaque écriture d�
 
     // (2) navigation vers un autre écran, puis retour : le paramètre voyage avec l'utilisateur.
     await openNav(page);
-    await page.getByRole('link', { name: /Recherches enregistrées/ }).click();
+    await page.getByRole('link', { name: 'Recherches', exact: true }).click();
     await expect(page.locator('#kycar-main h1').first()).toBeVisible({ timeout: 20_000 });
     expect(new URL(page.url()).searchParams.get('provider')).toBe('synthetic');
     await page.goBack();
@@ -227,7 +227,9 @@ test.describe('ACC-24 — note de couverture du snapshot', () => {
       .locator('.kycar-footer-diagnostic dl > div')
       .filter({ hasText: 'Note de couverture' });
     await expect(ligne).toHaveCount(1);
-    const texte = (await ligne.locator('dd').innerText()).trim();
+    // Le panneau Diagnostic est un `<details>` REPLIÉ : `innerText` d'un contenu non rendu est vide.
+    // On lit le texte du document (`textContent`), comme les autres sondes du panneau (`toHaveText`).
+    const texte = ((await ligne.locator('dd').textContent()) ?? '').trim();
     mesure(testInfo, 'ACC-24 — note de couverture', texte.replace(/\n/g, ' ').slice(0, 200));
     expect(texte.length).toBeGreaterThan(20);
     expect(texte).not.toBe('—');

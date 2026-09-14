@@ -40,6 +40,15 @@ const distribution = readFileSync(
   'utf8',
 );
 
+/**
+ * Retire les commentaires d'un fragment de source : ces sondes portent sur ce que le CODE FAIT, et
+ * les commentaires de la correction citent nommément l'appel supprimé (« appliquer puis
+ * `onUiChange` »). Sans ce nettoyage, la sonde lirait la prose au lieu de l'instruction.
+ */
+function codeOnly(fragment: string): string {
+  return fragment.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+}
+
 /** Corps d'une fonction fléchée `const <nom> = (…): <type> => { … }`, accolades équilibrées. */
 function bodyOf(source: string, name: string): string {
   const start = source.indexOf(`const ${name} =`);
@@ -51,10 +60,10 @@ function bodyOf(source: string, name: string): string {
     if (c === '{') depth++;
     else if (c === '}') {
       depth--;
-      if (depth === 0) return source.slice(open, i + 1);
+      if (depth === 0) return codeOnly(source.slice(open, i + 1));
     }
   }
-  return source.slice(open);
+  return codeOnly(source.slice(open));
 }
 
 /** Montage d'un composant dans `app.tsx`, de `<Nom` à sa ligne de fermeture (cf. `shell-wiring-3.5`). */
