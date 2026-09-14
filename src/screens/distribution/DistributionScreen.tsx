@@ -118,8 +118,13 @@ export interface DistributionScreenProps {
   /** `ARB-09`/`EX-SCR-184` (DR-009, DR-079) — pose un correctif de filtres RÉELS sur la sélection Σ
    * (clic sur une barre d'histogramme, ou « Convertir la sélection en filtre »). Point d'intégration
    * D8/fix-app : lit les valeurs actuelles du bandeau de filtres, y fusionne `patch`, écrit la
-   * nouvelle URL — voir le rapport de lot, § « Câblage attendu de fix-app ». */
-  readonly onApplyFilters?: (patch: SelectionInput) => void;
+   * nouvelle URL — voir le rapport de lot, § « Câblage attendu de fix-app ».
+   *
+   * `ACC-19` (remédiation 3.5) — second paramètre : l'état d'interface de CET écran à écrire dans la
+   * MÊME URL que le correctif. Il existe parce que la conversion d'un brossage doit faire DEUX
+   * choses d'un coup (poser les filtres, retirer `selx`/`sely`) : en deux appels, chacun navigue et
+   * le second sérialise la sélection PÉRIMÉE par-dessus le premier — le bouton paraissait mort. */
+  readonly onApplyFilters?: (patch: SelectionInput, nextUi?: DistributionUiState) => void;
   /** `EX-SCR-158`/`184`, `D-12`/`D-26` — « Voir ces annonces » : navigue vers l'écran D restreint à
    * la sélection brossée (`sel`, restriction d'affichage, Σ INCHANGÉE). Depuis 2.10 (ACC-06) la
    * charge porte les DEUX axes brossés (`SelRestriction`), pas seulement l'intervalle de prix : la
@@ -344,8 +349,15 @@ export function DistributionScreen(props: DistributionScreenProps) {
   const brushInterval = selectedRows ? brushToIntervalFilters(scatter.points, selectedRows) : null;
   const onConvertBrushToFilter = (): void => {
     if (!brushInterval) return;
-    props.onApplyFilters?.(intervalFiltersToSelectionInput(brushInterval));
-    props.onUiChange({ ...ui, brushX: null, brushY: null }); // `sel`/`selx`/`sely` retirés (D-26)
+    // `ACC-19` — UNE SEULE navigation : le correctif de filtres ET le retrait du brossage
+    // (`selx`/`sely`, `D-26`) partent ensemble. L'ordre inverse (appliquer puis `onUiChange`)
+    // écrivait deux URL successives, la seconde calculée sur la sélection d'AVANT le correctif :
+    // elle écrasait les filtres qui venaient d'être posés, sans rien dire.
+    props.onApplyFilters?.(intervalFiltersToSelectionInput(brushInterval), {
+      ...ui,
+      brushX: null,
+      brushY: null,
+    });
   };
   const onViewBrushedListings = (): void => {
     // ACC-06 — `sel` porte les DEUX axes réellement brossés (`brushToSelRestriction`), et non la
