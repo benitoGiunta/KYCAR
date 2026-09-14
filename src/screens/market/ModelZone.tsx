@@ -94,7 +94,7 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
             {/* `EX-SCR-135`/DR-143 (D8-12) : classes dédiées pour que le régime compact (CSS,
                 `display: contents` sur ce conteneur) puisse replacer chaque fourchette dans sa propre
                 ligne de la grille à 4 lignes, sans dupliquer la moindre règle ici. */}
-            <span class="kycar-market-zone-price" title={zone.price.caption}>
+            <span class="kycar-market-zone-price" title={zone.priceScopeNote ? `${zone.price.caption} — ${zone.priceScopeNote}` : zone.price.caption} aria-label={zone.priceScopeNote ? `${zone.price.label} — ${zone.priceScopeNote}` : undefined}>
               {zone.price.label}
               {/* `EX-SCR-135`/C-R1-04 (coordinateur, 2026-09-13) : la légende fait déborder la ligne
                   prix sur deux lignes à 360 px (compact), portant la zone à cinq lignes de texte
@@ -114,7 +114,7 @@ export function ModelZone(props: ModelZoneProps): JSX.Element {
               {zone.mileage.label}
               {zone.mileage.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
             </span>
-            <span class="kycar-market-zone-median">{zone.medianLabel}</span>
+            <span class="kycar-market-zone-median" title={zone.priceScopeNote}>{zone.medianLabel}</span>
             {/* `EX-SCR-33`/`134` (D8-06/FV-09) : jeton ambre `n = <n>` — un seul jeton pour les trois
                 fourchettes, elles partagent le même effectif de métrique sous ce palier. */}
             {zone.price.lowSampleToken ?? zone.year.lowSampleToken ?? zone.mileage.lowSampleToken ? (

@@ -133,6 +133,19 @@ const LOW_SAMPLE_CAPTION = 'fourchette observée (min – max, effectif réduit)
 const UNAVAILABLE_RANGE: CentralRange = { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false };
 
 /**
+ * `EX-DATA-19(2)` (`ACC-18`, décision du commanditaire `D3-42` (1)) — l'écran A calcule ses
+ * statistiques de prix sur SA PROPRE sélection (le marché affiché ou la marque, selon le contexte),
+ * en écartant les annonces à prix manifestement erroné pour ce segment ; la fiche du modèle
+ * recalcule les mêmes statistiques sur ses seules annonces. Les deux médianes d'un même modèle
+ * peuvent donc légitimement différer — cette mention NOMME le périmètre à l'écran plutôt que de
+ * laisser l'écart inexpliqué (« tout affichage qui s'en prévaut nomme sa cellule »). Formulation
+ * volontairement dépourvue de jargon interne : ni « cellule », ni « sentinelle », ni « vraisemblance »,
+ * ni identifiant d'exigence, ne sont montrés à l'utilisateur.
+ */
+export const PRICE_SCOPE_NOTE =
+  'Prix calculé sur l’ensemble de la sélection affichée ici, annonces à prix manifestement erroné exclues ; la fiche du modèle recalcule ce prix sur ses seules annonces.';
+
+/**
  * `EX-SCR-33`/`114`/`134` (D-04, D-36, D8-06/FV-09) : sous `n = 12` (paliers `'trop-faible'` ET
  * `'reduite'`, `thresholds.ts::effectifTier` — seuils uniques pour toute l'application), la
  * fourchette centrale `[p05, p95]` est remplacée par `[min, max]`, disponible DÈS `n = 1`, avec le
@@ -166,11 +179,18 @@ function priceRawRangeTooltip(price: MetricRange): string | undefined {
   return `${RAW_RANGE_CAPTION} : ${formatPriceRange(price.min, price.max)}`;
 }
 
+/** `EX-DATA-64` (`ACC-17`) — sous effectif insuffisant, la fourchette de repli [min, max] porte des
+ * valeurs OBSERVÉES, pas des quantiles interpolés : arrondi « entier » (au plus proche), jamais le
+ * plancher/plafond réservé à `[p05, p95]`. */
+function formatYearRawRange(min: number, max: number): string {
+  return formatYearRange(min, max, 'raw', 'raw');
+}
+
 function yearCentralRange(year: MetricRange): CentralRange {
-  const guard = lowSampleRange(year.n, year.min, year.max, formatYearRange);
+  const guard = lowSampleRange(year.n, year.min, year.max, formatYearRawRange);
   if (guard) return guard;
   if (year.p05 === null || year.p95 === null) return UNAVAILABLE_RANGE;
-  return { label: formatYearRange(year.p05, year.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
+  return { label: formatYearRange(year.p05, year.p95, 'p05', 'p95'), caption: CENTRAL_RANGE_CAPTION, available: true };
 }
 
 function mileageCentralRange(mileage: MetricRange): CentralRange {
@@ -201,6 +221,10 @@ export interface ModelZoneViewModel {
   readonly rangesAvailable: boolean;
   readonly price: CentralRange;
   readonly priceRawTooltip: string | undefined;
+  /** `EX-DATA-19(2)` (`ACC-18`) — périmètre de calcul du prix, à publier (infobulle/texte accessible)
+   * partout où une statistique de prix de CETTE zone est effectivement affichée ; `undefined` quand
+   * `price.available` est `false` (rien à nommer, aucune statistique n'est montrée). */
+  readonly priceScopeNote: string | undefined;
   readonly year: CentralRange;
   readonly mileage: CentralRange;
   readonly medianLabel: string;
@@ -249,6 +273,8 @@ export function buildModelZoneViewModel(
   // est alors lui aussi > 0. Aucun plancher artificiel n'est donc nécessaire ni souhaité.
   const relativeShareRatio = maxListingCountInMake > 0 ? agg.listingCount / maxListingCountInMake : 0;
 
+  const price = rangesAvailable ? withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price) : UNAVAILABLE_RANGE;
+
   return {
     makeId: agg.makeId,
     modelId: agg.modelId,
@@ -260,8 +286,9 @@ export function buildModelZoneViewModel(
     offerCountBare: formatInteger(agg.listingCount),
     ariaLabel: `${label}, ${formatOfferCount(agg.listingCount)}`,
     rangesAvailable,
-    price: rangesAvailable ? withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price) : UNAVAILABLE_RANGE,
+    price,
     priceRawTooltip: rangesAvailable ? priceRawRangeTooltip(agg.price) : undefined,
+    priceScopeNote: price.available ? PRICE_SCOPE_NOTE : undefined,
     year: rangesAvailable ? withCoverageWarning(yearCentralRange(agg.year), agg.coverageWarning?.year) : UNAVAILABLE_RANGE,
     mileage: rangesAvailable ? withCoverageWarning(mileageCentralRange(agg.mileage), agg.coverageWarning?.mileage) : UNAVAILABLE_RANGE,
     medianLabel,
@@ -298,6 +325,9 @@ export interface MakeCardViewModel {
   readonly medianPriceLine: string;
   readonly price: CentralRange;
   readonly priceRawTooltip: string | undefined;
+  /** `EX-DATA-19(2)` (`ACC-18`) — périmètre de calcul du prix, à publier partout où une statistique
+   * de prix de CETTE carte est effectivement affichée ; `undefined` sinon. */
+  readonly priceScopeNote: string | undefined;
   readonly year: CentralRange;
   readonly coverage: SampleCoverage;
   readonly coverageLevel: CoverageDiscLevel;
@@ -370,6 +400,21 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
   const visibleModelZones = allZones.slice(0, effectiveVisibleCount);
   const remainingModelCount = allZones.length - visibleModelZones.length;
 
+  const price = withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price);
+
+  // `EX-SCR-33`/`134` (`ACC-21`) : le résumé de carte applique le MÊME palier d'effectif que la
+  // zone-modèle (`modelZoneMedianDisplay(agg.price.n)`, `agg.price.n` = n_prix, jamais
+  // `listingCount`) — jamais de médiane affichée sous le palier qui l'interdit (1 ≤ n ≤ 4).
+  const cardMedianDisplay = modelZoneMedianDisplay(agg.price.n);
+  let medianSuffix: string;
+  if (cardMedianDisplay.kind === 'absent') medianSuffix = 'médiane non calculable';
+  else if (cardMedianDisplay.kind === 'single-offer') medianSuffix = '1 seule offre';
+  else if (cardMedianDisplay.kind === 'too-few') medianSuffix = `${cardMedianDisplay.n} trop faible`;
+  else medianSuffix = agg.price.p50 !== null ? `médiane ${formatPrice(agg.price.p50)}` : 'médiane non calculable';
+  // `ACC-15`/`ACC-21` : accord du pluriel — « 1 modèle », jamais « 1 modèles ». `modelCount === null`
+  // (cardinal non connu, « — modèles ») reste au pluriel par défaut, faute de nombre à accorder.
+  const modelWord = modelCount === 1 ? 'modèle' : 'modèles';
+
   return {
     makeId: agg.makeId,
     label,
@@ -387,14 +432,13 @@ export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOp
     // modèles). Le nombre de modèles est donc remplacé par une mention d'indisponibilité explicite,
     // jamais par un zéro trompeur ; la médiane, elle, reste publiée quand elle est réellement connue.
     medianPriceLine: modelsUnavailable
-      ? (agg.price.p50 !== null
-          ? `détail des modèles indisponible · médiane ${formatPrice(agg.price.p50)}`
-          : `détail des modèles indisponible`)
-      : (agg.price.p50 !== null
-          ? `${modelCountLabel} modèles · médiane ${formatPrice(agg.price.p50)}`
-          : `${modelCountLabel} modèles · médiane non calculable`),
-    price: withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price),
+      ? (cardMedianDisplay.kind === 'absent'
+          ? `détail des modèles indisponible`
+          : `détail des modèles indisponible · ${medianSuffix}`)
+      : `${modelCountLabel} ${modelWord} · ${medianSuffix}`,
+    price,
     priceRawTooltip: priceRawRangeTooltip(agg.price),
+    priceScopeNote: price.available ? PRICE_SCOPE_NOTE : undefined,
     year: withCoverageWarning(yearCentralRange(agg.year), agg.coverageWarning?.year),
     coverage: sampleCoverageOf(agg.listingCount, opts.make?.announcedCount ?? null, opts.hasUserFilters),
     coverageLevel: coverageDiscLevel(sampleCoverageOf(agg.listingCount, opts.make?.announcedCount ?? null, opts.hasUserFilters)),

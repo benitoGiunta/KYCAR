@@ -95,11 +95,15 @@ export function MakeCard(props: MakeCardProps): JSX.Element {
       </div>
 
       <div class="kycar-market-card-summary">
-        <div>{card.medianPriceLine}</div>
+        {/* `EX-DATA-19(2)` (`ACC-18`) : le périmètre de calcul du prix est nommé (infobulle) dès
+            qu'une statistique de prix est effectivement affichée sur cette carte. */}
+        <div title={card.priceScopeNote}>{card.medianPriceLine}</div>
         <div class="kycar-market-card-summary-secondary">
           {card.price.available ? (
             <>
-              {card.price.label} ({card.price.caption})
+              <span title={card.priceScopeNote}>
+                {card.price.label} ({card.price.caption})
+              </span>
               {card.priceRawTooltip !== undefined ? <span title={card.priceRawTooltip}> · {card.priceRawTooltip}</span> : null}
               {/* `EX-DATA-68` (D8-10) : couverture métrique sous le seuil, provider réel seulement. */}
               {card.price.coverageWarning ? <span class="kycar-market-coverage-warning" title="couverture de cette statistique sous le seuil"> ⚠</span> : null}
