@@ -17,6 +17,12 @@
  *   6. paramètre RÉPÉTÉ dans la requête (`DR-051`) → dernière occurrence retenue, signalée
  *   7. séquence `%` invalide (`DR-136`) → valeur conservée non décodée, signalée
  *
+ * `ACC-20` (remédiation 3.5) — une catégorie de paramètre ÉCHAPPE à la classe 5 : les paramètres
+ * RÉSERVÉS du codec (`RESERVED_PARAMS`, aujourd'hui `provider`). Ils sont lus hors du routeur (par
+ * `main.tsx`, qui choisit la source AVANT que la coquille existe) : les traiter en « paramètre
+ * inconnu » effaçait de l'URL une bascule qui avait été APPLIQUÉE, et l'annonçait « ignorée » — un
+ * message faux, donc pire qu'un silence (`D-03`). Ils ressortent dans `LoadedQuery.reserved`.
+ *
  * Note de conception — pourquoi ce module ne prend PAS `ReferenceData` (D2) en paramètre : tous
  * les domaines nécessaires (codes énumérés, bornes numériques) sont déjà embarqués dans
  * `filter-registry.ts` (voir sa note de lot). La seule validation hors de portée de ce module est
@@ -31,6 +37,7 @@ import {
   RAW_PASSTHROUGH_IDS,
   UI_STATE_PARAMS,
   filterDefForParam,
+  isReservedParam,
   parseRawQuery,
   splitMultiValue,
   type RawQueryEntry,
@@ -272,6 +279,14 @@ export interface LoadedQuery {
   readonly selection: MutableSelectionState;
   readonly uiState: Record<string, string | readonly string[]>;
   readonly corrections: readonly Correction[];
+  /**
+   * `ACC-20` — paramètres RÉSERVÉS reçus (`RESERVED_PARAMS` du codec : `provider`, lu par
+   * `main.tsx` AVANT le routeur). Ni filtres ni état d'interface : ils sont rendus à part pour que
+   * la coquille les RECONDUISE dans chaque URL qu'elle écrit. Aucune correction n'est émise pour
+   * eux — ni sur leur présence, ni sur leur valeur : une source inconnue est le domaine du registre,
+   * qui retombe sur le défaut en le disant (`ET-SOURCE-REPLI`), pas celui d'`EX-NAV-21`.
+   */
+  readonly reserved: Record<string, string>;
 }
 
 /**
@@ -283,11 +298,18 @@ export function loadQuery(query: string): LoadedQuery {
   const selection: MutableSelectionState = {};
   const uiState: Record<string, string | readonly string[]> = {};
   const corrections: Correction[] = [];
+  const reserved: Record<string, string> = {};
 
   const structuredRaw = extractStructuredMultiRawValues(query, corrections);
   const entries = dedupeEntries(parseRawQuery(query), corrections);
 
   for (const { param, raw, malformed } of entries) {
+    // `ACC-20` — paramètre RÉSERVÉ : conservé tel quel, AVANT toute classe de correction (y compris
+    // `MALFORMED_ENCODING` : ce que le navigateur a reçu est ce que la coquille doit reconduire).
+    if (isReservedParam(param)) {
+      reserved[param] = raw;
+      continue;
+    }
     if (malformed === true) {
       pushCorrection(corrections, 'MALFORMED_ENCODING', param, fmtMalformed(param));
     }
@@ -380,7 +402,7 @@ export function loadQuery(query: string): LoadedQuery {
 
   applyIntervalInversionCorrections(selection, corrections);
 
-  return { selection, uiState, corrections };
+  return { selection, uiState, corrections, reserved };
 }
 
 /** `EX-NAV-22` : bornes `from`/`to` inversées reçues dans une URL → permutées, jamais refusées. */

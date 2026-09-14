@@ -60,6 +60,100 @@ export const UI_STATE_PARAMS: readonly UiStateParamDef[] = [
   { param: 'sel', historyMode: 'replace' },
 ];
 
+/* ================================================================================================
+ * Paramètres RÉSERVÉS (`ACC-20`) — lus hors du routeur, conservés tels quels
+ * ================================================================================================
+ * `provider` (`src/providers/registry.ts`, `PROVIDER_URL_PARAM`) est lu par `src/main.tsx` AVANT que
+ * la coquille et le routeur n'existent : il choisit la SOURCE de données. Il n'est donc ni un filtre
+ * (`filter-registry.ts`) ni un état d'interface (`UI_STATE_PARAMS`) — et jusqu'à la recette rev 3 il
+ * était, faute de troisième catégorie, traité par `corrections.ts` comme un « paramètre inconnu »
+ * (`EX-NAV-21` classe 5) : retiré de l'URL et annoncé « ignoré » alors que la source demandée AVAIT
+ * été appliquée. `DF-2` dit pourtant de ce paramètre qu'il est « le seul qui se partage dans un
+ * lien » ; un paramètre effacé à la première sérialisation ne se partage pas, et un bandeau qui
+ * annonce « ignoré » ce qui a été appliqué contredit `D-03`.
+ *
+ * Un paramètre réservé est donc : reconnu (jamais de correction), transporté hors de la sélection et
+ * hors de l'état d'interface, et RECONDUIT tel quel dans chaque URL écrite par l'application. Sa
+ * VALEUR n'est pas validée ici : une source inconnue est l'affaire du registre, qui retombe sur le
+ * défaut en le disant (`ET-SOURCE-REPLI`). L'URL garde ce qui a été DEMANDÉ, l'écran dit ce qui est
+ * SERVI.
+ * ============================================================================================== */
+
+/** Noms des paramètres réservés, dans l'ordre de déclaration (`ACC-20`). */
+export const RESERVED_PARAMS: readonly string[] = ['provider'];
+
+const RESERVED_PARAM_SET: ReadonlySet<string> = new Set(RESERVED_PARAMS);
+
+/** Vrai si `param` est lu hors du routeur et doit survivre à toute réécriture d'URL. */
+export function isReservedParam(param: string): boolean {
+  return RESERVED_PARAM_SET.has(param);
+}
+
+/** Paramètres réservés portés par une requête (`?a=1&provider=synthetic` → `{ provider: … }`). */
+export function reservedParamsOf(query: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const { param, raw } of parseRawQuery(query)) {
+    if (isReservedParam(param)) out[param] = raw; // dernière occurrence retenue (DR-051)
+  }
+  return out;
+}
+
+/**
+ * Encode la valeur d'un paramètre réservé : `encodeURIComponent` d'abord (une valeur portant `&` ou
+ * `=` ne doit jamais devenir ambiguë), puis `:` restitué — `fixture:dev` doit rester LISIBLE dans la
+ * barre d'adresse, c'est une valeur que l'utilisateur tape et partage, et `:` est légal dans une
+ * requête (RFC 3986 §3.4).
+ */
+function encodeReservedValue(value: string): string {
+  return encodeURIComponent(value).replace(/%3A/g, ':');
+}
+
+/** Ordre `EX-NAV-9` : comparaison de code point sur le NOM de paramètre d'un segment `param=valeur`. */
+function compareSegmentByParam(a: string, b: string): number {
+  const pa = a.split('=')[0] as string;
+  const pb = b.split('=')[0] as string;
+  return pa < pb ? -1 : pa > pb ? 1 : 0;
+}
+
+/**
+ * Reconduit les paramètres réservés de `sourceQuery` dans `url`, à leur place alphabétique
+ * (`EX-NAV-9`). Point de passage unique de la coquille : toute écriture d'URL (filtre, état
+ * d'interface, changement d'écran, canonisation de route) passe par `navigate`, qui appelle cette
+ * fonction. Trois garanties :
+ *   - un paramètre DÉJÀ porté par `url` n'est jamais dupliqué ni écrasé (`DR-051`) ;
+ *   - les segments existants sont repris MOT POUR MOT, sans ré-encodage (`EX-SCR-140` exige que la
+ *     requête traverse la canonisation de route sans une virgule de différence) ;
+ *   - sans réservé à reconduire, `url` est rendue à l'identique.
+ */
+export function carryReservedParams(url: string, sourceQuery: string): string {
+  const reserved = reservedParamsOf(sourceQuery);
+  const names = Object.keys(reserved);
+  if (names.length === 0) return url;
+
+  const qIndex = url.indexOf('?');
+  const path = qIndex === -1 ? url : url.slice(0, qIndex);
+  const query = qIndex === -1 ? '' : url.slice(qIndex + 1);
+  const segments = query.length === 0 ? [] : query.split('&').filter((s) => s.length > 0);
+  const present = new Set(
+    segments.map((s) => {
+      const eq = s.indexOf('=');
+      const rawParam = eq === -1 ? s : s.slice(0, eq);
+      try {
+        return decodeURIComponent(rawParam);
+      } catch {
+        return rawParam;
+      }
+    }),
+  );
+
+  const added = names
+    .filter((n) => !present.has(n))
+    .map((n) => `${n}=${encodeReservedValue(reserved[n] as string)}`);
+  if (added.length === 0) return url;
+
+  return `${path}?${[...segments, ...added].sort(compareSegmentByParam).join('&')}`;
+}
+
 /** `g<n>log` — un paramètre par graphe numéroté (bascule log conditionnelle, EX-SCR-16). */
 export function graphLogParam(graphNumber: number): string {
   return `g${graphNumber}log`;
@@ -155,6 +249,13 @@ export interface SerializeQueryOptions {
   readonly filterDefaults?: SelectionState;
   /** Valeurs par défaut de paramètres d'état d'interface à omettre (clés = param). */
   readonly uiDefaults?: UiState;
+  /**
+   * `ACC-20` — paramètres RÉSERVÉS à réémettre tels quels (clés = param, cf. `RESERVED_PARAMS`).
+   * Ils ne sont ni filtrés par un défaut ni triés à part : ils entrent dans le même ordre
+   * alphabétique qu'`EX-NAV-9` impose à tout le reste. Une clé non réservée est ignorée — cette
+   * option n'est pas une porte dérobée pour rouvrir `EX-NAV-21` classe 5.
+   */
+  readonly reserved?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -181,6 +282,14 @@ export function serializeQuery(
     if (options.uiDefaults && equalsDefault(value, options.uiDefaults[param])) continue;
     const pair = serializeUiPair(param, value);
     if (pair !== null) pairs.push(pair);
+  }
+  // `ACC-20` — les réservés voyagent avec la requête, sans validation de valeur (le repli de source
+  // est la décision du registre, dite par `ET-SOURCE-REPLI`) et sans jamais écraser un paramètre
+  // déjà sérialisé.
+  for (const [param, value] of Object.entries(options.reserved ?? {})) {
+    if (!isReservedParam(param) || value.length === 0) continue;
+    if (pairs.some((p) => p.param === param)) continue;
+    pairs.push({ param, encoded: encodeReservedValue(value) });
   }
 
   // EX-NAV-9 : ordre alphabétique FIXE par nom de paramètre. Comparaison de code point simple
