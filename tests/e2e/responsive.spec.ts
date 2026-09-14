@@ -27,9 +27,13 @@ import {
   waitForMarket,
 } from './_helpers';
 
-/** Le régime que l'application déclare elle-même, lu dans le panneau Diagnostic (`EX-SCR-47`). */
+/** Le régime que l'application déclare elle-même, lu dans le panneau Diagnostic (`EX-SCR-47`).
+ *  `ACC-25` (D-31, recette rev 4) : le sélecteur vise le `<summary>` DIRECT du panneau — depuis
+ *  `ACC-24` (`fix-app-4`), le Diagnostic contient d'autres `<details>` pliants (lignes longues comme
+ *  la note de couverture), et `'.kycar-footer-diagnostic summary'` en désignait quatre. Le produit
+ *  est conforme ; seule la cible du harnais était devenue ambiguë. */
 async function readDeclaredRegime(page: import('@playwright/test').Page): Promise<string> {
-  await page.locator('.kycar-footer-diagnostic summary').click();
+  await page.locator('.kycar-footer-diagnostic > summary').click();
   const text = await page.locator('.kycar-footer-diagnostic').innerText();
   return (/Régime d’affichage\s*\n?\s*(\w+)/.exec(text)?.[1] ?? '').trim();
 }
