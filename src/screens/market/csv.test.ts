@@ -62,6 +62,83 @@ describe('buildAggregateCsvRows — EX-CRUD-15 (une ligne par couple marque/mod�
     expect(golfRow?.prixP5Eur).toBe(8900);
     expect(golfRow?.prixP95Eur).toBe(32500);
   });
+});
+
+describe('buildAggregateCsvRows — EX-DATA-64 (table B.2, note « l’export CSV applique le même arrondi que l’écran »), ACC-17', () => {
+  // Reproduction exacte de l'écart de la recette (ACC-17, `reports/ACCEPTANCE.md` §8) : les
+  // colonnes `prix_median`/`prix_p5`/`prix_p95` du CSV mode 1 étaient écrites BRUTES — décimales
+  // (« 12846.5 ») et parfois porteuses de bruit binaire (« 64164.79999999997 »).
+  it("un quantile de type 7 non entier (12 846,5 €) est écrit à l'euro entier (12 847), pas brut", () => {
+    const cards = [
+      buildMakeCardViewModel(makeAgg({ makeId: 1, listingCount: 209 }), {
+        make: VW,
+        modelAggregates: [
+          modelAgg({
+            modelId: 11,
+            listingCount: 209,
+            price: range({ min: 2964, max: 19932.5, p05: 2964, p95: 19932.5, p50: 12846.5, n: 209 }),
+          }),
+        ],
+        models: new Map([[11, GOLF]]),
+        hasUserFilters: false,
+        hideSparseModels: false,
+        isExpanded: true,
+        modelsVisibleBeforeCollapse: 6,
+      }),
+    ];
+    const row = buildAggregateCsvRows(cards)[0];
+    expect(row?.prixMedianEur).toBe(12847);
+    expect(row?.prixMaxEur).toBe(19933); // 19 932,5 -> demi vers l'infini -> 19 933 (jamais 19932.5 brut)
+    expect(row?.prixMinEur).toBe(2964);
+  });
+
+  it('un bruit binaire de double précision (64 164,79999999997) est absorbé par l’arrondi, jamais exporté tel quel', () => {
+    const cards = [
+      buildMakeCardViewModel(makeAgg({ makeId: 1, listingCount: 50 }), {
+        make: VW,
+        modelAggregates: [
+          modelAgg({ modelId: 11, listingCount: 50, price: range({ p05: 1000, p95: 64164.79999999997, n: 50 }) }),
+        ],
+        models: new Map([[11, GOLF]]),
+        hasUserFilters: false,
+        hideSparseModels: false,
+        isExpanded: true,
+        modelsVisibleBeforeCollapse: 6,
+      }),
+    ];
+    const row = buildAggregateCsvRows(cards)[0];
+    expect(row?.prixP95Eur).toBe(64165);
+  });
+
+  it("l'année et le kilométrage BRUTS (min/max) restent des entiers exacts, l'arrondi étant un filet de sécurité, jamais un plancher/plafond de fourchette (réservé à l'écran)", () => {
+    const cards = [
+      buildMakeCardViewModel(makeAgg({ makeId: 1, listingCount: 50 }), {
+        make: VW,
+        modelAggregates: [
+          modelAgg({
+            modelId: 11,
+            listingCount: 50,
+            year: range({ min: 2004, max: 2026, n: 50 }),
+            mileage: range({ min: 0, max: 400000, n: 50 }),
+          }),
+        ],
+        models: new Map([[11, GOLF]]),
+        hasUserFilters: false,
+        hideSparseModels: false,
+        isExpanded: true,
+        modelsVisibleBeforeCollapse: 6,
+      }),
+    ];
+    const row = buildAggregateCsvRows(cards)[0];
+    expect(row?.anneeMin).toBe(2004);
+    expect(row?.anneeMax).toBe(2026);
+    expect(row?.kilometrageMin).toBe(0);
+    expect(row?.kilometrageMax).toBe(400000);
+  });
+});
+
+describe('buildAggregateCsvRows — R3 (garde exécutable de D2)', () => {
+  const rows = buildAggregateCsvRows(sampleCards());
 
   it('ne contient AUCUN champ vendeur (R3), pour chaque ligne — garde exécutable de D2', () => {
     for (const row of rows) {

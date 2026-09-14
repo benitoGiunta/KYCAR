@@ -83,17 +83,49 @@ export function formatMileageRange(min: number, max: number): string {
 }
 
 /** Une année à 4 chiffres ne prend jamais de séparateur de milliers (`2014`, jamais `2 014`) — à la
- * différence de `formatInteger`, réservé aux grandeurs (prix, km, effectifs). */
+ * différence de `formatInteger`, réservé aux grandeurs (prix, km, effectifs). L'entrée est déjà
+ * entière (arrondie par l'appelant, `roundYearForPresentation` ci-dessous) ; `Math.round` ici n'est
+ * qu'un filet de sécurité pour un futur appelant qui passerait encore une valeur brute. */
 function formatYearDigits(year: number): string {
   return String(Math.round(year));
 }
 
+/**
+ * `EX-DATA-64` (table B.2, `ACC-17`) — position d'une borne d'année dans le bloc statistique.
+ * `'p05'` couvre aussi `q1`/`médiane`/`q3` (arrondi « idem » dans la table : plancher) ; `'p95'`
+ * est seul au plafond ; `'raw'` désigne une valeur OBSERVÉE (`min`/`max` d'un `MetricRange`, jamais
+ * interpolée) qui suit la règle « entier » commune aux trois métriques, c'est-à-dire l'arrondi au
+ * plus proche — jamais le plancher/plafond réservé aux quantiles interpolés `p05`/`p95`. Signature
+ * EXPLICITE (union nommée) plutôt qu'un booléen anonyme : le site d'appel énonce ce qu'il arrondit.
+ */
+export type YearBoundPosition = 'p05' | 'p95' | 'raw';
+
+/** `EX-DATA-64` — arrondit une année selon la position du quantile qu'elle représente. */
+export function roundYearForPresentation(year: number, position: YearBoundPosition): number {
+  if (position === 'p95') return Math.ceil(year);
+  if (position === 'raw') return roundHalfAwayFromZero(year);
+  return Math.floor(year); // 'p05' (et, par la même règle « idem » de la table, q1/médiane/q3)
+}
+
 /** `EX-SCR-6` — fourchette d'années de première immatriculation, forme `AAAA – AAAA`, collapse sur
  * année unique si les deux bornes coïncident. Aucune unité suffixée (une année ne porte pas d'unité,
- * cf. `labels.ts` de D5, `UNIT_SUFFIX['année'] === ''`). */
-export function formatYearRange(minYear: number, maxYear: number): string {
-  const low = Math.round(minYear);
-  const high = Math.round(maxYear);
+ * cf. `labels.ts` de D5, `UNIT_SUFFIX['année'] === ''`).
+ *
+ * `EX-DATA-64` (`ACC-17`) : les deux bornes sont arrondies selon leur POSITION, jamais au plus
+ * proche par défaut. `lowPosition`/`highPosition` valent `'p05'`/`'p95'` par défaut : c'est le cas
+ * de TOUTE fourchette centrale de l'écran A (carte, zone) et de l'écran C (`CompareScreen.tsx`), qui
+ * appellent tous cette fonction avec exactement ce couple de quantiles. Le seul appel qui s'écarte
+ * de ce défaut est le repli `[min, max]` sous effectif insuffisant (`view-model.ts::lowSampleRange`,
+ * `D8-06`), qui passe explicitement `'raw'`/`'raw'` — `min`/`max` sont des valeurs OBSERVÉES, pas des
+ * quantiles interpolés, et ne suivent donc pas la règle plancher/plafond. */
+export function formatYearRange(
+  minYear: number,
+  maxYear: number,
+  lowPosition: YearBoundPosition = 'p05',
+  highPosition: YearBoundPosition = 'p95',
+): string {
+  const low = roundYearForPresentation(minYear, lowPosition);
+  const high = roundYearForPresentation(maxYear, highPosition);
   if (low === high) return formatYearDigits(low);
   return `${formatYearDigits(low)}${NBSP}${EN_DASH}${NBSP}${formatYearDigits(high)}`;
 }

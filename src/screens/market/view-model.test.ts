@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { MakeAggregate, MetricRange, ModelAggregate } from '../../providers/DataProvider';
 import type { Make, Model } from '../../types/entities';
 import { buildMakeCardViewModel, buildModelZoneViewModel, badgeColorForMake, badgeTextColorForMake, badgeInitials } from './view-model';
+import { formatPrice, formatYearRange } from './format';
 
 function range(partial: Partial<MetricRange> = {}): MetricRange {
   return { min: null, max: null, p05: null, p50: null, p95: null, n: 0, ...partial };
@@ -425,5 +426,149 @@ describe('D8-10 — coverageWarning / samplingBias (EX-DATA-68), provider réel 
     expect(card.price.coverageWarning).toBeUndefined();
     expect(card.year.coverageWarning).toBe(true);
     expect(card.samplingBias).toBe(true);
+  });
+});
+
+describe('yearCentralRange — ACC-17 (EX-DATA-64) : le repli [min, max] sous effectif insuffisant reste au plus proche, PAS plancher/plafond', () => {
+  // `D8-06` fait basculer la fourchette d'année sur `[min, max]` (valeurs OBSERVÉES) sous n < 12 —
+  // ces bornes ne sont PAS des quantiles interpolés et suivent donc la règle « entier » (au plus
+  // proche), jamais le plancher/plafond réservé à `[p05, p95]` (`market/format.ts::
+  // YearBoundPosition`, position `'raw'`).
+  it("n = 2 (palier 'trop-faible'), min = 2017,6 / max = 2019,4 : arrondi au plus proche (2018 – 2019), pas plancher/plafond (2017 – 2020)", () => {
+    const agg = modelAgg({ modelId: 11, listingCount: 2, year: range({ min: 2017.6, max: 2019.4, n: 2 }) });
+    const zone = buildModelZoneViewModel(agg, GOLF, 2, false);
+    expect(zone.year.label).toBe(formatYearRange(2017.6, 2019.4, 'raw', 'raw'));
+    expect(zone.year.label).toBe(formatYearRange(2018, 2019));
+    expect(zone.year.lowSampleToken).toBe('n = 2');
+  });
+});
+
+describe('buildMakeCardViewModel — medianPriceLine suit le palier EX-SCR-33/134 (ACC-21)', () => {
+  // Reproduction exacte des trois cas cités par la recette (ACC-17/ACC-21, `reports/ACCEPTANCE.md`
+  // §8.2) : Aspid (n_prix = 2), Morgan (n_prix = 1), une marque à n_prix >= 12.
+  it("Aspid (n_prix = 2, palier 'trop-faible') : « 1 modèle · 2 trop faible », jamais « médiane »", () => {
+    const agg = makeAgg({ makeId: 1, listingCount: 2, price: range({ min: 9990, max: 25339, p50: 17664.5, n: 2 }), modelCount: 1 });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.medianPriceLine).toBe('1 modèle · 2 trop faible');
+    expect(card.medianPriceLine).not.toContain('médiane');
+  });
+
+  it("Morgan (n_prix = 1, palier 'trop-faible') : « 1 modèle · 1 seule offre »", () => {
+    const agg = makeAgg({ makeId: 1, listingCount: 1, price: range({ min: 6950, max: 6950, p50: 6950, n: 1 }), modelCount: 1 });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.medianPriceLine).toBe('1 modèle · 1 seule offre');
+  });
+
+  it("une marque à n_prix >= 12 (palier 'sans-m2'/'complete') publie la médiane, inchangé", () => {
+    const agg = makeAgg({ makeId: 1, listingCount: 40, price: range({ p50: 18900, n: 40 }), modelCount: 3 });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.medianPriceLine).toBe(`3 modèles · médiane ${formatPrice(18900)}`);
+  });
+
+  it("n_prix compris entre 5 et 11 (palier 'reduite') publie ENCORE la médiane (EX-SCR-33 : seul 1 <= n <= 4 l'interdit)", () => {
+    const agg = makeAgg({ makeId: 1, listingCount: 8, price: range({ p50: 12000, n: 8 }), modelCount: 2 });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.medianPriceLine).toBe(`2 modèles · médiane ${formatPrice(12000)}`);
+  });
+
+  it('ACC-15/ACC-21 : accord du pluriel — « 1 modèle », jamais « 1 modèles »', () => {
+    const agg = makeAgg({ makeId: 1, listingCount: 21, price: range({ p50: 15000, n: 21 }), modelCount: 1 });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.medianPriceLine).toContain('1 modèle ·');
+    expect(card.medianPriceLine).not.toContain('1 modèles');
+  });
+});
+
+describe('priceScopeNote — ACC-18 (EX-DATA-19(2), décision D3-42 (1)) : le périmètre de calcul du prix est nommé', () => {
+  it('zone-modèle : `priceScopeNote` est publié dès que `price.available` est vrai', () => {
+    const agg = modelAgg({ modelId: 11, listingCount: 552, price: range({ p05: 5900, p95: 15900, p50: 9900, n: 552 }) });
+    const zone = buildModelZoneViewModel(agg, GOLF, 552, false);
+    expect(zone.price.available).toBe(true);
+    expect(zone.priceScopeNote).toBeDefined();
+    expect(zone.priceScopeNote).toMatch(/sélection/);
+    expect(zone.priceScopeNote).toMatch(/modèle/);
+    // Formulation sans jargon interne : ni « cellule », ni « sentinelle », ni « vraisemblance », ni
+    // identifiant d'exigence, ne sont montrés à l'utilisateur.
+    expect(zone.priceScopeNote).not.toMatch(/cellule|sentinelle|vraisemblance|EX-DATA|EX-SCR|ACC-\d/i);
+  });
+
+  it("zone-modèle : `priceScopeNote` est `undefined` quand aucune statistique de prix n'est affichée (`price.available` faux)", () => {
+    const agg = modelAgg({ modelId: 11, listingCount: 0 });
+    const zone = buildModelZoneViewModel(agg, GOLF, 0, false);
+    expect(zone.price.available).toBe(false);
+    expect(zone.priceScopeNote).toBeUndefined();
+  });
+
+  it('résumé de carte : `priceScopeNote` est publié dès que `price.available` est vrai (même mention que la zone)', () => {
+    const agg = makeAgg({ makeId: 1, listingCount: 576, price: range({ p05: 3900, p95: 15900, p50: 9448, n: 576 }) });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.price.available).toBe(true);
+    expect(card.priceScopeNote).toBe(
+      buildModelZoneViewModel(modelAgg({ modelId: 11, listingCount: 576, price: range({ p05: 3900, p95: 15900, p50: 9448, n: 576 }) }), GOLF, 576, false)
+        .priceScopeNote,
+    );
+  });
+
+  it("résumé de carte : `priceScopeNote` est `undefined` quand aucune statistique de prix n'est affichée", () => {
+    const agg = makeAgg({ makeId: 1, listingCount: 0 });
+    const card = buildMakeCardViewModel(agg, {
+      make: VW,
+      modelAggregates: [],
+      models: new Map(),
+      hasUserFilters: false,
+      hideSparseModels: false,
+      isExpanded: false,
+      modelsVisibleBeforeCollapse: 6,
+    });
+    expect(card.price.available).toBe(false);
+    expect(card.priceScopeNote).toBeUndefined();
   });
 });

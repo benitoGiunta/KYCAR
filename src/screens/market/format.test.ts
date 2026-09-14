@@ -12,6 +12,7 @@ import {
   formatPriceRange,
   formatYearRange,
   roundHalfAwayFromZero,
+  roundYearForPresentation,
   roundMileageUnit,
   truncateGraphemes,
 } from './format';
@@ -135,6 +136,44 @@ describe('formatYearRange — EX-SCR-6', () => {
 
   it('collapse sur année unique', () => {
     expect(formatYearRange(2017, 2017)).toBe('2017');
+  });
+});
+
+describe('formatYearRange — EX-DATA-64 (table B.2), ACC-17 : plancher p05, plafond p95', () => {
+  // Reproduction exacte de l'écart relevé par la recette (ACC-17, `reports/ACCEPTANCE.md` §8) :
+  // p05 = 2016,8 / p95 = 2022,1 (Volkswagen, P1) — l'application (avant correction) arrondissait au
+  // plus proche (« 2017 – 2022 ») au lieu du plancher/plafond normatif (« 2016 – 2023 »).
+  it("exemple normatif de la recette (VW, P1) : p05 = 2016,8 -> plancher 2016, p95 = 2022,1 -> plafond 2023", () => {
+    expect(formatYearRange(2016.8, 2022.1)).toBe(`2016${NBSP}${EN_DASH}${NBSP}2023`);
+  });
+
+  it('p95 non entier arrondit TOUJOURS au plafond, jamais au plus proche (2023,1 -> 2024, pas 2023)', () => {
+    expect(formatYearRange(2020, 2023.1)).toBe(`2020${NBSP}${EN_DASH}${NBSP}2024`);
+  });
+
+  it('p05 non entier arrondit TOUJOURS au plancher, jamais au plus proche (2009,5 -> 2009, pas 2010)', () => {
+    expect(formatYearRange(2009.5, 2015)).toBe(`2009${NBSP}${EN_DASH}${NBSP}2015`);
+  });
+
+  it("positions 'raw' (bornes OBSERVÉES min/max, jamais interpolées) : arrondi au plus proche, PAS plancher/plafond — repli [min, max] de `view-model.ts::lowSampleRange`", () => {
+    expect(formatYearRange(2016.8, 2022.1, 'raw', 'raw')).toBe(`2017${NBSP}${EN_DASH}${NBSP}2022`);
+  });
+
+  it('une année déjà entière ne change de résultat sous aucune position (rétrocompatible avec les appels à 2 arguments)', () => {
+    expect(formatYearRange(2014, 2021)).toBe(formatYearRange(2014, 2021, 'p05', 'p95'));
+  });
+});
+
+describe('roundYearForPresentation — EX-DATA-64 (table B.2), ACC-17', () => {
+  it("'p05' (couvre aussi q1/médiane/q3, arrondi « idem » de la table) : plancher", () => {
+    expect(roundYearForPresentation(2018.9, 'p05')).toBe(2018);
+  });
+  it("'p95' : plafond", () => {
+    expect(roundYearForPresentation(2018.1, 'p95')).toBe(2019);
+  });
+  it("'raw' (valeur observée) : au plus proche, demi vers l'infini", () => {
+    expect(roundYearForPresentation(2018.5, 'raw')).toBe(2019);
+    expect(roundYearForPresentation(2018.4, 'raw')).toBe(2018);
   });
 });
 

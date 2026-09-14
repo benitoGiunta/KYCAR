@@ -22,9 +22,32 @@ export function formatKm(value: number): string {
   return `${formatInt(value)}${NBSP}km`;
 }
 
-/** Année civile. */
+/** Année civile — arrondi au plus proche. Utilisé pour une année qui N'EST PAS une statistique de
+ * la table B.2 d'`EX-DATA-64` (catégorie d'un axe, année-modèle, point individuel d'un nuage) : ces
+ * usages n'ont pas de « position de quantile » et suivent l'arrondi générique au plus proche.
+ * Pour un quantile d'année effectivement affiché (p05/q1/médiane/q3/p95 d'une sélection),
+ * `formatYearStat` ci-dessous applique la règle normative plancher/plafond de la table (`ACC-17`) —
+ * NE PAS y substituer cette fonction-ci. */
 export function formatYear(value: number): string {
   return String(Math.round(value));
+}
+
+/**
+ * `EX-DATA-64` (table B.2, `ACC-17`) — position d'un quantile d'année dans le bloc statistique :
+ * `'p05'` couvre aussi `q1`/`médiane`/`q3` (arrondi « idem » dans la table : plancher) ; `'p95'` est
+ * seul au plafond ; `'raw'` désigne une valeur OBSERVÉE (min/max, jamais interpolée), au plus
+ * proche. Signature EXPLICITE (union nommée), jamais un booléen anonyme — cohérente avec
+ * `src/screens/market/format.ts::YearBoundPosition` (module volontairement indépendant de celui-ci,
+ * cf. l'en-tête du fichier : pas de dépendance entre écrans A et B).
+ */
+export type YearStatPosition = 'p05' | 'p95' | 'raw';
+
+/** `EX-DATA-64` — formate un quantile d'année selon sa position (`ACC-17`), p.ex. la « 1ʳᵉ immat.
+ * médiane » de l'écran B (position `'p05'`, comme la médiane, le q1 et le q3 dans la table). */
+export function formatYearStat(value: number, position: YearStatPosition): string {
+  if (position === 'p95') return String(Math.ceil(value));
+  if (position === 'raw') return String(Math.round(value));
+  return String(Math.floor(value));
 }
 
 /** Caractère d'absence normatif (`EX-SCR-34`, `ET-CHAMP-MANQUANT`) — U+2014. */
