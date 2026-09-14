@@ -28,6 +28,7 @@ import { resolve } from 'node:path';
 import {
   DEFAULT_BOOT_SOURCE,
   bootSourceOf,
+  decideSourceNavigation,
   planNavigation,
   shortSourceLabel,
   type BootSource,
@@ -82,6 +83,17 @@ describe('R-D8-ACC26-01 — la décision interne / complète suit la spécificat
 
   it('cible `fixture:dev` sous un amorçage `fixture:test` : deux profils = deux sources, navigation COMPLÈTE', () => {
     expect(planNavigation('/marche?provider=fixture:dev', '', BOOT_DEFAULT).mode).toBe('full');
+  });
+
+  it('la décision seule (URL déjà finale) est celle qu’applique `navigate` après la reconduction', () => {
+    expect(decideSourceNavigation('/marche?provider=synthetic', BOOT_DEFAULT)).toEqual({
+      mode: 'full',
+      targetSpec: 'synthetic',
+      bootSpec: DEFAULT_PROVIDER_SPEC,
+    });
+    expect(decideSourceNavigation('/recherches', BOOT_DEFAULT).mode).toBe('internal');
+    // Sans amorçage explicite (montage isolé, test), la source par défaut : jamais de rechargement.
+    expect(decideSourceNavigation('/marche?provider=fixture:test').mode).toBe('internal');
   });
 });
 
@@ -161,10 +173,12 @@ describe('R-D8-ACC26-05 — câblage de la décision dans la coquille et dans le
     expect(start, 'navigate introuvable dans app.tsx').toBeGreaterThan(-1);
     const body = app.slice(start, app.indexOf('useEffect(', start));
     const code = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-    expect(code).toMatch(/planNavigation\(/);
+    expect(code).toMatch(/decideSourceNavigation\(/);
     expect(code).toMatch(/window\.location\.assign\(/);
-    // La reconduction des réservés d'`ACC-20` n'est pas perdue : elle est faite par `planNavigation`.
-    expect(code).not.toMatch(/carryReservedParams\(/);
+    // `ACC-20` n'est pas perdu en route : la reconduction des réservés reste VISIBLE au point de
+    // passage, avant la décision (c'est ce qu'exige `R-D8-ACC20-04`, sonde livrée par fix-app-4).
+    expect(code).toMatch(/carryReservedParams\(/);
+    expect(code.indexOf('carryReservedParams(')).toBeLessThan(code.indexOf('decideSourceNavigation('));
   });
 
   it('`main.tsx` EXPOSE la spécification amorcée à la coquille (au lieu de relire location.search)', () => {

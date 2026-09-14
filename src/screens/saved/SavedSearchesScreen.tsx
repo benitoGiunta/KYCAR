@@ -48,6 +48,14 @@ export interface SavedSearchesScreenProps {
    * absent d'une entrée = pas encore résolu (`ET-CHARGE-INIT`, squelette). Distinct de
    * `effectifInitial` (figé à l'enregistrement). */
   readonly currentCountById?: ReadonlyMap<string, number | null>;
+  /**
+   * `ACC-26` (`EX-SCR-212`/`213`) — recherches enregistrées sous une AUTRE source que celle amorcée
+   * (`?provider=`), par identifiant → libellé court de cette source. Leur effectif ACTUEL n'est pas
+   * calculable ici : il porterait sur le jeu servi, quand l'effectif figé de la carte vient d'un
+   * autre jeu. La carte nomme donc la source et invite à ouvrir — jamais un écart entre DEUX
+   * sources, qui n'est un écart de marché sur aucune des deux.
+   */
+  readonly otherSourceById?: ReadonlyMap<string, string>;
   /** `EX-SCR-27bis`-like (DR-089, ET-VIDE-FILTRES) : amorce vers l'écran A depuis l'état vide. */
   readonly onGoToMarket?: () => void;
   /** `EX-SCR-213` (D8-31) — `snapshotId` COURANT. L'écart d'effectif n'est affiché que si
@@ -135,6 +143,9 @@ function SavedRow(props: {
   readonly onDelete: (id: string) => void;
   /** `EX-SCR-212`/`213` (DR-089). `undefined` = pas encore résolu, `null` = indisponible. */
   readonly currentCount?: number | null;
+  /** `ACC-26` — libellé court de la source que l'URL de la recherche NOMME, si ce n'est pas celle
+   * qui est servie. Présent ⇒ aucun effectif actuel, aucun écart : la carte nomme la source. */
+  readonly otherSourceLabel?: string;
   /** `EX-SCR-213` (D8-31) — `snapshotId` courant, pour la condition d'affichage de l'écart. */
   readonly currentSnapshotId?: string;
   /** `EX-SCR-212` (D8-31) — index taxonomiques du périmètre et des jetons `mmmv`. */
@@ -157,7 +168,9 @@ function SavedRow(props: {
   // pourcentage. Positif en teinte froide, négatif en gris (feuille de style de l'écran).
   const current = props.currentCount;
   const snapshotChanged = props.currentSnapshotId !== undefined && props.currentSnapshotId !== value.snapshotInitial;
-  const delta = typeof current === 'number' && snapshotChanged && current !== value.effectifInitial
+  // `ACC-26` — un écart ne se calcule qu'entre deux effectifs de la MÊME source : sous une autre
+  // source, `otherSourceLabel` est présent et coupe le calcul à la racine (pas seulement l'affichage).
+  const delta = props.otherSourceLabel === undefined && typeof current === 'number' && snapshotChanged && current !== value.effectifInitial
     ? current - value.effectifInitial
     : null;
 
@@ -200,8 +213,14 @@ function SavedRow(props: {
           Mode {value.mode} · {value.effectifInitial.toLocaleString('fr-BE')} offres à la création · créée le{' '}
           {fmtDate(value.creeeLe)}
         </p>
-        {/* `EX-SCR-212`/`213` (DR-089) : effectif actuel et écart — la valeur ajoutée de l'écran. */}
-        {current === undefined ? (
+        {/* `EX-SCR-212`/`213` (DR-089) : effectif actuel et écart — la valeur ajoutée de l'écran.
+            `ACC-26` : sous une AUTRE source, l'écran nomme cette source SANS chiffre — « Ouvrir »
+            ré-amorce l'application dessus et recalcule alors sur la bonne source. */}
+        {props.otherSourceLabel !== undefined ? (
+          <p class="kycar-saved-current kycar-saved-current--other-source">
+            source&nbsp;: {props.otherSourceLabel} — ouvrir pour recalculer
+          </p>
+        ) : current === undefined ? (
           <p class="kycar-saved-current kycar-market-skeleton-block" aria-hidden="true" />
         ) : current === null ? (
           <p class="kycar-saved-current">effectif actuel indisponible</p>
@@ -271,6 +290,7 @@ export function SavedSearchesScreen(props: SavedSearchesScreenProps): JSX.Elemen
                 onRename={props.onRename}
                 onDelete={props.onDelete}
                 currentCount={props.currentCountById?.get(record.value.id)}
+                otherSourceLabel={props.otherSourceById?.get(record.value.id)}
                 currentSnapshotId={props.currentSnapshotId}
                 taxonomy={props.taxonomy}
               />
