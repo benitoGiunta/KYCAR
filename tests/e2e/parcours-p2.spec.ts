@@ -543,3 +543,146 @@ test.describe('Parcours 2 — mode 2, distribution d’un modèle', () => {
     expect(url.searchParams.get('priceto')).toBe('20000');
   });
 });
+
+/* ================================================================================================
+ * ACC-19 — « Convertir la sélection en filtre » (recette rev 3 §8, `EX-SCR-158`/`184`, `D-03`)
+ * ================================================================================================
+ * Constat : après un brossage de 310 annonces, le bouton retirait `selx`/`sely` de l'URL et ne
+ * posait AUCUN filtre — URL `?priceto=20000`, 331 offres, un seul jeton, aucun bandeau, sur les deux
+ * projections. Cause : deux navigations (`onApplyFilters` puis `onUiChange`), la seconde sérialisant
+ * la sélection PÉRIMÉE par-dessus la première. `E2E-06` ne vérifiait que la PRÉSENCE des boutons.
+ *
+ * Ce que la sonde exige, pour chaque projection :
+ *   1. l'URL porte les jetons de prix, d'année et de kilométrage issus du brossage, et plus
+ *      `selx`/`sely` ;
+ *   2. le bandeau de filtres montre plus d'un jeton ;
+ *   3. l'effectif affiché est celui de la sélection brossée, **dérivé** : il n'est jamais inférieur
+ *      au nombre de lignes que « Voir ces annonces » donne pour le MÊME brossage (la boîte
+ *      englobante contient toutes les annonces brossées), jamais supérieur à l'effectif d'avant, et
+ *      il est retrouvé à l'identique en rouvrant l'URL produite dans un contexte neuf ;
+ *   4. le retour arrière rend EXACTEMENT l'URL brossée : une seule entrée d'historique (`EX-NAV-2x`).
+ */
+test.describe('ACC-19 — la conversion du brossage pose RÉELLEMENT les filtres', () => {
+  /** Bornes d'un brossage réel, relevées sur l'URL produite. */
+  const bornes = (search: string): Record<string, string | null> => {
+    const p = new URLSearchParams(search);
+    return {
+      pricefrom: p.get('pricefrom'),
+      priceto: p.get('priceto'),
+      kmfrom: p.get('kmfrom'),
+      kmto: p.get('kmto'),
+      fregfrom: p.get('fregfrom'),
+      fregto: p.get('fregto'),
+      selx: p.get('selx'),
+      sely: p.get('sely'),
+    };
+  };
+
+  for (const projection of ['Nuée empilée', 'Prix × année'] as const) {
+    test(`projection « ${projection} » : brosser → convertir pose les filtres de la sélection`, async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        regimeOf(testInfo) === 'compact',
+        'EX-NFR-19 : sous 768 px le nuage est servi en projection 2D dégradée, brossage désactivé par contrat',
+      );
+      const base = `${P2_PATH}?priceto=20000`;
+      await open(page, base);
+      if (projection === 'Prix × année') {
+        await page.locator('[data-graph="G4"]').getByRole('tab', { name: projection }).click();
+        await page.waitForFunction(() => window.location.search.includes('g4v='), null, { timeout: 20_000 });
+      }
+
+      const sigmaAvant = await readSelectionCount(page);
+      await brushScatter(page);
+      await page.waitForFunction(() => window.location.search.includes('selx='), null, { timeout: 20_000 });
+      const brossee = `${new URL(page.url()).pathname}${new URL(page.url()).search}`;
+      const selectionnees = parseInteger(await page.locator('.kycar-scatter-selcount').innerText());
+      expect(selectionnees).toBeGreaterThan(0);
+
+      // (a) référence : ce que le MÊME brossage donne à l'écran D (« Voir ces annonces », `sel`).
+      await page.getByRole('button', { name: 'Voir ces annonces' }).click();
+      await expect(page.locator('.kycar-listings-head')).toBeVisible({ timeout: 60_000 });
+      const lignes = parseInteger(await page.locator('.kycar-listings-scope').innerText());
+      mesure(
+        testInfo,
+        `ACC-19 — ${projection} : brossées / listées / Σ avant`,
+        `${selectionnees} brossées · ${lignes} lignes · Σ ${sigmaAvant}`,
+      );
+
+      // (b) retour à l'URL brossée (EX-NAV-18 : le rendu est une fonction pure de l'URL), puis
+      //     conversion — c'est l'action mise en cause par ACC-19.
+      await open(page, brossee);
+      await expect(page.locator('.kycar-scatter-selcount')).toContainText('sélectionnées', { timeout: 30_000 });
+      await page.getByRole('button', { name: 'Convertir la sélection en filtre' }).click();
+      await page.waitForFunction(() => !window.location.search.includes('selx='), null, { timeout: 20_000 });
+
+      const apres = new URL(page.url());
+      const posees = bornes(apres.search);
+      mesure(testInfo, `ACC-19 — ${projection} : URL après conversion`, `${apres.pathname}${apres.search}`);
+
+      // 1. les bornes brossées sont DANS l'URL, le brossage n'y est plus.
+      expect(posees.selx).toBeNull();
+      expect(posees.sely).toBeNull();
+      expect(posees.pricefrom).not.toBeNull();
+      expect(posees.priceto).not.toBeNull();
+      expect(posees.kmfrom).not.toBeNull();
+      expect(posees.kmto).not.toBeNull();
+      expect(posees.fregfrom).not.toBeNull();
+      expect(posees.fregto).not.toBeNull();
+      expect(Number(posees.pricefrom)).toBeLessThanOrEqual(Number(posees.priceto));
+
+      // 2. le bandeau de filtres le montre : plus d'un jeton (il n'y en avait qu'un, « Prix : ≤ … »).
+      await expect.poll(() => page.locator('.kycar-token').count(), { timeout: 20_000 }).toBeGreaterThan(1);
+
+      // 3. l'effectif affiché est celui de la sélection brossée, DÉRIVÉ.
+      await expect.poll(() => readSelectionCount(page), { timeout: 30_000 }).toBeLessThan(sigmaAvant);
+      const sigmaApres = await readSelectionCount(page);
+      mesure(testInfo, `ACC-19 — ${projection} : Σ après conversion`, String(sigmaApres));
+      expect(sigmaApres).toBeGreaterThanOrEqual(lignes);
+
+      // 4. une seule entrée d'historique : le retour arrière rend EXACTEMENT l'URL brossée.
+      await page.goBack();
+      await page.waitForFunction(() => window.location.search.includes('selx='), null, { timeout: 20_000 });
+      expect(`${new URL(page.url()).pathname}${new URL(page.url()).search}`).toBe(brossee);
+      await expect.poll(() => readSelectionCount(page), { timeout: 30_000 }).toBe(sigmaAvant);
+
+      // 3bis. l'effectif n'est pas figé : rouvrir l'URL produite dans un contexte neuf le retrouve.
+      await open(page, `${apres.pathname}${apres.search}`);
+      expect(await readSelectionCount(page)).toBe(sigmaApres);
+    });
+  }
+
+  test('une conversion qui ne pose aucun filtre nouveau le DIT (D-03, jamais un silence)', async ({
+    page,
+  }, testInfo) => {
+    test.skip(regimeOf(testInfo) === 'compact', 'EX-NFR-19 : brossage désactivé par contrat en régime dégradé');
+    await open(page, `${P2_PATH}?priceto=20000`);
+
+    // Premier brossage : la conversion pose la boîte englobante des points brossés.
+    await brushScatter(page);
+    await page.waitForFunction(() => window.location.search.includes('selx='), null, { timeout: 20_000 });
+    await page.getByRole('button', { name: 'Convertir la sélection en filtre' }).click();
+    await page.waitForFunction(() => !window.location.search.includes('selx='), null, { timeout: 20_000 });
+    const sigma = await readSelectionCount(page);
+
+    // Second brossage du MÊME cadre : les points extrêmes sont encore là, la boîte englobante est
+    // donc la même — la conversion ne peut RIEN ajouter. C'est le cas « l'action n'a pas d'effet » :
+    // il doit se dire (`D-03`), jamais se taire.
+    await brushScatter(page);
+    await page.waitForFunction(() => window.location.search.includes('selx='), null, { timeout: 20_000 });
+    const avant = new URL(page.url()).searchParams;
+    await page.getByRole('button', { name: 'Convertir la sélection en filtre' }).click();
+    await page.waitForFunction(() => !window.location.search.includes('selx='), null, { timeout: 20_000 });
+
+    const apres = new URL(page.url()).searchParams;
+    const memeFiltre = ['pricefrom', 'priceto', 'kmfrom', 'kmto', 'fregfrom', 'fregto'].every(
+      (k) => avant.get(k) === apres.get(k),
+    );
+    const message = await page.locator('.kycar-banner-message').allInnerTexts();
+    mesure(testInfo, 'ACC-19 — seconde conversion', `filtres identiques=${memeFiltre} · message=${message.join(' | ') || '(aucun)'}`);
+    test.skip(!memeFiltre, 'le second brossage a resserré la boîte englobante : le cas « aucun filtre ajouté » n’est pas atteint');
+    expect(await readSelectionCount(page)).toBe(sigma);
+    expect(message.join(' ')).toMatch(/aucun filtre/i);
+  });
+});
