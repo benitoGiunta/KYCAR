@@ -383,8 +383,21 @@ qui dit pourquoi l'exigence a disparu vaut mieux qu'un trou muet.
   12, plus un paramètre isolé. L'énumération est de 12 lignes. La source générée fait foi contre la
   prose, conformément à `T-02`.
 - **`B-39`** — la décision nommait 5 filtres sortant de la classe `X` là où la table en portait 8.
-  Résolu par la règle générative, sans jugement. Décompte final vérifié et clos :
+  Résolu par la règle générative, sans jugement. Décompte final vérifié et clos à la phase 2.2 :
   **77 retenus** (13 primaires / 60 secondaires / 3 désactivés / 1 non exposé) **+ 24 exclus = 101**.
 - Trois propagations faites hors travaux nommés (nombre d'onglets, grille de `G7`, noms de champs de
   couverture) sont **ratifiées** : la décision appliquée rendait le texte environnant faux, et le
   laisser tel quel aurait mis l'annexe en contradiction avec elle-même.
+
+**Mise à jour (`D8-32`, 2.8, `fix-docs-2`) — décompte dépassé par un amendement ultérieur.** Le
+décompte « 77 retenus … + 24 exclus » ci-dessus était exact à la clôture de la phase 2.2, mais
+`D8-13` (remédiation 2.8, v1.2) a depuis fait passer trois filtres retenus (`zip`, `lat`, `lon`)
+en `EXCLU` (règle R3, `D-14`, jusque-là non répercutée dans cette table de bilan) : le décompte
+courant, celui de `draft-screens.md` `EX-SCR-83` et de `REQUIREMENTS.md` §0/§6/§11.3, est
+**74 retenus (68 exposés + 6 non exposés) + 27 exclus = 101**. Recompté ligne à ligne sur la table
+`EX-SCR-82` par `fix-docs-2` : 74 `RETENU` / 27 `EXCLU`, conforme à `data/reference/
+filters-scope.json` (`totalRetenus: 74`, `totalExclus: 27`). Le chiffre de la phase 2.2 ci-dessus
+est laissé **tel quel** comme trace de l'arbitrage historique `B-39` ; c'est cette note qui fait foi
+pour tout lecteur cherchant le décompte **actuel**. `zipr` (dépendant de `zip`, désormais exclu)
+reste lui-même `RETENU` — voir `EX-SCR-82` #67 et `REF-filters.md` (note ajoutée par `fix-docs-2`
+sous la fiche `zipr`) : le maintien est sans effet d'exécution, la dépendance étant résiduelle.

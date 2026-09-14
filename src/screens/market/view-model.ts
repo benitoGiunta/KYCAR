@@ -1,0 +1,505 @@
+/**
+ * KYCAR — Modèle de vue de l'écran A (lot D6)
+ * =================================================================================================
+ * Construit les cartes-marques et zones-modèles à partir des agrégats du moteur (`MakeAggregate`/
+ * `ModelAggregate`, `src/providers/DataProvider.ts`) et de la taxonomie (`Make`/`Model`,
+ * `src/types/entities.ts`). Module PUR : aucune I/O, aucun accès DOM. Les composants `.tsx`
+ * n'ajoutent aucune règle qui ne soit pas ici — cohérent avec la convention D5 (`band-model.ts`).
+ *
+ * RÈGLE CENTRALE (`A-05`/`R-A05`, `EX-DATA-69`, glossaire `REQUIREMENTS.md` §2) : TOUTE fourchette
+ * affichée sur l'écran A est `displayRange = [p05, p95]`, jamais `[min, max]`, et jamais sans le
+ * libellé « fourchette centrale (90 % des offres) ». Seule la fourchette de PRIX porte, en plus, un
+ * libellé secondaire/infobulle `rawRange` (`[min, max]`) — `EX-SCR-109`/`113` ne demandent ce second
+ * libellé que pour le prix ; année et kilométrage n'affichent que `displayRange`.
+ */
+
+import type { MakeAggregate, MetricRange, ModelAggregate } from '../../providers/DataProvider';
+import type { Make, Model } from '../../types/entities';
+import { MODEL_ID_UNRESOLVED } from '../../types/sentinels';
+import {
+  type SampleCoverage,
+  type CoverageDiscLevel,
+  coverageDiscLevel,
+  coverageDiscTooltip,
+  sampleCoverageOf,
+  shouldItalicizeRanges,
+} from './coverage';
+import {
+  formatInteger,
+  formatMileageRange,
+  formatOfferCount,
+  formatPrice,
+  formatPriceRange,
+  formatYearRange,
+  TRUNCATION_BUDGET,
+  truncateGraphemes,
+  type Truncated,
+} from './format';
+import { effectifTier, isSparseModel, modelZoneMedianDisplay } from './thresholds';
+import { sortModelRows } from './sort';
+
+export const MODEL_NON_IDENTIFIE_LABEL = 'Modèle non identifié';
+export const MODEL_NON_IDENTIFIE_SLUG = 'modele-non-identifie';
+
+/** `EX-SCR-108` — fourchette de couleurs de pastille, choisie déterministiquement par `makeId`
+ * (`makeId % palette.length`), stable entre deux chargements et testable. Valeurs de teinte HSL
+ * arbitraires mais fixes : le choix esthétique n'est pas normatif, sa STABILITÉ l'est.
+ * `D8-14` (FV-16/E2E-11) : trois lightness (150°/180°/205°) sont décalées de 1 à 4 points pour que
+ * `badgeTextColorForMake` (ci-dessous) puisse TOUJOURS atteindre 4,5:1 avec l'une des deux couleurs de
+ * texte disponibles — à leur valeur d'origine, ni le blanc ni `--color-text` n'y suffisaient (~4,3:1). */
+const BADGE_PALETTE = [
+  'hsl(4 72% 45%)', 'hsl(28 80% 45%)', 'hsl(48 85% 40%)', 'hsl(84 55% 38%)',
+  'hsl(150 55% 32%)', 'hsl(180 55% 38%)', 'hsl(205 65% 41%)', 'hsl(225 60% 52%)',
+  'hsl(260 55% 52%)', 'hsl(295 50% 45%)', 'hsl(325 60% 45%)', 'hsl(350 65% 48%)',
+] as const;
+
+export function badgeColorForMake(makeId: number): string {
+  const idx = ((makeId % BADGE_PALETTE.length) + BADGE_PALETTE.length) % BADGE_PALETTE.length;
+  // Non-null : idx est toujours dans [0, length) par construction ci-dessus.
+  return BADGE_PALETTE[idx] as string;
+}
+
+/* ---- D8-14 (FV-16) — contraste du texte de la pastille ≥ 4,5:1 ------------------------------- */
+
+function hslStringToRgb(hsl: string): readonly [number, number, number] {
+  const m = /hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/.exec(hsl);
+  const h = m ? Number(m[1]) : 0;
+  const s = (m ? Number(m[2]) : 0) / 100;
+  const l = (m ? Number(m[3]) : 0) / 100;
+  const k = (n: number): number => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number): number => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))];
+}
+
+function srgbChannelToLinear(c: number): number {
+  const cs = c / 255;
+  return cs <= 0.03928 ? cs / 12.92 : Math.pow((cs + 0.055) / 1.055, 2.4);
+}
+
+/** Luminance relative WCAG (`https://www.w3.org/TR/WCAG21/#dfn-relative-luminance`). */
+function relativeLuminance([r, g, b]: readonly [number, number, number]): number {
+  return 0.2126 * srgbChannelToLinear(r) + 0.7152 * srgbChannelToLinear(g) + 0.0722 * srgbChannelToLinear(b);
+}
+
+const WHITE_TEXT = '#ffffff';
+const DARK_TEXT = '#14171c'; // `--color-text` (tokens.css), 17,96:1 sur blanc pur
+const DARK_TEXT_LUMINANCE = relativeLuminance([0x14, 0x17, 0x1c]);
+
+/**
+ * `EX-SCR-118`/a11y (D8-14, FV-16, E2E-11) — `color-contrast` échouait (3,19–4,35:1, seuil 4,5:1
+ * requis par WCAG 1.4.3) : `market.css` n'étant importé nulle part (`E2E-20`), le texte de la
+ * pastille n'avait JAMAIS reçu `--color-primary-contrast` et retombait sur `--color-text` sombre,
+ * illisible sur les teintes saturées de `BADGE_PALETTE`. Une fois l'import corrigé, le blanc fixe
+ * seul reste insuffisant sur trois teintes claires — cette fonction choisit donc, PAR TEINTE, le
+ * texte (blanc ou `--color-text`) qui maximise le contraste réel contre CETTE couleur de fond.
+ */
+export function badgeTextColorForMake(makeId: number): string {
+  const bg = relativeLuminance(hslStringToRgb(badgeColorForMake(makeId)));
+  const contrastWithWhite = (1 + 0.05) / (bg + 0.05);
+  const contrastWithDark = (bg + 0.05) / (DARK_TEXT_LUMINANCE + 0.05);
+  return contrastWithWhite >= contrastWithDark ? WHITE_TEXT : DARK_TEXT;
+}
+
+export function badgeInitials(label: string): string {
+  return Array.from(label.trim()).slice(0, 2).join('').toUpperCase();
+}
+
+/* ================================================================================================
+ * Fourchettes composées (label + libellé normatif)
+ * ============================================================================================== */
+
+export interface CentralRange {
+  /** `[p05, p95]` mis en forme, ou message de repli si non calculable. */
+  readonly label: string;
+  /** Toujours présent quand `label` porte une valeur : « fourchette centrale (90 % des offres) ». */
+  readonly caption: string;
+  readonly available: boolean;
+  /** `EX-SCR-33` (D-04, ARB-17) : jeton ambre `n = <n>` quand le palier d'effectif de LA métrique
+   * (pas `listingCount`) est `'trop-faible'` ou `'reduite'` (`n` compris entre 1 et 11) — paliers
+   * uniques pour toute l'application, y compris l'écran A. `undefined` sinon (rien à signaler). */
+  readonly lowSampleToken?: string;
+  /** `EX-DATA-68` (D8-10) — `coverageWarning.<métrique>` du provider RÉEL : la couverture métrique
+   * de ce bloc est sous le seuil, affiché seulement quand présent (jamais inventé). */
+  readonly coverageWarning?: boolean;
+}
+
+const CENTRAL_RANGE_CAPTION = 'fourchette centrale (90 % des offres)';
+const RAW_RANGE_CAPTION = 'du moins cher au plus cher';
+/** `D8-06` (FV-09, D-04/D-36) : sous `n = 12`, la fourchette affichée n'est plus `[p05, p95]` (non
+ * significatif à si faible effectif) mais `[min, max]` — ce libellé le dit, jamais la légende du
+ * P5/P95 normal. */
+const LOW_SAMPLE_CAPTION = 'fourchette observée (min – max, effectif réduit)';
+const UNAVAILABLE_RANGE: CentralRange = { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false };
+
+/**
+ * `EX-DATA-19(2)` (`ACC-18`, décision du commanditaire `D3-42` (1)) — l'écran A calcule ses
+ * statistiques de prix sur SA PROPRE sélection (le marché affiché ou la marque, selon le contexte),
+ * en écartant les annonces à prix manifestement erroné pour ce segment ; la fiche du modèle
+ * recalcule les mêmes statistiques sur ses seules annonces. Les deux médianes d'un même modèle
+ * peuvent donc légitimement différer — cette mention NOMME le périmètre à l'écran plutôt que de
+ * laisser l'écart inexpliqué (« tout affichage qui s'en prévaut nomme sa cellule »). Formulation
+ * volontairement dépourvue de jargon interne : ni « cellule », ni « sentinelle », ni « vraisemblance »,
+ * ni identifiant d'exigence, ne sont montrés à l'utilisateur.
+ */
+export const PRICE_SCOPE_NOTE =
+  'Prix calculé sur l’ensemble de la sélection affichée ici, annonces à prix manifestement erroné exclues ; la fiche du modèle recalcule ce prix sur ses seules annonces.';
+
+/**
+ * `EX-SCR-33`/`114`/`134` (D-04, D-36, D8-06/FV-09) : sous `n = 12` (paliers `'trop-faible'` ET
+ * `'reduite'`, `thresholds.ts::effectifTier` — seuils uniques pour toute l'application), la
+ * fourchette centrale `[p05, p95]` est remplacée par `[min, max]`, disponible DÈS `n = 1`, avec le
+ * jeton ambre `n = <n>` (`lowSampleToken`) — jamais `« — »` : c'est exactement le défaut que FV-09 a
+ * relevé (fourchette masquée alors que `min`/`max` sont connus). `min`/`max` eux-mêmes `null`
+ * (métrique jamais renseignée) reste le seul cas où `« — »` est affiché. */
+function lowSampleRange(n: number, min: number | null, max: number | null, format: (lo: number, hi: number) => string): CentralRange | undefined {
+  const tier = effectifTier(n);
+  if (tier !== 'trop-faible' && tier !== 'reduite') return undefined;
+  if (min === null || max === null) {
+    return { label: '—', caption: CENTRAL_RANGE_CAPTION, available: false, lowSampleToken: `n = ${n}` };
+  }
+  return { label: format(min, max), caption: LOW_SAMPLE_CAPTION, available: true, lowSampleToken: `n = ${n}` };
+}
+
+/** `EX-DATA-68` (D8-10) — pose `coverageWarning: true` sur une `CentralRange` déjà construite, sans
+ * toucher aux autres décisions (label/caption/jeton). `undefined`/`false` : aucun changement. */
+function withCoverageWarning(range: CentralRange, warning: boolean | undefined): CentralRange {
+  return warning === true ? { ...range, coverageWarning: true } : range;
+}
+
+function priceCentralRange(price: MetricRange): CentralRange {
+  const guard = lowSampleRange(price.n, price.min, price.max, formatPriceRange);
+  if (guard) return guard;
+  if (price.p05 === null || price.p95 === null) return UNAVAILABLE_RANGE;
+  return { label: formatPriceRange(price.p05, price.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
+}
+
+function priceRawRangeTooltip(price: MetricRange): string | undefined {
+  if (price.min === null || price.max === null) return undefined;
+  return `${RAW_RANGE_CAPTION} : ${formatPriceRange(price.min, price.max)}`;
+}
+
+/** `EX-DATA-64` (`ACC-17`) — sous effectif insuffisant, la fourchette de repli [min, max] porte des
+ * valeurs OBSERVÉES, pas des quantiles interpolés : arrondi « entier » (au plus proche), jamais le
+ * plancher/plafond réservé à `[p05, p95]`. */
+function formatYearRawRange(min: number, max: number): string {
+  return formatYearRange(min, max, 'raw', 'raw');
+}
+
+function yearCentralRange(year: MetricRange): CentralRange {
+  const guard = lowSampleRange(year.n, year.min, year.max, formatYearRawRange);
+  if (guard) return guard;
+  if (year.p05 === null || year.p95 === null) return UNAVAILABLE_RANGE;
+  return { label: formatYearRange(year.p05, year.p95, 'p05', 'p95'), caption: CENTRAL_RANGE_CAPTION, available: true };
+}
+
+function mileageCentralRange(mileage: MetricRange): CentralRange {
+  const guard = lowSampleRange(mileage.n, mileage.min, mileage.max, formatMileageRange);
+  if (guard) return guard;
+  if (mileage.p05 === null || mileage.p95 === null) return UNAVAILABLE_RANGE;
+  return { label: formatMileageRange(mileage.p05, mileage.p95), caption: CENTRAL_RANGE_CAPTION, available: true };
+}
+
+/* ================================================================================================
+ * Zone-modèle — EX-SCR-112..118
+ * ============================================================================================== */
+
+export interface ModelZoneViewModel {
+  readonly makeId: number;
+  readonly modelId: number;
+  readonly isUnresolved: boolean;
+  readonly label: string;
+  readonly labelTruncated: Truncated;
+  readonly slug: string;
+  readonly listingCount: number;
+  /** `EX-SCR-113` #2 : effectif SANS le mot « offres » (répété 34 fois par carte sinon). */
+  readonly offerCountBare: string;
+  /** `EX-SCR-113` #2 : `aria-label` complet, `<nom>, <n> offres`. */
+  readonly ariaLabel: string;
+  /** `EX-SCR-116` : `false` si `listingCount = 0` — les trois fourchettes sont remplacées par un
+   * message unique, jamais par `0 – 0 €`. */
+  readonly rangesAvailable: boolean;
+  readonly price: CentralRange;
+  readonly priceRawTooltip: string | undefined;
+  /** `EX-DATA-19(2)` (`ACC-18`) — périmètre de calcul du prix, à publier (infobulle/texte accessible)
+   * partout où une statistique de prix de CETTE zone est effectivement affichée ; `undefined` quand
+   * `price.available` est `false` (rien à nommer, aucune statistique n'est montrée). */
+  readonly priceScopeNote: string | undefined;
+  readonly year: CentralRange;
+  readonly mileage: CentralRange;
+  readonly medianLabel: string;
+  readonly coverage: SampleCoverage;
+  readonly coverageLevel: CoverageDiscLevel;
+  readonly coverageTooltip: string;
+  readonly italicizeRanges: boolean;
+  /** `EX-DATA-68` (D8-10) — l'échantillon de ce modèle est signalé BIAISÉ par le provider RÉEL.
+   * `undefined` = non renseigné (provider synthétique, ou source qui ne le calcule pas). */
+  readonly samplingBias?: boolean;
+  /** `EX-SCR-113` #9 : jamais 0 pour un effectif > 0 (`EX-SCR-134`). */
+  readonly relativeShareRatio: number;
+  /** `EX-SCR-128` : effectif strictement inférieur à 3. */
+  readonly isSparse: boolean;
+  /** Les trois `MetricRange` BRUTES de l'agrégat, non reformatées : `EX-SCR-4`/`draft-data-
+   * dictionary.md` (« les écrans B et D ET L'EXPORT CSV publient `rawRange`, sans écrêtage ») —
+   * l'export (`csv.ts`) a besoin de `min`/`max` bruts, jamais de `displayRange`, contrairement au
+   * rendu de cette même zone. Portées ici plutôt que refaites depuis les libellés déjà arrondis. */
+  readonly rawMetrics: { readonly price: MetricRange; readonly year: MetricRange; readonly mileage: MetricRange };
+}
+
+export function buildModelZoneViewModel(
+  agg: ModelAggregate,
+  model: Model | undefined,
+  maxListingCountInMake: number,
+  hasUserFilters: boolean,
+): ModelZoneViewModel {
+  const isUnresolved = agg.modelId === MODEL_ID_UNRESOLVED;
+  const label = isUnresolved ? MODEL_NON_IDENTIFIE_LABEL : (model?.label ?? `Modèle ${agg.modelId}`);
+  const slug = isUnresolved ? MODEL_NON_IDENTIFIE_SLUG : (model?.slug ?? String(agg.modelId));
+  const rangesAvailable = agg.listingCount > 0;
+
+  const coverage = sampleCoverageOf(agg.listingCount, model?.announcedCount ?? null, hasUserFilters);
+
+  // EX-SCR-134 (ET-EFFECTIF-FAIBLE appliqué à la zone-modèle) : n désigne ici n_m(Σ) de la
+  // métrique prix (EX-DATA-59), pas l'effectif de sélection listingCount.
+  const medianDisplay = modelZoneMedianDisplay(agg.price.n);
+  let medianLabel: string;
+  if (medianDisplay.kind === 'absent') medianLabel = '—';
+  else if (medianDisplay.kind === 'single-offer') medianLabel = '1 seule offre';
+  else if (medianDisplay.kind === 'too-few') medianLabel = `${medianDisplay.n} trop faible`;
+  else medianLabel = agg.price.p50 !== null ? `méd. ${formatPrice(agg.price.p50)}` : '—';
+
+  // EX-SCR-113 #9 / EX-SCR-134 : longueur RÉELLE, jamais forcée — le ratio est inhérentement > 0
+  // dès que listingCount > 0, puisque maxListingCountInMake (le max de la marque, CE modèle inclus)
+  // est alors lui aussi > 0. Aucun plancher artificiel n'est donc nécessaire ni souhaité.
+  const relativeShareRatio = maxListingCountInMake > 0 ? agg.listingCount / maxListingCountInMake : 0;
+
+  const price = rangesAvailable ? withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price) : UNAVAILABLE_RANGE;
+
+  return {
+    makeId: agg.makeId,
+    modelId: agg.modelId,
+    isUnresolved,
+    label,
+    labelTruncated: truncateGraphemes(label, TRUNCATION_BUDGET.modelName),
+    slug,
+    listingCount: agg.listingCount,
+    offerCountBare: formatInteger(agg.listingCount),
+    ariaLabel: `${label}, ${formatOfferCount(agg.listingCount)}`,
+    rangesAvailable,
+    price,
+    priceRawTooltip: rangesAvailable ? priceRawRangeTooltip(agg.price) : undefined,
+    priceScopeNote: price.available ? PRICE_SCOPE_NOTE : undefined,
+    year: rangesAvailable ? withCoverageWarning(yearCentralRange(agg.year), agg.coverageWarning?.year) : UNAVAILABLE_RANGE,
+    mileage: rangesAvailable ? withCoverageWarning(mileageCentralRange(agg.mileage), agg.coverageWarning?.mileage) : UNAVAILABLE_RANGE,
+    medianLabel,
+    coverage,
+    coverageLevel: coverageDiscLevel(coverage),
+    coverageTooltip: coverageDiscTooltip(coverage, agg.listingCount, model?.announcedCount ?? null),
+    italicizeRanges: shouldItalicizeRanges(coverage),
+    samplingBias: agg.samplingBias,
+    relativeShareRatio,
+    isSparse: isSparseModel(agg.listingCount),
+    rawMetrics: { price: agg.price, year: agg.year, mileage: agg.mileage },
+  };
+}
+
+/* ================================================================================================
+ * Carte-marque — EX-SCR-107..111, 122..129
+ * ============================================================================================== */
+
+export interface MakeCardViewModel {
+  readonly makeId: number;
+  readonly label: string;
+  readonly labelTruncated: Truncated;
+  readonly slug: string;
+  readonly listingCount: number;
+  readonly badgeInitials: string;
+  readonly badgeColor: string;
+  /** `D8-14` (FV-16/E2E-11) — couleur de texte choisie pour ≥ 4,5:1 contre `badgeColor`. */
+  readonly badgeTextColor: string;
+  /** `D8-02`/`D8-10` (FV-02) : cardinal publié par le PROVIDER (`MakeAggregate.modelCount`), jamais
+   * recompté depuis `modelAggregates` — ce comptage local valait `0` tant que le détail par modèle
+   * n'était pas encore chargé pour cette carte, d'où le « 0 modèles » de FV-02. `null` = non calculé
+   * par le provider : l'écran affiche alors « — », jamais `0` par défaut (`EX-DATA-71`). */
+  readonly modelCount: number | null;
+  readonly medianPriceLine: string;
+  readonly price: CentralRange;
+  readonly priceRawTooltip: string | undefined;
+  /** `EX-DATA-19(2)` (`ACC-18`) — périmètre de calcul du prix, à publier partout où une statistique
+   * de prix de CETTE carte est effectivement affichée ; `undefined` sinon. */
+  readonly priceScopeNote: string | undefined;
+  readonly year: CentralRange;
+  readonly coverage: SampleCoverage;
+  readonly coverageLevel: CoverageDiscLevel;
+  /** `EX-DATA-68` (D8-10) — l'échantillon de cette marque est signalé BIAISÉ par le provider RÉEL.
+   * `undefined` = non renseigné (provider synthétique, ou source qui ne le calcule pas). */
+  readonly samplingBias?: boolean;
+  /** Toutes les zones-modèles, triées (`EX-SCR-121`), sparse filtrées si demandé (`EX-SCR-128`). */
+  readonly modelZones: readonly ModelZoneViewModel[];
+  readonly hiddenSparseCount: number;
+  /** Sous-ensemble visible avant/après dépliement (`EX-SCR-122`/`123`). */
+  readonly visibleModelZones: readonly ModelZoneViewModel[];
+  readonly isExpanded: boolean;
+  readonly hasMoreModels: boolean;
+  readonly remainingModelCount: number;
+  /** `EX-SCR-122`/`135` (E2E-18) : seuil de repli RÉEL de cette carte (4 en régime `compact`, 6
+   * sinon) — le libellé « − Réduire à <n> modèles » doit s'appuyer dessus, jamais sur un `6` en dur
+   * qui ment au régime compact. */
+  readonly modelsVisibleBeforeCollapse: number;
+  /** `EX-SCR-124` règle 2 (> 12 modèles) et règle 3 (> 30 zones dans la liste dépliée). */
+  readonly needsModelSearchField: boolean;
+  readonly needsVirtualizedModelList: boolean;
+  /** `EX-SCR-132` : agrégat de marque disponible, mais aucun modèle disponible pour elle. */
+  readonly modelsUnavailable: boolean;
+}
+
+export interface BuildMakeCardOptions {
+  readonly make: Make | undefined;
+  readonly modelAggregates: readonly ModelAggregate[] | 'unavailable';
+  readonly models: ReadonlyMap<number, Model>;
+  readonly hasUserFilters: boolean;
+  readonly hideSparseModels: boolean;
+  readonly isExpanded: boolean;
+  readonly modelsVisibleBeforeCollapse: number;
+}
+
+export function buildMakeCardViewModel(agg: MakeAggregate, opts: BuildMakeCardOptions): MakeCardViewModel {
+  const label = opts.make?.label ?? `Marque ${agg.makeId}`;
+  const modelsUnavailable = opts.modelAggregates === 'unavailable';
+  const rawModelAggregates = modelsUnavailable ? [] : opts.modelAggregates;
+
+  const maxListingCount = rawModelAggregates.reduce((m, a) => Math.max(m, a.listingCount), 0);
+  const sortableModels = rawModelAggregates.map((a) => ({
+    modelId: a.modelId,
+    label: a.modelId === MODEL_ID_UNRESOLVED ? MODEL_NON_IDENTIFIE_LABEL : (opts.models.get(a.modelId)?.label ?? `Modèle ${a.modelId}`),
+    listingCount: a.listingCount,
+  }));
+  const orderedIds = sortModelRows(sortableModels).map((r) => r.modelId);
+  const byModelId = new Map(rawModelAggregates.map((a) => [a.modelId, a] as const));
+  const orderedAggregates = orderedIds
+    .map((id) => byModelId.get(id))
+    .filter((a): a is ModelAggregate => a !== undefined);
+
+  let allZones = orderedAggregates.map((a) => buildModelZoneViewModel(a, opts.models.get(a.modelId), maxListingCount, opts.hasUserFilters));
+
+  const hiddenSparseCount = opts.hideSparseModels ? allZones.filter((z) => z.isSparse).length : 0;
+  if (opts.hideSparseModels) allZones = allZones.filter((z) => !z.isSparse);
+
+  // `D8-02`/`D8-10` (FV-02) : le cardinal affiché vient de `agg.modelCount` (publié par le provider
+  // pour TOUTE la sélection Σ de la marque), jamais d'un comptage sur `rawModelAggregates` — ce
+  // tableau ne porte que les modèles dont le détail a été chargé pour CETTE carte, ce qui vaut `0`
+  // avant ce chargement et produisait le « 0 modèles » de FV-02. `null` (non calculé) → « — »,
+  // jamais `0` par défaut.
+  const modelCount = agg.modelCount;
+  const modelCountLabel = modelCount === null ? '—' : formatInteger(modelCount);
+
+  const visibleCount = opts.isExpanded ? allZones.length : Math.min(allZones.length, opts.modelsVisibleBeforeCollapse);
+  // EX-SCR-122 : si la marque compte exactement un modèle de plus que le seuil, les deux sont
+  // affichés (déplier pour un seul modèle est un clic inutile).
+  const effectiveVisibleCount = !opts.isExpanded && allZones.length === opts.modelsVisibleBeforeCollapse + 1 ? allZones.length : visibleCount;
+  const visibleModelZones = allZones.slice(0, effectiveVisibleCount);
+  const remainingModelCount = allZones.length - visibleModelZones.length;
+
+  const price = withCoverageWarning(priceCentralRange(agg.price), agg.coverageWarning?.price);
+
+  // `EX-SCR-33`/`134` (`ACC-21`) : le résumé de carte applique le MÊME palier d'effectif que la
+  // zone-modèle (`modelZoneMedianDisplay(agg.price.n)`, `agg.price.n` = n_prix, jamais
+  // `listingCount`) — jamais de médiane affichée sous le palier qui l'interdit (1 ≤ n ≤ 4).
+  const cardMedianDisplay = modelZoneMedianDisplay(agg.price.n);
+  let medianSuffix: string;
+  if (cardMedianDisplay.kind === 'absent') medianSuffix = 'médiane non calculable';
+  else if (cardMedianDisplay.kind === 'single-offer') medianSuffix = '1 seule offre';
+  else if (cardMedianDisplay.kind === 'too-few') medianSuffix = `${cardMedianDisplay.n} trop faible`;
+  else medianSuffix = agg.price.p50 !== null ? `médiane ${formatPrice(agg.price.p50)}` : 'médiane non calculable';
+  // `ACC-15`/`ACC-21` : accord du pluriel — « 1 modèle », jamais « 1 modèles ». `modelCount === null`
+  // (cardinal non connu, « — modèles ») reste au pluriel par défaut, faute de nombre à accorder.
+  const modelWord = modelCount === 1 ? 'modèle' : 'modèles';
+
+  return {
+    makeId: agg.makeId,
+    label,
+    labelTruncated: truncateGraphemes(label, TRUNCATION_BUDGET.makeName),
+    slug: opts.make?.slug ?? String(agg.makeId),
+    listingCount: agg.listingCount,
+    badgeInitials: badgeInitials(label),
+    badgeColor: badgeColorForMake(agg.makeId),
+    badgeTextColor: badgeTextColorForMake(agg.makeId),
+    modelCount,
+    // `EX-SCR-132` (DR-011) : quand le détail par modèle a échoué (`modelsUnavailable`), `modelCount`
+    // vaut structurellement 0 alors que l'agrégat de MARQUE (donc `agg.price.p50`) peut, lui, avoir
+    // réussi — afficher « 0 modèles · médiane <n> € » serait une valeur affichée CONTRADICTOIRE
+    // (0 modèles connus à côté d'une médiane calculée sur des offres forcément réparties dans des
+    // modèles). Le nombre de modèles est donc remplacé par une mention d'indisponibilité explicite,
+    // jamais par un zéro trompeur ; la médiane, elle, reste publiée quand elle est réellement connue.
+    medianPriceLine: modelsUnavailable
+      ? (cardMedianDisplay.kind === 'absent'
+          ? `détail des modèles indisponible`
+          : `détail des modèles indisponible · ${medianSuffix}`)
+      : `${modelCountLabel} ${modelWord} · ${medianSuffix}`,
+    price,
+    priceRawTooltip: priceRawRangeTooltip(agg.price),
+    priceScopeNote: price.available ? PRICE_SCOPE_NOTE : undefined,
+    year: withCoverageWarning(yearCentralRange(agg.year), agg.coverageWarning?.year),
+    coverage: sampleCoverageOf(agg.listingCount, opts.make?.announcedCount ?? null, opts.hasUserFilters),
+    coverageLevel: coverageDiscLevel(sampleCoverageOf(agg.listingCount, opts.make?.announcedCount ?? null, opts.hasUserFilters)),
+    samplingBias: agg.samplingBias,
+    modelZones: allZones,
+    hiddenSparseCount,
+    visibleModelZones,
+    isExpanded: opts.isExpanded,
+    hasMoreModels: remainingModelCount > 0,
+    remainingModelCount,
+    modelsVisibleBeforeCollapse: opts.modelsVisibleBeforeCollapse,
+    needsModelSearchField: allZones.length > 12,
+    needsVirtualizedModelList: allZones.length > 30,
+    modelsUnavailable,
+  };
+}
+
+/* ================================================================================================
+ * Cardinal des modèles du marché — EX-SCR-106, D8-02, ACC-05
+ * ============================================================================================== */
+
+/**
+ * `ACC-05` / `D8-42` (`EX-SCR-106`, `EX-SCR-132`, `D8-02` « jamais 0 par défaut, — tant que la
+ * donnée manque ») — cardinal « modèles » de la barre de synthèse, ou `null` quand il n'est pas
+ * ENCORE connu.
+ *
+ * Deux sources, dans cet ordre :
+ *   1. `MakeAggregate.modelCount` (publié par le provider, `D8-10`) : disponible dès les agrégats
+ *      de MARQUE, donc dès le premier affichage utile. Les modèles n'appartiennent qu'à une marque
+ *      (`makeId` + `modelId` sont la clé de la taxonomie) : la somme par marque est donc le nombre
+ *      de modèles distincts de la sélection, sans dédoublonnage.
+ *   2. Repli, si aucun agrégat de marque ne publie ce cardinal : le nombre de modèles distincts des
+ *      agrégats MODÈLE déjà chargés.
+ * Aucune des deux ne répond ⇒ `null` : la barre affiche « — modèles ». C'est exactement l'écart de
+ * la recette 2.9b — le cardinal était recompté sur la map d'agrégats modèle, chargée ~0,5 à 0,7 s
+ * APRÈS le marché (boucle d'inactivité, `EX-NFR-9`), et `new Set([]).size` valait `0` pendant tout
+ * cet intervalle : un zéro par défaut, affiché comme un fait mesuré.
+ *
+ * Un `0` RENDU par cette fonction est donc toujours un zéro MESURÉ (une marque dont toutes les
+ * annonces sont à `modelId = 0`, cf. `aggregate.ts`), jamais une donnée manquante.
+ */
+export function marketModelCardinal(
+  makeAggregates: readonly MakeAggregate[],
+  modelAggregatesByMake: ReadonlyMap<number, readonly ModelAggregate[] | 'unavailable'>,
+): number | null {
+  let published: number | null = 0;
+  for (const agg of makeAggregates) {
+    if (agg.modelCount === null || agg.modelCount === undefined) {
+      published = null;
+      break;
+    }
+    published += agg.modelCount;
+  }
+  if (published !== null && makeAggregates.length > 0) return published;
+
+  const distinct = new Set<number>();
+  let anyLoaded = false;
+  for (const rows of modelAggregatesByMake.values()) {
+    if (rows === 'unavailable') continue;
+    anyLoaded = true;
+    for (const row of rows) if (row.modelId !== MODEL_ID_UNRESOLVED) distinct.add(row.modelId);
+  }
+  return anyLoaded ? distinct.size : null;
+}

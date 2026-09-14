@@ -1,0 +1,355 @@
+/**
+ * KYCAR — Styles de l'écran B (lot D7). Couleurs lues depuis les tokens de D1 (jamais de hex en dur,
+ * hormis les rampes de graphe définies dans le modèle). Régimes responsive EX-SCR-179/180/181.
+ */
+
+.kycar-screen-b {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  color: var(--color-text);
+}
+
+.kycar-stat-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-2) 0;
+}
+.kycar-stat-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+.kycar-stat-line strong {
+  font-size: var(--font-size-large);
+}
+
+/* Bandeau d'état de l'écran B (`EX-SCR-113bis`, D8-06) — mêmes tons que `kycar-market-banner`. */
+.kycar-banner {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+.kycar-banner--ambre { background: color-mix(in srgb, #b3261e 0%, #ffd54a 22%); }
+
+/* `EX-NFR-19`/`EX-SCR-183` (E2E-19, CORRIGÉ) : `minmax(0, 1fr)` partout où ce fichier pose une
+   colonne `1fr` — sans le `0`, la piste hérite du `min-content` de son contenu (le `minWidthPx` de
+   `GraphFrame`, 320/360 px), et la grille entière déborde du document au lieu de rester confinée au
+   défilement horizontal interne de `.kycar-graph-body` (`overflow-x: auto`, GraphFrame.tsx). */
+.kycar-hist-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.kycar-graph-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.kycar-graph {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  background: var(--color-bg);
+}
+.kycar-graph-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.kycar-graph-title {
+  font-size: var(--font-size-base);
+  margin: 0 0 var(--space-1) 0;
+}
+.kycar-graph-count {
+  color: var(--color-text-muted);
+  font-weight: normal;
+}
+.kycar-graph-datatoggle,
+.kycar-scatter-controls button {
+  font-size: 0.85rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  cursor: pointer;
+  color: var(--color-text);
+}
+.kycar-graph-exclusions,
+.kycar-graph-note {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-1) 0 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.kycar-hist,
+.kycar-line,
+.kycar-bars,
+.kycar-heatmap {
+  width: 100%;
+  height: auto;
+}
+
+.kycar-log-toggle {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 0.8rem;
+  margin-bottom: var(--space-1);
+}
+
+/* `EX-SCR-17` (D8-31) — graduations de l'axe des prix de G7, sous la carte de densité : une liste
+   horizontale de bornes, du prix le plus bas au plus haut, qui rend LISIBLE le changement d'échelle
+   (linéaire ↔ logarithmique) au lieu de le laisser deviner à la déformation des cellules. */
+.kycar-heatmap-priceaxis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.kycar-scatter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.kycar-scatter-legend {
+  position: absolute;
+  right: var(--space-2);
+  top: var(--space-2);
+  font-size: 0.75rem;
+  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.kycar-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* `EX-SCR-159` (D8-24) : légende discrète sous 4 offres tracées dans G4 — MÊME donnée que la légende
+ * continue, texte atténué et taille réduite (annexe B, `docs/requirements/draft-screens.md`). */
+.kycar-legend--discrete {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  opacity: 0.75;
+}
+/* `EX-SCR-159` (D8-24) : sous 4 offres, brossage/zoom rectangulaire inertes (`aria-disabled`,
+ * `Histogram`/`ScatterCloud.tsx`) — curseur dédié, le clic simple (survol, ouverture d'annonce) reste
+ * fonctionnel et garde le curseur par défaut du canevas. */
+.kycar-scatter-canvas--brush-disabled {
+  cursor: not-allowed;
+}
+.kycar-scatter-samplenote,
+.kycar-scatter-selcount {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 0 0;
+}
+
+.kycar-catbars,
+.kycar-lollipops,
+.kycar-boxes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.kycar-catbar,
+.kycar-lollipop {
+  display: grid;
+  grid-template-columns: 8rem 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: 0.8rem;
+}
+.kycar-catbar-track {
+  background: var(--color-surface);
+  height: 12px;
+  display: block;
+}
+.kycar-lollipop-open {
+  display: contents;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  text-align: left;
+}
+.kycar-lollipop-bar {
+  position: relative;
+  display: block;
+  height: 6px;
+  background: var(--color-surface);
+}
+
+.kycar-graph-datatable table,
+.kycar-scatter-data table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  width: 100%;
+}
+.kycar-graph-datatable th,
+.kycar-graph-datatable td,
+.kycar-scatter-data th,
+.kycar-scatter-data td {
+  border: 1px solid var(--color-border);
+  padding: 2px 6px;
+  text-align: left;
+}
+
+/* Régime intermédiaire (768–1279 px) : 2 colonnes (EX-SCR-180).
+   ACC-04 : `G3` occupe SEUL la seconde rangée, en PLEINE LARGEUR (mesuré 344 / 704 px avant) ;
+   `G4` conserve la pleine largeur, sa hauteur tombe à 400 px et ses légendes passent SOUS la zone
+   de tracé ; les graphes additionnels restent sur 2 colonnes SAUF `G8`, en pleine largeur (ses
+   libellés d'annonce exigent de la largeur). */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .kycar-hist-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kycar-hist-row > [data-graph='G3'] {
+    grid-column: 1 / -1;
+  }
+  .kycar-graph-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kycar-graph-grid > [data-graph='G8'] {
+    grid-column: 1 / -1;
+  }
+  .kycar-scatter-canvas {
+    height: 400px;
+    width: 100%;
+  }
+  .kycar-scatter-legend {
+    position: static;
+    margin-top: var(--space-1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+}
+
+/* Régime compact (< 768 px) : 1 colonne, tout empilé (EX-SCR-181).
+   ACC-03 : hauteurs normatives — histogrammes 200 px, `G4` 320 px, graphes additionnels 240 px —
+   mesurées avant à 129 / 148 / 122 px. Les histogrammes reçoivent AUSSI une boîte de vue plus
+   haute (`Histogram.tsx`, `VIEW_H_COMPACT`) pour que le tracé remplisse la hauteur au lieu d'être
+   cerné de blanc. */
+@media (max-width: 767px) {
+  .kycar-hist-row,
+  .kycar-graph-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kycar-scatter-legend {
+    position: static;
+    margin-top: var(--space-1);
+  }
+  .kycar-hist {
+    height: 200px;
+  }
+  .kycar-scatter-canvas {
+    height: 320px;
+    width: 100%;
+  }
+  .kycar-graph-grid .kycar-graph-body {
+    height: 240px;
+    overflow-y: auto;
+  }
+  /* `EX-SCR-181` — la rangée de boutons de l'en-tête statistique devient défilable
+     horizontalement (elle se repliait sur trois lignes et poussait l'en-tête hors de vue). */
+  .kycar-stat-header[data-regime='compact'] .kycar-stat-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .kycar-stat-header[data-regime='compact'] .kycar-stat-actions > * {
+    flex: 0 0 auto;
+  }
+}
+
+/* `EX-SCR-181` (ACC-03) — feuille basse de l'appui long sur un point de `G4`. */
+.kycar-scatter-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: var(--space-3);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 12px rgb(0 0 0 / 18%);
+}
+.kycar-scatter-sheet__lines {
+  list-style: none;
+  margin: 0 0 var(--space-2) 0;
+  padding: 0;
+  font-size: 0.9rem;
+}
+.kycar-scatter-sheet__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.kycar-scatter-sheet__actions button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kycar-scatter-sheet__actions button:first-child {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+
+/* `EX-SCR-181` (ACC-03) — repli des 10 dernières sucettes de `G8` en régime compact. */
+.kycar-lollipops-more > summary {
+  cursor: pointer;
+  padding: var(--space-1) 0;
+  font-size: 0.85rem;
+  color: var(--color-primary);
+}
+
+/* `EX-SCR-153` (D8-31) — calque des graduations de G4, superposé au canvas : couleur de texte
+   atténuée (les axes ne doivent pas concurrencer les points), aucun événement intercepté. */
+.kycar-scatter-axes {
+  color: var(--color-text-muted);
+  fill: var(--color-text-muted);
+}
+
+/* `EX-SCR-174`/`EX-SCR-26` (D8-31) — bloc `ET-VIDE-FILTRES` de l'écran B : bloc CENTRÉ, largeur
+   maximale 480 px (`EX-SCR-26`), qui prend la place des 14 graphes retirés. */
+.kycar-screen-b-empty {
+  max-width: 480px;
+  margin: var(--space-3) auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.kycar-screen-b-empty-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+}
+

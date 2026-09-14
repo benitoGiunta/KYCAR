@@ -1,0 +1,40 @@
+{
+  "snapshotId": "be-20260907T030000Z",
+  "capturedAt": "2026-09-07T03:00:00Z",
+  "marketplace": "be",
+  "profile": "dev",
+  "seed": 1264398145,
+  "schemaVersion": "1.0.0",
+  "generator": {
+    "name": "kycar-dataset-gen",
+    "version": "1.0.0"
+  },
+  "file": "listings.ndjson.gz",
+  "listingCount": 5000,
+  "sha256": "3b1f0a7c2d5e48916a0b7c3d9e5f2a4b6c8d0e1f2a3b4c5d6e7f8091a2b3c4d5",
+  "sha256Gz": "9e0d1c2b3a4958677889aabbccddeeff00112233445566778899aabbccddeeff",
+  "uncompressedBytes": 6120000,
+  "compressedBytes": 742000,
+  "previousSnapshotId": null,
+  "groundTruth": [
+    {
+      "listingId": "0f7c5a1e-2b34-4c8d-9a10-5e6f7a8b9c0d",
+      "anomaly": "PRICE_SENTINEL_ABSOLUTE",
+      "detail": "prix place a 1 EUR sur une Golf de 2021",
+      "expected": { "ingestFlag": "PRICE_SENTINEL_ABSOLUTE", "priceEur": 1 }
+    },
+    {
+      "listingId": "3d9b1c47-8e52-4f0a-b6d3-1a2c4e6f8b90",
+      "anomaly": "OUTLIER_M2_LOW",
+      "detail": "prix a -62 % du prix attendu pour la cellule (Golf, 2021)",
+      "expected": { "deviationPct": -62.4 }
+    },
+    {
+      "listingId": "5a2e8b04-71c6-4d39-8f5b-2c7d9e0a1b34",
+      "anomaly": "CROSS_SELLER_DUPLICATE",
+      "detail": "meme vehicule publie par deux professionnels distincts",
+      "peerListingId": "7c1d4f60-93ab-4e27-8054-b6a1d3e5f709"
+    }
+  ],
+  "note": "Exemple de manifest conforme, sans rapport avec un jeu de fixtures reel. Il n'existe pour valider snapshot-manifest.schema.json."
+}

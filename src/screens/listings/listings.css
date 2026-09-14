@@ -1,0 +1,169 @@
+/**
+ * KYCAR — Styles de l'écran D (lot D7). Couleurs depuis les tokens de D1.
+ */
+
+.kycar-screen-d {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: var(--color-text);
+}
+.kycar-listings-head h2 {
+  margin: 0 0 var(--space-1) 0;
+}
+.kycar-listings-scope,
+.kycar-listings-sort {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.kycar-listings-export {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.kycar-listings-export button,
+.kycar-pager button,
+.kycar-sort-btn,
+.kycar-open {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  font: inherit;
+}
+.kycar-open {
+  color: var(--color-primary);
+}
+.kycar-sort-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font-weight: 600;
+}
+
+.kycar-table-scroll {
+  overflow-x: auto;
+}
+.kycar-listings-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+.kycar-listings-table th,
+.kycar-listings-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-2);
+  height: 44px;
+  text-align: left;
+  white-space: nowrap;
+}
+.kycar-listings-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  z-index: 1;
+}
+.kycar-row-highlight {
+  box-shadow: inset 3px 0 0 0 var(--color-primary);
+}
+.kycar-listings-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.85rem;
+}
+.kycar-pager {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* `EX-SCR-209` (D8-15) — responsive de l'écran D. */
+.kycar-listings-expand-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  padding: 0 var(--space-1);
+}
+.kycar-listings-expanded-row td {
+  height: auto;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  white-space: normal;
+}
+.kycar-listings-expanded-fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  font-size: 0.85rem;
+}
+.kycar-listings-expanded-fields dt {
+  color: var(--color-text-muted);
+}
+.kycar-listings-expanded-fields dd {
+  margin: 0;
+}
+
+.kycar-listings-sort-sheet {
+  position: relative;
+}
+.kycar-listings-sort-sheet > button {
+  min-height: 44px;
+  min-width: 44px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  font: inherit;
+}
+.kycar-listings-sort-sheet [role='listbox'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  position: absolute;
+  z-index: 2;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.kycar-listings-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.kycar-listings-card {
+  min-height: 132px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.85rem;
+}
+.kycar-listings-card-version {
+  font-weight: 600;
+}
+.kycar-listings-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,120 @@
+EX-NAV-1	C	COUVERTE	sondes D5 `router › les cinq routes nommées`, D8 `routing › les 6 routes + /mentions` ; `/marche` observé
+EX-NAV-2	C	COUVERTE	idem ; `/marche/54-opel/1918-corsa` observé ; slug cosmétique canonisé (journal P3-D4)
+EX-NAV-2bis	C	COUVERTE	`/marche/54-opel/1918-corsa/annonces` observé (journal P3-B, P5-E) ; sonde D5 `router`
+EX-NAV-2ter	C	COUVERTE	`/comparer?m=54-1918,74-2084` observé ; sonde D8 `routing`
+EX-NAV-3	C	COUVERTE	`/recherches` observé (journal P3-C3) ; sonde D5 `router`
+EX-NAV-4	C	COUVERTE	`/suivis` observé (journal P3-C4) ; DR-053 (sixième route)
+EX-NAV-5	C	COUVERTE	sonde D5 `registre vs filters-scope.json (EX-NAV-5)` ; aucun paramètre `make` (`grep "param: 'make'" src/state` = 0) ; `mmmv` seul (D-09)
+EX-NAV-6	C	COUVERTE	`url-codec.test › joint les valeurs multiples par une seule virgule, triées (EX-NAV-6)` ; observé `fuel=Z,B`
+EX-NAV-7	C	COUVERTE	`url-codec.test › deux paramètres jumeaux, bornes non posées omises` ; bornes inclusives et année entière : clic de barre `priceto=10999` (journal P3-A), `fregfrom=2017&fregto=2017` → 54 offres = vérité terrain (sonde D8)
+EX-NAV-8	C	COUVERTE	sondes D5 `EX-NAV-8 — une valeur par défaut n'est jamais émise`, `tr-split`, `url-codec.test`, D7 `url-etat`
+EX-NAV-9	C	COUVERTE	sondes D5 `EX-NAV-9 — l'ordre canonique ne dépend pas de l'ordre de pose`, `url-codec.test` ; observé `?body=3&kmto=100000&mmmv=74|2084&priceto=20000`
+EX-NAV-10	C	COUVERTE	`url-codec.test › plafond de longueur (EX-NAV-10/11)` ; `filter-registry.test › equipment porte ses 136 valeurs`
+EX-NAV-10bis	C	COUVERTE	sondes D5 `url-budget › EX-NAV-10bis`, D7 `url-etat`, `corrections.test` ; observé `page=2` en `replaceState`, `m=54-1918,74-2084`
+EX-NAV-11	C	COUVERTE	sondes D5 `EX-NAV-11 — un état plus large que le plafond est refusé, avec son message`, patho `SOL-REFUS` ; bandeau `onUrlBudgetExceeded` câblé (`app.tsx`)
+EX-NAV-12	C	COUVERTE	sondes D5 `interaction-history › EX-NAV-12/13/14`, `interaction.test` ; journal P1b-5 : retour arrière restaure l'écran B
+EX-NAV-13	C	COUVERTE	sonde patho `SOL-RAFALE-HISTORIQUE — UNE entrée d'historique, pas vingt` ; `interaction.ts` l.51 (800 ms)
+EX-NAV-14	C	COUVERTE	sondes D5 `EX-NAV-14 — forcePush`, `interaction.test` ; changement de route observé en `pushState` (journal P1b-5)
+EX-NAV-15	C	COUVERTE	`router.test › carryFiltersAcrossMode (D-09, EX-NAV-15/16/17)` ; journal P1b-3 : A → B conserve `body/kmto/priceto`, `mmmv` absent de l'URL de B
+EX-NAV-16	C	PARTIELLE	journal P1b-4 : le fil d'Ariane B → A réinjecte `mmmv=74|2084` (couple complet) et l'écran A se restreint au seul Golf (« 1 marques · 61 offres ») ; le texte v1.1 exige `<makeId>|||` (marque seule) — `router.ts` l.327-328 sérialise `make|model` quand `modelId` est fourni	bloc réinjecté = modèle au lieu de la marque	écart non consigné (FV-04)
+EX-NAV-17	C	COUVERTE	`router.test › carryFiltersAcrossMode` (changement de couple, filtres conservés, `mmmv` absent)
+EX-NAV-18	C	COUVERTE	sondes D5 `EX-NAV-18`, D8 `routing › fonction pure`, D7 `url-etat › aller-retour` ; journal P2-2 : URL `…?fregfrom=2017&fregto=2017` ouverte à froid → 54 offres, identique à la saisie par le bandeau (P2-2bis)
+EX-NAV-19	C	COUVERTE	journal P3-D5 : « Marque inconnue — La marque « 999999 » ne figure pas dans le référentiel… Revenir au marché (vos filtres sont conservés) » ; sondes D5/D8 (R-D8-14 corrigée)
+EX-NAV-20	C	COUVERTE	journal P3-D6 : « Ce modèle n'existe pas pour cette marque… », lien `/marche?priceto=20000` ; `modelId = 0` accepté (P4-B) — mode restreint : voir EX-SCR-113bis
+EX-NAV-21	C	PARTIELLE	les cinq classes corrigent (sondes D5 `url-corrections`, patho `ST-ARB11`, observé : `kmfrom/kmto` permutés, `fuel=Z` retiré, `priceto` écrêté à 100 000) ; mais **aucun `replaceState` ni bandeau** dans la coquille (journal P3-D1 : URL fautive conservée telle quelle, aucun bandeau)	signalement et réécriture absents à l'exécution	écart non consigné (FV-03)
+EX-NAV-22	C	PARTIELLE	permutation au chargement observée (« Kilométrage : 1 000 km – 100 000 km ») et sondes D5 ; bandeau ET-URL-CORRIGEE absent (FV-03)	signalement absent	écart non consigné (FV-03)
+EX-NAV-23	C	PARTIELLE	un seul snapshot actif, aucune acquisition automatique (`DataController`, sonde D4 `lru-cache › loadDataset vide le cache (EX-NAV-23)`) ; action explicite `Rafraîchir` du jeton de snapshot absente (`grep Rafraîchir src` = 0)	action de remplacement absente	écart non consigné (FV-21)
+EX-NAV-24	C	COUVERTE	sonde D8 `R-D8-26 — EX-NAV-24` (corrigée) ; `onReload` purge la sélection de comparaison et libère le moteur (`app.tsx`)
+EX-NAV-25	C	NON COUVERTE	`grep -rn "Nouvelles données" src` = 0	bandeau après remplacement absent	écart non consigné (FV-21)
+EX-SRCH-1	C	COUVERTE	`debounce-policy.test › EX-SRCH-1 — 0 ms` ; sonde D5 `EX-SRCH-1…8 : les délais chiffrés`
+EX-SRCH-1bis	C	COUVERTE	sonde D5 `EX-SRCH-1bis : regroupement des rafales (3 en 300 ms, 200 ms de traîne)`, `interaction.test › RClassBurstCoordinator`, patho `ADV-12`
+EX-SRCH-2	C	COUVERTE	`debounce-policy.test › EX-SRCH-2 — eq : 250 ms`
+EX-SRCH-3	C	COUVERTE	`debounce-policy.test › EX-SRCH-3 — 150 ms au relâchement` ; listes de paliers observées
+EX-SRCH-4	C	COUVERTE	`debounce-policy.test › EX-SRCH-4 — 500 ms` ; `Entrée` immédiate observée (D-19)
+EX-SRCH-5	C	COUVERTE	`debounce-policy.test › EX-SRCH-5 — kwd : 400 ms`
+EX-SRCH-6	C	HORS PÉRIMÈTRE	`zip` exclu du périmètre (D-14/D-37) ; `FILTER_BY_PARAM.get('zip')` indéfini (sonde D5 `EX-SCR-82`)	sans objet	décision D-37
+EX-SRCH-7	C	HORS PÉRIMÈTRE	`zipr` dépend de `zip` exclu (D-37)	sans objet	décision D-37 ; dette DR-132 (libellés) devient sans objet
+EX-SRCH-8	C	COUVERTE	`debounce-policy.test › EX-SRCH-8 — immédiat` ; écran G `Appliquer` → navigation immédiate (`handleChange` `selection-immediate`)
+EX-SRCH-9	C	COUVERTE	« Tout effacer » immédiat (journal P2c-3 : URL nettoyée, recalcul à 1 352 offres)
+EX-SRCH-9bis	C	COUVERTE	sonde D5 `EX-SRCH-9bis : la scission T/R suit le registre`
+EX-SRCH-9ter	C	COUVERTE	sondes D5 `EX-SRCH-9ter — un changement R ne change ni la localDatasetKey…`, `composante T vide = FULL` ; cache 4 entrées (`DataController`)
+EX-SRCH-9quater	C	PARTIELLE	tout chiffre calculé sur le jeu local (sonde D8 `parcours` : `localDatasetKey ≠ FULL` en mode 2, Σ = cellule) ; le message C3 « Jeu de données restreint par <k> filtre(s) rechargé(s) — <n> annonces » n'existe que dans un commentaire (`tr-split.ts` l.39) et C3 est absent de B	message de périmètre absent	écart non consigné (FV-07)
+EX-SRCH-9quinquies	C	COUVERTE	sonde D2 `selection-codec` (`FULL:EMPTY`), sonde D8 `parcours` (`hash=1dcd2e7b7780b20b:35a0c206ac32bfef`), LRU clefé par le couple (sonde D4 `lru-cache`)
+EX-SRCH-10	C	COUVERTE	journal P1-1 : `body=3 ∧ kmto ∧ priceto` → 2 656 offres = comptage conjonctif de la vérité terrain (sonde D8 `parcours`)
+EX-SRCH-11	C	COUVERTE	`predicates.test` (appartenance à l'ensemble des codes cochés) ; sonde patho `AMB-27 → ARB-35` (égalité stricte de code)
+EX-SRCH-11bis	C	COUVERTE	`predicates.test › EX-SRCH-11bis — conversion d'unité avant évaluation` ; sonde patho `R-PATHO-15` (corrigée)
+EX-SRCH-12	C	PARTIELLE	`eq` est de classe T sans colonne locale : son inapplication est signalée par `ET-FILTRE-NON-APPLIQUE` (D-03, sonde D8) ; la sémantique ET par défaut n'est donc jamais évaluée localement	non exerçable sur les sources actuelles	décision D-03 (signalement) — point O7 toujours ouvert
+EX-SRCH-13	C	COUVERTE	documentaire (réserve) ; `sealor` en classe T, `pe_category` en R (registre)
+EX-SRCH-14	C	PARTIELLE	écran G positionné sur le couple courant en mode 2 (EX-SCR-103) ; le comportement « changer de marque vide le modèle et redirige vers `/marche?mmmv=<make>|||` » n'est ni testé ni observé	non vérifié	à sonder en 2.8
+EX-SRCH-15	C	HORS PÉRIMÈTRE	`zip`/`zipr` exclus (D-14)	sans objet	décision D-14
+EX-SRCH-16	C	COUVERTE	`filter-registry.test › dépendances entre filtres (EX-SRCH-14..17)` ; conversion par la constante unique (`predicates.test`) ; `powertype` non exposé (D-15) donc jamais changé par l'utilisateur
+EX-SRCH-17	C	HORS PÉRIMÈTRE	`bot`/`erfrom`/`erto` hors périmètre v1 (texte) ; présents en classe T secondaire sans comportement dépendant	sans objet	—
+EX-SRCH-18	C	COUVERTE	sonde D5 `EX-SCR-77 / EX-SRCH-18` ; journal P2c-3 : route conservée après « Tout effacer » sur B
+EX-SRCH-18bis	C	COUVERTE	sondes D5 `R-D5-04 — EX-SRCH-18bis` et patho `R-PATHO-14` (corrigées) : `atype`, `ustate`, `powertype`, `cy` non exposés, non sérialisés, non comptés (« 3 filtres actifs » avec `cy=B` dans l'URL)		dette produit D-15 (aucun contrôle « accidentés »)
+EX-SRCH-19	C	COUVERTE	sonde D5 `R-D5-21 — EX-SRCH-19` (corrigée : bouton de réinitialisation par groupe)
+EX-SRCH-20	C	COUVERTE	journal P2c-3 : « Tout effacer » sur `/marche/54-opel/1918-corsa` laisse la route intacte
+EX-SRCH-21	C	PARTIELLE	l'effectif affiché (en-tête B, barre de synthèse A) est celui du recalcul appliqué (journal P3-A : 6 offres après clic de barre) ; le compteur de la zone (4) du bandeau n'est pas alimenté (FV-23)	compteur du bandeau absent	REMEDIATION §7.1 n° 1 (FV-23)
+EX-SRCH-22	C	PARTIELLE	état « en cours » du compteur du bandeau non alimenté ; `aria-busy` sur l'écran A pendant le rechargement ; aucune atténuation observée	état intermédiaire non rendu	écart non consigné (FV-23, FV-18)
+EX-SRCH-23	C	COUVERTE	écran D : tri par colonne (`R-D7` sondes, journal P3-B), pagination client de 50 (journal P5-E : « page 2 / 26 », 50 lignes)
+EX-SRCH-24	C	COUVERTE	documentaire ; tri des cartes = `EX-SCR-120` (couvert)
+EX-SRCH-25	C	COUVERTE	journal P1-0 : `/marche` sans filtre sert 294 marques · 100 000 offres
+EX-SRCH-26	C	COUVERTE	sondes D5/D6 `seuil 60` ; observé « 112 marques correspondent — affinez pour comparer » (texte harmonisé T-t) ; raccourci vers les filtres discriminants non observé (mineur)
+EX-SRCH-27	C	COUVERTE	sonde patho `VOL-200K` (200 000 annonces, aucun plafond de calcul) ; `test:perf` à 100 000 non filtré
+EX-CRUD-1	C	COUVERTE	`persistence.test › recherches sauvegardées (EX-CRUD-1..6)` ; clé observée `kycar:saved-searches/<uuid> = {"schemaVersion":1,"id":…,"nom":…}` ; carte E « 2 656 offres à la création » (`effectifInitial`, `snapshotInitial` figés, DR-102)
+EX-CRUD-2	C	COUVERTE	journal P3-C1 : « Recherche enregistrée (un nom identique existait déjà). » (avertissement non bloquant) ; `nom` vide refusé (`MarketToolbar`)
+EX-CRUD-3	C	COUVERTE	`localStorage` seul (clés `kycar:*` observées) ; aucun appel réseau (journal : `externalRequests: []`)
+EX-CRUD-4	C	COUVERTE	création sur A et B (« Enregistrer cette recherche » observé sur les deux, sonde D8 `R-D8-25` corrigée), renommage (`stores.saved.rename`), suppression inline sans corbeille (« Supprimer ? »)
+EX-CRUD-5	C	COUVERTE	sondes D8 `plafonds de l'annexe C (EX-CRUD-5 / 10 / 12)`, `persistence.test › bloque la création au-delà de 50`
+EX-CRUD-6	C	COUVERTE	sonde D8 `R-D8-25 — EX-CRUD-6` (corrigée : `store.touch`) ; ouverture par le titre de la carte
+EX-CRUD-7	C	COUVERTE	`persistence.test › modèles suivis (EX-CRUD-7..10)` ; clé observée `kycar:followed-models/54:1918 = {"schemaVersion":1,"makeId":54,"modelId":1918,"ajouteLe":…}`
+EX-CRUD-8	C	COUVERTE	idem (localStorage)
+EX-CRUD-9	C	COUVERTE	bascule « Suivre / Ne plus suivre » observée dans l'en-tête B (journal P3-C4, P5-C) ; suppression depuis `/suivis`
+EX-CRUD-10	C	COUVERTE	sonde D8 `plafonds` (30) ; en-tête observé « 1 / 30 modèles suivis »
+EX-CRUD-11	C	COUVERTE	journal P3-C3 : panneau « Recherches récentes » avec les URL visitées ; `filterSignature` (DR-159 : seuls les changements de filtres)
+EX-CRUD-12	C	COUVERTE	sondes D8 `plafonds (12)`, `persistence.test › historique récent (EX-CRUD-11..13)`
+EX-CRUD-13	C	COUVERTE	bouton « Vider l'historique » seul (journal P3-C3), aucune suppression unitaire
+EX-CRUD-13bis	C	COUVERTE	`compare-selection.test` (plafond 4, clé 0 exclue, doublons) ; onglet « Comparer (2) » après deux cases (journal P3-C2) ; `EX-NAV-24` purge
+EX-CRUD-14	C	COUVERTE	`csv.test › BOM UTF-8, séparateur ;` ; `listings.test`
+EX-CRUD-15	C	COUVERTE	`csv.test › une ligne par couple marque/modèle affiché` ; sonde D6 `EX-DATA-123bis`
+EX-CRUD-16	C	COUVERTE	sonde D7 `EX-CRUD-16 : exactement deux exports` ; observé « CSV des annonces du périmètre / CSV des agrégats affichés »
+EX-CRUD-17	C	COUVERTE	aucune entrée PNG/SVG (menu à deux entrées observé)
+EX-CRUD-18	C	COUVERTE	sondes D8 `EX-CRUD-18 — schemaVersion et migration`, `persistence.test › schema / migration`
+EX-CRUD-19	C	COUVERTE	sondes D8 `ADV-13 / EX-CRUD-19 — concurrence inter-onglets`, `persistence.test › relecture-vérification-écriture` ; clés observées : une par entrée + `#index` (D-16)
+EX-NFR-1	C	COUVERTE	sonde D3 `EX-NFR-1 — empreinte mémoire ≤ 25 Mo` (17,19 Mio) ; fonctionnel à 10⁵ (`test:perf`), 10⁶ extrapolé (E4)
+EX-NFR-2	C	COUVERTE	sonde D2 `reference-loader` : 295 marques, 4 955 modèles chargés ; écran G à l'échelle réelle (sonde D5)
+EX-NFR-3	C	COUVERTE	sonde D3 `EX-NFR-3 — lot colonnaire sérialisé ≤ 6 Mo gzip` (5,45 Mio, D-42)
+EX-NFR-4	C	COUVERTE	sonde D8 `nfr9-size › EX-NFR-4 : taxonomy.json < 1 Mo gzip` ; référentiels 97 Kio gzip au total
+EX-NFR-4bis	C	COUVERTE	`recalc.perf.test` : 100 exécutions, percentile de rang, `n`/médiane/p95 publiés (`p50=152.4ms p95=165.5ms max=192.9ms`)
+EX-NFR-5	C	COUVERTE	`npm run test:perf` rejoué : recalcul complet non filtré **p95 165,5 ms** (N = 100 000, 100 exécutions), élagué 54,1 ms
+EX-NFR-6	C	PARTIELLE	modèles des 14 graphes ≤ 300 ms pour n = 20 000 (sonde D7 `EX-SCR-189`) ; rendu réel au `requestAnimationFrame` non mesuré	mesure au rendu manquante	campagne 2.9 (S3)
+EX-NFR-7	C	COUVERTE	`scatter.perf.test` rejoué : 5 000 points, p50 1,18 ms, **p95 3,92 ms** (contexte Canvas 2D réel, sonde D7 `nuage-g4`)
+EX-NFR-8	C	COUVERTE	`scatter.perf.test` rejoué : 8 390 images, 91 fenêtres, 0 en défaut, **100 %**, minimum instantané 172 img/s (lecture pan/zoom, D-07)
+EX-NFR-9	C	COUVERTE	navigateur, 4G simulée par CDP (500 Ko/s, 150 ms, cache désactivé) : premier affichage des cartes-marques à **1 497 ms** (P1-0bis), 1 562 ms au second essai ; réseau local 434 ms ; sonde D8 statique 831 ms (852 ms avec le chunk du worker)
+EX-NFR-10	C	COUVERTE	`npm run size` rejoué : **99,13 / 300 Kio** gzip (worker compris) ; sondes D1/D8
+EX-NFR-11	C	COUVERTE	aucun chunk différé (0 / 400 Kio) ; garde posée et éprouvée (sondes D1) ; sans objet depuis D-07 (aucune vue 3D)
+EX-NFR-12	C	PARTIELLE	axe-core WCAG 2.1 A/AA : 0 violation sur B, D, C, E, F, `/mentions` ; **1 règle sur A** (`color-contrast`, 30 nœuds), 2 règles carte dépliée (`nested-interactive` ×120), 3 règles écran G ouvert (`aria-allowed-attr` critique ×82)	niveau AA non atteint sur A et G	écart non consigné (FV-16)
+EX-NFR-13	C	PARTIELLE	sonde D1 `contrast-tokens` (8/8 paires) ; au rendu, les pastilles de marque titrent 3,19 à 4,35 : 1 (axe, 30 nœuds, `aria-hidden`)	contraste des pastilles < 4,5 : 1	écart non consigné (FV-16)
+EX-NFR-14	C	PARTIELLE	sondes D5 `keyboard-band` (ordre = ordre visuel, corrigé R-D5-19), `keyboard-nav.test`, piège de focus écran G ; au rendu : `nested-interactive` sur les zones-modèles, premier arrêt de tabulation = bouton (focus déplacé sur `main`) ; parcours 100 % clavier non rejoué	non vérifié au rendu	campagne 2.9
+EX-NFR-15	C	PARTIELLE	tables équivalentes pour les 12 graphes tracés (sonde D7, observé « Voir les données »), table G4 complète (DR-083) ; **vides à la première entrée en mode 2** (FV-01)	FV-01	écart non consigné (FV-01)
+EX-NFR-16	C	PARTIELLE	axe-core exécuté sur les 8 surfaces (journaux P3/P4) : 6 surfaces à 0 violation, A et G en défaut	violations A/AA sur A et G	écart non consigné (FV-16)
+EX-NFR-17	C	COUVERTE	sonde D1 `EX-NFR-17 — build.target` (es2020/edge88/firefox78/chrome87/safari14 ⊇ deux dernières versions)
+EX-NFR-18	C	COUVERTE	sonde D1 `breakpoints` ; régime compact observé à 360 px (barre de synthèse sans `modèles`, 1 colonne)
+EX-NFR-19	C	COUVERTE	sonde D7 `EX-NFR-19 : le modèle de vue dégradé … neutralise le brossage` ; `degraded={regime === 'compact'}` câblé (`app.tsx`)
+EX-NFR-20	C	COUVERTE	aucune PWA (aucun `serviceWorker`, `grep -rn serviceWorker src` = 0) — rien n'est exigé
+EX-NFR-21	C	COUVERTE	sondes D8 `EX-NFR-21 — 3 réessais, délai 5 000 ms`, `R-D8-29` (corrigée), `integration.test`
+EX-NFR-22	C	COUVERTE	sondes D8 `repli sur cache, jamais un vide`, `R-D8-07` (bandeau daté + Réessayer, corrigée), `IndexedDB indisponible`
+EX-NFR-23	C	COUVERTE	sondes D8 `EX-NFR-22 / 23`, D4 `worker-protocol › WORKER_ERROR jamais un résultat vide`
+EX-NFR-24	C	COUVERTE	clés `localStorage` observées : `saved-searches`, `followed-models`, `recent-history` (+ préférences d'interface) — rien d'autre
+EX-NFR-25	C	COUVERTE	aucune requête sortante dans les cinq journaux (`externalRequests: []`) ; seuls `fetch` : référentiels same-origin et fetcher D9 jamais instancié
+EX-NFR-26	C	COUVERTE	sondes D9 `r3-output`, D3 `R3 (P-1, EX-NFR-26)`, patho `ING-R3`, `normalize.test`, `listings.test` (CSV sans R3)
+EX-NFR-27	C	COUVERTE	sonde D8 `EX-NFR-27 : aucune expiration`
+EX-NFR-28	C	COUVERTE	sondes D5 `EX-NFR-28`, D7 `R-D7-04` (corrigée) ; interface observée intégralement en français
+EX-NFR-29	C	PARTIELLE	table FR propre (`labels.ts`, `EX-NFR-30` sondes) ; libellés forgés non marqués `[EXTRAPOLÉ]` (sonde `R-D5-10` en `it.fails`)	marqueur `[EXTRAPOLÉ]` absent	dette motivée DR-132 (§6.5) — sans objet si `zipr` est retiré
+EX-NFR-30	C	PARTIELLE	sondes D5 `EX-NFR-30 : 0 code brut` (registre) vertes ; au rendu, jeton « Marque / Modèle / Version : 74|2084 » affiche des identifiants bruts	code brut affiché dans le jeton `mmmv`	écart non consigné (FV-04)
+EX-NFR-31	C	PARTIELLE	sondes D1 `print-contract`, D8 `R-D8-24` (corrigée) ; en `media: print` réel (journal P4-E) : en-tête et barre de synthèse `static`, C3 `block`, contrôles masqués ; mais le résumé textuel `.print-filter-summary` est placé **dans** `.filter-bar` (`display: none`) et n'est donc jamais imprimé	règle 3 (résumé des filtres) inopérante	écart non consigné (FV-13)
+P-1	REQ §10	COUVERTE	sondes D2 `r3-guard`, `r3-repository-scan`, `dictionary-fields (EX-DATA-122)` ; 21 champs exclus
+P-2	REQ §10	COUVERTE	`normalize.test › filtrage R3 à l'ingestion (P-1, P-2)` ; sonde patho `ING-R3`
+P-3	REQ §10	COUVERTE	aucun code postal dans le lot (`columns.ts`), NUTS-2 seul ; suppression < 5 sans objet (EX-DATA-56)
+P-4	REQ §10	COUVERTE	deeplink `window.open` observé, aucun contenu d'annonce dupliqué (15 colonnes, aucune image)
+P-5	REQ §10	COUVERTE	sondes D9 `no-network` (7 chemins), `assertAllowedUrl` ; aucune requête sortante observée en session
+P-6	REQ §10	COUVERTE	`/mentions` observée : « aucune API publique de lecture… source réelle visée 2dehands.be / marktplaats.nl » ; AC-01 non levée (D-18)

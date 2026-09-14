@@ -105,8 +105,11 @@ filtrables par aucun paramètre** (REF-filters Z5). Ils sont donc affichables, j
 (REF-filters #65) : `Belgique`, `Allemagne`… Code postal **tronqué à 2 chiffres suivis de `xx`**
 (`10xx`, `90xx`) conformément à la contrainte RGPD de `00-CONTEXT.md`. La ville
 (`location.city`) n'est **jamais affichée** : elle rend le vendeur particulier réidentifiable en
-combinaison avec le modèle et le prix. Latitude/longitude ne sont jamais affichées ; elles
-existent en interne avec 5 décimales pour le calcul de rayon.
+combinaison avec le modèle et le prix. Latitude/longitude ne sont **jamais affichées**.
+**Dette externe maintenue (`D8-18`, `D-14`)** : `zip`, `lat` et `lon` sont **exclus du périmètre
+retenu** (`EX-DATA-49`, `EX-SCR-82`) — aucun calcul de rayon n'est implémenté ni prévu ; la mention
+d'un usage interne à 5 décimales d'une version antérieure de cette exigence décrivait une
+fonctionnalité de recherche par rayon que `D-14` a exclue, jamais construite. [amendée 2.8 — D8-18]
 
 `EX-SCR-10` — **Effectifs.** Format `<entier> offre` au singulier, `<entier> offres` au pluriel,
 `aucune offre` pour zéro. Jamais `0 offre`.
@@ -235,6 +238,12 @@ filtre de classe T, dont le retrait rechargerait le jeu de données local, le bo
 « offres de plus », pas par une note séparée.
 Actions disponibles : retirer un filtre, `Réinitialiser tous les filtres`, `Enregistrer cette
 recherche` (reste actif : une recherche vide est légitime pour une veille).
+En **mode 1** (écran A, agrégats servis sans ligne, `O17`), la liste des trois filtres les plus
+restrictifs n'est pas calculée : le « leave-one-out » exigerait un balayage des annonces que le mode 1
+n'a pas chargées, ou un aller provider par filtre. Le bloc se rend alors sans suggestion chiffrée, avec
+`Réinitialiser tous les filtres` et `Enregistrer cette recherche` ; en **mode 2** (écran B), les trois
+suggestions sont calculées sur le lot élagué (`restrictive-filters.ts`) et le gain annoncé est
+l'effectif obtenu. Dette architecturale ratifiée, extension de `D8-29`. [amendée 2.8 — D8-37]
 
 `EX-SCR-27` — **`ET-VIDE-SANS-FILTRE` — zéro résultat dans l'état `SANS-FILTRE`
 (`EX-SCR-27bis`).** Traité comme une **panne** : un jeu de données local vide sans aucun prédicat
@@ -295,20 +304,19 @@ et P2 de `FINDING-allowed-surface.md`, dont l'avertissement que **la représenta
 l'échantillon n'est pas prouvée** (`adProduct.tier` suggère un tri influencé par le produit
 publicitaire).
 
-`EX-SCR-32` — **`ET-TROP-RESULTATS` — la population dépasse le seuil de rendu.** Seuils :
-écran A, franchissement de **60 marques** avec au moins un résultat (`EX-SCR-124bis`) ; écran B,
-plus de 20 000 annonces individuelles à tracer, seuil inchangé. Comportement : le rendu n'est pas
-dégradé silencieusement. Un bandeau informatif indique
-`<n> marques correspondent — affinez pour comparer` (écran A) ou
-`<n> annonces — la nuée affiche l'échantillon SAMPLE(V, 20 000, seed) d'EX-DATA-100bis`
-(écran B). Le bandeau porte le bouton `Tout afficher` qui active le rendu virtualisé (écran A)
-ou le rendu par densité `G7` (écran B). Les **agrégats restent calculés sur la population
-entière**, jamais sur l'échantillon d'affichage ; cette distinction est écrite dans l'infobulle
-de chaque statistique concernée. Le nombre d'outliers annoncé par la nuée et par sa table
-équivalente (`EX-NFR-15`) est **celui de la population entière**, jamais celui de l'échantillon
-tracé ; l'infobulle le dit. Ni le seuil de « plus de 40 marques » ni la mention
-« 20 affichées » n'appartiennent plus à cette exigence : les seuils de l'écran A sont portés par
-`EX-SCR-124bis` et par lui seul.
+`EX-SCR-32` — **`ET-TROP-RESULTATS` — la population dépasse le seuil de rendu.** Seuil : écran A,
+franchissement de **60 marques** avec au moins un résultat (`EX-SCR-124bis`). Comportement : le
+rendu n'est pas dégradé silencieusement. Un bandeau informatif indique
+`<n> marques correspondent — affinez pour comparer` (écran A). Le bandeau porte le bouton
+`Tout afficher` qui active le rendu virtualisé. Ni le seuil de « plus de 40 marques » ni la
+mention « 20 affichées » n'appartiennent plus à cette exigence : les seuils de l'écran A sont
+portés par `EX-SCR-124bis` et par lui seul. **`ET-TROP-RESULTATS` ne s'applique pas au nuage `G4`
+de l'écran B** (`EX-SCR-177`) : au-delà de `K = 5 000` (`EX-DATA-100`), c'est `EX-SCR-157` qui
+gouverne, sans seuil à 20 000 ni graine (`EX-DATA-101` est sans aléa, `EX-DATA-100bis`). Sous ce
+régime, les **agrégats restent calculés sur la population entière**, jamais sur l'échantillon
+d'affichage — la distinction est écrite dans l'infobulle de chaque statistique concernée — et le
+nombre d'outliers annoncé par la nuée et par sa table équivalente (`EX-NFR-15`) est **celui de la
+population entière**, jamais celui de l'échantillon tracé. [amendée 2.6 — D-06, D-08]
 
 `EX-SCR-33` — **`ET-EFFECTIF-FAIBLE` — effectif insuffisant pour une statistique.**
 **Dans toute cette exigence, `n` désigne `n_m(Σ)` au sens d'`EX-DATA-59` pour la métrique de la
@@ -474,7 +482,7 @@ un menu contenant les segments masqués.
 | Route | Segments | Comportement du dernier lien actif |
 |---|---|---|
 | `/marche` | `Marché` | — |
-| `/marche/:makeId-:makeSlug/:modelId-:modelSlug` | `Marché > <marque> > <modèle>` | `<marque>` ramène à `/marche` avec `make` posé et les autres filtres conservés |
+| `/marche/:makeId-:makeSlug/:modelId-:modelSlug` | `Marché > <marque> > <modèle>` | `<marque>` ramène à `/marche` avec `mmmv` posé (segment modèle vide, `EX-NAV-16`) et les autres filtres conservés |
 | `…/annonces` | `Marché > <marque> > <modèle> > Annonces` | `<modèle>` ramène à l'écran B, **filtres conservés** ; c'est le chemin de retour nommé de l'écran D |
 | `/comparer` | `Marché > Comparaison` | `Marché` ramène à `/marche`, filtres conservés |
 | `/recherches` | `Marché > Recherches enregistrées` | idem |
@@ -618,9 +626,11 @@ comportement d'exécution et son rendu :
 | Classe | Définition | Comportement | Rendu |
 |---|---|---|---|
 | **R** — recalculable | le champ sous-jacent figure dans les 40 champs relevés en §2.3 de `FINDING-allowed-surface.md` | recalcul **local**, `ET-CHARGE-LOCAL`, ≤ 150 ms, aucun appel réseau | contrôle normal |
-| **T** — transmis | aucun champ local ne porte l'information ; le filtre ne peut être appliqué que par le `DataProvider` | nouvel appel, `ET-CHARGE-MAJ`, débounce 400 ms | contrôle normal + jeton `T` en infobulle : `Filtre appliqué à la source — recharge les données` |
+| **T** — transmis | aucun champ local ne porte l'information ; le filtre ne peut être appliqué que par le `DataProvider` | nouvel appel, `ET-CHARGE-MAJ`, débounce **selon le type de contrôle** (annexe C, table `EX-SRCH-1…8`, autorité sur les mécanismes — pas un délai unique pour la classe) | contrôle normal + jeton `T` en infobulle : `Filtre appliqué à la source — recharge les données` |
 | **D** — désactivé documenté | filtre relevé mais **non activable** sur les marketplaces relevés | contrôle présent, `disabled`, non sérialisé dans l'URL | opacité 45 % + infobulle donnant le motif relevé |
 | **X** — hors périmètre | filtre sans objet pour KYCAR | **absent du DOM** | listé en §4.7 avec son motif |
+
+[amendée 2.6 — D-19]
 
 `EX-SCR-58` — La distinction R / T est **observable** : le jeton `T` doit être présent sur tous
 les filtres de classe T et sur aucun filtre de classe R. Critère de recette : compter les
@@ -629,7 +639,7 @@ tableau §4.7.
 
 ### 4.3 Filtres primaires — choix et justification
 
-`EX-SCR-59` — Les filtres primaires sont **exactement neuf contrôles** couvrant douze
+`EX-SCR-59` — Les filtres primaires sont **exactement huit contrôles** couvrant onze
 paramètres d'URL, plus le champ de recherche par mot-clé :
 
 | # | Contrôle primaire | Paramètres | Classe |
@@ -642,12 +652,17 @@ paramètres d'URL, plus le champ de recherche par mot-clé :
 | 6 | Carrosserie | `body` | T (annonce) / R (modèle) |
 | 7 | Boîte de vitesses | `gear` | T |
 | 8 | Type de vendeur | `custtype` | R |
-| 9 | Pays | `cy` | R |
 
 La classe `R` du filtre primaire `Carrosserie` en mode 1 est justifiée par `Model.bodyTypes`
 (`EX-DATA-105`) ; si `bodyTypes` est un tableau vide pour un modèle, ce modèle **ne satisfait
 aucun** prédicat `body` et la note d'exclusion `EX-SCR-178` annonce
 `<k> modèles sans carrosserie renseignée`.
+
+`Pays` (`cy`) n'est **plus** un contrôle primaire : `EX-SRCH-18bis`/`D-15` en fait une valeur
+injectée par le `DataProvider` selon le marketplace du snapshot, jamais un filtre utilisateur —
+le critère « Belgique » du parcours cible (`00-CONTEXT.md`) est satisfait par construction (le
+snapshot est déjà celui du marketplace belge), pas par un contrôle de bandeau. `cy` est
+`NON_EXPOSE` (`EX-SCR-82`). [amendée 2.8 — D8-13]
 
 `EX-SCR-60` — **Justification du choix, par quatre critères mesurables.** Un filtre est primaire
 si et seulement s'il satisfait au moins trois des quatre critères suivants :
@@ -705,6 +720,8 @@ Concerne : `emclass`, `ensticker`, `bot`, `prevownersid`, `zipr`, `ustate`,
 filtre est de classe R : `Essence (412)`. Sémantique **OU** affichée en tête du groupe :
 `Au moins une de ces valeurs`. Concerne : `offer`, `fuel`, `body`, `gear`, `dtrain`,
 `cylinders`, `bcol`, `icol`, `ptype`, `uph`, `cy`, `pe_category`, `sealor`.
+En **mode 1**, l'effectif entre parenthèses n'est pas affiché : voir la dette architecturale
+ratifiée `D8-29` sous `EX-SCR-90` (§4.8). [amendée 2.8 — D8-29]
 
 `EX-SCR-66` — **Énumération multi-valeurs, n > 14** → panneau dédié avec champ de recherche
 interne, liste virtualisée, effectif de sélection en tête (`3 équipements sélectionnés`) et
@@ -860,10 +877,12 @@ restant atteignables en infobulle — étendre l'affichage complet à un jeton p
 déborder la ligne des filtres actifs et détruirait la lisibilité des autres jetons.
 
 `EX-SCR-76` — **Retrait individuel.** Un clic sur la croix retire **cette seule valeur** pour
-une énumération multi-valeurs (le jeton `Essence, Diesel` se scinde en deux jetons dès qu'il
-dépasse 2 valeurs, précisément pour rendre le retrait unitaire possible), et **les deux bornes**
-pour un intervalle. Retirer un jeton de taxonomie de niveau supérieur retire aussi ses
-descendants, avec la notification d'`EX-SCR-73`.
+une énumération à 1 ou 2 valeurs, et **les deux bornes** pour un intervalle. Retirer un jeton de
+taxonomie de niveau supérieur retire aussi ses descendants, avec la notification d'`EX-SCR-73`.
+**Au-delà de 2 valeurs**, le jeton reste unique et porte le cardinal (`EX-SCR-75`, exception
+maintenue) : le retrait unitaire est rendu possible par l'**infobulle/popover** du jeton, qui
+liste chaque valeur avec sa propre croix de retrait ; chaque cible de retrait — croix de jeton ou
+croix d'infobulle — porte `removesCodes`, la liste des codes qu'elle retire. [amendée 2.6 — D-10]
 
 `EX-SCR-77` — **`Tout effacer`.** Bouton textuel qui **retire tout prédicat utilisateur** : à
 l'issue de l'action, aucun filtre n'est appliqué au jeu de données local et l'URL ne porte aucun
@@ -913,6 +932,15 @@ l'exigence :
 > `atype` → `NON_EXPOSE` (écart déclaré) ; `cat`, `mcat` → `SECONDAIRE`, groupe
 > `Véhicule (taxonomie)` ; `page`, `size` → `SECONDAIRE`, groupe `Liste d'annonces`, exposés
 > sur l'écran D uniquement et sérialisés (`A-02` fait exister la sous-vue).
+>
+> **[amendée 2.8 — D8-13]** Cette exception unique ne tient plus : `DR-052`/`D-15` (`EX-SRCH-18bis`)
+> et `D-12`/`DR-066` (`EX-NAV-10bis`) marquent `NON_EXPOSE` cinq filtres retenus supplémentaires,
+> tous des **valeurs injectées ou un état d'interface, jamais un filtre utilisateur** : `powertype`,
+> `ustate`, `cy` (unité de puissance, accidenté et pays — injectés par le `DataProvider` selon la
+> source ou le marketplace du snapshot, `EX-SRCH-18bis`) et `page`, `size` (pagination interne de
+> l'écran D, paramètres d'état d'interface au sens strict d'`EX-NAV-10bis`, jamais un contrôle du
+> bandeau). L'exception devient donc **six** filtres nommément déclarés : `atype`, `powertype`,
+> `ustate`, `cy`, `page`, `size`.
 
 Les filtres `perimetre = RETENU` qui ne sont nommés dans le `Concerne` d'aucune exigence
 `EX-SCR-63` à `EX-SCR-72` reçoivent leur contrôle et leur emplacement par la règle générative
@@ -956,7 +984,7 @@ d'`EX-SCR-57`.
 | 32 | `modelyearfrom` | Immatriculation et année | `RETENU` | `SECONDAIRE` | R | `modelYear` |
 | 33 | `modelyearto` | Immatriculation et année | `RETENU` | `SECONDAIRE` | R | idem |
 | 34 | `fuel` | Motorisation | `RETENU` | `PRIMAIRE` | R | `fuels.fuelCategory.raw` — voir PIÈGE 1 (`EX-SCR-84`) |
-| 35 | `powertype` | Motorisation | `RETENU` | `SECONDAIRE` | R | commutateur d'unité `engine.power.kw` / `.hp` |
+| 35 | `powertype` | Motorisation | `RETENU` | `NON_EXPOSE` | R | commutateur d'unité `engine.power.kw` / `.hp` ; valeur injectée par le `DataProvider` dans son unité canonique, jamais un contrôle utilisateur (`EX-SRCH-18bis`, `D-15`) |
 | 36 | `powerfrom` | Motorisation | `RETENU` | `SECONDAIRE` | R | `engine.power.*.raw` |
 | 37 | `powerto` | Motorisation | `RETENU` | `SECONDAIRE` | R | idem |
 | 38 | `ccmfrom` | Motorisation | `RETENU` | `SECONDAIRE` | T | aucun champ de cylindrée |
@@ -980,17 +1008,17 @@ d'`EX-SCR-57`.
 | 56 | `erfrom` | Écologie et électrique | `RETENU` | `SECONDAIRE` | T | aucun champ d'autonomie |
 | 57 | `erto` | Écologie et électrique | `RETENU` | `SECONDAIRE` | T | idem |
 | 58 | `eq` | Équipements | `RETENU` | `SECONDAIRE` | T | aucun champ d'équipement ; sémantique ET présumée (Z1) |
-| 59 | `ustate` | État et historique | `RETENU` | `SECONDAIRE` | T | `usageState` présent mais correspondance non établie (Z4) |
+| 59 | `ustate` | État et historique | `RETENU` | `NON_EXPOSE` | T | `usageState` présent mais correspondance non établie (Z4) ; valeur injectée `A,N,U` par le `DataProvider`, jamais un contrôle utilisateur (`EX-SRCH-18bis`, `D-15`) |
 | 60 | `damaged_listing` | État et historique | `RETENU` | `DESACTIVE` | **D** | rejeté par BE et `.com` |
 | 61 | `prevownersid` | État et historique | `RETENU` | `SECONDAIRE` | R | `condition.numberOfPreviousOwnersExtended.raw` ; sémantique « au plus » présumée (Z2) |
 | 62 | `sealor` | État et historique | `RETENU` | `SECONDAIRE` | T | aucun champ de label, dép. `mmmv` |
 | 63 | `custtype` | Vendeur | `RETENU` | `PRIMAIRE` | R | `seller.type` |
 | 64 | `cid` | — | `EXCLU` | `NON_EXPOSE` | — | **règle R3** : identifiant de vendeur, interdit dans le schéma |
-| 65 | `cy` | Géographie | `RETENU` | `PRIMAIRE` | R | `location.countryCode` |
-| 66 | `zip` | Géographie | `RETENU` | `SECONDAIRE` | R (dégradé) | `location.zip` tronqué à `NNxx` : filtrage local à la précision de 2 chiffres seulement |
-| 67 | `zipr` | Géographie | `RETENU` | `SECONDAIRE` | T | exige la géolocalisation serveur, dép. `zip` |
-| 68 | `lat` | Géographie | `RETENU` | `SECONDAIRE` | T | dérivé du géocodage serveur, jamais exposé à l'utilisateur |
-| 69 | `lon` | Géographie | `RETENU` | `SECONDAIRE` | T | idem |
+| 65 | `cy` | Géographie | `RETENU` | `NON_EXPOSE` | R | `location.countryCode` ; valeur injectée par le `DataProvider` selon le marketplace du snapshot, jamais un contrôle utilisateur (`EX-SRCH-18bis`, `D-15`) |
+| 66 | `zip` | Géographie | `EXCLU` | `NON_EXPOSE` | — | E8 d'`EX-DATA-47`, code postal exact du vendeur : règle R3, aucun filtre géographique fin (`D-14`) |
+| 67 | `zipr` | Géographie | `RETENU` | `SECONDAIRE` | T | exige la géolocalisation serveur, dép. `zip` (`zip` désormais `EXCLU`, #66 : dépendance résiduelle sans effet, `zipr` reste sans champ local) |
+| 68 | `lat` | Géographie | `EXCLU` | `NON_EXPOSE` | — | E11 d'`EX-DATA-47`, latitude du vendeur : règle R3, géolocalisation exacte hors schéma KYCAR (`D-14`) |
+| 69 | `lon` | Géographie | `EXCLU` | `NON_EXPOSE` | — | idem `lat` (`D-14`) |
 | 70 | `region` | Géographie | `RETENU` | `DESACTIVE` | **D** | domaine inconnu, désactivé à la source (Z3) |
 | 71 | `crossborder` | Géographie | `RETENU` | `SECONDAIRE` | T | dép. `zip` + `zipr` |
 | 72 | `ot_osc` | Fraîcheur et achat en ligne | `RETENU` | `SECONDAIRE` | T | aucun champ |
@@ -1000,8 +1028,8 @@ d'`EX-SCR-57`.
 | 76 | `adage` | — | `EXCLU` | `NON_EXPOSE` | — | **aucune date de publication dans les 40 champs** ; seul `publication.isNew` existe |
 | 77 | `sort` | (contrôle de tri, écrans A et D) | `RETENU` | `SECONDAIRE` | R | tri local sur les champs disponibles ; valeurs `financerate` et `leasing_rate` retirées (désactivées sur BE) |
 | 78 | `desc` | (contrôle de tri) | `RETENU` | `SECONDAIRE` | R | dép. `sort` |
-| 79 | `page` | Liste d'annonces | `RETENU` | `SECONDAIRE` | T | pagination interne au `DataProvider`, jamais exposée |
-| 80 | `size` | Liste d'annonces | `RETENU` | `SECONDAIRE` | T | idem ; valeur observée `20` |
+| 79 | `page` | Liste d'annonces | `RETENU` | `NON_EXPOSE` | T | pagination interne au `DataProvider`, jamais exposée ; homonyme du paramètre d'état d'interface `page` de l'écran D (`EX-NAV-10bis`, `D-12`), sans rapport avec lui |
+| 80 | `size` | Liste d'annonces | `RETENU` | `NON_EXPOSE` | T | idem ; valeur observée `20` ; homonyme du paramètre d'état d'interface `size` de l'écran D (`EX-NAV-10bis`, `D-12`) |
 | 81–96 | `bedsfrom` … `grossweightto` | — | `EXCLU` | `NON_EXPOSE` | — | propres à `atype ≠ C` (caravanes, utilitaires, engins) — hors périmètre voiture |
 | 97 | `show_nfm` | — | `EXCLU` | `NON_EXPOSE` | — | paramètre technique injecté par le serveur |
 | 98 | `search_id` | — | `EXCLU` | `NON_EXPOSE` | — | idem |
@@ -1010,16 +1038,17 @@ d'`EX-SCR-57`.
 | 101 | `mmm` | — | `EXCLU` | `NON_EXPOSE` | — | sérialisation legacy remplacée par `mmmv` |
 
 `EX-SCR-83` — **Bilan de l'affectation, arithmétiquement clos** :
-**77** `RETENU` dont **76** `EXPOSÉ` (13 paramètres primaires, le reste secondaire ou
-désactivé) et **1** `NON_EXPOSE` déclaré (`atype`) ; **24** `EXCLU`. Total catalogue : **101**.
-Détail de l'exposition des 76 : 13 `PRIMAIRE` (regroupés en 9 contrôles, cf. `EX-SCR-59`,
-`kwd` compris) · 60 `SECONDAIRE` · 3 `DESACTIVE` documentés (`damaged_listing`, `region`,
-`dlv_max`).
+**74** `RETENU` dont **68** `EXPOSÉ` (12 paramètres primaires, le reste secondaire ou
+désactivé) et **6** `NON_EXPOSE` déclarés (`atype`, `powertype`, `ustate`, `cy`, `page`, `size`) ;
+**27** `EXCLU`. Total catalogue : **101**.
+Détail de l'exposition des 68 : 12 `PRIMAIRE` (regroupés en 8 contrôles, cf. `EX-SCR-59`,
+`kwd` compris) · 53 `SECONDAIRE` · 3 `DESACTIVE` documentés (`damaged_listing`, `region`,
+`dlv_max`). [amendée 2.8 — D8-13]
 Le test de complétude compare `filters-scope.json` à cette table sur les **deux colonnes**,
-**échoue** si un `RETENU` est `NON_EXPOSE` hors `atype`, et **échoue** si un filtre non exclu
-n'a pas exactement un type de contrôle (`ARB-53`). Il vérifie en outre que tout filtre non
-exclu possède **exactement un** type de contrôle parmi ceux d'`EX-SCR-63` à `EX-SCR-72` ;
-le test échoue s'il en possède zéro ou deux.
+**échoue** si un `RETENU` est `NON_EXPOSE` hors des six exceptions déclarées, et **échoue** si un
+filtre non exclu n'a pas exactement un type de contrôle (`ARB-53`). Il vérifie en outre que tout
+filtre non exclu possède **exactement un** type de contrôle parmi ceux d'`EX-SCR-63` à
+`EX-SCR-72` ; le test échoue s'il en possède zéro ou deux.
 
 `EX-SCR-84` — **PIÈGE 1 — collision de codes sur `fuel`.** Le contrôle `Carburant` utilise
 exclusivement le **vocabulaire de recherche** (`2` = Électrique/Essence, `3` = Électrique/Diesel,
@@ -1048,9 +1077,9 @@ source`. Aucune de ces sémantiques n'est utilisée pour un calcul d'agrégat lo
 ### 4.8 Comportement, retours visuels et désactivations
 
 `EX-SCR-86` — **Application immédiate.** Tout changement de filtre s'applique sans bouton
-`Rechercher`. Aucune validation différée. Pour les champs de saisie textuelle et numérique, le
-déclenchement a lieu au `blur`, à `Entrée`, ou après 400 ms d'inactivité de frappe, le premier
-des trois. Pour les cases, radios et interrupteurs, au `change`.
+`Rechercher`. Aucune validation différée. Pour les champs de saisie **numérique**, le
+déclenchement a lieu au `blur`, à `Entrée`, ou après **500 ms** d'inactivité de frappe (`EX-SRCH-4`),
+le premier des trois. Pour les cases, radios et interrupteurs, au `change`. [amendée 2.6 — D-19]
 
 `EX-SCR-87` — **Retour visuel de chaque contrôle.** Au survol : fond à 4 % de la couleur
 d'accent. Au focus clavier : contour de 2 px de la couleur d'accent, décalé de 2 px, visible
@@ -1075,6 +1104,21 @@ catalogue de filtres non auditable contre `REF-filters.md`.
 affichés que pour les filtres de **classe R**, et ils sont calculés « toutes contraintes
 appliquées sauf le filtre courant » (facette leave-one-out). Pour les filtres de classe T,
 aucune parenthèse n'est affichée — et non une parenthèse vide.
+
+**Dette architecturale ratifiée (`D8-29`, 2.8) — `EX-SCR-89`/`90` en mode 1.** `EX-SCR-65`
+(§4.4) et les deux exigences ci-dessus supposent un effectif de facette calculable pour chaque
+option — y compris l'effectif nul d'`EX-SCR-89`. Or `O17` (élagage réalisé **avant** chargement)
+fait qu'en **mode 1** (agrégats servis sans ligne, `AGGREGATE_SURFACE`) aucun jeu de lignes n'est
+chargé : le calcul de facette leave-one-out qu'exige `EX-SCR-90` n'a alors **rien** sur quoi
+porter. En mode 1, les effectifs de facette `(n)` — `EX-SCR-90` — et le marquage `(0)` d'une
+option sans résultat — `EX-SCR-89` — **ne sont pas affichés** : `CheckboxList` ne rend **aucune**
+parenthèse, jamais un `(0)` par défaut ni une valeur inventée. Cette dette est distincte d'une
+régression : elle tient tant qu'aucun jeu n'est chargé, et se referme d'elle-même dès le passage
+en **mode 2** (`FV-06` y est corrigé en entier, `D8-05`). Condition de levée en mode 1 : une
+décision produit (accepter un calcul de facette approché sur les seuls agrégats servis) ou un
+`DataProvider` de mode 1 exposant lui-même des facettes (`DataProvider.facets()`, v2 de
+l'interface). Hors dépôt tant que l'une des deux conditions n'est pas remplie, au même titre
+qu'`EX-SCR-9`. [amendée 2.8 — D8-29]
 
 `EX-SCR-91` — **Compteur du bandeau replié** : il affiche le nombre de filtres **posés par
 l'utilisateur à une valeur autre que leur défaut relevé**, et non le nombre de filtres
@@ -1115,6 +1159,12 @@ l'échantillon valide `V_price` au sens d'`EX-DATA-60`.** Libellés normatifs :
   `Statistiques de prix incluant les prix sentinelles — lecture non standard`.
 Ils sont visuellement séparés par un filet et par la mention `Ces deux réglages sont propres à
 KYCAR` ; ils ne comptent jamais dans le badge de filtres actifs (`R-A01`).
+
+**Dette produit ratifiée (`D8-15`)** : ce panneau de préférences n'est pas implémenté en 2.8 — sans
+effet sur une valeur affichée (`EX-DATA-16(b)` impose déjà inconditionnellement le premier réglage,
+le second reste sans contrôle observable), hors budget de la remédiation 2.8. La sonde/le test E2E
+qui l'exerce reste `it.fails`/`test.fail`, annoté `DETTE D8-15`, jusqu'à sa mise en œuvre.
+[amendée 2.8 — D8-15]
 
 `EX-SCR-96` — **Régime `intermédiaire` (768–1279 px).** La ligne primaire passe sur deux
 lignes de contrôles (5 puis 4), hauteur du bandeau replié 132 px. Le champ
@@ -1319,7 +1369,10 @@ comparé`.
 `EX-SCR-114` — **Ces trois fourchettes plus l'effectif sont l'exigence textuelle du
 commanditaire** (« le nombre d'offre de ce modèle de cette marque et la fourchette de prix,
 d'année et de kilomètre »). Elles ne sont donc jamais masquées, à aucun régime responsive
-(en `compact` elles passent sur quatre lignes, cf. `EX-SCR-135`).
+(en `compact` elles passent sur quatre lignes, cf. `EX-SCR-135`). Précision : « jamais masquées »
+porte sur la **présence** des trois fourchettes et de l'effectif ; leur **contenu** suit les paliers
+d'effectif d'`EX-SCR-33` (ARB-17) — pour `5 ≤ n ≤ 11`, `P5`/`P95` sont remplacés par `min`/`max` et le
+jeton `n = <n>`, la ligne de fourchette reste affichée. [amendée 2.6 — D-36]
 
 `EX-SCR-115` — **Provenance des fourchettes, et honnêteté du chiffre.** `topModels` ne fournit
 que `listingsCount`, et `priceInfo` ne fournit que des **minima**
@@ -1480,11 +1533,16 @@ bouton `Réessayer` portant sur cette seule carte. La carte reste cliquable au n
 `<k> marques sur <n> n'ont pas pu être chargées`. La grille n'est **jamais** vidée pour une
 erreur partielle.
 
-`EX-SCR-134` — **`ET-EFFECTIF-FAIBLE` appliqué à la zone-modèle.** Pour `1 ≤ n ≤ 4`, la
-médiane est remplacée par `n trop faible` et les fourchettes restent affichées (min et max sont
-définis dès `n = 1`, auquel cas `EX-SCR-4` produit une valeur unique). Pour `n = 1`, la
-troisième ligne affiche `1 seule offre` à la place de `méd. …`, et la barre de part relative
-est rendue à sa longueur réelle, jamais à zéro.
+`EX-SCR-134` — **`ET-EFFECTIF-FAIBLE` appliqué à la zone-modèle.** Les paliers d'`EX-SCR-33`
+s'appliquent sans exception à la zone-modèle — ce sont les mêmes paliers pour toute l'application,
+il n'existe pas de variante propre à l'écran A. Pour `1 ≤ n ≤ 4`, la médiane est remplacée par
+`n trop faible` et les fourchettes restent affichées (min et max sont définis dès `n = 1`, auquel
+cas `EX-SCR-4` produit une valeur unique). Pour `n = 1`, la troisième ligne affiche `1 seule
+offre` à la place de `méd. …`, et la barre de part relative est rendue à sa longueur réelle,
+jamais à zéro. Pour `5 ≤ n ≤ 11`, `P5`/`P95` sont **masqués** et remplacés par le jeton ambre
+`n = <n>` accolé au titre de la zone-modèle, conformément à `EX-SCR-33` ; min et max restent
+affichés. `effectifTier` (au sens d'`EX-SCR-33`) est la source unique de ces paliers dans la
+zone-modèle. [amendée 2.6 — D-04]
 
 ### 5.7 Responsive de l'écran A
 
@@ -1710,11 +1768,14 @@ Justification de l'inversion des canaux : en nuage prix × année, c'est le kilo
 valeurs extrêmes doivent ressortir, et la couleur est un canal plus précis que la taille pour
 une variable continue lue point par point.
 
-`EX-SCR-157` — **Chevauchement et opacité.** Points à 55 % d'opacité, contour de 0,5 px à
-100 % d'opacité pour que deux points superposés restent dénombrables. Au-delà de 5 000 points,
-`G4b` bascule automatiquement d'un rendu SVG à un rendu `canvas`, et au-delà de 20 000 points
-affiche le bandeau `ET-TROP-RESULTATS` avec la mention d'échantillonnage à graine fixée
-(la graine est écrite dans l'infobulle, afin que deux utilisateurs voient le même échantillon).
+`EX-SCR-157` — **Chevauchement, opacité et échantillonnage.** Points à 55 % d'opacité, contour de
+0,5 px à 100 % d'opacité pour que deux points superposés restent dénombrables. Au-delà de
+5 000 points, `G4b` bascule automatiquement d'un rendu SVG à un rendu `canvas` **et**, au même
+seuil `K = 5 000` (`EX-DATA-100`, qui gouverne), affiche la mention d'échantillonnage
+d'`EX-DATA-103` (`n_e`, `K`, le nombre de points tracés, le mode d'échantillonnage). **Il
+n'existe pas de second seuil à 20 000** : le bandeau `ET-TROP-RESULTATS` ne s'applique pas au
+nuage. Aucune graine n'est affichée — `EX-DATA-101` n'en emploie aucune (`EX-DATA-100bis`).
+[amendée 2.6 — D-06, D-08]
 
 `EX-SCR-158` — **Interactions de `G4`** :
 - **Survol d'un point** → infobulle de **6 lignes** : `modelVersionInput` tronqué à
@@ -1728,12 +1789,15 @@ affiche le bandeau `ET-TROP-RESULTATS` avec la mention d'échantillonnage à gra
 - **Brossage rectangulaire** (glisser dans la zone de tracé) → sélectionne un sous-ensemble
   d'annonces. La sélection **n'est pas un filtre** : elle met en surbrillance les mêmes
   annonces dans `G1`, `G2`, `G3`, `G7`, `G8` et `G10` (liaison croisée, `EX-SCR-184`), affiche
-  un compteur `<n> annonces sélectionnées` et propose deux boutons :
-  `Filtrer sur cette sélection` (convertit la sélection en filtres d'intervalle) et
-  `Voir ces annonces` (écran D restreint à la sélection).
+  un compteur `<n> annonces sélectionnées` et propose **un bouton et un lien** :
+  le bouton `Convertir la sélection en filtre` (`EX-SCR-184`, le **seul** chemin qui change la
+  sélection `Σ`) et le lien `Voir ces annonces`, vers l'écran D restreint à la sélection par le
+  paramètre d'état d'interface `sel` (`EX-NAV-10bis`), qui **ne change pas** `Σ`.
 - **Zoom** : boutons `+`, `−` et `Réinitialiser` explicites, plus `Maj` + glisser pour un zoom
   rectangulaire. Aucun zoom molette (`EX-SCR-149`).
 - **`Échap`** → annule la sélection de brossage.
+
+[amendée 2.6 — D-26]
 
 `EX-SCR-158bis` — **Étiquetage obligatoire de la base de comparaison.** Tout élément qui affiche
 un verdict d'outlier, un écart au prix attendu, un `opportunityScore` ou un liseré dérivé de
@@ -1754,6 +1818,16 @@ présence de la chaîne partout où un verdict est rendu.
   exacts. Brossage et zoom sont désactivés pour `n ≤ 3` (infobulle
   `Sélection inutile en dessous de 4 offres`).
 - Seuil de bascule des légendes continues vers les légendes discrètes : `n < 8`.
+
+**Version bornée livrée, ratifiée (`D8-32`, 2.8).** La correction livrée en 2.8 retient le seuil
+(`n < 4` pour le brossage/zoom désactivés, `n < 8` pour la bascule de légende) et **l'atténuation**
+visuelle de la légende continue (texte atténué, taille réduite, annexe B), mais **pas** la
+reconstruction en pastilles/valeurs littérales exactes décrite ci-dessus pour `n ≤ 3`, ni le
+recentrage à `n = 1` : la légende reste la même légende continue, seulement atténuée. Aucune
+divergence normative sur le seuil ou sur le brossage — la différence porte uniquement sur
+l'habillage visuel à très faible effectif. Le passage à la version complète (pastilles et valeurs
+littérales exactes, recentrage à `n = 1`) reste une **dette de présentation, non bloquante**,
+ouverte pour un lot ultérieur si le produit l'exige au-delà de cette version. [amendée 2.8 — D8-32]
 
 `EX-SCR-160` — **`G4` sans année exploitable.** Si aucune annonce du périmètre ne porte de date
 de première immatriculation, `G4a` conserve sa nuée mais la dimension couleur est remplacée par
@@ -1991,10 +2065,11 @@ filtre.
 
 `EX-SCR-177` — **`ET-TROP-RESULTATS` sur l'écran B.** Seuil : 20 000 annonces individuelles.
 `G1`, `G2`, `G3`, `G5`, `G6`, `G7`, `G9`, `G10`, `G12`, `G13`, `G14` et `G15` restent calculés
-sur la **population entière** ; seuls `G4` et `G8` travaillent différemment : `G4` trace
-20 000 points échantillonnés à graine fixée, `G8` estime son modèle sur la population entière
-mais n'affiche que les 20 premiers écarts. Cette asymétrie est écrite dans l'infobulle de `G4`
-et dans celle de `G8`, pas seulement dans ce document.
+sur la **population entière**. **`G4` est hors du périmètre d'`ET-TROP-RESULTATS`** : son propre
+régime au-delà de `K = 5 000` est celui d'`EX-SCR-157` (`EX-DATA-100`), sans seuil à 20 000 ni
+graine. Seul `G8` travaille différemment au-delà du seuil de 20 000 : il estime son modèle sur la
+population entière mais n'affiche que les 20 premiers écarts. Cette asymétrie est écrite dans
+l'infobulle de `G8`. [amendée 2.6 — D-08]
 
 `EX-SCR-178` — **Notes d'exclusion par graphe.** Sous chaque graphe, une ligne de 16 px en gris
 à 60 % indique, dès que `k ≥ 1` : `<k> annonces exclues (<motif>)`. Motifs normatifs :
@@ -2115,17 +2190,19 @@ peut être retiré du périmètre par `req-lead` sans casser les parcours cibles
 courte de modèles candidats, et sans écran de comparaison l'utilisateur doit tenir plusieurs
 distributions en mémoire en naviguant d'un écran B à l'autre.
 
-`EX-SCR-194` — **Route** : `/comparer?m=<modelId>,<modelId>[,<modelId>][,<modelId>]&<filtres>`.
-**Condition d'affichage** : de 2 à 4 identifiants de modèle. Avec 1 seul, redirection vers
-l'écran B ; avec 0, redirection vers l'écran A. Le **plafond unique est de 4 modèles**
-(`EX-CRUD-13bis`) : l'ouverture d'une URL `/comparer?m=…` **remplace** la sélection de session
-par celle de l'URL, en ignorant les entrées au-delà de la quatrième et en signalant l'écrêtage
-par `ET-URL-CORRIGEE` (`EX-SCR-38bis`). La mention « les identifiants surnuméraires sont
-ignorés » et le bandeau `<k> sélections ignorées — maximum 4` sont **supprimés** : hors
+`EX-SCR-194` — **Route** :
+`/comparer?m=<makeId>-<modelId>,<makeId>-<modelId>[,<makeId>-<modelId>][,<makeId>-<modelId>]&<filtres>`
+— format `<makeId>-<modelId>` par entrée, encodage sur lequel l'annexe C fait autorité
+(`EX-NAV-10bis`). **Condition d'affichage** : de 2 à 4 identifiants de modèle. Avec 1 seul,
+redirection vers l'écran B ; avec 0, redirection vers l'écran A. Le **plafond unique est de
+4 modèles** (`EX-CRUD-13bis`) : l'ouverture d'une URL `/comparer?m=…` **remplace** la sélection
+de session par celle de l'URL, en ignorant les entrées au-delà de la quatrième et en signalant
+l'écrêtage par `ET-URL-CORRIGEE` (`EX-SCR-38bis`). La mention « les identifiants surnuméraires
+sont ignorés » et le bandeau `<k> sélections ignorées — maximum 4` sont **supprimés** : hors
 chargement d'URL, aucun ajout au-delà de 4 n'est possible, tout contrôle d'ajout étant désactivé.
 Justification du plafond 4 : à 4 colonnes en régime `large` (1 680 px de contenu), chaque
 colonne mesure 396 px, largeur en dessous de laquelle un histogramme cesse d'être lisible
-(minimum de 280 px de zone de tracé plus les axes).
+(minimum de 280 px de zone de tracé plus les axes). [amendée 2.6 — D-13]
 
 ```
 +==========================================================================================+
@@ -2290,8 +2367,9 @@ d'étiquetage de la base de comparaison d'`EX-SCR-158bis`, suivie de la mention 
 (M1 / M2). Aucune autre mise en forme conditionnelle : au-delà d'un critère, un tableau coloré
 n'est plus lisible.
 
-`EX-SCR-208` — **Volumétrie.** Rendu virtualisé au-delà de 200 lignes, au plus 60 lignes
-montées. Aucune pagination numérotée. Compteur permanent `<n> annonces` en pied de tableau.
+`EX-SCR-208` — **Volumétrie.** **Pagination client de 50 lignes par page**, paramètre d'état
+d'interface `page` porté par l'URL (`EX-NAV-10bis`) et lu/écrit par l'écran D. Compteur permanent
+`<n> annonces` en pied de tableau. [amendée 2.6 — D-27]
 
 `EX-SCR-209` — **Responsive de l'écran D.** En `intermédiaire`, les colonnes `Année-modèle`,
 `Conso.`, `CO₂` et `TVA` sont masquées et accessibles par un dépliement de ligne (chevron en
@@ -2399,6 +2477,11 @@ dans le périmètre filtré courant ; une entrée à effectif 0 reste affichée 
 sans modèle. La modale est refermable par `Échap` et `Annuler` sans appliquer, et
 `Appliquer` pose le filtre `mmmv` et ferme. En régime `compact`, les deux panneaux deviennent
 deux étapes successives plein écran avec un bouton `Retour aux marques`.
+Précision (`D8-39`) : en **mode 2**, l'écran `G` ouvert depuis l'écran B affiche l'effectif de chaque
+marque **sur le snapshot entier, non filtré** (agrégats de base déjà en mémoire, aucun balayage
+supplémentaire — `O17`, `EX-NFR-9`) ; le « périmètre filtré courant » n'est disponible qu'en mode 1,
+où le marché est chargé. Aucun chiffre n'est faux : la sémantique est écrite dans le code aux deux
+endroits (`data-controller.ts`, `app.tsx`). [amendée 2.8 — D8-39]
 
 **États**, par identifiant du catalogue : `ET-CHARGE-INIT` (les effectifs par entrée dépendent
 du périmètre filtré courant, donc d'un calcul : squelette de 12 lignes par panneau, aucun
@@ -2476,6 +2559,12 @@ modèle**, où elle est de toute façon constante ou quasi constante. La classe 
 `Carrosserie` en mode 1 est justifiée par `Model.bodyTypes` (`EX-DATA-105`) ; un modèle dont
 `bodyTypes` est un tableau vide **ne satisfait aucun** prédicat `body`, et la note d'exclusion
 `EX-SCR-178` annonce `<k> modèles sans carrosserie renseignée`.
+
+**Dette externe maintenue (`D8-18`, `O15`)** : l'index annonce par carrosserie n'existe dans
+aucune source relevée ; tant qu'il n'est pas fourni, un filtre `body` posé en mode 1 **cesse de
+s'appliquer** au passage en mode 2 (`bodyTypes` n'existe qu'au niveau modèle). `unsupportedFilterIds`
+(`D-03`) le déclare pour `body` en mode 2, et l'écran B affiche le bandeau normatif « Filtre
+Carrosserie non appliqué à ce modèle (donnée indisponible) » (`D8-20`). [amendée 2.8 — D8-18, D8-20]
 
 `EX-SCR-222` — **La province belge n'est pas obtenable de la source** : `region` a un domaine
 inconnu et est désactivé (Z3), et le code postal est tronqué à `NNxx` par contrainte RGPD.

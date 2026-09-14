@@ -1,0 +1,317 @@
+{
+ "$comment": "KYCAR — equipements (champ 72 equipmentCodes). 132 codes du referentiel AutoScout24 portent le type vehicule C ; ce fichier en dote 34 d'une probabilite explicite et laisse les 98 autres a une probabilite basse commune. Regles R-47 a R-49.",
+ "source": [
+  "S9 data/reference/references/Equipment.json (173 codes, dont 132 pour vehicleType C)",
+  "H14 hypothese : toutes les probabilites sont ASSUMEES ; elles decrivent la diffusion d'un equipement dans le parc et sa montee en serie au fil des annees"
+ ],
+ "model": "logit p = logit(p0) + a * (annee - 2015) + b_segment + c_sellerType, tirage independant par code, puis coupe si la liste depasse maxCodes",
+ "maxCodes": 34,
+ "cSellerType": {
+  "D": 0.3,
+  "P": -0.45
+ },
+ "bSegmentDefault": 0.0,
+ "codes": [
+  {
+   "code": "1",
+   "label": "ABS",
+   "p0": 0.96,
+   "a": 0.05,
+   "b": {}
+  },
+  {
+   "code": "2",
+   "label": "Airbag conducteur",
+   "p0": 0.95,
+   "a": 0.05,
+   "b": {}
+  },
+  {
+   "code": "3",
+   "label": "Airbag passager",
+   "p0": 0.92,
+   "a": 0.06,
+   "b": {}
+  },
+  {
+   "code": "32",
+   "label": "Airbags latéraux",
+   "p0": 0.8,
+   "a": 0.1,
+   "b": {}
+  },
+  {
+   "code": "42",
+   "label": "ESP",
+   "p0": 0.86,
+   "a": 0.12,
+   "b": {}
+  },
+  {
+   "code": "12",
+   "label": "Direction assistée",
+   "p0": 0.93,
+   "a": 0.04,
+   "b": {}
+  },
+  {
+   "code": "13",
+   "label": "Vitres électriques",
+   "p0": 0.88,
+   "a": 0.06,
+   "b": {}
+  },
+  {
+   "code": "17",
+   "label": "Verrouillage centralisé",
+   "p0": 0.85,
+   "a": 0.05,
+   "b": {}
+  },
+  {
+   "code": "5",
+   "label": "Climatisation",
+   "p0": 0.72,
+   "a": 0.09,
+   "b": {
+    "citadine": -0.55,
+    "luxe": 0.9
+   }
+  },
+  {
+   "code": "30",
+   "label": "Climatisation automatique",
+   "p0": 0.44,
+   "a": 0.14,
+   "b": {
+    "citadine": -1.1,
+    "luxe": 1.6,
+    "berline": 0.5
+   }
+  },
+  {
+   "code": "38",
+   "label": "Régulateur de vitesse",
+   "p0": 0.58,
+   "a": 0.13,
+   "b": {
+    "citadine": -0.7
+   }
+  },
+  {
+   "code": "133",
+   "label": "Régulateur de distance",
+   "p0": 0.14,
+   "a": 0.22,
+   "b": {
+    "luxe": 1.5,
+    "citadine": -0.9
+   }
+  },
+  {
+   "code": "122",
+   "label": "Bluetooth",
+   "p0": 0.63,
+   "a": 0.2,
+   "b": {}
+  },
+  {
+   "code": "161",
+   "label": "USB",
+   "p0": 0.55,
+   "a": 0.22,
+   "b": {}
+  },
+  {
+   "code": "23",
+   "label": "Système de navigation",
+   "p0": 0.42,
+   "a": 0.12,
+   "b": {
+    "luxe": 1.4,
+    "citadine": -0.8
+   }
+  },
+  {
+   "code": "159",
+   "label": "Ecran tactile",
+   "p0": 0.3,
+   "a": 0.26,
+   "b": {
+    "luxe": 1.1
+   }
+  },
+  {
+   "code": "221",
+   "label": "Apple CarPlay",
+   "p0": 0.16,
+   "a": 0.34,
+   "b": {}
+  },
+  {
+   "code": "222",
+   "label": "Android Auto",
+   "p0": 0.16,
+   "a": 0.34,
+   "b": {}
+  },
+  {
+   "code": "125",
+   "label": "Isofix",
+   "p0": 0.6,
+   "a": 0.11,
+   "b": {
+    "sportive": -1.2,
+    "monospace": 0.8
+   }
+  },
+  {
+   "code": "15",
+   "label": "Jantes alliage",
+   "p0": 0.62,
+   "a": 0.08,
+   "b": {
+    "sportive": 1.2,
+    "luxe": 1.4,
+    "utilitaire": -1.4
+   }
+  },
+  {
+   "code": "212",
+   "label": "Jantes acier",
+   "p0": 0.24,
+   "a": -0.06,
+   "b": {
+    "utilitaire": 1.3,
+    "luxe": -2.0
+   }
+  },
+  {
+   "code": "129",
+   "label": "Capteurs d'aide au stationnement arrière",
+   "p0": 0.46,
+   "a": 0.16,
+   "b": {
+    "citadine": -0.5,
+    "luxe": 1.2
+   }
+  },
+  {
+   "code": "128",
+   "label": "Capteurs d'aide au stationnement avant",
+   "p0": 0.26,
+   "a": 0.18,
+   "b": {
+    "luxe": 1.3
+   }
+  },
+  {
+   "code": "130",
+   "label": "Caméra d'aide au stationnement",
+   "p0": 0.19,
+   "a": 0.26,
+   "b": {
+    "luxe": 1.3
+   }
+  },
+  {
+   "code": "140",
+   "label": "Phares au LED",
+   "p0": 0.17,
+   "a": 0.3,
+   "b": {
+    "luxe": 1.2
+   }
+  },
+  {
+   "code": "39",
+   "label": "Phares au Xénon",
+   "p0": 0.15,
+   "a": -0.05,
+   "b": {
+    "luxe": 1.2,
+    "citadine": -0.8
+   }
+  },
+  {
+   "code": "34",
+   "label": "Sièges chauffants",
+   "p0": 0.27,
+   "a": 0.14,
+   "b": {
+    "luxe": 1.6,
+    "citadine": -0.8
+   }
+  },
+  {
+   "code": "142",
+   "label": "Volant en cuir",
+   "p0": 0.41,
+   "a": 0.1,
+   "b": {
+    "luxe": 1.5,
+    "sportive": 1.2
+   }
+  },
+  {
+   "code": "114",
+   "label": "Volant multifonctions",
+   "p0": 0.47,
+   "a": 0.15,
+   "b": {}
+  },
+  {
+   "code": "127",
+   "label": "Détecteur de pluie",
+   "p0": 0.38,
+   "a": 0.12,
+   "b": {
+    "citadine": -0.6
+   }
+  },
+  {
+   "code": "20",
+   "label": "Attache remorque",
+   "p0": 0.14,
+   "a": 0.02,
+   "b": {
+    "break": 0.9,
+    "suv": 0.8,
+    "sportive": -1.6
+   }
+  },
+  {
+   "code": "4",
+   "label": "Toit ouvrant",
+   "p0": 0.09,
+   "a": 0.02,
+   "b": {
+    "luxe": 1.0,
+    "utilitaire": -1.8
+   }
+  },
+  {
+   "code": "50",
+   "label": "Toit panoramique",
+   "p0": 0.08,
+   "a": 0.16,
+   "b": {
+    "luxe": 1.3,
+    "suv": 0.5
+   }
+  },
+  {
+   "code": "157",
+   "label": "Alerte de franchissement involontaire de lignes",
+   "p0": 0.11,
+   "a": 0.3,
+   "b": {}
+  }
+ ],
+ "otherCodes": {
+  "p0": 0.03,
+  "a": 0.1,
+  "comment": "les 98 codes voiture restants ; ils garantissent que le vocabulaire entier est represente sans gonfler la taille des lignes"
+ },
+ "sizeNote": "le nombre median d'equipements (16 chez un professionnel, 8 chez un particulier) est un poste de TAILLE : chaque code coute environ 4 octets avant compression. Reduire maxCodes est le troisieme levier de R-33 si le budget gz est depasse."
+}

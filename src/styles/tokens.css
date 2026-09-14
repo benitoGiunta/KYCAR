@@ -1,0 +1,74 @@
+/**
+ * KYCAR - design tokens (lot D1).
+ *
+ * Every color pair below was checked against the WCAG 2.1 relative-luminance contrast formula
+ * (docs/requirements/draft-behaviour.md D.4, EX-NFR-13: >=4.5:1 for normal text, >=3:1 for large
+ * text/UI-graphics such as bar outlines and chart markers). Ratios are computed, not eyeballed -
+ * see the value noted next to each pair; do not change a color without recomputing it.
+ *
+ * Usage convention for D5-D8: read colors from these custom properties, never hardcode a hex
+ * value in component CSS, so a future contrast fix is a one-line change here.
+ */
+
+:root {
+  /* Surfaces */
+  --color-bg: #ffffff;
+  --color-surface: #f4f5f7;
+
+  /* Text - both checked against --color-bg */
+  --color-text: #14171c;         /* on #fff: 17.96:1 */
+  --color-text-muted: #4b5566;   /* on #fff: 7.53:1  */
+
+  /* Primary accent - checked as text-on-bg AND bg-with-white-text (both directions used) */
+  --color-primary: #0b5fd6;      /* on #fff: 5.80:1 ; #fff on this bg: 5.80:1 */
+  --color-primary-contrast: #ffffff;
+
+  /* Semantic state colors - checked as text/graphic-on-bg (large text / graphic threshold 3:1,
+     all four clear the stricter 4.5:1 normal-text threshold too, with margin) */
+  --color-danger: #b3261e;       /* on #fff: 6.54:1 - outlier / error markers */
+  --color-success: #1c7a4d;      /* on #fff: 5.33:1 - within-range markers   */
+  --color-accent: #7a3fa0;       /* on #fff: 6.89:1 - secondary categorical accent */
+
+  /* Structural graphics (chart axis lines, borders, disabled-but-legible outlines) */
+  --color-border: #5b6472;       /* on #fff: 5.98:1, clears the 3:1 graphic-element floor */
+
+  /* Focus ring: EX-NFR-14 requires a focus indicator that is never removed and stays visible.
+     Checked against the darkest text color, its most likely neighbour. */
+  --color-focus-ring: #ffd54a;   /* on #14171c: 12.72:1 */
+
+  /* Spacing / radius / type scale - not contrast-relevant, kept here so D5-D8 share one source. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+
+  --font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-size-base: 1rem;
+  --font-size-large: 1.125rem; /* >=18pt/14pt-bold large-text threshold used deliberately at this size+weight */
+
+  --focus-ring-width: 2px;
+}
+
+/* Baseline reset kept intentionally tiny in D1: screens (D5-D8) own their own layout. */
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+}
+
+/* EX-NFR-14: a focus indicator visible in permanence, never suppressed by component CSS.
+   Components must not override outline to `none` without providing this same treatment. */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

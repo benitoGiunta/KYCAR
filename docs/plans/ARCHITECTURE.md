@@ -116,7 +116,7 @@ le budget bundle. Détails en §5.
 
 ## 2. Modèle de données et persistance
 
-### 2.1 Les 13 entités (EX-DATA-105) et leur portée
+### 2.1 Les 14 entités (EX-DATA-105) et leur portée [amendée 2.6 — O16]
 
 Le modèle est **matérialisé une fois par snapshot**, puis calculé à la volée. Reprise fidèle
 d'`EX-DATA-105`/`109` :
@@ -141,9 +141,30 @@ rendant le budget de 60 ms (`EX-DATA-110`) inatteignable. Les cinq champs textue
 (`listingUrl`, versions, `fuelSourceLabelRaw`) sont hors du chemin chaud, dans une zone de chaînes
 adressée par offsets (`EX-DATA-121`) — jamais lus pendant un balayage sauf filtre par mot-clé.
 
+**Amendements 2.6 à l'interface gelée** (`fix-foundation`, étape 0) : `makeId` est élargi
+d'`Int16Array` à **`Int32Array`** (`D-02`, DR-007 — 158 des 295 marques ont un identifiant
+AutoScout24 > 32 767) ; `ingestFlags` est élargi d'`Uint16Array` à **`Uint32Array`** (`D-01`,
+DR-013 — le 17ᵉ code `MARKETPLACE_UNMAPPED` était instockable au bit 16). L'encodage
+**positionnel** est conservé (bit = index dans `INGEST_FLAG_VALUES`), mais découplé de la largeur
+de la colonne par une **table explicite bit ↔ code**, exportée par `src/types` : `INGEST_FLAG_BIT`
+(numéro de bit par code), `INGEST_FLAG_BIT_CAPACITY = 32`, `hasIngestFlag`, `setIngestFlag`,
+`ingestFlagCodes`. 17 codes posés, 15 bits de réserve. `booleanFlags` reste `Uint16Array`. Les deux
+copies de l'interface (`docs/plans/DataProvider.ts` et `src/providers/DataProvider.ts`) restent
+identiques octet à octet après ces amendements. [amendée 2.6 — D-01, D-02]
+
 **Sentinelles typées** (`EX-DATA-120`) : `-1` pour les grandeurs positives, `255` pour les
 énumérations sur un octet, **jamais `0` ni `null`** — car `0` est une valeur légitime de `mileageKm`,
 `co2` et `previousOwnerCount`.
+
+**Amendement 2.8 à l'interface gelée** (`fix-foundation`, étape 0, `D8-08`, dette `D-38` levée) :
+`ListingColumnBatch` porte une colonne `vatDeductible: Uint8Array` supplémentaire — tri-état
+`UNKNOWN`/`NO`/`YES` (`0`/`1`/`2`), politique de sentinelle `tristate-zero`. C'est la **seule**
+colonne dont l'inconnu vaut `0` et non `255` : ne jamais lui appliquer `readEnumByte`/
+`encodeEnumByte`, utiliser `readVatDeductible`/`encodeVatDeductible` (`src/types/sentinels.ts`).
+Total : **20** colonnes énumérées sur un octet (19 à sentinelle `255` + `vatDeductible` à
+sentinelle `0`), **≈ 76** colonnes numériques et énumérées, +1 octet par ligne sur ≈ 252. Les
+deux copies de l'interface restent identiques octet à octet après cet amendement.
+[amendée 2.8 — D8-08]
 
 ### 2.3 Chargement progressif — la clé du budget de premier affichage (EX-NFR-9)
 
@@ -368,6 +389,28 @@ telle quelle par le lot D2 (critère S2). Ce qui suit en explique la structure ;
 - **Vocabulaire canonique** : les valeurs qui traversent l'interface sont déjà normalisées vers le
   dictionnaire KYCAR ; la re-cartographie du vocabulaire source est interne à l'adaptateur.
 
+**Amendement 2.6 — `unsupportedFilterIds`** (`D-03`, `D-33`, `fix-foundation` étape 0) :
+`AggregateResult<T>` (retour de `fetchAggregates` et `fetchBaselineAggregates`) porte désormais un
+champ **obligatoire** `unsupportedFilterIds: readonly string[]`, listant les identifiants de
+filtre du registre que l'implémentation n'a pas pu appliquer sur cette sélection.
+`fetchSelectionCount` garde `Promise<number>` inchangé — une primitive ne peut pas porter de champ
+— et documente qu'un consommateur cherchant la même information lit celle exposée par
+`fetchAggregates`/`fetchBaselineAggregates` (`D-33`). Le contrôleur (`data-controller.ts`) ne
+publie jamais un effectif présenté comme filtré quand cette liste est non vide : état dégradé
+`ET-FILTRE-NON-APPLIQUE` nommant les filtres écartés, `hasUserFilters` ne reflétant que les
+filtres effectivement appliqués. [amendée 2.6 — D-03]
+
+**Amendement 2.8 — agrégats et bloc statistique** (`D8-10`, `fix-foundation` étape 0, résidu
+DR-122) : `MakeAggregate.modelCount` devient un champ **obligatoire** de type `number | null` —
+`null` tant qu'il n'est pas calculé, l'écran affiche alors « — », **jamais `0`** par défaut
+(`FV-02`). `MetricStats` (bloc `price`/`year`/`mileage`) publie en outre `iqr` et `coverage`
+(`number | null`). `MakeAggregate`/`ModelAggregate` gagnent trois champs **optionnels** —
+`coverageWarning`, `samplingBias`, `adTierDistribution` — renseignés seulement par un provider
+réel, absents chez `SyntheticDataProvider`. **Aucun ajout d'interface** pour `rank`,
+`displayRange` ou `makeName` : ils sont dérivés au rendu (position dans l'ordre de tri, écrêtage
+`[p05, p95]`, résolution par la taxonomie), le résidu de DR-122 restant partiel par ce choix
+(`D8-23`). [amendée 2.8 — D8-10, D8-23]
+
 ### 6.2 Séparation mode 1 / mode 2 — le pivot (critère S2)
 
 | | Mode 1 — agrégats | Mode 2 — échantillon fin |
@@ -395,6 +438,18 @@ distinction que la contrainte du chantier 1 impose à l'architecture. Il satisfa
 surface `__NEXT_DATA__` autorisée (`totalResultCount` exhaustif) et refuse le mode 2 (pagination
 plafonnée ~5 010, ~95 % promue). L'application reste entièrement fonctionnelle : mode 1 réel, mode 2
 sur dataset synthétique étiqueté.
+
+**Résolution 2.6 — D-29 (réconciliation avec §9.3).** §9.3 exige un précalcul mis en cache pour les
+agrégats de base ; le tableau ci-dessus, lu à la lettre, ne décrivait qu'« un aller réseau par
+appel » pour `mode1.source = AGGREGATE_SURFACE`, sans dire comment ce provider tient malgré tout la
+contrainte. Les deux textes sont réconciliés ainsi, sans changer les lignes du tableau : un
+provider `LISTINGS` (`SyntheticDataProvider`, `AutoScout24PaidDataProvider`) précalcule sa baseline
+**une fois à l'ingestion**, la met en cache IndexedDB, et ne la recalcule **jamais** à `start()` ;
+un provider `AGGREGATE_SURFACE` (`TweedehandsDataProvider`) fait bien **un aller réseau par
+appel**, mais met sa baseline en cache IndexedDB **après le premier succès** et la lit **d'abord**
+aux appels suivants — l'aller réseau n'est donc payé qu'une fois par session, pas à chaque
+`fetchBaselineAggregates`. Les deux stratégies satisfont §9.3 par des moyens différents, adaptés à
+ce que chaque type de source peut précalculer.
 
 ### 6.4 Décompte des méthodes
 
@@ -537,6 +592,13 @@ succès **génériques** (S1–S5 du PLAN-2 §2.4) applicables à chaque lot, pl
 de l'interface, pas des écrans). Aucun cycle : chaque arête va d'un lot antérieur vers un lot
 postérieur dans l'ordre topologique `D1 < D2 < {D3,D4,D5,D9} < {D6,D7} < D8`.
 
+**Amendement 3.5 (D3-38, 2026-09-13).** Une arête **D4 → D3** s'ajoute : `src/providers` importe les
+fonctions PURES du moteur (`src/engine/quantiles.ts`, `implausible`, `flags`) pour que l'agrégation mode 1
+des providers synthétique et fixture suive la même définition que le moteur (quantile de type 7
+EX-DATA-62, sentinelle EX-DATA-19(2), axe année EX-DATA-25 — constat DR3-20). Le graphe reste acyclique :
+le moteur n'importe aucun provider. L'ordre topologique devient `D1 < D2 < {D4,D5,D9} < D3 < {D6,D7} < D8` ;
+l'extraction de ces fonctions dans `src/types/` est une dette v2.
+
 ---
 
 ## 8. Matrice choix technique → exigence justificatrice
@@ -564,6 +626,7 @@ postérieur dans l'ordre topologique `D1 < D2 < {D3,D4,D5,D9} < {D6,D7} < D8`.
 | 19 | IndexedDB + `localStorage` + `storage` | `EX-CRUD-3`/`18`/`19`, `EX-NFR-22`/`24` | local, migrable, concurrent |
 | 20 | `DataProvider` : mode 1 obligatoire / mode 2 optionnel | S2, R2, `EX-DATA-107`, chantier 1 | 3 implémentations, source invisible |
 | 21 | Filtrage R3 à l'ingestion dans l'adaptateur | `P-2`, `EX-NFR-26`, R3 | le champ vendeur n'entre jamais |
+| 22 | `@playwright/test` + `@axe-core/playwright` en **devDependencies** (phase 2.9, ajout du 2026-09-08) | `EX-NFR-6`/`7`/`8`/`9`/`14`/`16`/`18`/`19`/`31` — vérifiables uniquement dans un navigateur réel | outillage de recette, hors bundle (aucun import depuis `src/`), Chromium préinstallé de l'environnement via `executablePath` |
 
 ---
 
@@ -590,6 +653,13 @@ d'une scène 3D**. Il n'existe aucune vue rotative dans la disposition normative
   l'annexe B** (nouvelle vue `G4c` WebGL) et le budget `EX-NFR-11` couvrirait un `three.js` différé.
   Ce serait un changement d'exigence, pas d'architecture. **À trancher avant D7.**
 
+**Résolution 2.6 — D-07.** Le fix-lead retient la lecture « interaction continue (pan/zoom) », pas
+l'ajout d'une vue `G4c` WebGL. `EX-NFR-8` et `EX-NFR-15` sont **réécrites** en ce sens (annexe C) :
+elles mesurent une interaction continue de pan/zoom sur les deux projections 2D commutables de
+`G4`, jamais une rotation de scène 3D. `EX-NFR-11` reste sans objet, garde posée mais inactive
+(aucun bundle 3D différé n'existe). Le `Maj`+glisser relevé absent ci-dessus est implémenté par
+fix-screens à sa sévérité propre, hors du périmètre de cette résolution.
+
 ### 9.2 Plafond du nuage : `EX-DATA-100` dit 5 000, l'annexe B évoque 20 000
 
 `EX-DATA-100` (annexe A, autorité sur la formule) fixe **`K = 5 000` points tracés au maximum**, avec
@@ -603,6 +673,12 @@ seuils de 20 000 sont **inatteignables** si `K = 5 000` est un plafond dur.
   peut-être à une version antérieure sans plafond). L'architecture implémente 5 000.
 - **Action** : signaler à la remédiation (2.6) pour aligner l'annexe B sur `EX-DATA-100`. Sans risque
   fonctionnel tant que D7 code `K = 5 000`.
+
+**Résolution 2.6 — D-08.** `EX-SCR-157` est **requalifiée** : `K = 5 000` gouverne seul, avec la
+mention d'échantillonnage d'`EX-DATA-103` au-delà de ce seuil. Le bandeau `ET-TROP-RESULTATS` et
+tout seuil à 20 000 sont **supprimés pour le nuage `G4`** — de `EX-SCR-157`, d'`EX-SCR-177` et du
+§6.7 de l'annexe B (DR-146). C'est une requalification documentaire : aucune ligne de code n'est
+ajoutée ni retirée pour ce constat, D7 codait déjà `K = 5 000`.
 
 ### 9.3 `EX-NFR-9` (2 s en 4G) n'est tenable qu'avec le chargement progressif — et reste serré
 
@@ -621,6 +697,16 @@ Si un provider `LISTINGS` ne peut pas précalculer les agrégats de base côté 
 les calculer **une fois** et les mettre en cache (IndexedDB) — sinon `EX-NFR-9` tombe. Ce n'est pas
 une infaisabilité, c'est une **contrainte non négociable** sur l'implémentation des providers, à
 inscrire au lot D2/D3/D9.
+
+**Résolution 2.6 — D-29.** La tension doctrinale avec §6.3 (« `AGGREGATE_SURFACE` fait un aller
+réseau par appel », lu à la lettre, contre le précalcul + cache exigé ici) est réconciliée en §6.3 :
+un provider `LISTINGS` précalcule sa baseline à l'ingestion et ne la recalcule jamais à `start()` ;
+un provider `AGGREGATE_SURFACE` fait un aller réseau par appel mais met sa baseline en cache
+IndexedDB après le premier succès et la lit d'abord ensuite — l'aller réseau n'est payé qu'une fois
+par session. DR-049 (le provider synthétique recalculait sa baseline à `start()`) est corrigé par
+fix-providers : baseline précalculée, annonces individuelles générées en tâche de fond, hors du
+chemin critique du premier affichage. DR-050 (296 requêtes séquentielles du provider réel) est
+corrigé par fix-providers via ce cache.
 
 ### 9.4 Note mineure — dettes de données ouvertes (non architecturales)
 

@@ -1,0 +1,758 @@
+{
+  "PARTIELLE": [
+    {
+      "id": "EX-DATA-14",
+      "ecart": "absence d'URL = conservation au lieu du rejet",
+      "dette": "écart non consigné (FV-20)"
+    },
+    {
+      "id": "EX-DATA-17",
+      "ecart": "`priceCoverage`/`coverageWarning.price` non publiés",
+      "dette": "dette DR-122 (§6.5) élargie (FV-20)"
+    },
+    {
+      "id": "EX-DATA-23",
+      "ecart": "tolérance du parsing non prouvée par exécution",
+      "dette": "écart non consigné (mineur, à sonder en 2.8)"
+    },
+    {
+      "id": "EX-DATA-35",
+      "ecart": "`co2Source`/`consumptionSource` figés au défaut `UNKNOWN`",
+      "dette": "écart non consigné (FV-20)"
+    },
+    {
+      "id": "EX-DATA-53",
+      "ecart": "obligation de confrontation avant le gel non tenue",
+      "dette": "dette motivée DR-112 (§6.5, E5)"
+    },
+    {
+      "id": "EX-DATA-54",
+      "ecart": "les exceptions communales ne priment pas",
+      "dette": "dette motivée DR-112"
+    },
+    {
+      "id": "EX-DATA-61",
+      "ecart": "`coverage_m` non publiée",
+      "dette": "dette motivée DR-122 (§6.5)"
+    },
+    {
+      "id": "EX-DATA-64",
+      "ecart": "3 valeurs manquantes",
+      "dette": "dette motivée DR-122 (§6.5)"
+    },
+    {
+      "id": "EX-DATA-68",
+      "ecart": "champs manquants dans l'entité gelée",
+      "dette": "dette motivée DR-122 ; FV-02 (effet visible)"
+    },
+    {
+      "id": "EX-DATA-71",
+      "ecart": "valeur affichée fausse avant clic",
+      "dette": "écart non consigné (FV-02)"
+    },
+    {
+      "id": "EX-DATA-83bis",
+      "ecart": "source unique non tenue au sens strict (protocole worker)",
+      "dette": "dette motivée D-17 (DR-034)"
+    },
+    {
+      "id": "EX-DATA-83ter",
+      "ecart": "idem",
+      "dette": "dette motivée D-17"
+    },
+    {
+      "id": "EX-DATA-83quater",
+      "ecart": "idem",
+      "dette": "dette motivée D-17"
+    },
+    {
+      "id": "EX-DATA-83quinquies",
+      "ecart": "idem",
+      "dette": "dette motivée D-17"
+    },
+    {
+      "id": "EX-DATA-85",
+      "ecart": "vocabulaire à 6 codes non honoré",
+      "dette": "dette motivée D-45 (DR-114)"
+    },
+    {
+      "id": "EX-DATA-110",
+      "ecart": "table de coûts à 10⁶ non mesurée (le budget opposable est EX-NFR-5, tenu)",
+      "dette": "—"
+    },
+    {
+      "id": "EX-DATA-115",
+      "ecart": "bitsets construits mais inutilisés",
+      "dette": "écart consigné dans la sonde D4 (dette de revue), non repris au §4 de REMEDIATION"
+    },
+    {
+      "id": "EX-DATA-115bis",
+      "ecart": "index disponible et vide, donnée à fournir",
+      "dette": "point ouvert O15 (externe)"
+    },
+    {
+      "id": "EX-DATA-126",
+      "ecart": "obligation de solde non tenue",
+      "dette": "dette motivée DR-112 (E5) ; EX-DATA-10 non consignée (FV-20)"
+    },
+    {
+      "id": "EX-SCR-6",
+      "ecart": "années rendues avec séparateur de milliers hors écran A",
+      "dette": "écart non consigné (FV-14)"
+    },
+    {
+      "id": "EX-SCR-9",
+      "ecart": "`NNxx` absent de l'écran D",
+      "dette": "décision D-14 (périmètre R3) — requalification du texte à faire"
+    },
+    {
+      "id": "EX-SCR-17",
+      "ecart": "bascule log de G7 absente",
+      "dette": "écart non consigné (mineur)"
+    },
+    {
+      "id": "EX-SCR-21",
+      "ecart": "non mesuré au rendu",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-24",
+      "ecart": "indicateurs normatifs absents",
+      "dette": "écart non consigné (FV-18)"
+    },
+    {
+      "id": "EX-SCR-25",
+      "ecart": "non mesuré",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-31",
+      "ecart": "C3 non rendu sur B, panneau « Pourquoi ? » absent",
+      "dette": "écart non consigné (FV-07)"
+    },
+    {
+      "id": "EX-SCR-35",
+      "ecart": "panneau Diagnostic incomplet",
+      "dette": "écart non consigné (FV-21)"
+    },
+    {
+      "id": "EX-SCR-38",
+      "ecart": "empilement non gouverné, doublon C3",
+      "dette": "écart non consigné (FV-07)"
+    },
+    {
+      "id": "EX-SCR-39",
+      "ecart": "critère « cinq mentions » non atteint",
+      "dette": "écart non consigné (FV-03, FV-11)"
+    },
+    {
+      "id": "EX-SCR-42",
+      "ecart": "filtres perdus par le lien de marque",
+      "dette": "écart non consigné (FV-17)"
+    },
+    {
+      "id": "EX-SCR-43",
+      "ecart": "format et infobulle non conformes",
+      "dette": "écart non consigné (FV-17, FV-21)"
+    },
+    {
+      "id": "EX-SCR-44",
+      "ecart": "compteur à 0 visible",
+      "dette": "écart non consigné (FV-17)"
+    },
+    {
+      "id": "EX-SCR-50",
+      "ecart": "`mk`/`grp` absents de l'URL",
+      "dette": "écart non consigné (FV-17)"
+    },
+    {
+      "id": "EX-SCR-51",
+      "ecart": "retour B → A non conforme (voir EX-NAV-16)",
+      "dette": "écart non consigné (FV-04)"
+    },
+    {
+      "id": "EX-SCR-53",
+      "ecart": "contenu normatif largement absent",
+      "dette": "écart non consigné (FV-21)"
+    },
+    {
+      "id": "EX-SCR-56",
+      "ecart": "hauteurs non vérifiées",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-59",
+      "ecart": "texte v1.1 non amendé pour D-15",
+      "dette": "écart non consigné (FV-12)"
+    },
+    {
+      "id": "EX-SCR-65",
+      "ecart": "facettes absentes",
+      "dette": "écart non consigné (FV-06)"
+    },
+    {
+      "id": "EX-SCR-73",
+      "ecart": "notification absente",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-75",
+      "ecart": "jeton `mmmv` non conforme (un jeton par niveau, libellés)",
+      "dette": "écart non consigné (FV-04, FV-14)"
+    },
+    {
+      "id": "EX-SCR-78",
+      "ecart": "compteur de la zone (4) non alimenté",
+      "dette": "REMEDIATION §7.1 n° 1 (écart non consigné, FV-23)"
+    },
+    {
+      "id": "EX-SCR-80",
+      "ecart": "suggestions absentes",
+      "dette": "dette motivée DR-134 (§6.5)"
+    },
+    {
+      "id": "EX-SCR-82",
+      "ecart": "table normative non alignée sur les décisions 2.6",
+      "dette": "écart non consigné (FV-12)"
+    },
+    {
+      "id": "EX-SCR-83",
+      "ecart": "bilan arithmétique du texte périmé",
+      "dette": "écart non consigné (FV-12)"
+    },
+    {
+      "id": "EX-SCR-87",
+      "ecart": "styles de focus non mesurés",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-94",
+      "ecart": "champ de nom prérempli absent",
+      "dette": "écart non consigné (FV-24)"
+    },
+    {
+      "id": "EX-SCR-100",
+      "ecart": "non mesuré",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-101",
+      "ecart": "filtre invalide non signalé",
+      "dette": "écart non consigné (mineur)"
+    },
+    {
+      "id": "EX-SCR-103",
+      "ecart": "bandeau absent de l'écran C",
+      "dette": "écart non consigné (FV-15)"
+    },
+    {
+      "id": "EX-SCR-104",
+      "ecart": "redirection absente",
+      "dette": "écart non consigné (FV-04)"
+    },
+    {
+      "id": "EX-SCR-106",
+      "ecart": "cardinal `modèles` faux",
+      "dette": "écart non consigné (FV-02)"
+    },
+    {
+      "id": "EX-SCR-107",
+      "ecart": "chargement paresseux, « 6 visibles puis repli » jamais appliqué",
+      "dette": "écart non consigné (FV-02)"
+    },
+    {
+      "id": "EX-SCR-109",
+      "ecart": "`<n> modèles` faux",
+      "dette": "écart non consigné (FV-02)"
+    },
+    {
+      "id": "EX-SCR-112",
+      "ecart": "voir EX-SCR-107",
+      "dette": "FV-02"
+    },
+    {
+      "id": "EX-SCR-113",
+      "ecart": "infobulle rawRange manquante ; FV-02",
+      "dette": "écart non consigné (mineur) ; FV-02"
+    },
+    {
+      "id": "EX-SCR-114",
+      "ecart": "contenu « — » au lieu de min–max",
+      "dette": "écart non consigné (FV-09)"
+    },
+    {
+      "id": "EX-SCR-118",
+      "ecart": "structure a11y non conforme",
+      "dette": "écart non consigné (FV-16)"
+    },
+    {
+      "id": "EX-SCR-122",
+      "ecart": "repli à 6 inopérant dans la coquille",
+      "dette": "écart non consigné (FV-02)"
+    },
+    {
+      "id": "EX-SCR-123",
+      "ecart": "`mk` non encodé",
+      "dette": "écart non consigné (FV-17)"
+    },
+    {
+      "id": "EX-SCR-124",
+      "ecart": "règles 1 et 3 non vérifiées au rendu",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-127",
+      "ecart": "non vérifié au rendu",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-134",
+      "ecart": "contenu du palier `reduite` non conforme à D-04/D-36",
+      "dette": "écart non consigné (FV-09)"
+    },
+    {
+      "id": "EX-SCR-135",
+      "ecart": "grille 4 lignes absente",
+      "dette": "dette motivée D-40 (DR-143)"
+    },
+    {
+      "id": "EX-SCR-138",
+      "ecart": "fourchettes invisibles par défaut",
+      "dette": "écart non consigné (FV-02)"
+    },
+    {
+      "id": "EX-SCR-142",
+      "ecart": "valeur fausse à la première entrée",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-SCR-149",
+      "ecart": "interactions secondaires absentes",
+      "dette": "écart non consigné (FV-18)"
+    },
+    {
+      "id": "EX-SCR-151",
+      "ecart": "FV-01",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-SCR-153",
+      "ecart": "alignement G4a/G1 non prouvé",
+      "dette": "écart non consigné (mineur)"
+    },
+    {
+      "id": "EX-SCR-158",
+      "ecart": "FV-01",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-SCR-161",
+      "ecart": "FV-01",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-SCR-164",
+      "ecart": "libellé et R² absents ; FV-01",
+      "dette": "écart non consigné (FV-10, FV-01)"
+    },
+    {
+      "id": "EX-SCR-165",
+      "ecart": "FV-01",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-SCR-166",
+      "ecart": "FV-01",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-SCR-167",
+      "ecart": "FV-01",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-SCR-168",
+      "ecart": "écart de médiane absent ; FV-01",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-SCR-170",
+      "ecart": "condition d'affichage non respectée",
+      "dette": "écart non consigné (FV-18)"
+    },
+    {
+      "id": "EX-SCR-171",
+      "ecart": "non vérifié au rendu",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-174",
+      "ecart": "non vérifié",
+      "dette": "à sonder en 2.8"
+    },
+    {
+      "id": "EX-SCR-176",
+      "ecart": "empreinte non exposée",
+      "dette": "écart non consigné (FV-18)"
+    },
+    {
+      "id": "EX-SCR-177",
+      "ecart": "non exerçable",
+      "dette": "—"
+    },
+    {
+      "id": "EX-SCR-180",
+      "ecart": "non vérifié au rendu",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-181",
+      "ecart": "partiellement vérifié",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-182",
+      "ecart": "FV-07",
+      "dette": "écart non consigné (FV-07)"
+    },
+    {
+      "id": "EX-SCR-186",
+      "ecart": "non vérifié",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-190",
+      "ecart": "non mesuré",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-194",
+      "ecart": "redirections absentes",
+      "dette": "écart non consigné (FV-15)"
+    },
+    {
+      "id": "EX-SCR-196",
+      "ecart": "G5 superposé défectueux",
+      "dette": "écart non consigné (FV-15)"
+    },
+    {
+      "id": "EX-SCR-198",
+      "ecart": "redirection absente",
+      "dette": "écart non consigné (FV-15)"
+    },
+    {
+      "id": "EX-SCR-199",
+      "ecart": "non vérifié",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-SCR-203",
+      "ecart": "colonne TVA ; FV-01",
+      "dette": "dette motivée D-38 (DR-082) ; FV-01"
+    },
+    {
+      "id": "EX-SCR-210",
+      "ecart": "états incomplets",
+      "dette": "écart non consigné (FV-07)"
+    },
+    {
+      "id": "EX-SCR-212",
+      "ecart": "éléments de carte manquants",
+      "dette": "écart non consigné (mineur)"
+    },
+    {
+      "id": "EX-SCR-216",
+      "ecart": "effectifs par entrée absents",
+      "dette": "écart non consigné (FV-05)"
+    },
+    {
+      "id": "EX-SCR-218",
+      "ecart": "documentation Diagnostic absente",
+      "dette": "écart non consigné (FV-21)"
+    },
+    {
+      "id": "EX-SCR-221",
+      "ecart": "O15 + note absente",
+      "dette": "point ouvert O15 (externe) ; note : écart non consigné"
+    },
+    {
+      "id": "EX-NAV-16",
+      "ecart": "bloc réinjecté = modèle au lieu de la marque",
+      "dette": "écart non consigné (FV-04)"
+    },
+    {
+      "id": "EX-NAV-21",
+      "ecart": "signalement et réécriture absents à l'exécution",
+      "dette": "écart non consigné (FV-03)"
+    },
+    {
+      "id": "EX-NAV-22",
+      "ecart": "signalement absent",
+      "dette": "écart non consigné (FV-03)"
+    },
+    {
+      "id": "EX-NAV-23",
+      "ecart": "action de remplacement absente",
+      "dette": "écart non consigné (FV-21)"
+    },
+    {
+      "id": "EX-SRCH-9quater",
+      "ecart": "message de périmètre absent",
+      "dette": "écart non consigné (FV-07)"
+    },
+    {
+      "id": "EX-SRCH-12",
+      "ecart": "non exerçable sur les sources actuelles",
+      "dette": "décision D-03 (signalement) — point O7 toujours ouvert"
+    },
+    {
+      "id": "EX-SRCH-14",
+      "ecart": "non vérifié",
+      "dette": "à sonder en 2.8"
+    },
+    {
+      "id": "EX-SRCH-21",
+      "ecart": "compteur du bandeau absent",
+      "dette": "REMEDIATION §7.1 n° 1 (FV-23)"
+    },
+    {
+      "id": "EX-SRCH-22",
+      "ecart": "état intermédiaire non rendu",
+      "dette": "écart non consigné (FV-23, FV-18)"
+    },
+    {
+      "id": "EX-NFR-6",
+      "ecart": "mesure au rendu manquante",
+      "dette": "campagne 2.9 (S3)"
+    },
+    {
+      "id": "EX-NFR-12",
+      "ecart": "niveau AA non atteint sur A et G",
+      "dette": "écart non consigné (FV-16)"
+    },
+    {
+      "id": "EX-NFR-13",
+      "ecart": "contraste des pastilles < 4,5 : 1",
+      "dette": "écart non consigné (FV-16)"
+    },
+    {
+      "id": "EX-NFR-14",
+      "ecart": "non vérifié au rendu",
+      "dette": "campagne 2.9"
+    },
+    {
+      "id": "EX-NFR-15",
+      "ecart": "FV-01",
+      "dette": "écart non consigné (FV-01)"
+    },
+    {
+      "id": "EX-NFR-16",
+      "ecart": "violations A/AA sur A et G",
+      "dette": "écart non consigné (FV-16)"
+    },
+    {
+      "id": "EX-NFR-29",
+      "ecart": "marqueur `[EXTRAPOLÉ]` absent",
+      "dette": "dette motivée DR-132 (§6.5) — sans objet si `zipr` est retiré"
+    },
+    {
+      "id": "EX-NFR-30",
+      "ecart": "code brut affiché dans le jeton `mmmv`",
+      "dette": "écart non consigné (FV-04)"
+    },
+    {
+      "id": "EX-NFR-31",
+      "ecart": "règle 3 (résumé des filtres) inopérante",
+      "dette": "écart non consigné (FV-13)"
+    }
+  ],
+  "NON COUVERTE": [
+    {
+      "id": "EX-DATA-5",
+      "ecart": "drapeau jamais posé (sans effet sur les deux sources actuelles, toutes en km/kW/EUR)",
+      "dette": "écart non consigné (FV-20)"
+    },
+    {
+      "id": "EX-DATA-10",
+      "ecart": "repli inexistant (champ `fuelTypePrimary` SCHÉMA, absent des sources actuelles) ; table toujours `[EXTRAPOLÉ]`",
+      "dette": "écart non consigné (FV-20) ; dette 2 d'EX-DATA-126"
+    },
+    {
+      "id": "EX-DATA-11",
+      "ecart": "drapeau jamais posé",
+      "dette": "écart non consigné (FV-20)"
+    },
+    {
+      "id": "EX-DATA-43",
+      "ecart": "distribution d'`adTier` et `coverageWarning.samplingBias` jamais publiées",
+      "dette": "dette DR-122 (§6.5) élargie (FV-20)"
+    },
+    {
+      "id": "EX-DATA-93bis",
+      "ecart": "`R²` jamais calculé ni publié",
+      "dette": "écart non consigné (FV-10)"
+    },
+    {
+      "id": "EX-SCR-22",
+      "ecart": "≥ 24 zones exigées, 0 observée",
+      "dette": "écart non consigné (FV-02)"
+    },
+    {
+      "id": "EX-SCR-37",
+      "ecart": "état absent",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-38bis",
+      "ecart": "corrections silencieuses dans la coquille",
+      "dette": "écart non consigné (FV-03)"
+    },
+    {
+      "id": "EX-SCR-46",
+      "ecart": "compteur absent",
+      "dette": "écart non consigné (FV-23 élargi)"
+    },
+    {
+      "id": "EX-SCR-48",
+      "ecart": "en-tête compact non implémenté",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-81",
+      "ecart": "raccourci `/` absent",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-89",
+      "ecart": "options à zéro non distinguées",
+      "dette": "écart non consigné (FV-06)"
+    },
+    {
+      "id": "EX-SCR-90",
+      "ecart": "facettes jamais affichées",
+      "dette": "écart non consigné (FV-06)"
+    },
+    {
+      "id": "EX-SCR-95",
+      "ecart": "les deux réglages KYCAR n'existent pas",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-96",
+      "ecart": "non implémenté",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-97",
+      "ecart": "non implémenté",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-98",
+      "ecart": "non implémenté",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-110",
+      "ecart": "comportement du clic non conforme",
+      "dette": "écart non consigné (FV-04)"
+    },
+    {
+      "id": "EX-SCR-113bis",
+      "ecart": "mode restreint non implémenté",
+      "dette": "écart non consigné (FV-08)"
+    },
+    {
+      "id": "EX-SCR-126",
+      "ecart": "amorce répétitive",
+      "dette": "écart non consigné (FV-17)"
+    },
+    {
+      "id": "EX-SCR-159",
+      "ecart": "petits effectifs de G4 non traités",
+      "dette": "écart non consigné (FV-18)"
+    },
+    {
+      "id": "EX-SCR-173",
+      "ecart": "squelette absent",
+      "dette": "écart non consigné (FV-18)"
+    },
+    {
+      "id": "EX-SCR-175",
+      "ecart": "avertissement obligatoire absent",
+      "dette": "écart non consigné (FV-07)"
+    },
+    {
+      "id": "EX-SCR-178",
+      "ecart": "notes d'exclusion non alimentées",
+      "dette": "écart non consigné (FV-11)"
+    },
+    {
+      "id": "EX-SCR-197",
+      "ecart": "colonne vide non implémentée",
+      "dette": "écart non consigné (FV-15)"
+    },
+    {
+      "id": "EX-SCR-209",
+      "ecart": "responsive de D absent",
+      "dette": "écart non consigné (FV-19)"
+    },
+    {
+      "id": "EX-SCR-224",
+      "ecart": "critère « ≥ 3 entrées » non atteint",
+      "dette": "écart non consigné (FV-21) ; dette DR-147 voisine"
+    },
+    {
+      "id": "EX-NAV-25",
+      "ecart": "bandeau après remplacement absent",
+      "dette": "écart non consigné (FV-21)"
+    }
+  ],
+  "HORS PÉRIMÈTRE": [
+    {
+      "id": "EX-DATA-34",
+      "ecart": "sans objet tant qu'aucun filtre local n'existe",
+      "dette": "—"
+    },
+    {
+      "id": "EX-DATA-39",
+      "ecart": "sans objet",
+      "dette": "—"
+    },
+    {
+      "id": "EX-DATA-56",
+      "ecart": "sans objet",
+      "dette": "—"
+    },
+    {
+      "id": "EX-SCR-70",
+      "ecart": "sans objet",
+      "dette": "décision D-14"
+    },
+    {
+      "id": "EX-SCR-111",
+      "ecart": "—",
+      "dette": "—"
+    },
+    {
+      "id": "EX-SRCH-6",
+      "ecart": "sans objet",
+      "dette": "décision D-37"
+    },
+    {
+      "id": "EX-SRCH-7",
+      "ecart": "sans objet",
+      "dette": "décision D-37 ; dette DR-132 (libellés) devient sans objet"
+    },
+    {
+      "id": "EX-SRCH-15",
+      "ecart": "sans objet",
+      "dette": "décision D-14"
+    },
+    {
+      "id": "EX-SRCH-17",
+      "ecart": "sans objet",
+      "dette": "—"
+    }
+  ]
+}

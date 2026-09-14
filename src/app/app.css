@@ -1,0 +1,663 @@
+/**
+ * KYCAR — Habillage de la coquille et des écrans C/E/F + /mentions (lot D8).
+ * Lit les tokens de `src/styles/tokens.css` ; n'introduit aucune couleur en dur (EX-NFR-13).
+ * Les classes structurelles `app-header`/`filter-bar`/`status-banner`/`no-print` respectent le
+ * contrat d'impression de `src/styles/print.css` (EX-NFR-31).
+ */
+
+/*
+ * `EX-SCR-56` (ACC-02) — l'en-tête et le bandeau de filtres sont COLLANTS : sans marge de
+ * défilement, `scrollIntoView` (ancres, prise de focus, `EX-NFR-12`) amène le contenu visé SOUS eux,
+ * où il est recouvert et où un clic tombe sur le bandeau. `scroll-padding-top` réserve exactement
+ * leur hauteur cumulée, publiée par `src/components/filters/sticky-offset.ts`.
+ */
+:root {
+  scroll-padding-top: calc(var(--kycar-band-top, 0px) + var(--kycar-band-height, 0px));
+}
+
+.kycar-app {
+  min-height: 100vh;
+}
+
+.kycar-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Lien d'évitement (EX-NFR-12, DR-101) ----------------------------------------------------- */
+/* Hors flux tant qu'il n'a pas le focus : premier élément tabulable, visible dès qu'il est atteint. */
+.kycar-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+}
+
+.kycar-skip-link:focus {
+  left: var(--space-2);
+}
+
+.kycar-main-inner:focus {
+  outline: none;
+}
+
+/* ---- En-tête + navigation --------------------------------------------------------------------- */
+.kycar-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.kycar-brand {
+  font-size: var(--font-size-large);
+  font-weight: 700;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.kycar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kycar-nav a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.kycar-nav a:hover {
+  text-decoration: underline;
+}
+
+.status-banner {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.kycar-banner-degraded {
+  background: #fff4d6;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+/* Onglet désactivé (EX-SCR-44) : visible, non actionnable, distinct au contraste. */
+.kycar-nav-link--disabled {
+  color: var(--color-muted, #6b7280);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+/* Jeton de snapshot (EX-SCR-43) : trois âges (frais < 7 j, ancien < 30 j, périmé au-delà). */
+.kycar-snapshot-token {
+  margin: 0;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-small, 0.875rem);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.kycar-snapshot-token--frais { background: #e7f6ec; }
+.kycar-snapshot-token--ancien { background: #fff4d6; }
+.kycar-snapshot-token--perime { background: #fde8e8; }
+.kycar-snapshot-token--inconnu { background: var(--color-surface); }
+
+.kycar-banner-synthetic {
+  background: #eef2ff;
+  border: 1px solid var(--color-border);
+}
+
+.kycar-banner-unapplied {
+  background: #fff4d6;
+  border: 1px solid var(--color-border);
+}
+
+/* Fil d'Ariane (EX-SCR-45). */
+.kycar-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-small, 0.875rem);
+}
+
+.kycar-breadcrumb li + li::before {
+  content: '›';
+  margin-right: var(--space-2);
+  color: var(--color-muted, #6b7280);
+}
+
+.kycar-banner-message {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.kycar-banner-message button {
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-large);
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+/*
+ * `EX-SCR-56` (ACC-02) — le COLLAGE est porté par ce conteneur, pas par le bandeau.
+ * Avant 2.10, `position: sticky; top: 0` était posé sur `.kycar-filter-band`, dont le parent
+ * `.filter-bar` faisait exactement sa hauteur : la boîte de collage n'offrait AUCUNE course et la
+ * règle était inerte (mesuré en recette : bandeau à y = −1 029 après 1 200 px de défilement).
+ * Le conteneur, lui, est un enfant direct de la coquille : sa boîte de collage est la page entière.
+ * `top` vaut la hauteur de l'en-tête, mesurée et publiée par `src/components/filters/sticky-offset.ts`
+ * (deux frères ne peuvent pas se coller l'un sous l'autre en CSS seul) ; à défaut, le bandeau colle
+ * au haut du viewport plutôt que sous l'en-tête — jamais rien de pire.
+ * `z-index` au-dessus de l'en-tête (10) : la feuille plein écran du régime compact (`EX-SCR-97`) est
+ * enfermée dans le contexte d'empilement du bandeau et doit rester au-dessus de l'en-tête.
+ * Le rembourrage vertical retombe à zéro : la hauteur normative (96 / 132 / 56 px) est celle du
+ * bandeau lui-même, qui porte son propre rembourrage.
+ */
+.kycar-filter-bar {
+  position: sticky;
+  top: var(--kycar-band-top, 0px);
+  z-index: 20;
+  padding: 0;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.kycar-main {
+  padding: var(--space-3);
+}
+
+/* ---- Barres d'action / toolbars --------------------------------------------------------------- */
+.kycar-market-toolbar,
+.kycar-model-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.kycar-model-title {
+  margin: 0;
+  font-size: var(--font-size-large);
+}
+
+.kycar-model-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.kycar-save-form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.kycar-save-form input,
+.kycar-saved-rename input {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---- Écran C (comparaison) -------------------------------------------------------------------- */
+.kycar-compare-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.kycar-compare-scroll {
+  overflow-x: auto;
+}
+
+.kycar-compare-table {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.kycar-compare-table th,
+.kycar-compare-table td {
+  border: 1px solid var(--color-border);
+  padding: var(--space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.kycar-compare-model-name {
+  display: block;
+  font-weight: 700;
+}
+
+.kycar-compare-model-actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+/* ---- Écrans E / F (listes CRUD) --------------------------------------------------------------- */
+.kycar-saved {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .kycar-saved {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kycar-saved-rows,
+.kycar-followed-rows,
+.kycar-recent-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.kycar-saved-row,
+.kycar-followed-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.kycar-saved-meta,
+.kycar-recent-date,
+.kycar-followed-date {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin: var(--space-1) 0 0;
+}
+
+.kycar-saved-badge {
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  margin: var(--space-1) 0 0;
+}
+
+.kycar-saved-actions,
+.kycar-model-actions,
+.kycar-recent-head,
+.kycar-recent-rows li,
+.kycar-followed-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.kycar-saved-open,
+.kycar-followed-open {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  text-align: left;
+  padding: 0;
+}
+
+.kycar-recent-head {
+  justify-content: space-between;
+}
+
+/* ---- /mentions -------------------------------------------------------------------------------- */
+.kycar-mentions {
+  max-width: 70ch;
+  line-height: 1.55;
+}
+
+.kycar-mentions-provenance {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+/* ---- Pied de page obligatoire (EX-SCR-47, DR-100) --------------------------------------------- */
+.kycar-footer {
+  margin-top: var(--space-4, 2rem);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-small, 0.875rem);
+  color: var(--color-text);
+}
+
+.kycar-footer-diagnostic dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1, 0.25rem) var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+
+.kycar-footer-diagnostic dt {
+  font-weight: 600;
+}
+
+.kycar-footer-diagnostic dd {
+  margin: 0;
+}
+
+/* ---- Écran d'erreur de route (EX-NAV-19/20, DR-099) ------------------------------------------- */
+.kycar-route-error {
+  max-width: 60ch;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+/* ================================================================================================
+ * D8-14 / D8-15 — bandeaux d'état empilés, régimes de l'en-tête, recalcul de l'écran B
+ * ==============================================================================================
+ * `EX-SCR-38` : au plus deux bandeaux simultanés, hauteur de zone plafonnée à 96 px (144 px avec un
+ * C3 non refermable) ; au-delà la zone devient défilante et les suivants passent derrière `+k`.
+ * `EX-SCR-96`/`97`/`98` : les trois régimes de l'en-tête, pilotés par `data-regime` posé par la
+ * coquille (seule propriétaire du viewport) — jamais par une media query parallèle qui divergerait
+ * des seuils de `src/styles/breakpoints.ts`.
+ */
+
+.kycar-header {
+  --kycar-banner-zone-max: 96px;
+}
+
+.status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-1, 0.25rem) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+/* `EX-SCR-38bis` : une ligne par paramètre corrigé (le texte porte de vrais retours à la ligne). */
+.kycar-banner-text {
+  white-space: pre-line;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.kycar-banner-more {
+  align-self: flex-start;
+  margin: 0;
+  font-size: var(--font-size-small, 0.875rem);
+}
+
+/* ---- Régimes de l'en-tête (EX-SCR-96/97/98, D8-15) -------------------------------------------- */
+.kycar-nav-toggle {
+  display: none;
+}
+
+.kycar-header[data-regime='compact'] .kycar-nav-toggle {
+  display: inline-block;
+}
+
+/* Tiroir de navigation : en compact la liste des onglets est repliée derrière le bouton « Menu ». */
+.kycar-header[data-regime='compact'] .kycar-nav-drawer--closed {
+  display: none;
+}
+
+.kycar-header[data-regime='compact'] .kycar-nav {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1, 0.25rem);
+}
+
+/* Régime intermédiaire : l'en-tête reste sur une ligne mais le fil d'Ariane passe dessous. */
+.kycar-header[data-regime='intermediate'] .kycar-breadcrumb,
+.kycar-header[data-regime='compact'] .kycar-breadcrumb {
+  flex-basis: 100%;
+}
+
+.kycar-header[data-regime='compact'] .kycar-snapshot-token {
+  font-size: var(--font-size-small, 0.875rem);
+}
+
+.kycar-breadcrumb-counts {
+  margin: 0;
+  font-size: var(--font-size-small, 0.875rem);
+  color: var(--color-text-muted, var(--color-text));
+}
+
+/* ---- ET-CHARGE-MAJ (D8-24, EX-SCR-24) --------------------------------------------------------- */
+.kycar-recalc-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1, 0.25rem) var(--space-2);
+}
+
+.kycar-recalc-progress {
+  inline-size: 8rem;
+  block-size: 0.5rem;
+}
+
+/* Atténuation des figures qui portent encore le périmètre précédent (jamais leur disparition :
+   `EX-SCR-24` demande une mise à jour ATTÉNUÉE, pas un écran vidé puis repeuplé). */
+.kycar-screen-b--recalculating .kycar-graph-grid,
+.kycar-screen-b--recalculating .kycar-hist-row,
+.kycar-screen-b--recalculating .kycar-stat-header,
+/* `ACC-13` mode 1 (phase 3.5) — même atténuation sur l'écran A : la grille de cartes et la barre de
+   synthèse portent encore le périmètre précédent tant que le recalcul n'a pas rendu. */
+.kycar-market-screen--recalculating .kycar-market-grid,
+.kycar-market-screen--recalculating .kycar-market-summary-bar {
+  opacity: 0.55;
+  transition: opacity 120ms linear;
+}
+
+/* Le rafraîchissement explicite du panneau Diagnostic (EX-NAV-25). */
+.kycar-footer-refresh {
+  margin: var(--space-2) 0 0;
+}
+
+/*
+ * `E2E-19` / `EX-NFR-19` — le panneau Diagnostic étendu par `D8-14`/`FV-21` porte désormais des
+ * valeurs LONGUES (journal des rejets d'ingestion, drapeaux posés, champs inconnus par champ,
+ * requête canonique). Sa grille `max-content 1fr` prenait leur largeur INTRINSÈQUE : à 768 px les
+ * lignes mesuraient jusqu'à 1 909 px et poussaient le DOCUMENT au débordement horizontal sur les
+ * surfaces A, B et C. Les deux pistes sont bornées et le texte est autorisé à revenir à la ligne :
+ * l'information reste entière, elle ne déborde plus.
+ */
+.kycar-footer-diagnostic dl {
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+}
+
+.kycar-footer-diagnostic dt,
+.kycar-footer-diagnostic dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+
+/* ================================================================================================
+ * ACC-08 — `EX-SCR-21` : cibles tactiles minimales, à l'échelle de l'application
+ * ==============================================================================================
+ * « Hauteur de cible tactile minimale 44 × 44 px en `compact`, 32 × 32 px ailleurs ». Mesuré en
+ * recette : 157 des 202 éléments interactifs visibles sous 44 × 44 px en compact, 196–206 sous
+ * 32 × 32 px ailleurs — aucune règle de taille minimale n'existait.
+ *
+ * Deux mécanismes, selon la nature de l'élément :
+ *   - les contrôles de bloc (boutons, listes déroulantes, champs, `summary`) reçoivent un
+ *     `min-height` : ils grandissent sans rien déplacer autour d'eux ;
+ *   - les LIENS, souvent en ligne au milieu d'un texte, reçoivent un rembourrage vertical : la zone
+ *     cliquable grandit (le rembourrage fait partie de la boîte de survol et de clic) sans changer
+ *     la hauteur de ligne ni casser le retour à la ligne du paragraphe qui les porte.
+ * La cible d'une case à cocher est son LIBELLÉ (`<label for>`), pas la case elle-même : c'est lui
+ * qui porte la hauteur minimale, et un clic n'importe où dessus bascule la case.
+ */
+.kycar-app button,
+.kycar-app select,
+.kycar-app summary,
+.kycar-app input[type='search'],
+.kycar-app input[type='text'],
+.kycar-app input[type='number'],
+.kycar-app label {
+  min-height: 32px;
+}
+
+/* `[role='button']` est retiré du bloc ci-dessus depuis `C-R1-05` : voir le commentaire de
+   `:where(.kycar-app [role='button'])` plus bas, où sa règle de `min-height` a été déplacée. */
+
+.kycar-app a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.kycar-skip-link {
+  min-height: 32px;
+}
+
+/* Un bouton est une boîte flex : sans cela le `min-height` laisse son texte collé en haut.
+ *
+ * `C-R1-04` — CAUSE RACINE, corrigée ici (`data-fix-2`, phase 3.5). Ce bloc s'appliquait à
+ * `.kycar-app [role='button']` **avec la spécificité d'un sélecteur ordinaire** (0-0-2-0). Or un
+ * `role='button'` n'est pas une carrosserie : c'est un rôle ARIA, que l'application pose sur des
+ * composants qui déclarent EUX-MÊMES leur boîte. Trois éléments le portent — le `<rect>` d'une barre
+ * d'histogramme (`Histogram.tsx`, où aucune de ces propriétés ne s'applique : c'est de la géométrie
+ * SVG), l'en-tête de carte-marque (`.kycar-market-card-header`) et la zone-modèle
+ * (`.kycar-market-zone-interactive`) — et pour les deux derniers cette règle ÉCRASAIT ce que
+ * `market.css` déclare, à une classe (0-0-1-0). Conséquence mesurée en 2.10 : en régime compact, la
+ * zone-modèle doit devenir `display: contents` pour que ses champs rejoignent la grille à quatre
+ * rangées de sa zone ; le `display: inline-flex` d'ici la réifiait en boîte, la rangée 1 absorbait
+ * tout le contenu (`grid-template-rows` mesuré à `90px 0px 0px 0px`) et le texte débordait sur la
+ * zone suivante. `fix-screens-3` l'avait contournée par spécificité dans `market.css` ; la voici
+ * traitée à la source.
+ *
+ * Le remède est `:where()`, dont la spécificité vaut ZÉRO : ces déclarations restent un DÉFAUT —
+ * elles s'appliquent à tout `role='button'` qui ne dit rien de sa boîte — mais n'importe quelle
+ * règle de composant les emporte désormais, quel que soit l'ordre des feuilles. Ce qui change
+ * effectivement : la zone-modèle retrouve son `gap: 2px` et son `min-width: 0` (elle les déclare, ils
+ * étaient écrasés à 4px et 32px) et son `display: contents` compact passe sans contournement ;
+ * l'en-tête de carte retrouve son `gap: var(--space-2)`.
+ *
+ * `C-R1-05` (constat coordinateur D3-39, 2026-09-13) — CORRECTION du paragraphe qui suivait ici
+ * (« le plancher de cible tactile (`min-height`) garde en revanche sa spécificité ordinaire :
+ * `EX-SCR-21` est une exigence d'accessibilité ... un composant n'a pas à pouvoir passer dessous »).
+ * Ce raisonnement traitait `min-height` comme un PLAFOND qu'un composant chercherait à contourner,
+ * alors que c'est un PLANCHER : un composant qui déclare une valeur PLUS GRANDE que le plancher
+ * (`.kycar-market-card-header`, 72px, `EX-SCR-107`) ne « passe » jamais dessous, il le dépasse déjà.
+ * Le vrai problème est ailleurs : CSS ne fait pas de `max()` entre deux déclarations concurrentes de
+ * la même propriété, la règle qui GAGNE remplace entièrement l'autre — y compris quand elle est plus
+ * PETITE que ce que le composant demandait. Mesuré (`data-fix-2`, `reports/data/data-fix-2.md` §9) :
+ * `.kycar-market-card-header` (0-0-1-0, `min-height: 72px` dans `market.css`) perdait contre la règle
+ * `min-height` de ce fichier (alors 0-0-2-0, 32px en large / 44px en compact) et rendait 32/44px au
+ * lieu de 72px, amputant chaque carte-marque de 40px (le calcul `EX-SCR-122` — 588px repliés — pose
+ * 72px d'en-tête). Même remède que ci-dessus : `min-height` rejoint `:where(.kycar-app
+ * [role='button'])`, spécificité nulle. Les deux autres porteurs de `role='button'` restent couverts
+ * PAR DÉFAUT (rien ne les bat) : la zone-modèle (`.kycar-market-zone-interactive` ne déclare aucun
+ * `min-height` propre — sa hauteur vient du contenu et du plancher de `.kycar-market-zone`, 72px en
+ * large / 96px en compact, largement au-dessus du seuil tactile) et le `<rect>` d'histogramme (SVG,
+ * `min-height` sans effet sur cet élément). Les AUTRES cibles du plancher (`button`, `select`,
+ * `summary`, `input`, `label`, `a`) restent à spécificité ordinaire dans le bloc ci-dessus : aucune
+ * n'a montré de composant réclamant une hauteur propre supérieure au plancher.
+ */
+.kycar-app button {
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 0.25rem);
+}
+
+:where(.kycar-app [role='button']) {
+  min-height: 32px;
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 0.25rem);
+}
+
+/* Les libellés de case restent des rangées : case + texte + effectif, alignés au centre. */
+.kycar-app label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+}
+
+/* Les surdimensions du régime compact viennent EN DERNIER : à spécificité égale, c'est l'ordre
+   de la feuille qui tranche, et le socle de 32 px ci-dessus les annulerait autrement. */
+@media (max-width: 767px) {
+  .kycar-app button,
+  .kycar-app select,
+  .kycar-app summary,
+  .kycar-app input[type='search'],
+  .kycar-app input[type='text'],
+  .kycar-app input[type='number'],
+  .kycar-app label {
+    min-height: 44px;
+  }
+
+  .kycar-app a {
+    min-height: 44px;
+  }
+
+  /* `C-R1-04`/`C-R1-05` : même partage qu'au-dessus — boîte et plancher de cible tactile
+     réunis à spécificité nulle (`:where()`) pour `[role='button']`, voir le commentaire du bloc
+     de base. `.kycar-market-card-header` ne redéclare pas de `min-height` propre au régime
+     compact (aucune exigence ne le demande, `EX-SCR-135` est muet sur l'en-tête de carte : la
+     valeur large de `EX-SCR-107`, 72px, s'applique donc à tous les régimes, hypothèse E4) ; ce
+     plancher à 44px reste néanmoins le défaut pour tout futur `[role='button']` qui n'aurait pas
+     sa propre hauteur. */
+  .kycar-app button {
+    min-width: 44px;
+  }
+
+  :where(.kycar-app [role='button']) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .kycar-skip-link {
+    min-height: 44px;
+  }
+}

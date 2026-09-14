@@ -1,0 +1,44 @@
+{
+  "name": "kycar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "KYCAR - agregateur analytique du marche AutoScout24 (100% client, Preact + Vite).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest run && vitest run --config vitest.review.config.ts",
+    "test:watch": "vitest",
+    "test:perf": "vitest run --config vitest.perf.config.ts",
+    "size": "node tools/check-bundle-size.mjs",
+    "test:review": "tsc --noEmit -p tsconfig.review.json && vitest run --config vitest.review.config.ts",
+    "test:contract": "tsc --noEmit -p tsconfig.contract.json && vitest run --config vitest.contract.config.ts",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report",
+    "data:gen": "node tools/dataset/generate.mjs",
+    "data:baseline": "vite-node tools/dataset/baseline.ts --",
+    "data:validate": "node tools/dataset/validate.mjs",
+    "data:check": "node tools/dataset/check.mjs",
+    "test:data": "tsc --noEmit -p tsconfig.data.json && vitest run --config vitest.data.config.ts"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^22.20.1",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^10.10.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0",
+    "vite": "^5.4.21",
+    "vitest": "^3.2.4"
+  }
+}

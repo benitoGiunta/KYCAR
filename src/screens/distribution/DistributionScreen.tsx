@@ -1,0 +1,663 @@
+/**
+ * KYCAR — Écran B « Distribution d'un modèle » (lot D7, EX-SCR-139..192)
+ * =================================================================================================
+ * Composant MONTABLE (le routage global est câblé par D8, EX-SCR-139/140). Quatre blocs (EX-SCR-141) :
+ *   (1) en-tête statistique (EX-SCR-142) ; (2) les trois histogrammes imposés G1–G3 ;
+ *   (3) le nuage G4 pleine largeur ; (4) la grille des graphes additionnels G5–G15 (ordre EX-SCR-144).
+ *
+ * Consomme le moteur D4 (`RecalcResult`) pour les chiffres/histogrammes/densité/outliers, et le
+ * `ListingColumnBatch` élagué (mode 2) pour les points du nuage et les GROUPSTAT additionnels (O17 :
+ * écran de mode 2 toujours élagué → calcul main-thread trivial).
+ *
+ * DETTE SIGNALÉE : la surimpression de liaison croisée SUR LES HISTOGRAMMES et barres (EX-SCR-184,
+ * part sélectionnée) n'est pas peinte ici — la sélection brossée est calculée et pilote la mise en
+ * évidence du nuage (points non sélectionnés à 15 %) et le compteur ; l'overlay des autres graphes
+ * est un point d'intégration D8 (le modèle expose déjà `selectedRows`). Idem `ET-*` d'écran (D8).
+ */
+
+import { useEffect, useMemo, useState } from 'preact/hooks';
+
+/** `EX-SCR-25` (ACC-13) — budget d'un recalcul local : au-delà, et alors seulement, `ET-CHARGE-MAJ`. */
+export const RECALC_INDICATOR_DELAY_MS = 150;
+import type { JSX } from 'preact';
+import type { ListingColumnBatch, SelectionInput } from '../../types/index';
+import { MODEL_ID_UNRESOLVED } from '../../types/index';
+import type { RecalcResult } from '../../engine/index';
+import { decodeListingId } from '../../engine/uuid';
+import { OutlierIndex, comparisonBaseLabel, methodLabel } from '../outlier-index';
+import { buildListingRow } from '../listings/listing-fields';
+import { exportListingsCsv, exportBucketsCsv, csvFileName, type CsvMeta, type CsvLabelResolvers } from '../listings/csv-export';
+import { computeEligibility, buildScatterPoints, type OutlierLookup } from './scatter-model';
+import { sampleScatter } from './scatter-sample';
+import { Histogram } from './Histogram';
+import { ScatterCloud } from './ScatterCloud';
+import { bucketToIntervalFilters, clearMetricFilters } from './histogram-model';
+import {
+  computeBrushSelection,
+  brushAccessorFor,
+  brushToIntervalFilters,
+  brushToSelRestriction,
+  intervalFiltersToSelectionInput,
+  selectedCountsByBucket,
+} from './brush-model';
+import { buildC3Banner, representativityUnproven } from '../market/coverage';
+import { formatInteger } from '../market/format';
+import type { RestrictiveFilterHint } from '../market/state';
+import {
+  YearMedianChart,
+  DepreciationChart,
+  DensityHeatmap,
+  OutlierLollipopChart,
+  CategoricalBars,
+  MileageBoxes,
+  PowerTiers,
+  type LabelResolver,
+} from './AdditionalGraphs';
+import {
+  buildYearMedian,
+  buildDepreciation,
+  buildPriceMileageDensity,
+  buildOutlierLollipops,
+  buildCategoryBars,
+  buildMileageBoxes,
+  buildPowerTiers,
+  selectionCellStat,
+  g8ModelCaption,
+  g8RSquaredWarning,
+} from './graphs-model';
+import {
+  effectiveG4Variant,
+  toggleLogHistogram,
+  type DistributionUiState,
+  type G4Variant,
+  type BrushRange,
+  type SelRestriction,
+} from './url-state';
+import { formatPrice, formatKm, formatYearStat, formatPower, formatMonthYear } from './format';
+import './distribution.css';
+
+/** Résolveurs de libellés (fournis par D8/ReferenceData) — défaut = code brut. */
+export interface DistributionLabels {
+  readonly fuel?: LabelResolver;
+  readonly sellerType?: LabelResolver;
+  readonly evaluation?: LabelResolver;
+  readonly country?: LabelResolver;
+}
+
+export interface DistributionScreenProps {
+  readonly batch: ListingColumnBatch;
+  readonly recalc: RecalcResult;
+  /**
+   * Lignes de la sélection courante Σ (indices dans `batch`). Fournies par D8 (qui détient le moteur
+   * et le scan). Défaut : toutes les lignes du batch (batch déjà élagué au modèle).
+   */
+  readonly rows?: Int32Array;
+  readonly ui: DistributionUiState;
+  readonly onUiChange: (next: DistributionUiState) => void;
+  readonly labels?: DistributionLabels;
+  /** Nom « Marque Modèle » pour l'en-tête et l'étiquetage EX-SCR-158bis. */
+  readonly makeModelName?: string;
+  /** `EX-SCR-113bis` (D8-06/FV-08) — clé réservée `MODEL_ID_UNRESOLVED` (0) : mode « Modèle non
+   * identifié ». Bandeau non refermable, `G5`/`G6`/`G8`/`G10`/`G14` hors DOM, `Comparer` désactivé. */
+  readonly modelId?: number;
+  /** `EX-SCR-31`/`175` (D8-06/FV-07) — couverture de SNAPSHOT (`SnapshotDescriptor.listingCount`/
+   * `announcedListingCount`), pour le bandeau `C3` et la ligne de représentativité, tous deux
+   * obligatoires sur l'écran B. Absent : ni l'un ni l'autre n'est rendu (jamais une valeur inventée) —
+   * voir le rapport de lot, § « Câblage attendu de fix-app ». */
+  readonly snapshotCoverage?: {
+    readonly listingCount: number;
+    readonly announcedListingCount: number | null;
+    readonly hasUserFilters: boolean;
+  };
+  /** `EX-SCR-175` — ouvre `/mentions` (lien « Pourquoi ? ») en SPA plutôt qu'en rechargement complet.
+   * Absent : ancre `<a href="/mentions">` classique. */
+  readonly onOpenMentions?: () => void;
+  /** Ouvre l'annonce d'origine (deeplink), fourni par D8. */
+  readonly onOpenListing?: (row: number) => void;
+
+  /** `ARB-09`/`EX-SCR-184` (DR-009, DR-079) — pose un correctif de filtres RÉELS sur la sélection Σ
+   * (clic sur une barre d'histogramme, ou « Convertir la sélection en filtre »). Point d'intégration
+   * D8/fix-app : lit les valeurs actuelles du bandeau de filtres, y fusionne `patch`, écrit la
+   * nouvelle URL — voir le rapport de lot, § « Câblage attendu de fix-app ».
+   *
+   * `ACC-19` (remédiation 3.5) — second paramètre : l'état d'interface de CET écran à écrire dans la
+   * MÊME URL que le correctif. Il existe parce que la conversion d'un brossage doit faire DEUX
+   * choses d'un coup (poser les filtres, retirer `selx`/`sely`) : en deux appels, chacun navigue et
+   * le second sérialise la sélection PÉRIMÉE par-dessus le premier — le bouton paraissait mort. */
+  readonly onApplyFilters?: (patch: SelectionInput, nextUi?: DistributionUiState) => void;
+  /** `EX-SCR-158`/`184`, `D-12`/`D-26` — « Voir ces annonces » : navigue vers l'écran D restreint à
+   * la sélection brossée (`sel`, restriction d'affichage, Σ INCHANGÉE). Depuis 2.10 (ACC-06) la
+   * charge porte les DEUX axes brossés (`SelRestriction`), pas seulement l'intervalle de prix : la
+   * coquille la repose telle quelle dans l'état d'interface, elle n'a rien à en connaître. */
+  readonly onViewBrushedListings?: (sel: SelRestriction) => void;
+  /** `EX-SCR-142` ligne 3 (DR-078) — « Voir les <n> annonces » : écran D SANS restriction. */
+  readonly onViewListings?: () => void;
+  /** `EX-SCR-142` ligne 3 (DR-078) — « Comparer » : écran C. */
+  readonly onCompare?: () => void;
+  /** `EX-SCR-142` ligne 3 / `EX-CRUD-10` (DR-078) — « Suivre » : CRUD écran F. */
+  readonly onFollow?: (next: boolean) => void;
+  readonly isFollowed?: boolean;
+  /** Métadonnées d'en-tête des deux exports CSV auto-portés par cet écran (DR-078/`EX-CRUD-16`). */
+  readonly csvMeta?: CsvMeta;
+  /** `EX-NFR-19` (DR-081) — régime dégradé (< 768 px, prix × km, année en couleur, brossage off).
+   * Absent : repli par `matchMedia` (voir `defaultDegradedFromViewport`, plus bas). */
+  readonly degraded?: boolean;
+  /** `EX-SCR-174`/`EX-SCR-26` (D8-31) — nombre de filtres ACTIFS, pour la phrase
+   * « <n> filtres actifs restreignent la recherche. » de l'état `ET-VIDE-FILTRES`. Détenu par le
+   * bandeau de filtres (`countActiveFilters`), donc fourni par la coquille : absent, la phrase n'est
+   * pas rendue (jamais un compte inventé) — voir le rapport de lot, § « Câblage attendu de fix-app-2 ».
+   */
+  readonly activeFilterCount?: number;
+  /** `EX-SCR-26` (D8-31) — les 3 filtres les plus restrictifs (« leave-one-out » sur
+   * `selectionHashWithoutFilter`, `EX-DATA-110bis`), calculés par le contrôleur. `gain === null`
+   * pour un filtre de classe `T` : le bouton s'affiche alors SANS chiffre. Absent ou vide : aucune
+   * suggestion n'est rendue, le reste du bloc l'est. */
+  readonly topRestrictiveFilters?: readonly RestrictiveFilterHint[];
+  /** `EX-SCR-26` — retrait d'un filtre depuis une suggestion. */
+  readonly onRemoveFilter?: (filterId: string) => void;
+  /** `EX-SCR-26` — `Réinitialiser tous les filtres`. */
+  readonly onResetAllFilters?: () => void;
+  /** `EX-SCR-26` — `Enregistrer cette recherche` (reste actif : une recherche vide est une veille
+   * légitime). */
+  readonly onSaveSearch?: () => void;
+  /**
+   * `D8-24` (`ET-CHARGE-MAJ`, `EX-SCR-24`/`173`, `EX-SRCH-22`) — un recalcul est EN COURS sur ce
+   * périmètre alors que les figures affichées portent encore le périmètre PRÉCÉDENT. L'écran les
+   * ATTÉNUE et rend une barre de progression indéterminée, plutôt que de laisser croire que les
+   * chiffres à l'écran sont ceux de la sélection courante. Signal fourni par l'hôte (fix-app), seul
+   * à connaître le cycle de recalcul ; `false`/absent = rendu nominal. Le premier calcul
+   * (`ET-CHARGE-INIT`, squelettes) reste porté par l'hôte, qui ne monte pas encore cet écran.
+   */
+  readonly recalculating?: boolean;
+}
+
+function idLabel(code: number): string {
+  return String(code);
+}
+
+/** `EX-NFR-19` (DR-081) — défaut de `degraded` quand l'hôte (D8, seul propriétaire du viewport) ne
+ * le fournit pas encore : estimation par `matchMedia`, alignée sur le point de rupture normatif
+ * (768 px). Un composant MONTABLE isolément reste ainsi utilisable sans hôte. */
+function defaultDegradedFromViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(max-width: 767.98px)').matches;
+}
+
+export function DistributionScreen(props: DistributionScreenProps) {
+  const { batch, recalc, ui } = props;
+  const [exportOpen, setExportOpen] = useState(false);
+  const rows = useMemo(
+    () => props.rows ?? Int32Array.from({ length: batch.rowCount }, (_v, i) => i),
+    [props.rows, batch.rowCount],
+  );
+  const stats = recalc.selectionStats;
+  const selectionCount = stats.selectionCount;
+
+  const outlierIndex = useMemo(() => new OutlierIndex(recalc.outlierVerdicts), [recalc.outlierVerdicts]);
+
+  const outlierLookup: OutlierLookup = useMemo(
+    () => ({
+      isOutlier: (row) => outlierIndex.has(decodeListingId(batch.listingId, row)),
+      opportunityScore: (row) => outlierIndex.scoreOf(decodeListingId(batch.listingId, row)),
+    }),
+    [outlierIndex, batch.listingId],
+  );
+
+  // Nuage G4 : éligibilité → échantillonnage → points.
+  const scatter = useMemo(() => {
+    const elig = computeEligibility(batch, rows);
+    const sample = sampleScatter({
+      eligible: elig.eligible,
+      listingId: batch.listingId,
+      isOutlier: outlierLookup.isOutlier,
+      opportunityScore: outlierLookup.opportunityScore,
+    });
+    const points = buildScatterPoints(batch, sample.rows, outlierLookup);
+    return { elig, sample, points };
+  }, [batch, rows, outlierLookup]);
+
+  // Graphes additionnels — `D8-07` (dette D-17 levée) : G5/G6/G9/G10/G12/G13/G14/G15 sont lus DEPUIS
+  // `RecalcResult` (source unique, calculée dans le worker), plus jamais recalculés ici depuis
+  // `batch`/`rows`. Un champ absent (`recalc.groupStats` etc. non encore rempli par fix-engine) rend
+  // l'état « indisponible » (`'unavailable'`) — voir `graphs-model.ts`. G7 (densité) et G8 (liste des
+  // outliers, hors libellé R²) restent hors du protocole worker (aucun champ dédié, O17).
+  const yearMedian = useMemo(() => buildYearMedian(recalc.groupStats), [recalc.groupStats]);
+  const depreciation = useMemo(() => buildDepreciation(recalc.depreciationIndex), [recalc.depreciationIndex]);
+  const density = useMemo(() => buildPriceMileageDensity(batch, rows), [batch, rows]);
+  const lollipops = useMemo(() => buildOutlierLollipops(batch, rows, outlierIndex, 20), [batch, rows, outlierIndex]);
+  const fuelBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'fuelCategory'), [recalc.groupStats]);
+  const sellerBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'sellerType'), [recalc.groupStats]);
+  const evalBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'priceEvaluationCategory'), [recalc.groupStats]);
+  const countryBars = useMemo(() => buildCategoryBars(recalc.groupStats, 'countryCode'), [recalc.groupStats]);
+  const mileageBoxes = useMemo(() => buildMileageBoxes(recalc.ntiles, recalc.groupStats), [recalc.ntiles, recalc.groupStats]);
+  const powerTiers = useMemo(() => buildPowerTiers(recalc.powerTiers), [recalc.powerTiers]);
+  const selectionCell = useMemo(() => selectionCellStat(recalc.cellStats), [recalc.cellStats]);
+  const g8Caption = useMemo(() => g8ModelCaption(selectionCell), [selectionCell]);
+  const g8Warning = useMemo(() => g8RSquaredWarning(selectionCell), [selectionCell]);
+
+  // `EX-SCR-113bis` (D8-06/FV-08) — mode « Modèle non identifié ».
+  const isUnresolvedModel = props.modelId === MODEL_ID_UNRESOLVED;
+
+  // `EX-SCR-174` (D8-31) — `ET-VIDE-FILTRES` : zéro offre dans la sélection courante. Sur l'écran B,
+  // la sélection porte TOUJOURS au moins le filtre de modèle (`mmmv`, route canonique `EX-NAV-2`),
+  // donc un effectif nul est nécessairement « zéro résultat, filtres posés » — jamais
+  // `ET-VIDE-SANS-FILTRE` (`EX-SCR-27`), qui est un état de l'écran A sans aucun prédicat.
+  const isEmptySelection = selectionCount === 0;
+  /** `EX-SCR-174` : `—` pour CHAQUE statistique dès que la sélection est vide (et, comme avant,
+   * pour toute valeur non calculable) — jamais un chiffre hérité du périmètre précédent. */
+  const statOrDash = (value: number | null, fmt: (v: number) => string): string =>
+    isEmptySelection || value == null ? '—' : fmt(value);
+
+  // `EX-SCR-31`/`175` (D8-06/FV-07) — bandeau C3 + ligne de représentativité, obligatoires sur B.
+  const c3 = props.snapshotCoverage ? buildC3Banner(props.snapshotCoverage) : undefined;
+  const showRepresentativity = props.snapshotCoverage ? representativityUnproven(props.snapshotCoverage) : false;
+
+  const variant: G4Variant = effectiveG4Variant(ui, selectionCount);
+  const labels = props.labels ?? {};
+  const degraded = props.degraded ?? defaultDegradedFromViewport();
+
+  /**
+   * `EX-SCR-25` (ACC-13) — un recalcul LOCAL n'admet AUCUN indicateur tant qu'il tient dans son
+   * budget de 150 ms ; au-delà seulement, l'état bascule sur `ET-CHARGE-MAJ`. La coquille pose
+   * `recalculating` dès le premier tick : mesuré en recette, l'indicateur apparaissait dès 105 ms,
+   * pour un seul tick de 5 ms. On le TEMPORISE ici : il n'est monté que si le recalcul dure plus de
+   * `RECALC_INDICATOR_DELAY_MS`, et il disparaît immédiatement à la fin du recalcul.
+   */
+  const [recalcVisible, setRecalcVisible] = useState(false);
+  useEffect(() => {
+    if (props.recalculating !== true) {
+      setRecalcVisible(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setRecalcVisible(true), RECALC_INDICATOR_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [props.recalculating]);
+
+  const onToggleLog = (n: number): void => props.onUiChange(toggleLogHistogram(ui, n));
+  const onBrushChange = (brushX: BrushRange | null, brushY: BrushRange | null): void =>
+    props.onUiChange({ ...ui, brushX, brushY });
+  const onVariantChange = (v: G4Variant): void => props.onUiChange({ ...ui, g4Variant: v });
+
+  const price = stats.price;
+
+  /**
+   * `EX-SCR-178` (ACC-07) — les exclusions de `G1` doivent CLORE l'effectif : mesuré en recette,
+   * G1 annonçait 1 246 offres pour Σ = 1 352 en ne nommant que 87 exclusions (prix sur demande,
+   * prix absent) — 19 annonces disparaissaient sans motif. Ce sont les annonces à prix VALIDE mais
+   * hors des bornes de classes du binning (au-delà du plafond, `EX-DATA-76`) : elles ne sont
+   * comptées dans aucun motif publié. On les nomme, comme un motif à part entière, et la somme
+   * « G1 + exclusions » vaut alors exactement Σ.
+   */
+  const priceOutOfClasses = useMemo(() => {
+    let inBuckets = 0;
+    for (const b of recalc.priceHistogram) inBuckets += b.count;
+    const named = stats.priceOnRequestCount + stats.priceMissingCount;
+    return Math.max(0, selectionCount - inBuckets - named);
+  }, [recalc.priceHistogram, stats.priceOnRequestCount, stats.priceMissingCount, selectionCount]);
+
+  // `EX-SCR-142` ligne 2 (DR-077) — part de particuliers, calculée depuis le batch (aucune donnée
+  // équivalente sur `SelectionStats`, hors périmètre fix-screens de l'étendre) : le libellé exact
+  // « Particulier » de l'écran D (`EX-SCR-203`) sert de pivot, résolu par le même `labels.sellerType`
+  // que le graphe G13 — sans ce résolveur, la part reste indisponible plutôt que fausse.
+  const particulier = useMemo(() => {
+    if (!labels.sellerType) return null;
+    let particulierN = 0;
+    let knownN = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i] as number;
+      const code = batch.sellerType[row] as number;
+      if (code === 255) continue; // ENUM_UNKNOWN_BYTE (EX-DATA-120)
+      knownN++;
+      if (labels.sellerType(code) === 'Particulier') particulierN++;
+    }
+    return knownN > 0 ? { pct: (particulierN / knownN) * 100, n: knownN } : null;
+  }, [batch, rows, labels]);
+
+  // `EX-SCR-184` (DR-080) — sélection brossée EN LIGNES (mêmes règles que `ScatterCloud`, via
+  // `brushAccessorFor`), pour la liaison croisée sur G1–G3 et les actions de la sélection (DR-079).
+  const selectedRows = useMemo(() => {
+    if (ui.brushX === null && ui.brushY === null) return null;
+    const accessor = brushAccessorFor(variant, degraded);
+    return computeBrushSelection(scatter.points, ui.brushX, ui.brushY, accessor);
+  }, [scatter.points, ui.brushX, ui.brushY, variant, degraded]);
+
+  const priceSelectedCounts = useMemo(
+    () => (selectedRows ? selectedCountsByBucket(scatter.points, selectedRows, recalc.priceHistogram, (p) => p.priceEur) : undefined),
+    [scatter.points, selectedRows, recalc.priceHistogram],
+  );
+  const mileageSelectedCounts = useMemo(
+    () => (selectedRows ? selectedCountsByBucket(scatter.points, selectedRows, recalc.mileageHistogram, (p) => p.mileageKm) : undefined),
+    [scatter.points, selectedRows, recalc.mileageHistogram],
+  );
+  const yearSelectedCounts = useMemo(
+    () => (selectedRows ? selectedCountsByBucket(scatter.points, selectedRows, recalc.yearHistogram, (p) => p.year) : undefined),
+    [scatter.points, selectedRows, recalc.yearHistogram],
+  );
+
+  // `ARB-09`/`EX-SCR-149` (DR-009) — clic sur une barre : pose l'intervalle correspondant.
+  const onSelectBucket = (metric: 'price' | 'year' | 'mileage') => (bucket: Parameters<typeof bucketToIntervalFilters>[0]): void => {
+    props.onApplyFilters?.(bucketToIntervalFilters(bucket, metric));
+  };
+
+  // `EX-SCR-149` (D8-24, finition) — double-clic sur un histogramme : RETRAIT du filtre de la métrique
+  // (`applyFilters` de la coquille traite `undefined` comme un retrait, fix-app §7).
+  const onClearFilter = (metric: 'price' | 'year' | 'mileage'): void => {
+    props.onApplyFilters?.(clearMetricFilters(metric));
+  };
+
+  // `EX-SCR-158`/`184` (DR-079) — actions de la sélection brossée.
+  const brushInterval = selectedRows ? brushToIntervalFilters(scatter.points, selectedRows) : null;
+  const onConvertBrushToFilter = (): void => {
+    if (!brushInterval) return;
+    // `ACC-19` — UNE SEULE navigation : le correctif de filtres ET le retrait du brossage
+    // (`selx`/`sely`, `D-26`) partent ensemble. L'ordre inverse (appliquer puis `onUiChange`)
+    // écrivait deux URL successives, la seconde calculée sur la sélection d'AVANT le correctif :
+    // elle écrasait les filtres qui venaient d'être posés, sans rien dire.
+    props.onApplyFilters?.(intervalFiltersToSelectionInput(brushInterval), {
+      ...ui,
+      brushX: null,
+      brushY: null,
+    });
+  };
+  const onViewBrushedListings = (): void => {
+    // ACC-06 — `sel` porte les DEUX axes réellement brossés (`brushToSelRestriction`), et non la
+    // seule bande de prix : sans le second axe, l'écran D montrait plus de lignes que brossées.
+    if (!selectedRows) return;
+    const sel = brushToSelRestriction(scatter.points, selectedRows);
+    if (sel === null) return;
+    props.onViewBrushedListings?.(sel);
+  };
+
+  // `EX-SCR-158` (DR-084) — infobulle de survol du nuage, 6 lignes, CONTENU TEXTUEL (`ARB-62`).
+  const resolveTooltip = (row: number): readonly string[] => {
+    const r = buildListingRow(batch, row, outlierIndex);
+    const evalLabel = r.priceEvaluationCategory != null ? labels.evaluation?.(r.priceEvaluationCategory) : undefined;
+    const comparisonLine =
+      r.outlierMethod != null
+        ? `${comparisonBaseLabel({ cellLabel: r.cellLabel, cellCount: r.cellCount }, { makeModel: props.makeModelName, year: r.regYear ?? undefined })} · ${methodLabel(r.outlierMethod)}`
+        : 'écart calculé sur : sélection courante';
+    const lines = [
+      r.modelVersion.slice(0, 40),
+      r.priceEur != null ? formatPrice(r.priceEur) : '—',
+      r.mileageKm != null ? formatKm(r.mileageKm) : '—',
+      r.regYearMonth != null ? `1ʳᵉ immat. ${formatMonthYear(r.regYearMonth)}` : '1ʳᵉ immat. inconnue',
+      r.powerKw != null ? formatPower(r.powerKw) : '—',
+    ];
+    if (evalLabel) lines.push(evalLabel);
+    lines.push(comparisonLine);
+    return lines;
+  };
+
+  // `EX-CRUD-16` (DR-078) — les deux exports CSV, auto-portés par l'écran B (mêmes fonctions que
+  // l'écran D). `csvMeta` par défaut : repli explicite, jamais une valeur inventée.
+  const csvMeta: CsvMeta = props.csvMeta ?? {
+    snapshotId: 'INCONNU',
+    capturedAt: '',
+    sourceKind: 'INCONNU',
+    filterQuery: '',
+    sampleCoverage: 'NON_APPLICABLE',
+    metricCoverage: '',
+  };
+  const csvLabels: CsvLabelResolvers = { fuel: labels.fuel, sellerType: labels.sellerType, country: labels.country };
+  const download = (content: string, name: string): void => {
+    if (typeof document === 'undefined') return;
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const onExportListingsCsv = (): void => {
+    const listingRows = Array.from(rows, (row) => buildListingRow(batch, row, outlierIndex));
+    download(exportListingsCsv(listingRows, csvMeta, csvLabels), csvFileName(props.makeModelName ?? 'annonces', csvMeta.snapshotId, new Date()));
+  };
+  const onExportBucketsCsv = (): void => {
+    const buckets = [
+      { metric: 'price' as const, buckets: recalc.priceHistogram },
+      { metric: 'mileage' as const, buckets: recalc.mileageHistogram },
+      { metric: 'year' as const, buckets: recalc.yearHistogram },
+    ];
+    download(exportBucketsCsv(buckets, csvMeta), csvFileName(`${props.makeModelName ?? 'agregats'}-agregats`, csvMeta.snapshotId, new Date()));
+  };
+
+  return (
+    <div
+      class={recalcVisible ? 'kycar-screen-b kycar-screen-b--recalculating' : 'kycar-screen-b'}
+      aria-busy={recalcVisible ? 'true' : undefined}
+      data-recalculating={recalcVisible ? 'true' : undefined}
+    >
+      {/* `ET-CHARGE-MAJ` (D8-24, EX-SCR-24) — barre de progression indéterminée + mention explicite :
+          les figures ci-dessous portent encore le périmètre précédent (EX-SCR-39, jamais muet). */}
+      {recalcVisible ? (
+        <div class="kycar-recalc-notice" role="status">
+          <progress class="kycar-recalc-progress" aria-label="Recalcul en cours" />
+          <span>Recalcul en cours — les figures affichées portent encore le périmètre précédent.</span>
+        </div>
+      ) : null}
+      {/* Bloc 1 — en-tête statistique (EX-SCR-142). `EX-SCR-181` (ACC-03) : en régime COMPACT il
+          passe de 3 à 5 lignes — le nom et l'effectif, les trois quartiles, l'étendue, les
+          médianes secondaires, puis la rangée d'actions (défilable horizontalement). Aucune donnée
+          n'est retirée : les mêmes valeurs sont réparties sur cinq lignes au lieu de trois. */}
+      <header class="kycar-stat-header" data-regime={degraded ? 'compact' : 'large'}>
+        {degraded ? (
+          <>
+            <div class="kycar-stat-line">
+              <strong>{props.makeModelName ?? 'Modèle'}</strong>
+              <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
+            </div>
+            <div class="kycar-stat-line">
+              <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
+              <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
+              <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
+            </div>
+            <div class="kycar-stat-line">
+              <span title={`n = ${price.n}`}>
+                min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
+                <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
+              </span>
+            </div>
+          </>
+        ) : (
+          <div class="kycar-stat-line">
+            <strong>{props.makeModelName ?? 'Modèle'}</strong>
+            {/* `EX-SCR-174` : à zéro, l'en-tête dit `aucune offre` — jamais « 0 offres ». */}
+            <span title={`n = ${selectionCount}`}>{isEmptySelection ? 'aucune offre' : `${selectionCount} offres`}</span>
+            <span title={`n = ${price.n}`}>médiane {statOrDash(price.p50, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>P25 {statOrDash(price.p25, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>P75 {statOrDash(price.p75, formatPrice)}</span>
+            <span title={`n = ${price.n}`}>
+              min {statOrDash(price.min, formatPrice)} – max {statOrDash(price.max, formatPrice)}
+              <span class="kycar-stat-sublabel"> (du moins cher au plus cher)</span>
+            </span>
+          </div>
+        )}
+        <div class="kycar-stat-line">
+          <span title={`n = ${stats.mileage.n}`}>km médian {statOrDash(stats.mileage.p50, formatKm)}</span>
+          <span title={`n = ${stats.year.n}`}>1ʳᵉ immat. médiane {statOrDash(stats.year.p50, (v) => formatYearStat(v, 'p05'))}</span>
+          <span title={particulier ? `n = ${particulier.n}` : undefined}>
+            {particulier && !isEmptySelection ? `${particulier.pct.toFixed(0)} % particuliers` : '— % particuliers'}
+          </span>
+        </div>
+        <div class="kycar-stat-line kycar-stat-actions">
+          {/* `EX-SCR-174` : à zéro, le bouton reste AFFICHÉ (l'en-tête est conservé) mais désactivé,
+              avec l'infobulle normative — un bouton qui mènerait à une liste vide serait trompeur. */}
+          <button
+            type="button"
+            onClick={props.onViewListings}
+            disabled={isEmptySelection}
+            title={isEmptySelection ? 'Aucune annonce à lister' : undefined}
+          >
+            Voir les {selectionCount} annonces
+          </button>
+          <button
+            type="button"
+            onClick={props.onCompare}
+            disabled={isUnresolvedModel}
+            title={isUnresolvedModel ? 'un modèle non identifié ne peut pas être comparé' : undefined}
+          >
+            Comparer
+          </button>
+          <button type="button" onClick={() => props.onFollow?.(!props.isFollowed)} aria-pressed={props.isFollowed ?? false}>
+            {props.isFollowed ? 'Suivi ✓' : 'Suivre'}
+          </button>
+          <span class="kycar-stat-export">
+            <button type="button" aria-expanded={exportOpen} onClick={() => setExportOpen((v) => !v)}>
+              Exporter
+            </button>
+            {exportOpen ? (
+              <span class="kycar-stat-export-menu">
+                <button type="button" onClick={onExportListingsCsv}>
+                  Annonces du périmètre (CSV)
+                </button>
+                <button type="button" onClick={onExportBucketsCsv}>
+                  Agrégats affichés (CSV)
+                </button>
+              </span>
+            ) : null}
+          </span>
+        </div>
+      </header>
+
+      {/* `EX-SCR-31`/`175` (D8-06/FV-07) — bandeau C3 (même région d'impression `summary-bar-c3`
+          que l'écran A, `EX-NFR-31`/DR-154) + ligne de représentativité NON refermable tant que la
+          couverture n'est pas prouvée à 100 %. */}
+      {c3 ? (
+        <div class="kycar-market-banners">
+          <div class="kycar-market-banner-c3 summary-bar-c3">
+            <div class={`kycar-market-banner kycar-market-banner--${c3.tone}`}>{c3.text}</div>
+          </div>
+          {showRepresentativity ? (
+            <div class="kycar-market-banner kycar-market-banner--ambre" role="status">
+              Représentativité de l’échantillon non prouvée — lire{' '}
+              <a
+                href="/mentions"
+                onClick={props.onOpenMentions ? (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => { e.preventDefault(); props.onOpenMentions?.(); } : undefined}
+              >
+                Pourquoi ?
+              </a>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* `EX-SCR-113bis` (D8-06/FV-08) — bandeau NON refermable du mode « Modèle non identifié ». */}
+      {isUnresolvedModel ? (
+        <div class="kycar-banner kycar-banner--ambre" role="status">
+          Ces annonces n’ont pas pu être rattachées à un modèle du référentiel — les distributions
+          par modèle ne s’appliquent pas
+        </div>
+      ) : null}
+
+      {/* `EX-SCR-174` (D8-31) — `ET-VIDE-FILTRES` : les graphes sont RETIRÉS (hors DOM, jamais
+          seulement masqués : un graphe vide ferait croire à une distribution plate) et remplacés
+          par le bloc d'`EX-SCR-26`, suggestions de retrait comprises. L'en-tête statistique
+          ci-dessus, lui, reste affiché. */}
+      {isEmptySelection ? (
+        <div class="kycar-screen-b-empty" role="status">
+          <h2>Aucune offre ne correspond</h2>
+          {props.activeFilterCount !== undefined ? (
+            <p>{props.activeFilterCount} filtres actifs restreignent la recherche.</p>
+          ) : null}
+          {props.topRestrictiveFilters && props.topRestrictiveFilters.length > 0 ? (
+            <div class="kycar-screen-b-empty-shortcuts">
+              {props.topRestrictiveFilters.map((hint) => (
+                <button key={hint.filterId} type="button" onClick={() => props.onRemoveFilter?.(hint.filterId)}>
+                  {/* `EX-SCR-26` : un filtre de classe `T` (`gain === null`) n'affiche AUCUN chiffre —
+                      son retrait rechargerait le jeu local, le gain n'est donc pas calculable ici. */}
+                  {hint.gain === null
+                    ? `retirer « ${hint.label} »`
+                    : `retirer « ${hint.label} » : ${formatInteger(hint.gain)} offres de plus`}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <button type="button" onClick={props.onResetAllFilters}>
+            Réinitialiser tous les filtres
+          </button>
+          {/* `EX-SCR-26` : reste ACTIF — enregistrer une recherche vide est une veille légitime. */}
+          <button type="button" onClick={props.onSaveSearch}>
+            Enregistrer cette recherche
+          </button>
+        </div>
+      ) : (
+        <>
+        {/* Bloc 2 — histogrammes G1–G3 */}
+        <section class="kycar-hist-row" aria-label="Distributions">
+          <Histogram compact={degraded} graphId="G1" title="Offres par prix" metric="price" buckets={recalc.priceHistogram} log={ui.logHistograms.has(1)} onToggleLog={() => onToggleLog(1)} headerCount={selectionCount} exclusions={[{ count: stats.priceOnRequestCount, reason: 'prix sur demande' }, { count: stats.priceMissingCount, reason: 'prix absent' }, { count: priceOutOfClasses, reason: 'hors des classes affichées' }]} onSelectBucket={onSelectBucket('price')} onClearFilter={onClearFilter} selectedCounts={priceSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G2" title="Offres par kilométrage" metric="mileage" buckets={recalc.mileageHistogram} log={ui.logHistograms.has(2)} onToggleLog={() => onToggleLog(2)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.mileage.n, reason: 'kilométrage non renseigné' }]} onSelectBucket={onSelectBucket('mileage')} onClearFilter={onClearFilter} selectedCounts={mileageSelectedCounts} dataSelection={stats.selectionHash} />
+          <Histogram compact={degraded} graphId="G3" title="Offres par année" metric="year" buckets={recalc.yearHistogram} log={ui.logHistograms.has(3)} onToggleLog={() => onToggleLog(3)} headerCount={selectionCount} exclusions={[{ count: selectionCount - stats.year.n, reason: 'année non renseignée' }]} onSelectBucket={onSelectBucket('year')} onClearFilter={onClearFilter} selectedCounts={yearSelectedCounts} dataSelection={stats.selectionHash} />
+        </section>
+
+        {/* Bloc 3 — nuage G4 */}
+        <section class="kycar-scatter-row" aria-label="Nuage prix, année, kilométrage">
+          <ScatterCloud
+            points={scatter.points}
+            variant={variant}
+            /* `EX-SCR-153` (D8-31) — G4a lit la grille de G1 : mêmes bornes, mêmes buckets. */
+            priceBuckets={recalc.priceHistogram}
+            onVariantChange={onVariantChange}
+            sampleInfo={scatter.sample}
+            brushX={ui.brushX}
+            brushY={ui.brushY}
+            onBrushChange={onBrushChange}
+            degraded={degraded}
+            resolveTooltip={resolveTooltip}
+            onOpenListing={props.onOpenListing}
+            dataSelection={stats.selectionHash}
+          />
+          {selectedRows && selectedRows.size > 0 ? (
+            <div class="kycar-scatter-selection-actions">
+              <button type="button" onClick={onConvertBrushToFilter}>
+                Convertir la sélection en filtre
+              </button>
+              <button type="button" onClick={onViewBrushedListings}>
+                Voir ces annonces
+              </button>
+            </div>
+          ) : null}
+        </section>
+
+        {/* Bloc 4 — graphes additionnels (ordre EX-SCR-144). `EX-SCR-113bis` (D8-06/FV-08) : en mode
+            « Modèle non identifié », G5/G6/G8/G10/G14 sont hors DOM (jamais seulement masqués en CSS —
+            C₁/C₂ de la détection d'outlier exigent un `modelId` résolu, EX-SCR-113bis). */}
+        <section class="kycar-graph-grid" aria-label="Graphes additionnels">
+          {!isUnresolvedModel ? <YearMedianChart points={yearMedian} dataSelection={stats.selectionHash} /> : null}
+          {!isUnresolvedModel ? <DepreciationChart model={depreciation} dataSelection={stats.selectionHash} /> : null}
+          <DensityHeatmap compact={degraded} density={density} log={ui.logHistograms.has(7)} onToggleLog={() => onToggleLog(7)} dataSelection={stats.selectionHash} />
+          {!isUnresolvedModel ? (
+            <OutlierLollipopChart
+              compact={degraded}
+              items={lollipops}
+              perimeter={{ makeModel: props.makeModelName }}
+              onOpen={props.onOpenListing}
+              modelCaption={g8Caption}
+              rSquaredWarning={g8Warning}
+              dataSelection={stats.selectionHash}
+            />
+          ) : null}
+          <CategoricalBars graphId="G9" title="Répartition par carburant" bars={fuelBars} label={labels.fuel ?? idLabel} dataSelection={stats.selectionHash} />
+          {!isUnresolvedModel ? <MileageBoxes boxes={mileageBoxes} dataSelection={stats.selectionHash} /> : null}
+          <CategoricalBars graphId="G12" title="Évaluation de prix AutoScout24" bars={evalBars} label={labels.evaluation ?? idLabel} note="Évaluation calculée par AutoScout24, méthode non publiée." dataSelection={stats.selectionHash} />
+          <CategoricalBars graphId="G13" title="Type de vendeur" bars={sellerBars} label={labels.sellerType ?? idLabel} dataSelection={stats.selectionHash} />
+          {!isUnresolvedModel ? <PowerTiers tiers={powerTiers} dataSelection={stats.selectionHash} /> : null}
+          {/* `EX-SCR-170` (D8-06/FV-18) — G15 n'est tracé QUE si le périmètre contient plus d'un
+              `countryCode` distinct (ou si le filtre `cy` porte plusieurs valeurs — hors périmètre de
+              ce composant, qui ne reçoit pas l'état du filtre actif ; condition sur les données seule,
+              ci-dessous). Sinon le bloc est absent du DOM (pas un `ET-CHAMP-ABSENT-SOURCE`). */}
+          {countryBars === 'unavailable' || countryBars.length > 1 ? (
+            <CategoricalBars graphId="G15" title="Répartition par pays" bars={countryBars} label={labels.country ?? idLabel} dataSelection={stats.selectionHash} />
+          ) : null}
+        </section>
+        {/* A-08 (DR-147, D8-12 — dette LEVÉE) : les graphes CO₂/consommation/boîte de vitesses restent
+            écartés de la grille (dette A-08 elle-même inchangée), mais `EX-SCR-39` (« aucun état n'est
+            silencieux ») exige désormais une mention à l'utilisateur, là où il n'y en avait aucune. */}
+        <p class="kycar-graph-note">
+          Graphes CO₂, consommation et boîte de vitesses : non disponibles dans cette version (dette A-08).
+        </p>
+        </>
+      )}
+    </div>
+  );
+}

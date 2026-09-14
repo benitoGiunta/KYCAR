@@ -1,0 +1,2031 @@
+{
+ "$comment": "KYCAR — parts de marche par marque, marche belge de l'occasion (profil be). Genere par docs/data/DATASET-SPEC.md R-02.",
+ "source": [
+  "S3 TRAXIO, « Immatriculations automobiles 2025 » (734 165 voitures d'occasion ; classement des marques d'occasion : Volkswagen, BMW, Mercedes, Peugeot, Opel), consulte le 2026-09-09",
+  "S4 TRAXIO, memes donnees : modeles d'occasion les plus immatricules 2025 (VW Golf 29 120, VW Polo 21 299, Opel Corsa 18 567, BMW Serie 3 16 138, BMW Serie 1 14 793)",
+  "H2 hypothese : les parts individuelles au-dela du rang 5 sont EXTRAPOLEES (aucune publication ne donne la table complete) ; seul l'ordre des cinq premieres marques est releve"
+ ],
+ "regle": "R-02 — repartition par apportionnement au plus fort reste sur sharePct ; queue en loi de Zipf d'exposant 1.05 sur l'ordre du referentiel ; plancher de presence : les 120 premieres marques par sharePct recoivent au moins une annonce par snapshot",
+ "tailZipfExponent": 1.05,
+ "tailTotalPct": 4.05,
+ "presenceFloorMakes": 120,
+ "totalPct": 100.0,
+ "makeCount": 295,
+ "makes": [
+  {
+   "slug": "volkswagen",
+   "makeId": 74,
+   "sharePct": 11.0,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "bmw",
+   "makeId": 13,
+   "sharePct": 8.4,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "mercedes-benz",
+   "makeId": 47,
+   "sharePct": 7.6,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "peugeot",
+   "makeId": 55,
+   "sharePct": 7.2,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "opel",
+   "makeId": 54,
+   "sharePct": 6.9,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "audi",
+   "makeId": 9,
+   "sharePct": 6.2,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "renault",
+   "makeId": 60,
+   "sharePct": 5.6,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "citroen",
+   "makeId": 21,
+   "sharePct": 4.3,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "ford",
+   "makeId": 29,
+   "sharePct": 4.2,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "toyota",
+   "makeId": 70,
+   "sharePct": 4.0,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "skoda",
+   "makeId": 65,
+   "sharePct": 3.5,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "hyundai",
+   "makeId": 33,
+   "sharePct": 2.6,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "kia",
+   "makeId": 39,
+   "sharePct": 2.4,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "volvo",
+   "makeId": 73,
+   "sharePct": 2.3,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "nissan",
+   "makeId": 52,
+   "sharePct": 2.0,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "fiat",
+   "makeId": 28,
+   "sharePct": 1.9,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "seat",
+   "makeId": 64,
+   "sharePct": 1.9,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "dacia",
+   "makeId": 16360,
+   "sharePct": 1.8,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "mini",
+   "makeId": 16338,
+   "sharePct": 1.3,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "mazda",
+   "makeId": 46,
+   "sharePct": 1.2,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "suzuki",
+   "makeId": 68,
+   "sharePct": 1.0,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "honda",
+   "makeId": 31,
+   "sharePct": 0.85,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "tesla",
+   "makeId": 51520,
+   "sharePct": 0.85,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "land-rover",
+   "makeId": 15641,
+   "sharePct": 0.7,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "jeep",
+   "makeId": 38,
+   "sharePct": 0.65,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "porsche",
+   "makeId": 57,
+   "sharePct": 0.6,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "alfa-romeo",
+   "makeId": 6,
+   "sharePct": 0.5,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "mitsubishi",
+   "makeId": 50,
+   "sharePct": 0.5,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "cupra",
+   "makeId": 51802,
+   "sharePct": 0.5,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "smart",
+   "makeId": 15525,
+   "sharePct": 0.5,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "lexus",
+   "makeId": 43,
+   "sharePct": 0.4,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "ds-automobiles",
+   "makeId": 16415,
+   "sharePct": 0.4,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "jaguar",
+   "makeId": 37,
+   "sharePct": 0.3,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "mg",
+   "makeId": 48,
+   "sharePct": 0.3,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "subaru",
+   "makeId": 67,
+   "sharePct": 0.25,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "chevrolet",
+   "makeId": 19,
+   "sharePct": 0.2,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "abarth",
+   "makeId": 16396,
+   "sharePct": 0.15,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "byd",
+   "makeId": 16379,
+   "sharePct": 0.15,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "polestar",
+   "makeId": 51817,
+   "sharePct": 0.12,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "chrysler",
+   "makeId": 20,
+   "sharePct": 0.1,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "ssangyong",
+   "makeId": 66,
+   "sharePct": 0.1,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "lancia",
+   "makeId": 42,
+   "sharePct": 0.1,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "saab",
+   "makeId": 63,
+   "sharePct": 0.08,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "maserati",
+   "makeId": 45,
+   "sharePct": 0.07,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "daihatsu",
+   "makeId": 23,
+   "sharePct": 0.07,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "iveco",
+   "makeId": 14882,
+   "sharePct": 0.05,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "ferrari",
+   "makeId": 27,
+   "sharePct": 0.05,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "lamborghini",
+   "makeId": 41,
+   "sharePct": 0.04,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "bentley",
+   "makeId": 11,
+   "sharePct": 0.04,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "aston-martin",
+   "makeId": 8,
+   "sharePct": 0.03,
+   "class": "NOMMEE"
+  },
+  {
+   "slug": "alpina",
+   "makeId": 14,
+   "sharePct": 0.751126,
+   "class": "QUEUE",
+   "tailRank": 1
+  },
+  {
+   "slug": "bugatti",
+   "makeId": 15,
+   "sharePct": 0.36277,
+   "class": "QUEUE",
+   "tailRank": 2
+  },
+  {
+   "slug": "buick",
+   "makeId": 16,
+   "sharePct": 0.236993,
+   "class": "QUEUE",
+   "tailRank": 3
+  },
+  {
+   "slug": "cadillac",
+   "makeId": 17,
+   "sharePct": 0.175206,
+   "class": "QUEUE",
+   "tailRank": 4
+  },
+  {
+   "slug": "innocenti",
+   "makeId": 15629,
+   "sharePct": 0.13861,
+   "class": "QUEUE",
+   "tailRank": 5
+  },
+  {
+   "slug": "trabant",
+   "makeId": 15633,
+   "sharePct": 0.11446,
+   "class": "QUEUE",
+   "tailRank": 6
+  },
+  {
+   "slug": "proton",
+   "makeId": 15636,
+   "sharePct": 0.097355,
+   "class": "QUEUE",
+   "tailRank": 7
+  },
+  {
+   "slug": "austin",
+   "makeId": 15643,
+   "sharePct": 0.084619,
+   "class": "QUEUE",
+   "tailRank": 8
+  },
+  {
+   "slug": "autobianchi",
+   "makeId": 15644,
+   "sharePct": 0.074775,
+   "class": "QUEUE",
+   "tailRank": 9
+  },
+  {
+   "slug": "puch",
+   "makeId": 15646,
+   "sharePct": 0.066944,
+   "class": "QUEUE",
+   "tailRank": 10
+  },
+  {
+   "slug": "oldtimer",
+   "makeId": 15670,
+   "sharePct": 0.060569,
+   "class": "QUEUE",
+   "tailRank": 11
+  },
+  {
+   "slug": "caravans-wohnm",
+   "makeId": 15672,
+   "sharePct": 0.055281,
+   "class": "QUEUE",
+   "tailRank": 12
+  },
+  {
+   "slug": "hummer",
+   "makeId": 15674,
+   "sharePct": 0.050824,
+   "class": "QUEUE",
+   "tailRank": 13
+  },
+  {
+   "slug": "trucks-lkw",
+   "makeId": 16253,
+   "sharePct": 0.04702,
+   "class": "QUEUE",
+   "tailRank": 14
+  },
+  {
+   "slug": "trailer-anhanger",
+   "makeId": 16326,
+   "sharePct": 0.043734,
+   "class": "QUEUE",
+   "tailRank": 15
+  },
+  {
+   "slug": "tata",
+   "makeId": 16327,
+   "sharePct": 0.040868,
+   "class": "QUEUE",
+   "tailRank": 16
+  },
+  {
+   "slug": "autres",
+   "makeId": 16328,
+   "sharePct": 0.038348,
+   "class": "QUEUE",
+   "tailRank": 17
+  },
+  {
+   "slug": "daf",
+   "makeId": 16333,
+   "sharePct": 0.036114,
+   "class": "QUEUE",
+   "tailRank": 18
+  },
+  {
+   "slug": "caterham",
+   "makeId": 16335,
+   "sharePct": 0.034121,
+   "class": "QUEUE",
+   "tailRank": 19
+  },
+  {
+   "slug": "wartburg",
+   "makeId": 16336,
+   "sharePct": 0.032332,
+   "class": "QUEUE",
+   "tailRank": 20
+  },
+  {
+   "slug": "galloper",
+   "makeId": 16337,
+   "sharePct": 0.030717,
+   "class": "QUEUE",
+   "tailRank": 21
+  },
+  {
+   "slug": "donkervoort",
+   "makeId": 16339,
+   "sharePct": 0.029253,
+   "class": "QUEUE",
+   "tailRank": 22
+  },
+  {
+   "slug": "pagani",
+   "makeId": 16341,
+   "sharePct": 0.027919,
+   "class": "QUEUE",
+   "tailRank": 23
+  },
+  {
+   "slug": "maybach",
+   "makeId": 16348,
+   "sharePct": 0.026699,
+   "class": "QUEUE",
+   "tailRank": 24
+  },
+  {
+   "slug": "piaggio",
+   "makeId": 16350,
+   "sharePct": 0.025579,
+   "class": "QUEUE",
+   "tailRank": 25
+  },
+  {
+   "slug": "wiesmann",
+   "makeId": 16351,
+   "sharePct": 0.024547,
+   "class": "QUEUE",
+   "tailRank": 26
+  },
+  {
+   "slug": "aixam",
+   "makeId": 16352,
+   "sharePct": 0.023593,
+   "class": "QUEUE",
+   "tailRank": 27
+  },
+  {
+   "slug": "ligier",
+   "makeId": 16353,
+   "sharePct": 0.022709,
+   "class": "QUEUE",
+   "tailRank": 28
+  },
+  {
+   "slug": "infiniti",
+   "makeId": 16355,
+   "sharePct": 0.021887,
+   "class": "QUEUE",
+   "tailRank": 29
+  },
+  {
+   "slug": "acura",
+   "makeId": 16356,
+   "sharePct": 0.021122,
+   "class": "QUEUE",
+   "tailRank": 30
+  },
+  {
+   "slug": "chatenet",
+   "makeId": 16357,
+   "sharePct": 0.020407,
+   "class": "QUEUE",
+   "tailRank": 31
+  },
+  {
+   "slug": "mahindra",
+   "makeId": 16359,
+   "sharePct": 0.019738,
+   "class": "QUEUE",
+   "tailRank": 32
+  },
+  {
+   "slug": "microcar",
+   "makeId": 16361,
+   "sharePct": 0.019111,
+   "class": "QUEUE",
+   "tailRank": 33
+  },
+  {
+   "slug": "brilliance",
+   "makeId": 16367,
+   "sharePct": 0.018521,
+   "class": "QUEUE",
+   "tailRank": 34
+  },
+  {
+   "slug": "santana",
+   "makeId": 16369,
+   "sharePct": 0.017966,
+   "class": "QUEUE",
+   "tailRank": 35
+  },
+  {
+   "slug": "spyker",
+   "makeId": 16377,
+   "sharePct": 0.017442,
+   "class": "QUEUE",
+   "tailRank": 36
+  },
+  {
+   "slug": "corvette",
+   "makeId": 16380,
+   "sharePct": 0.016947,
+   "class": "QUEUE",
+   "tailRank": 37
+  },
+  {
+   "slug": "great-wall",
+   "makeId": 16382,
+   "sharePct": 0.016479,
+   "class": "QUEUE",
+   "tailRank": 38
+  },
+  {
+   "slug": "dr-automobiles",
+   "makeId": 16383,
+   "sharePct": 0.016036,
+   "class": "QUEUE",
+   "tailRank": 39
+  },
+  {
+   "slug": "chery",
+   "makeId": 16384,
+   "sharePct": 0.015615,
+   "class": "QUEUE",
+   "tailRank": 40
+  },
+  {
+   "slug": "vaz",
+   "makeId": 16385,
+   "sharePct": 0.015216,
+   "class": "QUEUE",
+   "tailRank": 41
+  },
+  {
+   "slug": "gaz",
+   "makeId": 16386,
+   "sharePct": 0.014835,
+   "class": "QUEUE",
+   "tailRank": 42
+  },
+  {
+   "slug": "izh",
+   "makeId": 16387,
+   "sharePct": 0.014473,
+   "class": "QUEUE",
+   "tailRank": 43
+  },
+  {
+   "slug": "moskvich",
+   "makeId": 16388,
+   "sharePct": 0.014128,
+   "class": "QUEUE",
+   "tailRank": 44
+  },
+  {
+   "slug": "uaz",
+   "makeId": 16389,
+   "sharePct": 0.013799,
+   "class": "QUEUE",
+   "tailRank": 45
+  },
+  {
+   "slug": "lifan",
+   "makeId": 16393,
+   "sharePct": 0.013484,
+   "class": "QUEUE",
+   "tailRank": 46
+  },
+  {
+   "slug": "zaz",
+   "makeId": 16394,
+   "sharePct": 0.013183,
+   "class": "QUEUE",
+   "tailRank": 47
+  },
+  {
+   "slug": "daimler",
+   "makeId": 16397,
+   "sharePct": 0.012895,
+   "class": "QUEUE",
+   "tailRank": 48
+  },
+  {
+   "slug": "reliant",
+   "makeId": 16398,
+   "sharePct": 0.012618,
+   "class": "QUEUE",
+   "tailRank": 49
+  },
+  {
+   "slug": "melex",
+   "makeId": 16399,
+   "sharePct": 0.012354,
+   "class": "QUEUE",
+   "tailRank": 50
+  },
+  {
+   "slug": "bedford",
+   "makeId": 16400,
+   "sharePct": 0.012099,
+   "class": "QUEUE",
+   "tailRank": 51
+  },
+  {
+   "slug": "changhe",
+   "makeId": 16401,
+   "sharePct": 0.011855,
+   "class": "QUEUE",
+   "tailRank": 52
+  },
+  {
+   "slug": "iso-rivolta",
+   "makeId": 16402,
+   "sharePct": 0.01162,
+   "class": "QUEUE",
+   "tailRank": 53
+  },
+  {
+   "slug": "gem",
+   "makeId": 16403,
+   "sharePct": 0.011395,
+   "class": "QUEUE",
+   "tailRank": 54
+  },
+  {
+   "slug": "tasso",
+   "makeId": 16404,
+   "sharePct": 0.011177,
+   "class": "QUEUE",
+   "tailRank": 55
+  },
+  {
+   "slug": "casalini",
+   "makeId": 16407,
+   "sharePct": 0.010968,
+   "class": "QUEUE",
+   "tailRank": 56
+  },
+  {
+   "slug": "zastava",
+   "makeId": 16408,
+   "sharePct": 0.010766,
+   "class": "QUEUE",
+   "tailRank": 57
+  },
+  {
+   "slug": "grecav",
+   "makeId": 16409,
+   "sharePct": 0.010571,
+   "class": "QUEUE",
+   "tailRank": 58
+  },
+  {
+   "slug": "martin-motors",
+   "makeId": 16410,
+   "sharePct": 0.010383,
+   "class": "QUEUE",
+   "tailRank": 59
+  },
+  {
+   "slug": "cityel",
+   "makeId": 16411,
+   "sharePct": 0.010201,
+   "class": "QUEUE",
+   "tailRank": 60
+  },
+  {
+   "slug": "bellier",
+   "makeId": 16416,
+   "sharePct": 0.010026,
+   "class": "QUEUE",
+   "tailRank": 61
+  },
+  {
+   "slug": "bollore",
+   "makeId": 16418,
+   "sharePct": 0.009856,
+   "class": "QUEUE",
+   "tailRank": 62
+  },
+  {
+   "slug": "ariel-motor",
+   "makeId": 16419,
+   "sharePct": 0.009692,
+   "class": "QUEUE",
+   "tailRank": 63
+  },
+  {
+   "slug": "town-life",
+   "makeId": 16420,
+   "sharePct": 0.009533,
+   "class": "QUEUE",
+   "tailRank": 64
+  },
+  {
+   "slug": "giotti-victoria",
+   "makeId": 16421,
+   "sharePct": 0.009379,
+   "class": "QUEUE",
+   "tailRank": 65
+  },
+  {
+   "slug": "vem",
+   "makeId": 16422,
+   "sharePct": 0.00923,
+   "class": "QUEUE",
+   "tailRank": 66
+  },
+  {
+   "slug": "de-la-chapelle",
+   "makeId": 16423,
+   "sharePct": 0.009085,
+   "class": "QUEUE",
+   "tailRank": 67
+  },
+  {
+   "slug": "borgward",
+   "makeId": 16424,
+   "sharePct": 0.008945,
+   "class": "QUEUE",
+   "tailRank": 68
+  },
+  {
+   "slug": "ldv",
+   "makeId": 16426,
+   "sharePct": 0.008809,
+   "class": "QUEUE",
+   "tailRank": 69
+  },
+  {
+   "slug": "artega",
+   "makeId": 16427,
+   "sharePct": 0.008677,
+   "class": "QUEUE",
+   "tailRank": 70
+  },
+  {
+   "slug": "acm",
+   "makeId": 16429,
+   "sharePct": 0.008549,
+   "class": "QUEUE",
+   "tailRank": 71
+  },
+  {
+   "slug": "aspid",
+   "makeId": 16431,
+   "sharePct": 0.008424,
+   "class": "QUEUE",
+   "tailRank": 72
+  },
+  {
+   "slug": "dangel",
+   "makeId": 16434,
+   "sharePct": 0.008303,
+   "class": "QUEUE",
+   "tailRank": 73
+  },
+  {
+   "slug": "mansory",
+   "makeId": 16435,
+   "sharePct": 0.008185,
+   "class": "QUEUE",
+   "tailRank": 74
+  },
+  {
+   "slug": "estrima",
+   "makeId": 16436,
+   "sharePct": 0.00807,
+   "class": "QUEUE",
+   "tailRank": 75
+  },
+  {
+   "slug": "daewoo",
+   "makeId": 22,
+   "sharePct": 0.007959,
+   "class": "QUEUE",
+   "tailRank": 76
+  },
+  {
+   "slug": "gmc",
+   "makeId": 2153,
+   "sharePct": 0.007851,
+   "class": "QUEUE",
+   "tailRank": 77
+  },
+  {
+   "slug": "lincoln",
+   "makeId": 14890,
+   "sharePct": 0.007745,
+   "class": "QUEUE",
+   "tailRank": 78
+  },
+  {
+   "slug": "ac",
+   "makeId": 14979,
+   "sharePct": 0.007642,
+   "class": "QUEUE",
+   "tailRank": 79
+  },
+  {
+   "slug": "isuzu",
+   "makeId": 35,
+   "sharePct": 0.007542,
+   "class": "QUEUE",
+   "tailRank": 80
+  },
+  {
+   "slug": "lada",
+   "makeId": 40,
+   "sharePct": 0.007444,
+   "class": "QUEUE",
+   "tailRank": 81
+  },
+  {
+   "slug": "lotus",
+   "makeId": 44,
+   "sharePct": 0.007349,
+   "class": "QUEUE",
+   "tailRank": 82
+  },
+  {
+   "slug": "morgan",
+   "makeId": 51,
+   "sharePct": 0.007256,
+   "class": "QUEUE",
+   "tailRank": 83
+  },
+  {
+   "slug": "ktm",
+   "makeId": 50060,
+   "sharePct": 0.007165,
+   "class": "QUEUE",
+   "tailRank": 84
+  },
+  {
+   "slug": "pgo",
+   "makeId": 50083,
+   "sharePct": 0.007077,
+   "class": "QUEUE",
+   "tailRank": 85
+  },
+  {
+   "slug": "nsu",
+   "makeId": 50111,
+   "sharePct": 0.00699,
+   "class": "QUEUE",
+   "tailRank": 86
+  },
+  {
+   "slug": "haima",
+   "makeId": 51512,
+   "sharePct": 0.006906,
+   "class": "QUEUE",
+   "tailRank": 87
+  },
+  {
+   "slug": "westfield",
+   "makeId": 51513,
+   "sharePct": 0.006823,
+   "class": "QUEUE",
+   "tailRank": 88
+  },
+  {
+   "slug": "mclaren",
+   "makeId": 51519,
+   "sharePct": 0.006743,
+   "class": "QUEUE",
+   "tailRank": 89
+  },
+  {
+   "slug": "hamann",
+   "makeId": 51534,
+   "sharePct": 0.006664,
+   "class": "QUEUE",
+   "tailRank": 90
+  },
+  {
+   "slug": "techart",
+   "makeId": 51535,
+   "sharePct": 0.006587,
+   "class": "QUEUE",
+   "tailRank": 91
+  },
+  {
+   "slug": "ruf",
+   "makeId": 51536,
+   "sharePct": 0.006512,
+   "class": "QUEUE",
+   "tailRank": 92
+  },
+  {
+   "slug": "speedart",
+   "makeId": 51538,
+   "sharePct": 0.006439,
+   "class": "QUEUE",
+   "tailRank": 93
+  },
+  {
+   "slug": "9ff",
+   "makeId": 51539,
+   "sharePct": 0.006367,
+   "class": "QUEUE",
+   "tailRank": 94
+  },
+  {
+   "slug": "gemballa",
+   "makeId": 51540,
+   "sharePct": 0.006297,
+   "class": "QUEUE",
+   "tailRank": 95
+  },
+  {
+   "slug": "gac-gonow",
+   "makeId": 51542,
+   "sharePct": 0.006228,
+   "class": "QUEUE",
+   "tailRank": 96
+  },
+  {
+   "slug": "fisker",
+   "makeId": 51543,
+   "sharePct": 0.00616,
+   "class": "QUEUE",
+   "tailRank": 97
+  },
+  {
+   "slug": "amphicar",
+   "makeId": 51545,
+   "sharePct": 0.006094,
+   "class": "QUEUE",
+   "tailRank": 98
+  },
+  {
+   "slug": "talbot",
+   "makeId": 51551,
+   "sharePct": 0.00603,
+   "class": "QUEUE",
+   "tailRank": 99
+  },
+  {
+   "slug": "dutton",
+   "makeId": 51552,
+   "sharePct": 0.005966,
+   "class": "QUEUE",
+   "tailRank": 100
+  },
+  {
+   "slug": "panther-westwinds",
+   "makeId": 51553,
+   "sharePct": 0.005904,
+   "class": "QUEUE",
+   "tailRank": 101
+  },
+  {
+   "slug": "mp-lafer",
+   "makeId": 51554,
+   "sharePct": 0.005844,
+   "class": "QUEUE",
+   "tailRank": 102
+  },
+  {
+   "slug": "tazzari-ev",
+   "makeId": 51557,
+   "sharePct": 0.005784,
+   "class": "QUEUE",
+   "tailRank": 103
+  },
+  {
+   "slug": "sunbeam",
+   "makeId": 51748,
+   "sharePct": 0.005726,
+   "class": "QUEUE",
+   "tailRank": 104
+  },
+  {
+   "slug": "swm",
+   "makeId": 51749,
+   "sharePct": 0.005668,
+   "class": "QUEUE",
+   "tailRank": 105
+  },
+  {
+   "slug": "minauto",
+   "makeId": 51766,
+   "sharePct": 0.005612,
+   "class": "QUEUE",
+   "tailRank": 106
+  },
+  {
+   "slug": "hurtan",
+   "makeId": 51767,
+   "sharePct": 0.005557,
+   "class": "QUEUE",
+   "tailRank": 107
+  },
+  {
+   "slug": "plymouth",
+   "makeId": 51770,
+   "sharePct": 0.005503,
+   "class": "QUEUE",
+   "tailRank": 108
+  },
+  {
+   "slug": "dfsk",
+   "makeId": 51773,
+   "sharePct": 0.00545,
+   "class": "QUEUE",
+   "tailRank": 109
+  },
+  {
+   "slug": "baic",
+   "makeId": 51774,
+   "sharePct": 0.005398,
+   "class": "QUEUE",
+   "tailRank": 110
+  },
+  {
+   "slug": "de-tomaso",
+   "makeId": 51779,
+   "sharePct": 0.005347,
+   "class": "QUEUE",
+   "tailRank": 111
+  },
+  {
+   "slug": "man",
+   "makeId": 51780,
+   "sharePct": 0.005297,
+   "class": "QUEUE",
+   "tailRank": 112
+  },
+  {
+   "slug": "koenigsegg",
+   "makeId": 51781,
+   "sharePct": 0.005248,
+   "class": "QUEUE",
+   "tailRank": 113
+  },
+  {
+   "slug": "mitsuoka",
+   "makeId": 51782,
+   "sharePct": 0.0052,
+   "class": "QUEUE",
+   "tailRank": 114
+  },
+  {
+   "slug": "mpm-motors",
+   "makeId": 51788,
+   "sharePct": 0.005152,
+   "class": "QUEUE",
+   "tailRank": 115
+  },
+  {
+   "slug": "gillet",
+   "makeId": 51791,
+   "sharePct": 0.005105,
+   "class": "QUEUE",
+   "tailRank": 116
+  },
+  {
+   "slug": "ram",
+   "makeId": 51793,
+   "sharePct": 0.00506,
+   "class": "QUEUE",
+   "tailRank": 117
+  },
+  {
+   "slug": "e-go",
+   "makeId": 51794,
+   "sharePct": 0.005015,
+   "class": "QUEUE",
+   "tailRank": 118
+  },
+  {
+   "slug": "streetscooter",
+   "makeId": 51795,
+   "sharePct": 0.00497,
+   "class": "QUEUE",
+   "tailRank": 119
+  },
+  {
+   "slug": "alpine",
+   "makeId": 51796,
+   "sharePct": 0.004927,
+   "class": "QUEUE",
+   "tailRank": 120
+  },
+  {
+   "slug": "zhidou",
+   "makeId": 51798,
+   "sharePct": 0.004884,
+   "class": "QUEUE",
+   "tailRank": 121
+  },
+  {
+   "slug": "shuanghuan",
+   "makeId": 51800,
+   "sharePct": 0.004842,
+   "class": "QUEUE",
+   "tailRank": 122
+  },
+  {
+   "slug": "maxus",
+   "makeId": 51803,
+   "sharePct": 0.004801,
+   "class": "QUEUE",
+   "tailRank": 123
+  },
+  {
+   "slug": "zotye",
+   "makeId": 51807,
+   "sharePct": 0.00476,
+   "class": "QUEUE",
+   "tailRank": 124
+  },
+  {
+   "slug": "vanderhall",
+   "makeId": 51809,
+   "sharePct": 0.00472,
+   "class": "QUEUE",
+   "tailRank": 125
+  },
+  {
+   "slug": "regis",
+   "makeId": 51812,
+   "sharePct": 0.004681,
+   "class": "QUEUE",
+   "tailRank": 126
+  },
+  {
+   "slug": "goupil",
+   "makeId": 51813,
+   "sharePct": 0.004642,
+   "class": "QUEUE",
+   "tailRank": 127
+  },
+  {
+   "slug": "haval",
+   "makeId": 51816,
+   "sharePct": 0.004604,
+   "class": "QUEUE",
+   "tailRank": 128
+  },
+  {
+   "slug": "sevic",
+   "makeId": 51827,
+   "sharePct": 0.004567,
+   "class": "QUEUE",
+   "tailRank": 129
+  },
+  {
+   "slug": "evo",
+   "makeId": 51831,
+   "sharePct": 0.00453,
+   "class": "QUEUE",
+   "tailRank": 130
+  },
+  {
+   "slug": "studebaker",
+   "makeId": 51833,
+   "sharePct": 0.004493,
+   "class": "QUEUE",
+   "tailRank": 131
+  },
+  {
+   "slug": "mercury",
+   "makeId": 51834,
+   "sharePct": 0.004458,
+   "class": "QUEUE",
+   "tailRank": 132
+  },
+  {
+   "slug": "econelo",
+   "makeId": 51835,
+   "sharePct": 0.004423,
+   "class": "QUEUE",
+   "tailRank": 133
+  },
+  {
+   "slug": "vanden-plas",
+   "makeId": 51836,
+   "sharePct": 0.004388,
+   "class": "QUEUE",
+   "tailRank": 134
+  },
+  {
+   "slug": "giana",
+   "makeId": 51837,
+   "sharePct": 0.004354,
+   "class": "QUEUE",
+   "tailRank": 135
+  },
+  {
+   "slug": "selvo",
+   "makeId": 51839,
+   "sharePct": 0.00432,
+   "class": "QUEUE",
+   "tailRank": 136
+  },
+  {
+   "slug": "jac",
+   "makeId": 51849,
+   "sharePct": 0.004287,
+   "class": "QUEUE",
+   "tailRank": 137
+  },
+  {
+   "slug": "wenckstern",
+   "makeId": 51852,
+   "sharePct": 0.004254,
+   "class": "QUEUE",
+   "tailRank": 138
+  },
+  {
+   "slug": "silence",
+   "makeId": 51853,
+   "sharePct": 0.004222,
+   "class": "QUEUE",
+   "tailRank": 139
+  },
+  {
+   "slug": "levc",
+   "makeId": 51854,
+   "sharePct": 0.004191,
+   "class": "QUEUE",
+   "tailRank": 140
+  },
+  {
+   "slug": "delorean",
+   "makeId": 51859,
+   "sharePct": 0.004159,
+   "class": "QUEUE",
+   "tailRank": 141
+  },
+  {
+   "slug": "xev",
+   "makeId": 51860,
+   "sharePct": 0.004129,
+   "class": "QUEUE",
+   "tailRank": 142
+  },
+  {
+   "slug": "seres",
+   "makeId": 51861,
+   "sharePct": 0.004098,
+   "class": "QUEUE",
+   "tailRank": 143
+  },
+  {
+   "slug": "segway",
+   "makeId": 51866,
+   "sharePct": 0.004068,
+   "class": "QUEUE",
+   "tailRank": 144
+  },
+  {
+   "slug": "xbus",
+   "makeId": 51869,
+   "sharePct": 0.004039,
+   "class": "QUEUE",
+   "tailRank": 145
+  },
+  {
+   "slug": "aiways",
+   "makeId": 51872,
+   "sharePct": 0.00401,
+   "class": "QUEUE",
+   "tailRank": 146
+  },
+  {
+   "slug": "weltmeister",
+   "makeId": 51873,
+   "sharePct": 0.003981,
+   "class": "QUEUE",
+   "tailRank": 147
+  },
+  {
+   "slug": "embuggy",
+   "makeId": 51874,
+   "sharePct": 0.003953,
+   "class": "QUEUE",
+   "tailRank": 148
+  },
+  {
+   "slug": "karma",
+   "makeId": 51875,
+   "sharePct": 0.003925,
+   "class": "QUEUE",
+   "tailRank": 149
+  },
+  {
+   "slug": "elaris",
+   "makeId": 51880,
+   "sharePct": 0.003898,
+   "class": "QUEUE",
+   "tailRank": 150
+  },
+  {
+   "slug": "holden",
+   "makeId": 51881,
+   "sharePct": 0.003871,
+   "class": "QUEUE",
+   "tailRank": 151
+  },
+  {
+   "slug": "linzda",
+   "makeId": 51883,
+   "sharePct": 0.003844,
+   "class": "QUEUE",
+   "tailRank": 152
+  },
+  {
+   "slug": "genesis",
+   "makeId": 51885,
+   "sharePct": 0.003818,
+   "class": "QUEUE",
+   "tailRank": 153
+  },
+  {
+   "slug": "bristol",
+   "makeId": 51895,
+   "sharePct": 0.003792,
+   "class": "QUEUE",
+   "tailRank": 154
+  },
+  {
+   "slug": "shelby",
+   "makeId": 51896,
+   "sharePct": 0.003766,
+   "class": "QUEUE",
+   "tailRank": 155
+  },
+  {
+   "slug": "militem",
+   "makeId": 51897,
+   "sharePct": 0.003741,
+   "class": "QUEUE",
+   "tailRank": 156
+  },
+  {
+   "slug": "boldmen",
+   "makeId": 51900,
+   "sharePct": 0.003716,
+   "class": "QUEUE",
+   "tailRank": 157
+  },
+  {
+   "slug": "austin-healey",
+   "makeId": 51901,
+   "sharePct": 0.003691,
+   "class": "QUEUE",
+   "tailRank": 158
+  },
+  {
+   "slug": "mega",
+   "makeId": 51902,
+   "sharePct": 0.003666,
+   "class": "QUEUE",
+   "tailRank": 159
+  },
+  {
+   "slug": "minari",
+   "makeId": 51903,
+   "sharePct": 0.003642,
+   "class": "QUEUE",
+   "tailRank": 160
+  },
+  {
+   "slug": "edran",
+   "makeId": 51905,
+   "sharePct": 0.003619,
+   "class": "QUEUE",
+   "tailRank": 161
+  },
+  {
+   "slug": "martin",
+   "makeId": 51906,
+   "sharePct": 0.003595,
+   "class": "QUEUE",
+   "tailRank": 162
+  },
+  {
+   "slug": "gappy",
+   "makeId": 51907,
+   "sharePct": 0.003572,
+   "class": "QUEUE",
+   "tailRank": 163
+  },
+  {
+   "slug": "lorinser",
+   "makeId": 51908,
+   "sharePct": 0.003549,
+   "class": "QUEUE",
+   "tailRank": 164
+  },
+  {
+   "slug": "singer",
+   "makeId": 51909,
+   "sharePct": 0.003527,
+   "class": "QUEUE",
+   "tailRank": 165
+  },
+  {
+   "slug": "jensen",
+   "makeId": 51910,
+   "sharePct": 0.003504,
+   "class": "QUEUE",
+   "tailRank": 166
+  },
+  {
+   "slug": "carver",
+   "makeId": 51912,
+   "sharePct": 0.003482,
+   "class": "QUEUE",
+   "tailRank": 167
+  },
+  {
+   "slug": "sgs",
+   "makeId": 51913,
+   "sharePct": 0.00346,
+   "class": "QUEUE",
+   "tailRank": 168
+  },
+  {
+   "slug": "lynk-co",
+   "makeId": 51914,
+   "sharePct": 0.003439,
+   "class": "QUEUE",
+   "tailRank": 169
+  },
+  {
+   "slug": "vinfast",
+   "makeId": 51915,
+   "sharePct": 0.003418,
+   "class": "QUEUE",
+   "tailRank": 170
+  },
+  {
+   "slug": "alba-mobility",
+   "makeId": 51917,
+   "sharePct": 0.003397,
+   "class": "QUEUE",
+   "tailRank": 171
+  },
+  {
+   "slug": "angelelli-automobili",
+   "makeId": 51918,
+   "sharePct": 0.003376,
+   "class": "QUEUE",
+   "tailRank": 172
+  },
+  {
+   "slug": "evetta",
+   "makeId": 51919,
+   "sharePct": 0.003356,
+   "class": "QUEUE",
+   "tailRank": 173
+  },
+  {
+   "slug": "devinci-cars",
+   "makeId": 51920,
+   "sharePct": 0.003335,
+   "class": "QUEUE",
+   "tailRank": 174
+  },
+  {
+   "slug": "lucid",
+   "makeId": 51921,
+   "sharePct": 0.003315,
+   "class": "QUEUE",
+   "tailRank": 175
+  },
+  {
+   "slug": "emc",
+   "makeId": 51924,
+   "sharePct": 0.003296,
+   "class": "QUEUE",
+   "tailRank": 176
+  },
+  {
+   "slug": "ineos",
+   "makeId": 51925,
+   "sharePct": 0.003276,
+   "class": "QUEUE",
+   "tailRank": 177
+  },
+  {
+   "slug": "gta",
+   "makeId": 51926,
+   "sharePct": 0.003257,
+   "class": "QUEUE",
+   "tailRank": 178
+  },
+  {
+   "slug": "nio",
+   "makeId": 51928,
+   "sharePct": 0.003238,
+   "class": "QUEUE",
+   "tailRank": 179
+  },
+  {
+   "slug": "aurus",
+   "makeId": 51929,
+   "sharePct": 0.003219,
+   "class": "QUEUE",
+   "tailRank": 180
+  },
+  {
+   "slug": "ora",
+   "makeId": 51934,
+   "sharePct": 0.0032,
+   "class": "QUEUE",
+   "tailRank": 181
+  },
+  {
+   "slug": "wey",
+   "makeId": 51935,
+   "sharePct": 0.003182,
+   "class": "QUEUE",
+   "tailRank": 182
+  },
+  {
+   "slug": "cenntro",
+   "makeId": 51936,
+   "sharePct": 0.003163,
+   "class": "QUEUE",
+   "tailRank": 183
+  },
+  {
+   "slug": "xpeng",
+   "makeId": 51940,
+   "sharePct": 0.003145,
+   "class": "QUEUE",
+   "tailRank": 184
+  },
+  {
+   "slug": "dallara",
+   "makeId": 51947,
+   "sharePct": 0.003127,
+   "class": "QUEUE",
+   "tailRank": 185
+  },
+  {
+   "slug": "aspark",
+   "makeId": 51948,
+   "sharePct": 0.00311,
+   "class": "QUEUE",
+   "tailRank": 186
+  },
+  {
+   "slug": "sportequipe",
+   "makeId": 51949,
+   "sharePct": 0.003092,
+   "class": "QUEUE",
+   "tailRank": 187
+  },
+  {
+   "slug": "togg",
+   "makeId": 51950,
+   "sharePct": 0.003075,
+   "class": "QUEUE",
+   "tailRank": 188
+  },
+  {
+   "slug": "matra",
+   "makeId": 51955,
+   "sharePct": 0.003058,
+   "class": "QUEUE",
+   "tailRank": 189
+  },
+  {
+   "slug": "skywell",
+   "makeId": 51959,
+   "sharePct": 0.003041,
+   "class": "QUEUE",
+   "tailRank": 190
+  },
+  {
+   "slug": "zeekr",
+   "makeId": 51964,
+   "sharePct": 0.003024,
+   "class": "QUEUE",
+   "tailRank": 191
+  },
+  {
+   "slug": "micro",
+   "makeId": 51965,
+   "sharePct": 0.003008,
+   "class": "QUEUE",
+   "tailRank": 192
+  },
+  {
+   "slug": "cirelli",
+   "makeId": 51971,
+   "sharePct": 0.002991,
+   "class": "QUEUE",
+   "tailRank": 193
+  },
+  {
+   "slug": "foton",
+   "makeId": 51973,
+   "sharePct": 0.002975,
+   "class": "QUEUE",
+   "tailRank": 194
+  },
+  {
+   "slug": "stormborn",
+   "makeId": 51974,
+   "sharePct": 0.002959,
+   "class": "QUEUE",
+   "tailRank": 195
+  },
+  {
+   "slug": "kgm",
+   "makeId": 51975,
+   "sharePct": 0.002943,
+   "class": "QUEUE",
+   "tailRank": 196
+  },
+  {
+   "slug": "hiphi",
+   "makeId": 51977,
+   "sharePct": 0.002928,
+   "class": "QUEUE",
+   "tailRank": 197
+  },
+  {
+   "slug": "gwm",
+   "makeId": 51981,
+   "sharePct": 0.002912,
+   "class": "QUEUE",
+   "tailRank": 198
+  },
+  {
+   "slug": "brute",
+   "makeId": 51986,
+   "sharePct": 0.002897,
+   "class": "QUEUE",
+   "tailRank": 199
+  },
+  {
+   "slug": "forthing",
+   "makeId": 51987,
+   "sharePct": 0.002882,
+   "class": "QUEUE",
+   "tailRank": 200
+  },
+  {
+   "slug": "hongqi",
+   "makeId": 51988,
+   "sharePct": 0.002867,
+   "class": "QUEUE",
+   "tailRank": 201
+  },
+  {
+   "slug": "omoda",
+   "makeId": 51991,
+   "sharePct": 0.002852,
+   "class": "QUEUE",
+   "tailRank": 202
+  },
+  {
+   "slug": "ich-x",
+   "makeId": 51992,
+   "sharePct": 0.002837,
+   "class": "QUEUE",
+   "tailRank": 203
+  },
+  {
+   "slug": "voyah",
+   "makeId": 51993,
+   "sharePct": 0.002822,
+   "class": "QUEUE",
+   "tailRank": 204
+  },
+  {
+   "slug": "jaecoo",
+   "makeId": 51999,
+   "sharePct": 0.002808,
+   "class": "QUEUE",
+   "tailRank": 205
+  },
+  {
+   "slug": "leapmotor",
+   "makeId": 52000,
+   "sharePct": 0.002794,
+   "class": "QUEUE",
+   "tailRank": 206
+  },
+  {
+   "slug": "livan",
+   "makeId": 52003,
+   "sharePct": 0.002779,
+   "class": "QUEUE",
+   "tailRank": 207
+  },
+  {
+   "slug": "mobilize",
+   "makeId": 52004,
+   "sharePct": 0.002765,
+   "class": "QUEUE",
+   "tailRank": 208
+  },
+  {
+   "slug": "invicta",
+   "makeId": 52006,
+   "sharePct": 0.002751,
+   "class": "QUEUE",
+   "tailRank": 209
+  },
+  {
+   "slug": "bestune",
+   "makeId": 52007,
+   "sharePct": 0.002738,
+   "class": "QUEUE",
+   "tailRank": 210
+  },
+  {
+   "slug": "ebro",
+   "makeId": 52008,
+   "sharePct": 0.002724,
+   "class": "QUEUE",
+   "tailRank": 211
+  },
+  {
+   "slug": "rivian",
+   "makeId": 52013,
+   "sharePct": 0.002711,
+   "class": "QUEUE",
+   "tailRank": 212
+  },
+  {
+   "slug": "dongfeng",
+   "makeId": 52016,
+   "sharePct": 0.002697,
+   "class": "QUEUE",
+   "tailRank": 213
+  },
+  {
+   "slug": "xiaomi",
+   "makeId": 52031,
+   "sharePct": 0.002684,
+   "class": "QUEUE",
+   "tailRank": 214
+  },
+  {
+   "slug": "farizon",
+   "makeId": 52033,
+   "sharePct": 0.002671,
+   "class": "QUEUE",
+   "tailRank": 215
+  },
+  {
+   "slug": "tiger",
+   "makeId": 52038,
+   "sharePct": 0.002658,
+   "class": "QUEUE",
+   "tailRank": 216
+  },
+  {
+   "slug": "simplici",
+   "makeId": 52039,
+   "sharePct": 0.002645,
+   "class": "QUEUE",
+   "tailRank": 217
+  },
+  {
+   "slug": "bertone",
+   "makeId": 52045,
+   "sharePct": 0.002632,
+   "class": "QUEUE",
+   "tailRank": 218
+  },
+  {
+   "slug": "li",
+   "makeId": 52046,
+   "sharePct": 0.00262,
+   "class": "QUEUE",
+   "tailRank": 219
+  },
+  {
+   "slug": "baw",
+   "makeId": 52050,
+   "sharePct": 0.002607,
+   "class": "QUEUE",
+   "tailRank": 220
+  },
+  {
+   "slug": "denza",
+   "makeId": 52054,
+   "sharePct": 0.002595,
+   "class": "QUEUE",
+   "tailRank": 221
+  },
+  {
+   "slug": "aerfal",
+   "makeId": 52055,
+   "sharePct": 0.002583,
+   "class": "QUEUE",
+   "tailRank": 222
+  },
+  {
+   "slug": "changan",
+   "makeId": 52058,
+   "sharePct": 0.00257,
+   "class": "QUEUE",
+   "tailRank": 223
+  },
+  {
+   "slug": "geely",
+   "makeId": 52060,
+   "sharePct": 0.002558,
+   "class": "QUEUE",
+   "tailRank": 224
+  },
+  {
+   "slug": "lee-group",
+   "makeId": 52061,
+   "sharePct": 0.002546,
+   "class": "QUEUE",
+   "tailRank": 225
+  },
+  {
+   "slug": "chamonix",
+   "makeId": 52064,
+   "sharePct": 0.002535,
+   "class": "QUEUE",
+   "tailRank": 226
+  },
+  {
+   "slug": "dfm",
+   "makeId": 53182,
+   "sharePct": 0.002523,
+   "class": "QUEUE",
+   "tailRank": 227
+  },
+  {
+   "slug": "firefly",
+   "makeId": 53185,
+   "sharePct": 0.002511,
+   "class": "QUEUE",
+   "tailRank": 228
+  },
+  {
+   "slug": "rimac",
+   "makeId": 53191,
+   "sharePct": 0.0025,
+   "class": "QUEUE",
+   "tailRank": 229
+  },
+  {
+   "slug": "tyn-e",
+   "makeId": 53192,
+   "sharePct": 0.002488,
+   "class": "QUEUE",
+   "tailRank": 230
+  },
+  {
+   "slug": "ari",
+   "makeId": 53196,
+   "sharePct": 0.002477,
+   "class": "QUEUE",
+   "tailRank": 231
+  },
+  {
+   "slug": "linktour",
+   "makeId": 53439,
+   "sharePct": 0.002466,
+   "class": "QUEUE",
+   "tailRank": 232
+  },
+  {
+   "slug": "venucia",
+   "makeId": 53440,
+   "sharePct": 0.002455,
+   "class": "QUEUE",
+   "tailRank": 233
+  },
+  {
+   "slug": "mhero",
+   "makeId": 53441,
+   "sharePct": 0.002444,
+   "class": "QUEUE",
+   "tailRank": 234
+  },
+  {
+   "slug": "jetour",
+   "makeId": 53446,
+   "sharePct": 0.002433,
+   "class": "QUEUE",
+   "tailRank": 235
+  },
+  {
+   "slug": "devalliet",
+   "makeId": 53447,
+   "sharePct": 0.002422,
+   "class": "QUEUE",
+   "tailRank": 236
+  },
+  {
+   "slug": "bovensiepen",
+   "makeId": 53448,
+   "sharePct": 0.002411,
+   "class": "QUEUE",
+   "tailRank": 237
+  },
+  {
+   "slug": "lepas",
+   "makeId": 53488,
+   "sharePct": 0.002401,
+   "class": "QUEUE",
+   "tailRank": 238
+  },
+  {
+   "slug": "oldsmobile",
+   "makeId": 53,
+   "sharePct": 0.00239,
+   "class": "QUEUE",
+   "tailRank": 239
+  },
+  {
+   "slug": "pontiac",
+   "makeId": 56,
+   "sharePct": 0.00238,
+   "class": "QUEUE",
+   "tailRank": 240
+  },
+  {
+   "slug": "rolls-royce",
+   "makeId": 61,
+   "sharePct": 0.002369,
+   "class": "QUEUE",
+   "tailRank": 241
+  },
+  {
+   "slug": "rover",
+   "makeId": 62,
+   "sharePct": 0.002359,
+   "class": "QUEUE",
+   "tailRank": 242
+  },
+  {
+   "slug": "tvr",
+   "makeId": 71,
+   "sharePct": 0.002349,
+   "class": "QUEUE",
+   "tailRank": 243
+  },
+  {
+   "slug": "triumph",
+   "makeId": 2120,
+   "sharePct": 0.002339,
+   "class": "QUEUE",
+   "tailRank": 244
+  },
+  {
+   "slug": "dodge",
+   "makeId": 2152,
+   "sharePct": 0.002329,
+   "class": "QUEUE",
+   "tailRank": 245
+  }
+ ]
+}

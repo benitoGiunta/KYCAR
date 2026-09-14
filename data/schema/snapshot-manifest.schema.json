@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kycar.local/schema/snapshot-manifest/1.0.0",
+  "title": "SnapshotManifest",
+  "description": "Manifest d'un snapshot de fixtures KYCAR (D3-03) : le fichier manifest.json depose a cote de listings.ndjson.gz. Il decrit ce qui a ete genere (profil, graine, compte), permet de le verifier (sha256), et publie la VERITE TERRAIN des anomalies injectees. Documentation : docs/data/DATA-MODEL.md §6 (versionnement) et §7 (contraintes de coherence).",
+  "x-kycar-schema-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotId",
+    "capturedAt",
+    "profile",
+    "seed",
+    "schemaVersion",
+    "listingCount",
+    "sha256",
+    "groundTruth"
+  ],
+  "properties": {
+    "snapshotId": {
+      "type": "string",
+      "maxLength": 32,
+      "pattern": "^[a-z]{2}-[0-9]{8}T[0-9]{6}Z$",
+      "description": "Identifiant du lot, forme <marketplace>-<capturedAt en YYYYMMDDTHHmmssZ> (EX-DATA #3). Composante des cles d'entite calculee (EX-DATA-114)."
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Horodatage UTC ISO-8601 du debut du lot (EX-DATA #4 observedAt). Toute date d'annonce du snapshot lui est anterieure ou egale (DATA-MODEL.md §7)."
+    },
+    "marketplace": {
+      "type": "string",
+      "enum": ["be", "nl"],
+      "description": "Marche couvert par le snapshot. Marketplace de l'interface gelee (DataProvider.Marketplace) : be ou nl, sous-ensemble strict des 9 valeurs d'OAS:Marketplace."
+    },
+    "profile": {
+      "type": "string",
+      "enum": ["dev", "test", "perf"],
+      "description": "Profil de volume (D3-01) : dev 5 000, test 20 000, perf 100 000 annonces par snapshot. Le profil perf n'est pas commite (.gitignore)."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "description": "Graine du generateur deterministe. Meme graine et meme version de generateur = memes octets de listings.ndjson (critere S1 de la phase 3.2)."
+    },
+    "schemaVersion": {
+      "$ref": "#/$defs/semver",
+      "description": "Version SEMANTIQUE du couple de schemas (as24-listing.schema.json et ce manifest) auquel le snapshot est conforme. Regle d'evolution et refus par le provider : DATA-MODEL.md §6."
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "description": "Identite du generateur, ecrite telle quelle dans Snapshot.providerVersion (EX-DATA-106) pour la tracabilite.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "version": { "$ref": "#/$defs/semver" }
+      }
+    },
+    "file": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "maxLength": 128,
+      "description": "Nom du fichier de donnees depose a cote du manifest, par exemple listings.ndjson.gz."
+    },
+    "listingCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000000,
+      "description": "Nombre de lignes du fichier NDJSON. Egal au nombre d'identifiants d'annonce DISTINCTS, sauf doublons injectes declares dans groundTruth (DATA-MODEL.md §7)."
+    },
+    "sha256": {
+      "$ref": "#/$defs/sha256",
+      "description": "SHA-256 minuscule des octets NON COMPRESSES du NDJSON. Le hachage porte sur le flux decompresse parce que la sortie gzip depend de la version de zlib : c'est le seul hachage qui rend le determinisme verifiable d'une machine a l'autre."
+    },
+    "sha256Gz": {
+      "$ref": "#/$defs/sha256",
+      "description": "SHA-256 minuscule du fichier .gz tel qu'il est commite. Verifie l'integrite du fichier livre, jamais le determinisme du generateur."
+    },
+    "uncompressedBytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Taille du NDJSON non compresse, en octets."
+    },
+    "compressedBytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Taille du fichier .gz, en octets. Budget de la phase 3.2 : profil test <= 8 Mio gzip pour les trois snapshots reunis."
+    },
+    "previousSnapshotId": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z]{2}-[0-9]{8}T[0-9]{6}Z$",
+      "description": "Snapshot precedent de la meme serie hebdomadaire, ou null pour le premier. Rend le delta (annonces sorties, entrees, prix revises) verifiable par un reviewer."
+    },
+    "delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Delta mesure par rapport a previousSnapshotId. Absent sur le premier snapshot d'une serie.",
+      "properties": {
+        "enteredCount": { "type": "integer", "minimum": 0 },
+        "exitedCount": { "type": "integer", "minimum": 0 },
+        "priceRevisedCount": { "type": "integer", "minimum": 0 },
+        "carriedOverCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "groundTruth": {
+      "type": "array",
+      "description": "Verite terrain des anomalies INJECTEES : une entree par annonce et par anomalie. C'est le contrat que la sonde du reviewer (phase 3.3) exerce : toute anomalie declaree ici doit etre retrouvee dans les donnees, et une anomalie detectee hors de cette liste est un defaut du generateur.",
+      "items": { "$ref": "#/$defs/groundTruthEntry" }
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Note libre du generateur (parametres de distribution retenus, ecarts assumes). Jamais interpretee par le code."
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "description": "Version semantique MAJEUR.MINEUR.CORRECTIF, sans suffixe de pre-publication."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "groundTruthEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["listingId", "anomaly"],
+      "properties": {
+        "listingId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "description": "Identifiant de l'annonce porteuse de l'anomalie, tel qu'il figure dans le NDJSON."
+        },
+        "anomaly": {
+          "$ref": "#/$defs/anomalyKind"
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Description courte et factuelle de l'anomalie injectee. OBLIGATOIRE pour le code OTHER."
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Valeurs attendues par la sonde du reviewer, par exemple { \"ingestFlag\": \"PRICE_SENTINEL_ABSOLUTE\" } ou { \"deviationPct\": -62.4 }. Forme libre : c'est le generateur qui la definit et la sonde qui la lit."
+        },
+        "peerListingId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "description": "Seconde annonce d'une anomalie de PAIRE (doublon inter-vendeurs, doublon d'identifiant)."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "anomaly": { "const": "OTHER" } }, "required": ["anomaly"] },
+          "then": { "required": ["detail"] }
+        },
+        {
+          "if": {
+            "properties": {
+              "anomaly": { "enum": ["DUPLICATE_LISTING_ID", "DUPLICATE_VALUE_CONFLICT", "CROSS_SELLER_DUPLICATE"] }
+            },
+            "required": ["anomaly"]
+          },
+          "then": { "required": ["peerListingId"] }
+        }
+      ]
+    },
+    "anomalyKind": {
+      "type": "string",
+      "description": "Nature de l'anomalie injectee. Les codes qui portent le nom d'un drapeau de KYCAR_INGEST_FLAG (EX-DATA-45) engagent l'adaptateur a poser ce drapeau exact. Les codes OUTLIER_* engagent le moteur de detection (§B.6). Cette liste s'etend par version MINEURE du schema (DATA-MODEL.md §6). Le code FIRST_REG_UNPARSEABLE n'y figure PAS : une ligne conforme au schema ne peut pas porter une date illisible (DATA-MODEL.md §7).",
+      "enum": [
+        "PRICE_ON_REQUEST",
+        "PRICE_MISSING_UNDECLARED",
+        "PRICE_ON_REQUEST_WITH_AMOUNT",
+        "PRICE_SENTINEL_ABSOLUTE",
+        "PRICE_OUT_OF_RANGE",
+        "OUTLIER_M1_LOW",
+        "OUTLIER_M1_HIGH",
+        "OUTLIER_M2_LOW",
+        "OUTLIER_M2_HIGH",
+        "SUSPECT_ZERO_MILEAGE",
+        "MILEAGE_OUT_OF_RANGE",
+        "MILEAGE_IMPLAUSIBLE_FOR_AGE",
+        "POWER_OUT_OF_RANGE",
+        "POWER_UNIT_MISMATCH",
+        "UNIT_UNSUPPORTED",
+        "FIRST_REG_OUT_OF_RANGE",
+        "MODEL_UNRESOLVED",
+        "REGION_UNRESOLVED",
+        "MARKETPLACE_UNMAPPED",
+        "VERSION_FULLY_STRIPPED",
+        "VERSION_AMBIGUOUS",
+        "HYBRID_INCONSISTENT",
+        "HYBRID_CATEGORY_UNRESOLVED",
+        "CO2_ZERO_NON_BEV",
+        "DUPLICATE_LISTING_ID",
+        "DUPLICATE_VALUE_CONFLICT",
+        "CROSS_SELLER_DUPLICATE",
+        "OTHER"
+      ]
+    }
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kycar.local/schema/snapshot-baseline/1.0.0",
+  "title": "SnapshotBaseline",
+  "description": "Agregats mode 1 PRECALCULES d'un snapshot de fixtures (D3-31) : le fichier baseline.json depose a cote de manifest.json. Il porte ce que l'ecran de mode 1 affiche AVANT la premiere annonce — les MakeAggregate de la selection VIDE, l'effectif de cette selection, et les statistiques d'ingestion que le SnapshotDescriptor publie. Il est DERIVE des octets du NDJSON par le code du provider (tools/dataset/baseline.ts, npm run data:baseline) et lie a eux par snapshotId et producedFrom.sha256 : une baseline calculee sur d'autres octets est refusee avant d'avoir servi le moindre chiffre. Documentation : docs/data/DATA-MODEL.md §6bis.",
+  "x-kycar-schema-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact",
+    "artifactVersion",
+    "schemaVersion",
+    "snapshotId",
+    "profile",
+    "producedBy",
+    "producedFrom",
+    "selectionCount",
+    "ingest",
+    "rows"
+  ],
+  "properties": {
+    "artifact": {
+      "const": "kycar-snapshot-baseline",
+      "description": "Marqueur de nature. Le provider l'exige avant d'accorder le moindre credit au fichier : un 404 rendu en HTML par un serveur de developpement ne peut pas passer pour un artefact."
+    },
+    "artifactVersion": {
+      "$ref": "#/$defs/semver",
+      "description": "Version du FORMAT de cet artefact, independante de schemaVersion. Un majeur inconnu fait IGNORER l'artefact (les agregats sont recalcules sur les annonces), jamais echouer l'ouverture."
+    },
+    "schemaVersion": {
+      "$ref": "#/$defs/semver",
+      "description": "Version du couple de schemas de donnees, recopiee du manifest. Doit lui etre egale : sinon l'artefact decrit un autre contrat de donnees."
+    },
+    "snapshotId": {
+      "type": "string",
+      "maxLength": 32,
+      "pattern": "^[a-z]{2}-[0-9]{8}T[0-9]{6}Z$",
+      "description": "Identifiant du snapshot dont cette baseline est derivee. Doit etre celui du manifest depose a cote."
+    },
+    "profile": {
+      "type": "string",
+      "enum": ["dev", "test", "perf"],
+      "description": "Profil de volume (D3-01)."
+    },
+    "producedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "providerVersion"],
+      "description": "Qui a calcule cette baseline. providerVersion est la version du FixtureDataProvider employe : la baseline est le resultat de SON code d'agregation, pas d'une reimplementation.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "version": { "$ref": "#/$defs/semver" },
+        "providerVersion": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "producedFrom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "listingCount"],
+      "description": "Les octets sur lesquels la baseline a ete calculee. C'est ce lien qui rend une baseline PERIMEE detectable avant d'etre servie.",
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "SHA-256 des octets NON COMPRESSES du NDJSON, egal a manifest.sha256."
+        },
+        "listingCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Nombre de lignes annoncees au manifest (denominateur de la couverture d'echantillon), a distinguer de l'effectif SERVI."
+        }
+      }
+    },
+    "selectionCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Effectif de la selection VIDE : le nombre d'annonces RETENUES apres rejets et dedoublonnage. Egal a la somme des listingCount de rows et a ingest.listingCount."
+    },
+    "ingest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lineCount",
+        "listingCount",
+        "rejectedCount",
+        "rejectedByReason",
+        "duplicateListingCount",
+        "duplicateValueConflictCount",
+        "unknownCountByField",
+        "ingestFlagCounts",
+        "noticeCounts",
+        "measurementCounts"
+      ],
+      "description": "Ce que l'ingestion a mesure, et que le SnapshotDescriptor publie (EX-DATA-46). Precalcule pour que le descripteur et sa coverageNote soient IDENTIQUES sur les deux chemins d'ouverture — avec ou sans artefact.",
+      "properties": {
+        "lineCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lignes LUES dans le fichier. Identite verifiable : lineCount = listingCount + rejectedCount + duplicateListingCount."
+        },
+        "listingCount": { "type": "integer", "minimum": 0, "description": "Lignes RETENUES : l'effectif servi." },
+        "rejectedCount": { "type": "integer", "minimum": 0 },
+        "rejectedByReason": { "$ref": "#/$defs/countMap" },
+        "duplicateListingCount": { "type": "integer", "minimum": 0 },
+        "duplicateValueConflictCount": { "type": "integer", "minimum": 0 },
+        "unknownCountByField": { "$ref": "#/$defs/countMap" },
+        "ingestFlagCounts": { "$ref": "#/$defs/countMap" },
+        "noticeCounts": { "$ref": "#/$defs/countMap" },
+        "measurementCounts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["WLTP", "NEDC", "UNKNOWN"],
+          "description": "Provenance de mesure derivee par l'adaptateur (EX-DATA-35, dette D8-32 : aucune colonne dans l'interface v1).",
+          "properties": {
+            "WLTP": { "type": "integer", "minimum": 0 },
+            "NEDC": { "type": "integer", "minimum": 0 },
+            "UNKNOWN": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "description": "Les MakeAggregate de la selection VIDE, dans l'ordre EXACT ou aggregateByMake les rend (effectif decroissant, puis makeId croissant) : l'ordre fait partie de ce qui est compare a la baseline recalculee.",
+      "items": { "$ref": "#/$defs/makeAggregate" }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "countMap": {
+      "type": "object",
+      "description": "Effectifs par code. Les cles sont des codes du vocabulaire concerne ; un code absent vaut zero, jamais null.",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "metricRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max", "p05", "p50", "p95", "n"],
+      "description": "MetricRange de l'interface gelee (DataProvider) : min/max/p05/p50/p95 sur l'ECHANTILLON VALIDE d'EX-DATA-60, et n son effectif. Toutes les bornes sont null quand n vaut 0 — jamais 0, qui serait une valeur mesuree. min et max sont des statistiques d'ordre, donc entieres comme les trois metriques (EX-DATA-111) ; p05/p50/p95 sont des quantiles de TYPE 7 (EX-DATA-62), interpoles lineairement et publies SANS arrondi intermediaire (EX-DATA-63) : ils sont donc reels, pas entiers. L'arrondi a l'euro / au kilometre / a l'annee est de PRESENTATION (EX-DATA-64) et appartient au rendu. Le schema exigeait integer jusqu'a la phase 3.5, ou il figeait la convention du rang le plus proche que DR3-20 a corrigee.",
+      "properties": {
+        "min": { "type": ["integer", "null"] },
+        "max": { "type": ["integer", "null"] },
+        "p05": { "type": ["number", "null"] },
+        "p50": { "type": ["number", "null"] },
+        "p95": { "type": ["number", "null"] },
+        "n": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "makeAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["makeId", "listingCount", "price", "mileage", "year", "sampleCoverage", "modelCount"],
+      "description": "Agregat par marque (EX-DATA §B.3). Aucune donnee d'annonce individuelle, aucune donnee vendeur (R3).",
+      "properties": {
+        "makeId": { "type": "integer", "minimum": 0 },
+        "listingCount": { "type": "integer", "minimum": 0 },
+        "price": { "$ref": "#/$defs/metricRange" },
+        "mileage": { "$ref": "#/$defs/metricRange" },
+        "year": { "$ref": "#/$defs/metricRange" },
+        "sampleCoverage": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Vaut 1 sur la selection VIDE (couverture publiee seulement dans ce cas, interface §4)."
+        },
+        "modelCount": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Modeles DISTINCTS presents (D8-10, FV-02). null = non calcule ; l'ecran affiche alors un tiret, jamais 0."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,144 @@
+# KYCAR - guide de developpement (application)
+
+Ce fichier documente l'application (`src/`), pas le cadrage (`docs/`). Il est ecrit et tenu a jour
+par les lots de la phase 2.4 (D1-D9), voir `docs/plans/ARCHITECTURE.md` S:7.1 pour le decoupage
+normatif. Les phases 2.4 a 2.9 (build, revue, remediation, verification finale, remediation
+post-verification, recette navigateur) sont closes ; portes G5 a G8 franchies.
+
+## Arborescence de `src/`
+
+| Dossier | Lot proprietaire | Contenu |
+|---|---|---|
+| `src/main.tsx`, `src/app.tsx` | D1 (souche), remplace par D8 | point de montage Preact |
+| `src/styles/` | D1 | tokens de design, `@media print` minimale, breakpoints |
+| `src/worker/` | D1 (canal PING/PONG) puis D4 (moteur) | Web Worker d'agregation, protocole type |
+| `src/types/` | D2 | les 13 entites, colonnes typees, sentinelles, invariants |
+| `src/providers/` | D3, D9 (+ futur) | implementations de `DataProvider` (`docs/plans/DataProvider.ts`, fige, non modifie) |
+| `src/engine/` | D4 | glue cote thread principal vers le worker, cache LRU |
+| `src/state/` | D5 | codec URL, scission T/R, routeur maison, debounce/historique |
+| `src/screens/` | D6, D7, D8 | ecrans, chunk differe eventuel (`EX-NFR-11`) |
+
+Chaque dossier vide porte son propre `README.md` qui repete cette table de proprietaire pour le
+lot qui l'ouvre en premier.
+
+## Scripts npm
+
+| Script | Effet |
+|---|---|
+| `npm run dev` | serveur de developpement Vite |
+| `npm run build` | `tsc --noEmit` (app, DOM lib) + `tsc --noEmit` (worker, WebWorker lib) + `vite build` -> 0 erreur/0 avertissement TypeScript exige |
+| `npm run lint` | ESLint (config plate `eslint.config.js`, `@eslint/js` + `typescript-eslint` recommended) |
+| `npm test` | Vitest, un run (suite unitaire puis sondes de revue promues) |
+| `npm run test:unit` | Vitest, suite unitaire seule |
+| `npm run test:review` | Vitest, sondes de revue seules (`tests/review/`, config `vitest.review.config.ts`) |
+| `npm run test:e2e` | Playwright, harnais de bout en bout (`tests/e2e/`) |
+| `npm run test:e2e:report` | ouvre le dernier rapport Playwright |
+| `npm run size` | garde de budget bundle (`tools/check-bundle-size.mjs`), a lancer apres `npm run build` |
+| `npm run test:contract` | suite de contrat des providers (`tests/contract/`), rejouee sur synthetic / fixture / mock 2dehands |
+| `npm run data:gen` | (re)genere les fixtures `data/fixtures/dev|test` — deterministe, a graine fixe |
+| `npm run data:baseline` | (re)calcule les agregats mode 1 precalcules `baseline.json` d'un profil (`D3-31`) ; `--check` compare sans reecrire |
+| `npm run data:validate` | schema, sha256, chainage des snapshots, garde R3, budgets de taille, artefact `baseline.json` |
+| `npm run data:check` | sondes statistiques du jeu contre `docs/data/DATASET-SPEC.md` |
+
+**Apres toute regeneration de fixtures, relancer `data:baseline` sur le meme profil.** Regenerer
+change le `sha256` du NDJSON ; l'artefact `baseline.json` y est lie et serait alors REFUSE par le
+provider (chargement lent, sans erreur visible). `npm run data:validate` le detecte.
+
+```bash
+npm run data:gen      -- --profile test    # les trois snapshots du profil
+npm run data:baseline -- --profile test    # puis leurs agregats precalcules
+npm run data:validate -- --profile test    # et le controle des deux
+```
+
+## Lancer l'application (lot D8)
+
+`npm run dev` (ou le lanceur `kycar-dev` de `.claude/launch.json`, port 5173) sert l'app complete.
+Le point d'entree `src/main.tsx` assemble le cablage de production : `loadReferenceData()`
+(referentiels servis sous `/reference/*` par le plugin Vite `kycar-reference-data`) +
+`resolveProvider()` (registre `src/providers/registry.ts`) + `createAggregationEngine()`
+(Web Worker) + `DataController`, puis monte la coquille `src/app.tsx`.
+
+### Source de donnees et bascule (phase 3, `D3-01`, `DF-2`)
+
+La source par DEFAUT est le jeu de **fixtures** `fixture:test` : des annonces **fictives** a la
+forme AutoScout24, versionnees dans `data/fixtures/test` (3 snapshots de 20 000, NDJSON gzip +
+`manifest.json`). Ce ne sont ni des annonces reelles, ni une distribution calculee a la volee.
+
+**Chargement en deux temps (`D3-31`, correction de `C-3.5-01`).** L'ouverture d'un snapshot lit
+l'index du profil, le manifest allege et `baseline.json` — quelques dizaines de Kio — puis REND LA
+MAIN : l'ecran de mode 1 a ses chiffres. Le fichier d'annonces (2,7 Mio gzip au profil `test`) est
+telecharge en arriere-plan et n'est attendu qu'a l'entree en mode 2. Le bootstrap demande ces trois
+petits documents AVANT d'attendre les referentiels, et le chargeur memorise ses reponses. A
+l'arrivee des annonces, la baseline est recalculee et comparee a celle qui a ete servie : un ecart
+met le jeu en erreur explicite au lieu de laisser vivre un chiffre faux.
+
+Priorite de resolution : `?provider=<spec>` > `VITE_KYCAR_PROVIDER` > defaut `fixture:test`.
+Specifications reconnues : `fixture:test`, `fixture:dev`, `fixture:perf`, `synthetic`,
+`tweedehands` (au registre mais NON cablee : `D-18`/`DR-104` tant qu'`AC-01` n'est pas levee).
+Une specification inconnue ou non cablee retombe sur le defaut **avec un avertissement affiche**
+(bandeau `ET-SOURCE-REPLI`), jamais en silence.
+
+La NATURE de la source (`REAL` / `SYNTHETIC` / `FIXTURE`) est propagee de `describe()` jusqu'a l'UI
+et rendue par le module pur `src/app/source-notice.ts` : bandeau d'en-tete sur tous les ecrans,
+ligne legale du pied de page, phrase de provenance de `/mentions`, en-tete des exports CSV. La
+mention « Source : AutoScout24 — agregat non affilie » n'est ecrite que sur une source REELLE.
+
+Les fixtures et les referentiels sont servis en STATIQUE (`/fixtures/*`, `/reference/*`) par deux
+plugins Vite, jamais inlines dans un chunk JS : `npm run size` ne les voit donc pas, et le
+chargement du jeu est du reseau, pas du bundle.
+
+Le rendu est une fonction pure du chemin+requete (EX-NAV-18). Routes servies :
+`/marche` (ecran A), `/marche/:makeId-:slug/:modelId-:slug` (ecran B, distributions),
+`.../annonces` (ecran D), `/comparer` (ecran C), `/recherches` (ecran E), `/suivis` (ecran F),
+`/mentions` (page statique). L'ecran G est une modale superposee, pas une route.
+La persistance locale vit dans `src/persistence/` (collections CRUD en `localStorage`, cache de
+snapshot en IndexedDB).
+
+## Navigateurs cibles (`EX-NFR-17`)
+
+Deux dernieres versions majeures de Chrome, Firefox, Edge et Safari. Aucune des quatre cibles n'a
+besoin d'un polyfill pour les APIs utilisees en D1 (Worker modules, `structuredClone` implicite via
+`postMessage`, `import.meta.url`).
+
+**Cible de build effective (corrige 2.6, `DR-160`).** `tsconfig.json` fixe `target: "ES2022"`, mais
+ce reglage ne gouverne que la **verification de types** par `tsc`, pas la syntaxe reellement emise
+par le bundle : le `build.target` **effectif** de Vite/esbuild, non fixe explicitement dans
+`vite.config.ts`, vaut par defaut `['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14']`
+(mesure : `vite build --debug`). Le plancher de compatibilite reel du bundle est donc **au moins
+ES2020**, pas ES2022 natif comme l'affirmait la version precedente de cette section. Aucun impact
+fonctionnel constate (aucun plugin de transpilation legacy, aucun polyfill, syntaxe moderne
+conservee dans le bundle produit) : c'est une correction de l'enonce, pas un defaut de
+compatibilite.
+
+## Points de rupture responsive (`EX-NFR-18`)
+
+Definis une fois dans `src/styles/breakpoints.ts` (constantes + chaines `matchMedia` pretes a
+l'emploi) :
+
+- desktop : `>= 1280px`
+- tablette : `768px - 1279px`
+- mobile : `< 768px`
+
+`EX-NFR-19` : en dessous de 768px, le nuage G4 (D7) degrade en projection 2D plutot que de se
+desactiver ; les histogrammes et cartes-marques restent fonctionnels jusqu'a 320px.
+
+## Accessibilite de base (`EX-NFR-12`/`13`/`14`)
+
+- Cible **WCAG 2.1 AA**.
+- Les paires de couleurs de `src/styles/tokens.css` sont verifiees par calcul (luminance relative
+  WCAG), pas a l'oeil ; le ratio obtenu est note en commentaire a cote de chaque token. Toutes
+  depassent 4.5:1 (texte normal) et 3:1 (texte large / element graphique porteur d'information).
+- `:focus-visible` pose un indicateur de focus visible en permanence (2px, jamais supprime par un
+  composant sans le remplacer par un traitement equivalent) - contrat pour D5-D8.
+- Le contrat de classes pour `@media print` (`EX-NFR-31`) est documente en tete de
+  `src/styles/print.css` : `.app-header`/`.filter-bar`/`.summary-bar` perdent leur position
+  fixe/collante a l'impression, `.status-banner`/`.summary-bar-c3` sont imprimes,
+  `.print-filter-summary` (rempli par D5) remplace le bandeau de filtres, tout controle interactif
+  et tout element `.no-print` est masque.
+
+## Dependances installees (lot D1)
+
+Voir `package.json`. Volontairement minimal (decision d'architecture S:1.3/1.5 : aucune lib de
+graphes tierce, aucune lib de state, aucun routeur tiers) - les lots D2-D9 n'ajoutent que du code
+source, pas de nouvelles dependances, sauf necessite imprevue a justifier explicitement au meme
+titre qu'un choix d'architecture (`docs/plans/ARCHITECTURE.md` S:8).

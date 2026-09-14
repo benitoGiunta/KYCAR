@@ -1,0 +1,80 @@
+{
+  "id": "5a2e8b04-71c6-4d39-8f5b-2c7d9e0a1b34",
+  "webPage": "https://www.autoscout24.be/offres/5a2e8b04-71c6-4d39-8f5b-2c7d9e0a1b34",
+  "marketplace": "be",
+  "vehicleType": "C",
+  "make": 60,
+  "makeName": "Renault",
+  "model": 1961,
+  "modelName": "Clio",
+  "modelVersion": "1.5 dCi Intens 5p",
+  "productionYear": 2016,
+  "firstRegistrationDate": "2016-09",
+  "mileage": 148300,
+  "mileageUnit": "km",
+  "power": 66,
+  "powerUnit": "kW",
+  "powerHp": 90,
+  "cylinderCapacity": 1461,
+  "cylinderCapacityUnit": "ccm",
+  "cylinderCount": 4,
+  "gearCount": 5,
+  "transmission": "M",
+  "drivetrain": "F",
+  "fuelCategory": "D",
+  "primaryFuelType": 7,
+  "fuelSourceLabel": "Diesel",
+  "isPluginHybrid": false,
+  "co2Emissions": 90,
+  "co2EmissionsUnit": "g/km",
+  "consumption": {
+    "combined": 3.4
+  },
+  "combinedUnit": "l/100km",
+  "euEmissionStandard": "6",
+  "efficiencyClass": 2,
+  "hasParticleFilter": true,
+  "bodyType": 6,
+  "doorCount": 5,
+  "seatCount": 5,
+  "bodyColor": 2,
+  "isMetallic": false,
+  "upholsteryType": "OT",
+  "upholsteryColor": 2,
+  "equipment": [15, 41, 137],
+  "offerType": "U",
+  "usageState": "U",
+  "condition": {
+    "hadAccident": false
+  },
+  "previousOwnerCount": 2,
+  "hasFullServiceHistory": false,
+  "wasCabOrRental": false,
+  "prices": {
+    "public": {
+      "price": 8990,
+      "currency": "EUR",
+      "onRequestOnly": false,
+      "evaluation": {
+        "category": 3
+      }
+    }
+  },
+  "superDeal": false,
+  "publication": {
+    "status": "Active",
+    "isNew": true
+  },
+  "createdAt": "2026-09-02T11:04:00Z",
+  "lastUpdatedAt": "2026-09-02T11:04:00Z",
+  "firstActivatedDate": "2026-09-02T11:10:00Z",
+  "imageCount": 9,
+  "hasVideo": false,
+  "location": {
+    "countryCode": "BE",
+    "postalCodePrefix2": "90"
+  },
+  "seller": {
+    "type": "P"
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "referenceType": "VersionStoplist",
+  "requirement": "EX-DATA-30",
+  "note": "Liste d'arret promotionnelle initiale de EX-DATA-30, appliquee a l'etape 3 du pipeline EX-DATA-29. Versionnee, extensible PAR AJOUT uniquement, jamais par retrait silencieux. Comparaison insensible a la casse et aux diacritiques. Les entrees marquees kind = contact ne sont pas promotionnelles mais des amorces de coordonnees de contact : leur retrait est la deuxieme barriere R3 sur du texte libre.",
+  "entries": [
+    {
+      "pattern": "promo",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "promotie",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "actie",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "action",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "solde",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "soldes",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "koopje",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "topdeal",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "top deal",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "super deal",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "bonne affaire",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "occasion du mois",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "nieuw binnen",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "nouvelle arrivee",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "tva deductible",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "tva recuperable",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "btw aftrekbaar",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "btw recupereerbaar",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "vat deductible",
+      "lang": "en",
+      "kind": "promo"
+    },
+    {
+      "pattern": "garantie 12 mois",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "garantie 24 mois",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "waarborg",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "carpass",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "car-pass",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "1e main",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "eerste eigenaar",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "prix a discuter",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "prijs bespreekbaar",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "financement",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "financiering",
+      "lang": "nl",
+      "kind": "promo"
+    },
+    {
+      "pattern": "leasing possible",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "reprise possible",
+      "lang": "fr",
+      "kind": "promo"
+    },
+    {
+      "pattern": "tel ",
+      "lang": "xx",
+      "kind": "contact"
+    },
+    {
+      "pattern": "gsm ",
+      "lang": "xx",
+      "kind": "contact"
+    },
+    {
+      "pattern": "whatsapp",
+      "lang": "xx",
+      "kind": "contact"
+    },
+    {
+      "pattern": "www.",
+      "lang": "xx",
+      "kind": "contact"
+    },
+    {
+      "pattern": ".be",
+      "lang": "xx",
+      "kind": "contact"
+    },
+    {
+      "pattern": ".nl",
+      "lang": "xx",
+      "kind": "contact"
+    },
+    {
+      "pattern": ".com",
+      "lang": "xx",
+      "kind": "contact"
+    },
+    {
+      "pattern": "@",
+      "lang": "xx",
+      "kind": "contact"
+    }
+  ]
+}

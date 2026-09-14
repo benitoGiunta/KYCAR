@@ -1,0 +1,797 @@
+/**
+ * KYCAR — Bandeau de filtres `C1` (lot D5, finition 2.8, `E2E-21`).
+ * =================================================================================================
+ * Lit `var(--color-*, --space-*, --radius-*)` de `src/styles/tokens.css` (import en lecture seule —
+ * ce fichier n'y écrit rien) ; les seuils de régime reprennent `src/styles/breakpoints.ts`
+ * (768 px / 1280 px, valeurs recopiées ici car une media query ne peut pas importer une constante
+ * JS — le régime RÉEL du composant vient de la prop `regime`/`data-regime`, calculée par
+ * l'appelant avec les MÊMES seuils ; les media queries ci-dessous ne sont qu'un repli visuel si
+ * `regime` n'est pas encore câblé). Importé en effet de bord par `FilterBand.tsx` (même
+ * convention que `market.css`/`MarketScreen.tsx`) — aucun câblage `src/app.tsx` requis.
+ *
+ * Anatomie normative (`docs/requirements/draft-screens.md` §4.1, `EX-SCR-55/56`) : quatre zones
+ * verticales (ligne primaire, recherche, groupes secondaires, filtres actifs), 96 px repliée en
+ * régime `large`, 320 px dépliée au maximum (zone (3) défilante). Régimes `EX-SCR-96` (intermédiaire,
+ * 132 px replié, ligne primaire sur deux lignes) et `EX-SCR-97`/`98` (compact, barre 56 px + feuille
+ * plein écran) sont posés par `[data-regime]`, écrit par `FilterBand.tsx`.
+ */
+
+/*
+ * `EX-SCR-56` (ACC-02) — hauteur bornée et collage.
+ * Le COLLAGE n'est plus posé ici : `position: sticky` sur ce bloc s'exerçait dans un parent
+ * (`.filter-bar`) exactement à sa hauteur, donc sans aucune course. C'est désormais le conteneur
+ * `.kycar-filter-bar` (`app.css`) qui colle, sous l'en-tête.
+ * La HAUTEUR, elle, est bornée ici : replié, le bandeau ne monte que ses deux zones toujours
+ * visibles d'`EX-SCR-55` — ligne primaire (1) et filtres actifs (4) — et tient dans 96 px ; déplié,
+ * il ouvre `.kycar-band-panel` (zones 2 et 3), plafonné pour que le total reste sous 320 px ET sous
+ * 40 % du viewport, la zone (3) devenant défilante à l'intérieur.
+ */
+.kycar-filter-band {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  z-index: 2;
+}
+
+/* Plafond DÉPLIÉ (`EX-SCR-56`) : 320 px, et jamais plus de 40 % du viewport. Le plafond est posé sur
+   le bandeau entier plutôt que sur la seule zone (3), pour que la somme des quatre zones le
+   respecte quel que soit le nombre de jetons ; c'est le panneau qui absorbe le reste et défile. */
+.kycar-filter-band[data-expanded='true'] {
+  /* `border-box` : le trait de séparation du bas fait partie du plafond mesuré (321 px sinon). */
+  box-sizing: border-box;
+  max-height: min(320px, 40vh);
+}
+
+.kycar-band-primary-row,
+.kycar-filter-band > .kycar-active-tokens {
+  flex: 0 0 auto;
+}
+
+/* Zone (1) + bouton de dépliage : UNE rangée, jamais deux, défilable horizontalement plutôt que
+   repliée sur cinq lignes (c'est le déploiement des neuf contrôles qui donnait 902 px). */
+.kycar-band-primary-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.kycar-band-primary-row .kycar-primary-line {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Barre de défilement FINE : à 96 px de budget, une barre classique (15 px) coûterait un sixième
+     de la hauteur du bandeau. Elle reste visible — l'affordance de défilement est conservée. */
+  scrollbar-width: thin;
+}
+
+/* Contrôles EN LIGNE dans la rangée repliée : libellé, champs et paliers côte à côte. Rien n'est
+   masqué (`EX-NFR-14` : tous les contrôles restent atteignables au clavier, et le focus fait défiler
+   la rangée) — c'est la seule différence avec le rendu d'avant 2.10, qui les empilait. */
+.kycar-band-primary-row .kycar-control {
+  /* Un groupe de cases est un `<fieldset>` : sans cette remise à zéro il porte encore le cadre et le
+     rembourrage par défaut du navigateur (~20 px), qui à eux seuls dépassaient le budget de la
+     rangée repliée. Le regroupement sémantique (`fieldset`/`legend`) est intact. */
+  border: 0;
+  margin: 0;
+  padding: 0;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.kycar-band-primary-row .kycar-range-fields {
+  flex-wrap: nowrap;
+}
+
+.kycar-band-primary-row .kycar-range-fields input[type='number'] {
+  width: 5.5rem;
+}
+
+.kycar-band-primary-row .kycar-checkbox-grid,
+.kycar-band-primary-row .kycar-checkbox-grid--2col {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+}
+
+/* `EX-SCR-56` (ACC-02, budget de 96 px) — dans la rangée REPLIÉE, la note permanente d'un groupe de
+   cases (« Au moins une de ces valeurs ») est rendue AUX TECHNOLOGIES D'ASSISTANCE SEULEMENT : un
+   `<legend>` est rendu hors du flux flex par le navigateur, si bien que cette note ajoutait une
+   troisième ligne (69 px pour une rangée dont le budget est 56). Elle n'est ni retirée du DOM ni du
+   nom accessible du groupe — seulement retirée du rendu visuel de la rangée repliée. Les messages
+   TRANSITOIRES (`role="status"` d'un intervalle écrêté) restent visibles : ils ne sont pas ciblés. */
+.kycar-band-primary-row .kycar-control {
+  /* Ancre du positionnement de la note masquée ci-dessous : sans bloc contenant à l'INTÉRIEUR de la
+     rangée défilante, la note sortait du défilement interne et poussait le DOCUMENT au débordement
+     horizontal (mesuré : scrollWidth de 6 331 px pour un viewport de 1 280). */
+  position: relative;
+}
+
+.kycar-band-primary-row fieldset.kycar-control > .kycar-control__hint:not([role]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Le bouton de dépliage ne défile jamais avec la rangée : il est l'issue vers les zones (2) et (3). */
+.kycar-band-more {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Zones (2) et (3) dépliées : plafond de hauteur et défilement interne (`EX-SCR-56`). */
+.kycar-band-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Zone (1) — ligne primaire, EX-SCR-59 : neuf contrôles + kwd, jamais repliée. */
+.kycar-primary-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* Régime intermédiaire (768–1279 px, EX-SCR-96) : deux lignes de contrôles (5 puis 4), sans changer
+   l'ordre du DOM. Depuis 2.10 (ACC-02) les pistes sont dimensionnées sur le CONTENU et la grille
+   défile horizontalement dans le bandeau : cinq pistes de largeur égale à 768 px valaient ~134 px,
+   ce qui faisait monter chaque rangée à plus de 300 px de haut (mesuré : bandeau de 1 271 px) et
+   rendait le plafond de 132 px d'`EX-SCR-96` inatteignable. Le corps de la page ne défile toujours
+   pas horizontalement (`EX-SCR-183`) : le débordement est CONFINÉ à la grille. */
+[data-regime='intermediaire'] .kycar-primary-line {
+  display: grid;
+  grid-template-columns: repeat(5, max-content);
+  grid-auto-rows: 36px;
+  align-items: center;
+}
+
+/*
+ * `E2E-19` / `EX-NFR-19` — complété par fix-app (D8-15), HORS de son périmètre nominal, parce que
+ * c'est le câblage de `regime` par la coquille qui a rendu ce régime atteignable pour la PREMIÈRE
+ * fois : jusqu'ici `FilterBand` recevait toujours `large` et la grille à cinq colonnes d'`EX-SCR-96`
+ * n'était jamais exercée. À 768 px, une piste vaut ~134 px ; les contrôles gardaient leur largeur
+ * INTRINSÈQUE (`min-width: 9rem`, deux champs de 6 rem côte à côte, grille d'options à deux
+ * colonnes) et poussaient le DOCUMENT à 836 px pour 768 — débordement horizontal mesuré sur les
+ * surfaces A, B et C (projet `tablet`).
+ *
+ * Les quatre règles ci-dessous ne changent RIEN aux régimes `large` et `compact` : dans le seul
+ * régime intermédiaire, les contrôles se réduisent à leur piste, les deux bornes d'un intervalle
+ * passent l'une sous l'autre plutôt que de déborder, et les options d'une liste repassent sur une
+ * colonne. Aucune information n'est masquée — elle revient à la ligne.
+ */
+[data-regime='intermediaire'] .kycar-primary-line .kycar-control {
+  min-width: 0;
+}
+
+[data-regime='intermediaire'] .kycar-primary-line .kycar-range-fields {
+  flex-wrap: wrap;
+}
+
+[data-regime='intermediaire'] .kycar-primary-line .kycar-range-fields input[type='number'] {
+  width: 100%;
+  min-width: 0;
+}
+
+[data-regime='intermediaire'] .kycar-primary-line .kycar-checkbox-grid--2col {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-regime='intermediaire'] .kycar-primary-line .kycar-checkbox-option {
+  min-width: 0;
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+}
+
+/* Zone (2) — recherche de filtre, EX-SCR-79, largeur 320 px en `large`. */
+.kycar-filter-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: 320px;
+}
+.kycar-filter-search input[type='search'] {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+.kycar-filter-search__result {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* Zone (3) — groupes secondaires, EX-SCR-92/93 : accordéon replié par défaut, zone interne
+   défilante (le plafond de 320 px du bandeau déplié est porté par l'appelant : cette règle ne
+   fixe qu'une hauteur MAXIMALE raisonnable pour que le défilement apparaisse avant de déborder). */
+.kycar-secondary-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.kycar-secondary-group {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  margin: 0;
+}
+.kycar-secondary-group > legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  gap: var(--space-2);
+}
+.kycar-secondary-group__toggle {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+.kycar-secondary-group__reset {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.kycar-secondary-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Un contrôle générique (EX-SCR-72bis) : socle commun, les variantes `--range`/`--checkbox-list`/
+   etc. n'ajoutent que ce qui leur est propre. */
+.kycar-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 9rem;
+}
+.kycar-control__label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.kycar-control__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.kycar-control__error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-danger);
+}
+.kycar-control__warning {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-danger);
+}
+.kycar-control__counter {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.kycar-control__value {
+  font-weight: 600;
+}
+.kycar-warning-icon {
+  cursor: help;
+  color: var(--color-text-muted);
+}
+
+/* enum_multi <= 14 (EX-SCR-65) : grille de cases à cocher, deux colonnes au-delà de 6 options. */
+.kycar-checkbox-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-1) var(--space-3);
+}
+.kycar-checkbox-grid--2col {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.kycar-checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+/* EX-SCR-89 : un effectif à 0 reste affiché, en gris — l'option n'est jamais désactivée pour ce
+   seul motif (le style inline `opacity` posé par le composant porte déjà l'atténuation ; cette
+   règle fixe la couleur de base pour que « … » pendant le recalcul soit lisible de la même façon). */
+.kycar-facet-count {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Intervalle (EX-SCR-67) : couple de champs + paliers suggérés. */
+.kycar-range-fields {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.kycar-range-fields input[type='number'] {
+  width: 6rem;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+.kycar-range-fields[aria-disabled='true'] {
+  opacity: 0.6;
+}
+.kycar-range-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.kycar-range-steps button {
+  padding: 0.15rem var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+/* EX-SCR-98 (régime compact) : les paliers deviennent une liste déroulante native. */
+.kycar-range-steps__select {
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  max-width: 100%;
+}
+
+/* Interrupteur booléen (EX-SCR-69). */
+.kycar-toggle {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.kycar-toggle--active {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+
+/* Radio segmenté (EX-SCR-63) et panneau de recherche (EX-SCR-66). */
+.kycar-radio-segment {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.kycar-radio-segment--checked {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+.kycar-panel-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* Zone (4) — filtres actifs, EX-SCR-75, visible dès qu'un filtre est posé. */
+/* `EX-SCR-56` (ACC-02) — zone (4) sur UNE rangée défilante : empilée sur deux ou trois lignes (99 px
+   mesurés à 768 px), elle mangeait à elle seule les trois quarts du budget de hauteur du bandeau
+   replié. Aucun jeton n'est masqué : la rangée défile, comme en régime compact (`EX-SCR-97`). */
+.kycar-active-tokens {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+/* Chaque élément de la rangée garde sa largeur intrinsèque : sans cela le résumé « n filtres
+   actifs » se replie sur trois lignes et fait monter la zone (4) à 67 px (mesuré à 768 px). */
+.kycar-active-tokens > * {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.kycar-active-tokens__summary {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.kycar-active-tokens__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: nowrap;
+}
+.kycar-token {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0 var(--space-1) 0 var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.kycar-token button {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+.kycar-token__removal-popover {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 3;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+}
+.kycar-token:hover .kycar-token__removal-popover,
+.kycar-token:focus-within .kycar-token__removal-popover {
+  display: block;
+}
+.kycar-active-tokens__clear-all,
+.kycar-active-tokens__save-search {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  font: inherit;
+}
+/* `EX-SCR-101` (`D8-31`) — filtre CONSERVÉ mais devenu sans effet sur le snapshot courant.
+   Ambre : `--color-ineffective` est défini ICI et non dans `src/styles/tokens.css` (hors du
+   périmètre de ce lot) ; #8a5300 sur #ffffff donne 6,33:1, au-delà du plancher 4,5:1 d'`EX-SCR-99`,
+   et sert AUSSI de couleur de bordure (plancher 3:1 largement tenu). La couleur n'est jamais le
+   SEUL signal : l'infobulle, la note `aria-describedby` et le compteur « n filtre(s) sans effet »
+   portent la même information en texte. */
+.kycar-active-tokens {
+  --color-ineffective: #8a5300;
+  --color-ineffective-surface: #fff7e6;
+}
+.kycar-token--ineffective {
+  background: var(--color-ineffective-surface);
+  border-color: var(--color-ineffective);
+  color: var(--color-ineffective);
+}
+.kycar-token--ineffective button {
+  color: var(--color-ineffective);
+}
+/* Note lue par les technologies d'assistance via `aria-describedby` — même règle que
+   `.kycar-visually-hidden` d'`app.css`, redéfinie ici pour que le bandeau reste montable
+   isolément (note de tête de `FilterBand.tsx`). */
+.kycar-token__ineffective-note {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+/* Compteur SÉPARÉ, jamais fondu dans « n filtres actifs » (`EX-SCR-101`). */
+.kycar-active-tokens__ineffective {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-ineffective);
+}
+
+.kycar-active-tokens__count {
+  font-weight: 600;
+  color: var(--color-text);
+}
+.kycar-active-tokens__count--dim {
+  color: var(--color-text-muted);
+}
+
+/* Notification de retrait en cascade (EX-SCR-73 : « <n> filtres retirés », 5 s, Annuler). */
+.kycar-cascade-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+.kycar-cascade-notice button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Formulaire d'enregistrement de la recherche (EX-SCR-94). */
+.kycar-save-search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+.kycar-save-search-form input[type='text'] {
+  flex: 1;
+  min-width: 12rem;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+/* Régime compact (< 768 px, EX-SCR-97) : barre unique 56 px + feuille plein écran, application
+   différée. Structure alternative rendue par `FilterBand.tsx` (`regime === 'compact'`), PAS une
+   simple media query : les deux DOM diffèrent (feuille montée seulement quand ouverte). */
+.kycar-filter-band--compact {
+  padding: 0;
+}
+.kycar-compact-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 56px;
+  padding: 0 var(--space-3);
+  overflow-x: auto;
+}
+.kycar-compact-bar__open {
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kycar-compact-bar .kycar-active-tokens {
+  flex-wrap: nowrap;
+  min-height: 0;
+}
+/* `EX-SCR-97` : la feuille plein écran est enfermée dans le contexte d'empilement de
+   `.kycar-filter-band` (sticky, z-index 2) ; sans cela, l'en-tête collant de l'application
+   (`.kycar-header`, z-index 10) recouvre sa bande supérieure et avale le clic. */
+.kycar-filter-band--compact {
+  z-index: 20;
+}
+.kycar-compact-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  overflow-y: auto;
+}
+.kycar-compact-sheet > header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+.kycar-compact-sheet > header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.kycar-compact-sheet__footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+.kycar-compact-sheet__footer button {
+  flex: 1;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kycar-compact-sheet__footer button:last-child {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+
+/* Repli visuel défensif si `regime` n'est pas (encore) fourni par l'appelant : au-dessous du
+   seuil `large` d'`src/styles/breakpoints.ts` (1280 px), la ligne primaire s'enroule déjà grâce à
+   `flex-wrap` ci-dessus ; ces deux requêtes affinent seulement l'espacement, elles ne remplacent
+   jamais la structure alternative que `regime='compact'` doit produire côté script. */
+@media (max-width: 1279px) {
+  .kycar-primary-line {
+    gap: var(--space-1) var(--space-2);
+  }
+}
+@media (max-width: 767px) {
+  .kycar-filter-band {
+    padding: var(--space-1) var(--space-2);
+  }
+}
+
+
+/* ================================================================================================
+ * ACC-11 — `EX-SCR-87` : retour visuel de chaque contrôle (survol, focus, actif)
+ * ==============================================================================================
+ * Mesuré en recette : au survol, le fond restait `rgb(239,239,239)` avant comme après ; une case
+ * cochée gardait un fond transparent et un texte non inversé. Les deux états manquaient purement et
+ * simplement dans cette feuille.
+ *
+ * La couleur du FOCUS reste le jeton `--color-focus-ring` (#ffd54a) et NON la couleur d'accent :
+ * c'est un choix délibéré de `src/styles/tokens.css`, motivé par le contraste (12,72:1 sur le texte,
+ * contre 4,7:1 pour l'accent), et `EX-NFR-13` prime sur la lettre d'`EX-SCR-87`. Cette feuille ne
+ * touche donc pas au focus ; l'écart est ratifié, pas corrigé en silence.
+ */
+.kycar-checkbox-option,
+.kycar-radio-segment,
+.kycar-toggle,
+.kycar-range-steps button,
+.kycar-secondary-group__toggle,
+.kycar-band-more,
+.kycar-active-tokens__clear-all,
+.kycar-active-tokens__save-search,
+.kycar-token button {
+  transition: background-color 90ms linear, color 90ms linear;
+}
+
+/* Survol : fond à 4 % de la couleur d'accent (`EX-SCR-87`). */
+.kycar-checkbox-option:hover,
+.kycar-radio-segment:hover,
+.kycar-toggle:hover,
+.kycar-range-steps button:hover,
+.kycar-secondary-group__toggle:hover,
+.kycar-band-more:hover,
+.kycar-active-tokens__clear-all:hover,
+.kycar-active-tokens__save-search:hover,
+.kycar-token button:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
+}
+
+/* Actif : fond accent, texte inversé — pour une case cochée comme pour un interrupteur. */
+.kycar-checkbox-option:has(input[type='checkbox']:checked),
+.kycar-checkbox-option:has(input[type='radio']:checked) {
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-radius: var(--radius-sm);
+}
+
+.kycar-checkbox-option:has(input:checked) .kycar-facet-count {
+  color: var(--color-primary-contrast);
+}
+
+/* ================================================================================================
+ * ACC-08 — `EX-SCR-21` : rayons et cibles tactiles
+ * ==============================================================================================
+ * Mesuré en recette : rayon 0 px sur les contrôles de la ligne primaire (4 px exigés) ; 157 des 202
+ * éléments interactifs visibles sous 44 × 44 px en compact, 196–206 sous 32 × 32 px ailleurs.
+ * Les tailles sont posées en `min-height`/`min-width` : rien n'est déplacé, les cibles grandissent.
+ */
+.kycar-primary-line input,
+.kycar-primary-line select,
+.kycar-primary-line button,
+.kycar-filter-band input,
+.kycar-filter-band select,
+.kycar-filter-band button {
+  border-radius: var(--radius-sm);
+}
+
+/* ≥ 32 × 32 px hors régime compact. */
+.kycar-filter-band button,
+.kycar-filter-band select,
+.kycar-filter-band input[type='search'],
+.kycar-filter-band input[type='text'],
+.kycar-filter-band input[type='number'] {
+  min-height: 32px;
+}
+
+.kycar-token button {
+  width: 32px;
+  height: 32px;
+}
+
+.kycar-token {
+  height: auto;
+  min-height: 32px;
+}
+
+/* La case elle-même reste petite : c'est son LIBELLÉ qui porte la cible cliquable (`<label>`). */
+.kycar-checkbox-option {
+  min-height: 32px;
+  padding: 0 var(--space-1);
+}
+
+/* ≥ 44 × 44 px en régime compact (`EX-SCR-21`), y compris dans la feuille plein écran. */
+[data-regime='compact'] button,
+[data-regime='compact'] select,
+[data-regime='compact'] input[type='search'],
+[data-regime='compact'] input[type='text'],
+[data-regime='compact'] input[type='number'],
+.kycar-compact-sheet button,
+.kycar-compact-sheet select,
+.kycar-compact-sheet input[type='search'],
+.kycar-compact-sheet input[type='text'],
+.kycar-compact-sheet input[type='number'] {
+  min-height: 44px;
+}
+
+[data-regime='compact'] .kycar-token button,
+.kycar-compact-sheet .kycar-token button {
+  width: 44px;
+  height: 44px;
+}
+
+[data-regime='compact'] .kycar-token,
+.kycar-compact-sheet .kycar-checkbox-option {
+  min-height: 44px;
+}
+
+.kycar-compact-sheet > header button {
+  min-width: 44px;
+  min-height: 44px;
+}

@@ -1,0 +1,121 @@
+[
+  {
+    "step": "P1b-1 URL filtrée (sans cy)",
+    "at": "2026-09-08T14:28:41.425Z",
+    "landed": "http://localhost:4173/marche?body=3&kmto=100000&priceto=20000",
+    "wallMs": 472,
+    "sinceNavigationStartMs": 627,
+    "domContentLoadedMs": 88,
+    "loadEventMs": 89,
+    "transferBytes": 200473,
+    "resourceCount": 21,
+    "summary": "112 marques · 0 modèles · 2 656 offres — 36 marques affichées Trier par Nombre d'offres Prix médian Alphabétique Nombre de modèles ↓ Masquer les modèles à moins de 3 offresExporter"
+  },
+  {
+    "step": "P1b-1 DOM des bandeaux de l’écran A",
+    "at": "2026-09-08T14:28:41.444Z",
+    "c3": [
+      {
+        "tag": "DIV",
+        "cls": "kycar-market-banner-c3 summary-bar-c3",
+        "text": "Couverture d’échantillon non applicable sous filtre — 100 000 annonces observées"
+      },
+      {
+        "tag": "DIV",
+        "cls": "kycar-market-banner kycar-market-banner--neutre",
+        "text": "Couverture d’échantillon non applicable sous filtre — 100 000 annonces observées"
+      },
+      {
+        "tag": "DIV",
+        "cls": "kycar-market-banner kycar-market-banner--neutre",
+        "text": "112 marques correspondent — affinez pour comparer"
+      }
+    ]
+  },
+  {
+    "step": "P1b-2 première carte AVANT clic sur l’en-tête",
+    "at": "2026-09-08T14:28:41.447Z",
+    "zoneCount": 0,
+    "summary": "0 modèles · médiane 10 850 €4 850 – 18 850 € (fourchette centrale (90 % des offres)) · du moins cher au plus cher : 400 – 19 950 € · 2018 – 2026"
+  },
+  {
+    "step": "P1b-2 première carte APRÈS clic sur l’en-tête",
+    "at": "2026-09-08T14:28:43.055Z",
+    "url": "http://localhost:4173/marche?body=3&kmto=100000&priceto=20000",
+    "zoneCount": 68,
+    "summary": "67 modèles · médiane 10 850 €4 850 – 18 850 € (fourchette centrale (90 % des offres)) · du moins cher au plus cher : 400 – 19 950 € · 2018 – 2026",
+    "footer": "68 modèles sur 68",
+    "zones": [
+      "Golf61›—6 250 – 17 300 € (fourchette centrale (90 % des offres))2019 – 20260 – 90 800 kmméd. 11 300 €",
+      "Polo29›—4 750 – 13 100 € (fourchette centrale (90 % des offres))2018 – 202516 700 – 94 900 kmméd. 8 200 €",
+      "Passat21›—4 850 – 12 950 € (fourchette centrale (90 % des offres))2017 – 202514 200 – 84 400 kmméd. 8 150 €",
+      "Tiguan20›—7 250 – 17 750 € (fourchette centrale (90 % des offres))2019 – 20260 – 72 500 kmméd. 11 350 €",
+      "T-Roc10›————méd. 15 050 €",
+      "Touran10›————méd. 10 200 €",
+      "Transporter7›————méd. 13 300 €",
+      "up!7›————méd. 18 150 €"
+    ],
+    "summaryBar": "112 marques · 67 modèles · 2 656 offres — 36 marques affichéesTrier par Nombre d'offresPrix médianAlphabétiqueNombre de "
+  },
+  {
+    "screenshot": "reports/final-verification/P1b-2-carte-apres-clic-entete.png"
+  },
+  {
+    "step": "P1b-2 deuxième carte après clic en-tête",
+    "at": "2026-09-08T14:28:44.428Z",
+    "zoneCount": 93,
+    "summary": "93 modèles · médiane 11 450 €4 650 – 18 850 € (fourchette centrale (90 % des offres)) · du moins cher au plus cher : 3 250 – 19 800 € · 2017 – 2025",
+    "footer": "93 modèles sur 93"
+  },
+  {
+    "step": "P1b-3 A → B par clic sur une zone-modèle",
+    "at": "2026-09-08T14:28:46.484Z",
+    "zoneLabel": "Golf61›— 6 250 – 17 300 € (fourchette centrale (90 % des offres))2019 – 20260 – 90 800 kmméd. 11 300 €",
+    "zoneAria": "Golf, 61 offres",
+    "url": "http://localhost:4173/marche/74-volkswagen/2084-golf?body=3&kmto=100000&priceto=20000",
+    "header": "Volkswagen Golf 1001 offres médiane 10 250 € P25 7 950 € P75 12 800 € min 1 650 € – max 20 000 € (du moins cher au plus cher) km médian 44 050 km 1ʳᵉ immat. médiane 2023 0 % particuliers Voir les 1001 annonces Comparer Suivre Exporter",
+    "breadcrumb": "Marché Volkswagen Golf",
+    "band": "3 filtres actifs Prix : ≤ 20 000 €× Kilométrage : ≤ 100 000 km× Carrosserie : Coupé× Tout effacer"
+  },
+  {
+    "screenshot": "reports/final-verification/P1b-3-ecran-B-depuis-A.png"
+  },
+  {
+    "step": "P1b-4 B → A par le fil d’Ariane",
+    "at": "2026-09-08T14:28:47.263Z",
+    "url": "http://localhost:4173/marche?body=3&kmto=100000&mmmv=74|2084&priceto=20000",
+    "summary": "1 marques · 0 modèles · 61 offres Trier par Nombre d'offres Prix médian Alphabétique Nombre de modèles ↓ Masquer les modèles à moins de 3 offresExporter",
+    "cards": 1,
+    "band": "4 filtres actifs Marque / Modèle / Version : 74|2084× Prix : ≤ 20 000 €× Kilométrage : ≤ 100 000 km× Carrosserie : Coupé× Tout effacer"
+  },
+  {
+    "screenshot": "reports/final-verification/P1b-4-retour-A.png"
+  },
+  {
+    "step": "P1b-5 history.back()",
+    "at": "2026-09-08T14:28:48.541Z",
+    "url": "http://localhost:4173/marche/74-volkswagen/2084-golf?body=3&kmto=100000&priceto=20000",
+    "screenB": true
+  },
+  {
+    "step": "P1b-6 régime compact 360 px",
+    "at": "2026-09-08T14:28:49.661Z",
+    "bodyScrollWidth": 360,
+    "innerWidth": 360,
+    "summary": "112 marques · 2 656 offres — 36 marques affichéesTrier : Nombre d'offres ↓Nombre d'offresPrix médianAlphabétiqueNombre de modèlesInverser le sens (↓) Masquer le",
+    "filterBar": "Marque / Modèle / VersionToutes les marquesPrixà500 €1 000 €1 500 €2 000 €2 500 €3 000 €4 000 €5 000 €6 000 €7 000 €8 000 €9 000 €10 000 €12 500 €15 000 €17 500",
+    "cardWidth": 328,
+    "columns": "none"
+  },
+  {
+    "screenshot": "reports/final-verification/P1b-6-compact-360.png"
+  },
+  {
+    "step": "P1b fin",
+    "at": "2026-09-08T14:28:49.729Z",
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "externalRequests": []
+  }
+]

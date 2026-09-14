@@ -1,0 +1,14 @@
+{
+  "id": "0f7c5a1e-2b34-4c8d-9a10-5e6f7a8b9c0d",
+  "webPage": "https://www.autoscout24.be/offres/0f7c5a1e-2b34-4c8d-9a10-5e6f7a8b9c0d",
+  "marketplace": "be",
+  "vehicleType": "C",
+  "make": 74,
+  "location": {
+    "countryCode": "BE"
+  },
+  "seller": {
+    "type": "D",
+    "companyName": "Garage exemple SPRL"
+  }
+}

@@ -1,0 +1,140 @@
+EX-DATA-1	A	COUVERTE	`grep -rn "\bfuel:" src/types` = 0 champ nommé `fuel` ; nommage camelCase tenu par `npm run lint` (vert) et `tsc` strict
+EX-DATA-2	A	COUVERTE	sonde D2 `dictionary-fields › règle d'absence (EX-DATA-2)` verte
+EX-DATA-3	A	COUVERTE	exigence de méthode (niveaux de preuve) ; les champs `SCHÉMA` restent `INCONNU` dans les deux providers (sondes D9 `normalization`, D3 `dataset-100k`)
+EX-DATA-4	A	COUVERTE	unités canoniques : `predicates.test` (kW), sonde D3 `EX-DATA-111 / bornes du dictionnaire` (100 % des valeurs dans le domaine), sondes D9 `normalization`
+EX-DATA-5	A	NON COUVERTE	`grep -rln UNIT_UNSUPPORTED src/providers` = aucun fichier : aucun provider ne pose le drapeau ni ne refuse une unité non gérée	drapeau jamais posé (sans effet sur les deux sources actuelles, toutes en km/kW/EUR)	écart non consigné (FV-20)
+EX-DATA-6	A	COUVERTE	`format.test › roundHalfAwayFromZero — EX-SCR-3 / EX-DATA-6` ; sonde patho `AMB-01/07/35 → ARB-21` (12 499,5 → 12 500)
+EX-DATA-7	A	COUVERTE	`grep normalize('NFC') src` = 2 occurrences (chargeur de référentiels + normalisation) ; sondes D9 `normalization`, D5 `screen-g` (recherche insensible aux diacritiques)
+EX-DATA-8	A	COUVERTE	sondes D2 `reference-loader › assemble les 27 vocabulaires nommés (EX-DATA-8)`, `dictionary-fields › rattachement des vocabulaires (EX-DATA-8)`
+EX-DATA-9	A	COUVERTE	sonde D2 `reference-loader › EX-DATA-9` + `reference.test › décode un code dans un vocabulaire nommé`
+EX-DATA-10	A	NON COUVERTE	`grep -rn fuelTypePrimary src/providers src/types` = 0 : la table de repli création → recherche n'est pas implémentée	repli inexistant (champ `fuelTypePrimary` SCHÉMA, absent des sources actuelles) ; table toujours `[EXTRAPOLÉ]`	écart non consigné (FV-20) ; dette 2 d'EX-DATA-126
+EX-DATA-11	A	NON COUVERTE	`grep -rn HYBRID_CATEGORY_UNRESOLVED src` = 0	drapeau jamais posé	écart non consigné (FV-20)
+EX-DATA-12	A	COUVERTE	vocabulaire `KYCAR_PRICE_EVALUATION` à 6 codes chargé (sonde `reference-loader`) ; projection relevée dans les sondes D9 `vocabulary`
+EX-DATA-13	A	COUVERTE	M3 = contrôle seul : sonde D4 `EX-DATA-97` (indicateurs publiés) ; `priceEvaluation` n'apparaît dans `src/engine/outliers.ts` que pour le contrôle croisé (3 occurrences, aucune dans un verdict)
+EX-DATA-14	A	PARTIELLE	`src/providers/tweedehands/normalize.ts` l.389 : un deeplink vide est consigné dans `unknownFields` et l'annonce est conservée (pas de REJET) ; la coquille affiche « Cette annonce ne porte pas d'URL d'origine exploitable »	absence d'URL = conservation au lieu du rejet	écart non consigné (FV-20)
+EX-DATA-15	A	COUVERTE	`shared-rules.test › clé primaire (EX-DATA-15, DR-003)`, `dedupe.test` (synthétique), sondes patho `R-PATHO-09/10` (lots dédupliqués côté providers)
+EX-DATA-16	A	COUVERTE	sondes D4 `sentinels-eligibility › EX-DATA-16(a)…(f)`, patho `VAL-PRIX-ONREQ-MISSING`
+EX-DATA-17	A	PARTIELLE	compteurs `priceQuotedCount/OnRequest/Missing` publiés (invariant I5, sondes D4/patho) ; `grep coverageWarning src` = 0	`priceCoverage`/`coverageWarning.price` non publiés	dette DR-122 (§6.5) élargie (FV-20)
+EX-DATA-18	A	COUVERTE	sonde D2 `sentinels-prices › ON_REQUEST / MISSING (EX-DATA-16 à 18)` ; `[rev-D3] PRICE_MISSING_UNDECLARED : 2 051` posé par le provider
+EX-DATA-19	A	COUVERTE	sondes D4 `EX-DATA-19(2)/EX-DATA-60/87 — sentinelle RELATIVE`, D3 `R-D3-03`, D2 `R-D2-08`, `invariants.integration › D-44`
+EX-DATA-20	A	COUVERTE	sonde D8 `R-D8-31` (0 carte hors taxonomie sur 294), D9 `taxonomy › ADV-14`, `normalize.test › modèle non résolu → modelId 0`
+EX-DATA-21	A	COUVERTE	`grep -n modelVersion src/engine/*.ts` = 0 : aucune clé de regroupement moteur sur la version ; `shared-rules.test` (trois formes)
+EX-DATA-22	A	COUVERTE	stockage `YYYY-MM` encodé `12·année+(mois−1)` (colonne `firstRegistrationYearMonth`, sonde D2 `dictionary-fields`) ; format écran `MM/AAAA` observé écran D (« 11/2017 »)
+EX-DATA-23	A	PARTIELLE	les deux providers alimentent `firstRegistrationYearMonth` (sondes D9 `normalization`, DR-037) ; aucune sonde ne rejoue les deux regex ni le drapeau `FIRST_REG_UNPARSEABLE`	tolérance du parsing non prouvée par exécution	écart non consigné (mineur, à sonder en 2.8)
+EX-DATA-24	A	COUVERTE	champs dérivés : `firstRegistrationYear` (axe année, `engine/flags.ts::yearFromYearMonth`), `mileagePerYear` non exposé ; écran D « 1ʳᵉ immat. 11/2017 » observé
+EX-DATA-25	A	COUVERTE	axe année = `firstRegistrationYear` : histogramme G3 (`Offres par année`) et G5 construits sur `firstRegistrationYearMonth` ; DR-037 (D9) corrigé, sonde D9 `aggregate-invariants`
+EX-DATA-26	A	COUVERTE	sonde patho `VAL-ANNEE-ABSENTE — exclusion métrique par métrique, jamais d'imputation`
+EX-DATA-27	A	COUVERTE	même sonde (aucune imputation) ; `grep -rn modelYear src/engine` n'alimente jamais l'axe année
+EX-DATA-28	A	COUVERTE	`shared-rules.test` (Raw/Clean/tokens) ; sonde patho `ADV-18` (contenu textuel, aucun `innerHTML`) ; écran D colonne Version observée en texte
+EX-DATA-29	A	COUVERTE	`shared-rules.test › nettoyage de modelVersionClean (EX-DATA-29, ARB-61/ADV-17, ARB-24)` + `étapes 7 à 10`
+EX-DATA-30	A	COUVERTE	`shared-rules.test › EX-DATA-30 — liste d'arrêt promotionnelle versionnée` ; `data/reference/version-stoplist.json` servi (HTTP 200)
+EX-DATA-31	A	COUVERTE	`VERSION_FULLY_STRIPPED` posé par `tweedehands/normalize.ts` ; `versionStrippedRate` dans le descripteur (`DataProvider.ts` l.185)
+EX-DATA-32	A	COUVERTE	`validation.test › EX-DATA-32 : priceStatus et priceEur ne peuvent pas se contredire`
+EX-DATA-33	A	COUVERTE	Conso./CO₂ affichées (écran D, colonnes observées « 14,5 l/100 km », « 340 g/km ») et jamais proposées en filtre (registre : aucun paramètre)
+EX-DATA-34	A	HORS PÉRIMÈTRE	aucun filtre local KYCAR (`sourceParity:false`) n'existe dans le registre ; les seuls réglages propres à KYCAR (EX-SCR-95) ne sont pas implémentés	sans objet tant qu'aucun filtre local n'existe	—
+EX-DATA-35	A	PARTIELLE	vocabulaire `KYCAR_MEASUREMENT_STANDARD` présent ; aucune dérivation WLTP/NEDC dans les providers (`grep co2Source src/providers` = 0)	`co2Source`/`consumptionSource` figés au défaut `UNKNOWN`	écart non consigné (FV-20)
+EX-DATA-36	A	COUVERTE	`predicates.test › la constante de conversion est celle d'EX-DATA-36 et ne s'arrondit pas` ; sonde patho `R-PATHO-15` (corrigée)
+EX-DATA-37	A	COUVERTE	`fuelSourceLabelRaw` n'est qu'une colonne chaîne (`columns.ts`), jamais décodée (`grep` : aucune fonction de décodage)
+EX-DATA-38	A	COUVERTE	sonde patho `VAL-KM-0-ET-1M` ; D-47 (`R-PATHO-04`)
+EX-DATA-39	A	HORS PÉRIMÈTRE	`equipmentCodes` absent du lot colonnaire (`EX-DATA-119`) ; aucun taux d'équipement publié	sans objet	—
+EX-DATA-40	A	COUVERTE	sonde D9 `R-D9-14 — pays (EX-DATA-40 / ADV-15)` verte
+EX-DATA-41	A	COUVERTE	registre : `custtype` seul champ vendeur, `pricetype` exclu (`filters-scope.json`, sonde D5 `registry-scope`)
+EX-DATA-42	A	COUVERTE	sonde D2 `r3-guard › n'interdit pas les attributs vendeur autorisés (EX-DATA-42)`
+EX-DATA-43	A	NON COUVERTE	`grep -rn "samplingBias\|adTierDistribution" src` = 0	distribution d'`adTier` et `coverageWarning.samplingBias` jamais publiées	dette DR-122 (§6.5) élargie (FV-20)
+EX-DATA-44	A	COUVERTE	`grep -rn "imageUrl\|previewUrl\|youtube" src` = 0 ; colonne `imageCount` seule (`columns.ts`)
+EX-DATA-45	A	COUVERTE	sonde D2 `open-points › R-D2-18 (les 17 drapeaux tiennent)` ; table `INGEST_FLAG_BIT` (D-01)
+EX-DATA-46	A	COUVERTE	descripteur `ingestFlagCounts` + `rejectedByReason` publiés par `SyntheticDataProvider.ts` l.237-253 et `DataProvider.ts` ; `[rev-D3] ingestFlags ≠ 0 sur 2 753 annonces {MODEL_UNRESOLVED:469, …}`
+EX-DATA-47	A	COUVERTE	sondes D2 `r3-guard`, `dictionary-fields › garantie R3 structurelle (EX-DATA-122)`, `provider-contract › aucune propriété vendeur`
+EX-DATA-48	A	COUVERTE	sonde patho `ING-R3` (code postal injecté, absent en sortie) ; `tweedehands/normalize.ts` ne conserve que NUTS-2
+EX-DATA-49	A	COUVERTE	sondes D2 `r3-repository-scan › EX-DATA-49 : aucun identifiant E1..E14`, `r3-sweep.test`, `validation.test` (valeur de paramètre) ; `zip`/`lat`/`lon` exclus (D-14)		dette DR-105 (E15–E17, hors texte littéral)
+EX-DATA-50	A	COUVERTE	région calculée côté KYCAR (`reference-loader` NUTS-2), paramètre `region` en classe D (registre)
+EX-DATA-51	A	COUVERTE	vocabulaire `KYCAR_REGION` NUTS-2 (sonde `reference-loader › 27 vocabulaires`)
+EX-DATA-52	A	COUVERTE	sonde D2 `reference-loader › O14 : table NUTS-2 BE (EX-DATA-52/53)` + `hors des plages : REGION_UNRESOLVED`
+EX-DATA-53	A	PARTIELLE	table `[EXTRAPOLÉ]` non confrontée au fichier officiel (sonde `R-D2-16` en `it.fails`)	obligation de confrontation avant le gel non tenue	dette motivée DR-112 (§6.5, E5)
+EX-DATA-54	A	PARTIELLE	`postal-regions-be.json` servi (HTTP 200) mais `exceptions` non prioritaires : sonde `R-D2-16` en `it.fails`	les exceptions communales ne priment pas	dette motivée DR-112
+EX-DATA-55	A	COUVERTE	hors plage → `INCONNU` + `REGION_UNRESOLVED` (sonde `reference-loader`) ; agrégation par `countryCode` seule
+EX-DATA-56	A	HORS PÉRIMÈTRE	aucun agrégat géographique infranational n'est exposé (EX-SCR-222) : la règle de suppression < 5 n'a pas d'objet	sans objet	—
+EX-DATA-57	A	COUVERTE	rattachement des champs : critère S5 de la revue D2 (`ATTEINT`), colonnes de l'écran D et agrégats observés
+EX-DATA-58	A	COUVERTE	champs de diagnostic hors écrans : colonnes de l'écran D observées (15) ne portent aucun champ de diagnostic ; export CSV `EX-DATA-123bis` (sondes D6/D7)
+EX-DATA-59	A	COUVERTE	notations : invariants I1–I8 exécutables (sondes D4)
+EX-DATA-60	A	COUVERTE	sondes D4 `sentinels-eligibility`, patho `VAL-PRIX-SENTINELLE-MOTEUR`, D3 `R-D3-04`, `invariants.integration › D-44`
+EX-DATA-61	A	PARTIELLE	`MetricStats` porte `n` (`entities.ts` l.164-175) ; titres « Offres par prix (1246) » observés ; `coverage` absent du bloc	`coverage_m` non publiée	dette motivée DR-122 (§6.5)
+EX-DATA-61bis	A	COUVERTE	`coverage.test › sampleCoverageOf` ; bandeau observé « Couverture d'échantillon non applicable sous filtre — 100 000 annonces observées » ; sonde patho `T-01/AMB-15`
+EX-DATA-62	A	COUVERTE	sonde D4 `quantiles-bin › EX-DATA-62/111 — quantiles exacts type 7 contre valeurs connues`
+EX-DATA-63	A	COUVERTE	même sonde (double précision, arrondi à la présentation) + `ARB-21` patho
+EX-DATA-64	A	PARTIELLE	10 des 13 valeurs publiées (`entities.ts::MetricStats`) ; `count`, `coverage`, `iqr` absents	3 valeurs manquantes	dette motivée DR-122 (§6.5)
+EX-DATA-65	A	COUVERTE	sonde D4 `n = 1 : … sd = null (EX-DATA-65)` + `quantiles.test`
+EX-DATA-66	A	COUVERTE	`src/engine/quantiles.ts` l.10 (Welford, variante Chan) ; `WelfordAccumulator` exporté
+EX-DATA-67	A	COUVERTE	`format.test › formatYearRange`, `formatMileageRange (plancher/plafond de centaine)` ; sonde D6 `fourchette-centrale › card.year`
+EX-DATA-68	A	PARTIELLE	agrégats de marque servis (294 cartes, sommes = N, I1) ; `modelCount`, `displayRange`, `rank`, `coverageWarning`, `adTierDistribution` absents de `MakeAggregate` — d'où « 0 modèles » affiché (FV-02)	champs manquants dans l'entité gelée	dette motivée DR-122 ; FV-02 (effet visible)
+EX-DATA-69	A	COUVERTE	sondes D6 `fourchette-centrale` (11/11) ; observé : « 4 850 – 18 850 € (fourchette centrale (90 % des offres)) · du moins cher au plus cher : 400 – 19 950 € »
+EX-DATA-70	A	COUVERTE	`sort.test › compareMakeRows / sortMakeRows — EX-SCR-119/120, EX-DATA-70/70ter`
+EX-DATA-70bis	A	COUVERTE	`sort.test › compareLabels — EX-DATA-70bis` ; sonde D6 `tri`
+EX-DATA-70ter	A	COUVERTE	sonde D7 `ecran-d › tri (EX-SCR-206, EX-DATA-70ter)` ; `sort.test` (ordre total)
+EX-DATA-71	A	PARTIELLE	`view-model.test › modelCount (EX-DATA-71)` vert ; en production la carte affiche « 0 modèles » tant que ses agrégats modèle ne sont pas chargés (journal P1b-2)	valeur affichée fausse avant clic	écart non consigné (FV-02)
+EX-DATA-72	A	COUVERTE	sondes D6 `modele-non-identifie`, D9 `taxonomy › ADV-14`, `router.test` (clé 0), `sort.test`
+EX-DATA-73	A	COUVERTE	invariant I2 (sondes D4) : somme des modèles = effectif marque, aucun seuil
+EX-DATA-74	A	COUVERTE	sondes D4 `invariants-mutation › I1..I8`, D3 `EX-DATA-104 (I1)`
+EX-DATA-75	A	COUVERTE	sonde D4 `quantiles-bin › EX-DATA-75/76/77/78/79/80/81/83 — BIN`
+EX-DATA-76	A	COUVERTE	idem (semi-ouvert à droite) ; clic de barre « 10 500 € à 11 000 € : 6 offres » → `pricefrom=10500&priceto=10999` → 6 offres (journal P3-A)
+EX-DATA-77	A	COUVERTE	sonde D4 `année, W = {1}` + BIN ; histogrammes observés (pas de 2 500 €, 20 000 km, 1 an)
+EX-DATA-78	A	COUVERTE	sonde D4 `bins intérieurs vides conservés (EX-DATA-78)`
+EX-DATA-79	A	COUVERTE	sondes D4 (débordements non émis si vides) et D7 `étiquettes fr-BE … bins de débordement en inégalité (EX-DATA-79)` ; observé « −∞ – 2001 · 9 offres »
+EX-DATA-80	A	COUVERTE	sonde D4 `n = 1 : exactement un bin fermé … lowConfidence à n < 12`
+EX-DATA-81	A	COUVERTE	sondes D4 `n = 0 : EMPTY`, patho `VOL-00`
+EX-DATA-82	A	COUVERTE	sonde D4 `I8 (EX-DATA-82) : BIN(permutation(V)) = BIN(V) octet à octet`
+EX-DATA-83	A	COUVERTE	sonde D4 `EX-DATA-83 : share = count / n arrondi à 4 décimales, Σ count = n`
+EX-DATA-83bis	A	PARTIELLE	`graphs-model.test › GROUPSTAT / NTILE (EX-DATA-83bis/83ter)` vert ; G9/G12/G13/G15 observés (Professionnel 701 · 64 % · 26 750 €) — calcul sur le thread principal, pas dans le worker	source unique non tenue au sens strict (protocole worker)	dette motivée D-17 (DR-034)
+EX-DATA-83ter	A	PARTIELLE	même test unitaire ; G10 observé (tranches) — hors worker	idem	dette motivée D-17
+EX-DATA-83quater	A	PARTIELLE	G14 « Prix médian par puissance » observé (paliers 20 kW, `graphs-model.ts`) — hors worker	idem	dette motivée D-17
+EX-DATA-83quinquies	A	PARTIELLE	`graphs-model.ts` l.53-68 (base 100 = année la plus récente, `annualLossPct`) ; G6 observé avec son message d'ineffectif exact — hors worker	idem	dette motivée D-17
+EX-DATA-84	A	COUVERTE	`outliers.groundtruth.test` (M1/M2 vs vérité terrain D3), sonde D4 `EX-DATA-84..97`
+EX-DATA-85	A	PARTIELLE	4 codes émis ; `INSUFFICIENT_DATA`/`INSUFFICIENT_SPREAD` jamais émis par annonce (sonde `R-D4-05` en `it.fails`)	vocabulaire à 6 codes non honoré	dette motivée D-45 (DR-114)
+EX-DATA-86	A	COUVERTE	sondes D4 `thresholds-m1m2 › choix de cellule M2 (C₂/C₃)`, D6 `effectif-seuils › n = 12`, patho `R-PATHO-08` (corrigée)
+EX-DATA-87	A	COUVERTE	`cellLevel`/`cellSize` publiés (DR-030 corrigé) ; observé infobulle G8 « écart calculé sur : Opel Corsa · n = 1089 · score : écart au prix attendu (M2) »
+EX-DATA-88	A	COUVERTE	`outliers.groundtruth.test` (M1 : 282 M1 retrouvés, 0 hors gabarit) ; sonde D4 `thresholds-m1m2`
+EX-DATA-89	A	COUVERTE	sonde patho `VAL-VARIANCE-0 — AUCUN faux positif (EX-DATA-89/92)`
+EX-DATA-90	A	COUVERTE	`src/engine/outliers.ts` (ridge + Cholesky, deux passes) ; `outliers.groundtruth.test` (M2 100 % en cellules éligibles) ; sonde D4 `EX-DATA-86/90`
+EX-DATA-91	A	COUVERTE	`outliers.ts` l.242-259 : régresseur retiré sur égalité exacte, `INSUFFICIENT_SPREAD` si les deux tombent ; sonde patho `VAL-VARIANCE-0`
+EX-DATA-92	A	COUVERTE	sonde D4 `Couverture des verdicts (EX-DATA-92/94)` ; `outliers.ts` (MAD × 1,4826, seuil 2,5)
+EX-DATA-93	A	COUVERTE	`outliers.ts` l.309-315 (passe 2 sur `|z| < 3,5`, recalcul sur F complet) ; `outliers.groundtruth.test`
+EX-DATA-93bis	A	NON COUVERTE	`grep -rn "rSquared\|R²" src/engine src/screens/distribution` = 0	`R²` jamais calculé ni publié	écart non consigné (FV-10)
+EX-DATA-94	A	COUVERTE	sonde patho `R-PATHO-16 — EX-DATA-94` (corrigée) ; G8 observé trié par écart décroissant (−79,1 %, −77,9 %, …)
+EX-DATA-95	A	COUVERTE	invariant I6 (`outlierEvaluatedCount + outlierNotEvaluatedCount = priceQuotedCount`, sondes D4)	point d'instruction D-51 (seuil de Σ ≠ seuils par cellule) versé au dossier, pas un défaut	—
+EX-DATA-96	A	COUVERTE	sonde D4 `EX-DATA-84..97 — … contrôle M3` (tableau 2×2 sur E)
+EX-DATA-97	A	COUVERTE	sondes D4 `EX-DATA-97 — les quatre indicateurs M3 … ≥ 3 cellules d'effectif > 200` (revue + unitaire)
+EX-DATA-98	A	COUVERTE	`scatter-model.test › buildScatterPoints (EX-DATA-98)`
+EX-DATA-99	A	COUVERTE	sondes D4 `EX-DATA-99 — éligibilité …`, `R-D4-02` (ventilation, corrigée), D7 `nuage-g4 › ventilation … somment à N`
+EX-DATA-100	A	COUVERTE	sonde D7 `EX-DATA-100 : K = 5 000 jamais dépassé sur 20 000 éligibles`
+EX-DATA-100bis	A	COUVERTE	sonde D7 `trois permutations … même échantillon octet à octet` ; `D-06` (aucune graine)
+EX-DATA-101	A	COUVERTE	sondes D7 `pas régulier sur listingId (ré-implémentation indépendante)`, `|A| ≥ K`
+EX-DATA-102	A	COUVERTE	sondes D4 `EX-DATA-102 / I7 — grille de densité`, `invariants-mutation › I7` (D-25)
+EX-DATA-102bis	A	COUVERTE	`graphs-model.test › G7 — densité prix × km (EX-DATA-102bis)` ; G7 observé (message d'ineffectif exact sous 40)
+EX-DATA-103	A	COUVERTE	sonde D7 `R-D7-15` (corrigée : mention avec mode, sans graine)
+EX-DATA-104	A	COUVERTE	sondes D4 `EX-DATA-104 — I1..I8`, `invariants.integration`, D3 `EX-DATA-104 (I1)`
+EX-DATA-105	A	COUVERTE	sonde D2 `open-points › O16 : 14 entités typées`
+EX-DATA-106	A	COUVERTE	`DataProvider.ts` l.164-185 : `announcedListingCount`, `duplicateValueConflictCount`, `unknownCountByField`, `versionStrippedRate`, `ingestFlagCounts` ; `SyntheticDataProvider.ts` l.237-253 les renseigne
+EX-DATA-107	A	COUVERTE	bandeau « Données synthétiques de démonstration » observé sur A, B, D, /mentions et pied de page ; sondes D8 `fallback › EX-DATA-107`, `shell-static › R-D8-08`, D3 `contract-labeling`		dette D-18 (provider réel non câblé) sans effet sur l'exigence
+EX-DATA-108	A	COUVERTE	sondes D2 `selection-codec › FULL:EMPTY`, `R-D2-05 (tri par identifiant)` ; `hash=1dcd2e7b7780b20b:35a0c206ac32bfef` (sonde D8 parcours)
+EX-DATA-109	A	COUVERTE	baseline précalculée (`fetchBaselineAggregates = 0 ms`, sonde D8 `EX-NFR-9`), LRU 32 (sonde D4 `lru-cache`), agrégats filtrés à la volée (sonde D4 `EX-DATA-109`)
+EX-DATA-110	A	PARTIELLE	budgets mesurés à N = 10⁵ (`npm run test:perf` : recalcul complet p95 165,5 ms, facettes p95 21,8 ms) ; N = 10⁶ non mesuré (hypothèse E4)	table de coûts à 10⁶ non mesurée (le budget opposable est EX-NFR-5, tenu)	—
+EX-DATA-110bis	A	COUVERTE	sonde D4 `EX-DATA-110bis — facettes en UN balayage` (p95 21,8 ms)
+EX-DATA-111	A	COUVERTE	sondes D4 `quantiles exacts type 7`, D3 `bornes du dictionnaire`, patho `VAL-KM-0-ET-1M`
+EX-DATA-112	A	COUVERTE	sonde D4 `EX-DATA-112 / EX-DATA-115 / ARB-55 — mémoire mesurée à N = 100 000 … ≈ 225 Mo à 10⁶ (dont index ≈ 23 Mo)` sous l'enveloppe 274 Mo (extrapolation E4)
+EX-DATA-113	A	COUVERTE	recalcul élagué modèle 0,10 ms, marque 54,1 ms p95 (`test:perf`) : la borne basse découle de la borne haute
+EX-DATA-114	A	COUVERTE	clés `(snapshotId, selectionHash, …)` : sonde D4 `lru-cache › clé jamais partagée entre deux jeux` ; types `entities.ts`
+EX-DATA-115	A	PARTIELLE	sonde D4 `EX-DATA-115/116 — IDX_MAKE / IDX_MODEL` verte ; sonde `les bitsets énumérés sont construits — DETTE : aucun chemin de calcul ne les consulte`	bitsets construits mais inutilisés	écart consigné dans la sonde D4 (dette de revue), non repris au §4 de REMEDIATION
+EX-DATA-115bis	A	PARTIELLE	sonde D2 `R-D2-17` verte (index `modelsByBodyType` + `bodyTypeIndexAvailable`) ; `bodyTypes = []` sur 4 955 modèles (O15)	index disponible et vide, donnée à fournir	point ouvert O15 (externe)
+EX-DATA-116	A	COUVERTE	sondes D4 `équivalence élagage / balayage complet (20 sélections)` (D-34 corrigée), `recalc.perf › élagage (facteur 12 500×)`
+EX-DATA-117	A	COUVERTE	tris observés (cartes par effectif, zones par effectif, G8 par score) ; `sort.test`, sonde D7 `EX-DATA-118`
+EX-DATA-118	A	COUVERTE	sondes D7 `l'échantillon est rendu trié par listingId croissant (ordre total)`, `scatter-sample.test`
+EX-DATA-119	A	COUVERTE	sondes D2 `dictionary-fields › disposition physique (8 champs)`, `19 colonnes … 2 champs de bits` ; `Int32Array` `makeId`, `Uint32Array` `ingestFlags` (D-01/D-02)
+EX-DATA-120	A	COUVERTE	sondes D2 `sentinelles typées`, D7 `EX-DATA-120 : une sentinelle du batch est décodée en —`, `validation.test`
+EX-DATA-121	A	COUVERTE	sonde D2 `EX-DATA-121 : les 5 champs textuels sont hors du chemin chaud`
+EX-DATA-122	A	COUVERTE	sondes D2 `garantie R3 structurelle du schéma colonnaire`, `provider-contract`
+EX-DATA-123	A	COUVERTE	`grep -ciE "contact|message|transaction" src/types/entities.ts` = 0
+EX-DATA-123bis	A	COUVERTE	sondes D6 `EX-DATA-123bis — colonnes normatives de l'export Agrégats mode 1`, D7 `ecran-d › export CSV`, `csv.test` (3 lignes de métadonnées, nom de fichier)
+EX-DATA-124	A	COUVERTE	exigence documentaire (décisions à contester en 2.2) : contestées et arbitrées (`REQ-STRESSTEST.md`, ARB-15/17/19)
+EX-DATA-125	A	COUVERTE	documentaire ; les trois décisions sont implémentées (seuil 12 : `effectifTier` ; K = 5 000 ; axe `firstRegistrationYear`)
+EX-DATA-126	A	PARTIELLE	les deux dettes annoncées « à solder avant le gel v1.0 » restent ouvertes : table postale `[EXTRAPOLÉ]` (DR-112), table carburant non relevée (EX-DATA-10)	obligation de solde non tenue	dette motivée DR-112 (E5) ; EX-DATA-10 non consignée (FV-20)
+EX-DATA-127	A	COUVERTE	documentaire ; aucun des trois champs `[À CONFIRMER]` n'est clé d'agrégation (`grep offerType\|vehicleType\|publicationState src/engine` = 0 clé de groupe)
