@@ -18,6 +18,7 @@
  * (`rawMetrics`), jamais `[p05, p95]`, même si l'écran affiche `displayRange` au même endroit.
  */
 
+import { roundHalfAwayFromZero } from './format';
 import type { MakeCardViewModel } from './view-model';
 
 /** `EX-DATA-123bis` — 15 colonnes normatives de l'export « Agrégats mode 1 » : effectif, médiane,
@@ -41,6 +42,18 @@ export interface AggregateCsvRow {
   readonly nKm: number;
 }
 
+/** `EX-DATA-64` (table B.2, note sous le tableau : « l'export CSV applique le même arrondi que
+ * l'écran ») + `ACC-17` — arrondit une valeur numérique brute à l'entier le plus proche (demi vers
+ * l'infini), pour le prix, le kilométrage ET l'année : les colonnes de ce fichier ne portent que des
+ * bornes `min`/`max` (valeurs OBSERVÉES, jamais interpolées, cf. `market/format.ts::
+ * YearBoundPosition`) et, pour le prix, `median`/`p5`/`p95` (quantiles interpolés) — la table
+ * n'exige le plancher/plafond que pour la POSITION d'un quantile d'ANNÉE, absente de cet export
+ * (`anneeMin`/`anneeMax` sont des `min`/`max`, jamais un `p05`/`p95` d'année). `null` traverse
+ * inchangé (`ET-CHAMP-MANQUANT`, jamais `0` par défaut). */
+function roundCsvValue(value: number | null): number | null {
+  return value === null ? null : roundHalfAwayFromZero(value);
+}
+
 /** Aplatit les cartes-marques en lignes d'export, une par couple marque/modèle actuellement
  * affiché (`EX-CRUD-15`). N'inclut PAS les modèles masqués par `EX-SCR-128` (déjà retirés de
  * `card.modelZones` en amont, dans `view-model.ts`) : l'export respecte les filtres actifs, y
@@ -54,15 +67,15 @@ export function buildAggregateCsvRows(cards: readonly MakeCardViewModel[]): read
         marque: card.label,
         modele: zone.label,
         offres: zone.listingCount,
-        prixMedianEur: zone.rawMetrics.price.p50,
-        prixP5Eur: zone.rawMetrics.price.p05,
-        prixP95Eur: zone.rawMetrics.price.p95,
-        prixMinEur: zone.rawMetrics.price.min,
-        prixMaxEur: zone.rawMetrics.price.max,
-        anneeMin: zone.rawMetrics.year.min,
-        anneeMax: zone.rawMetrics.year.max,
-        kilometrageMin: zone.rawMetrics.mileage.min,
-        kilometrageMax: zone.rawMetrics.mileage.max,
+        prixMedianEur: roundCsvValue(zone.rawMetrics.price.p50),
+        prixP5Eur: roundCsvValue(zone.rawMetrics.price.p05),
+        prixP95Eur: roundCsvValue(zone.rawMetrics.price.p95),
+        prixMinEur: roundCsvValue(zone.rawMetrics.price.min),
+        prixMaxEur: roundCsvValue(zone.rawMetrics.price.max),
+        anneeMin: roundCsvValue(zone.rawMetrics.year.min),
+        anneeMax: roundCsvValue(zone.rawMetrics.year.max),
+        kilometrageMin: roundCsvValue(zone.rawMetrics.mileage.min),
+        kilometrageMax: roundCsvValue(zone.rawMetrics.mileage.max),
         nPrix: zone.rawMetrics.price.n,
         nAnnee: zone.rawMetrics.year.n,
         nKm: zone.rawMetrics.mileage.n,
