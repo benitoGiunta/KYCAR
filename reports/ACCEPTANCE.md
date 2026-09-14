@@ -1,4 +1,298 @@
-# ACCEPTANCE — recette finale navigateur du MVP à données fictives (PLAN-3 §3.5, porte G9) — **rev 4 (delta)**
+# ACCEPTANCE — recette finale navigateur du MVP à données fictives (PLAN-3 §3.5, porte G9) — **rev 5 (état candidat au tag `v0.1.0`)**
+
+| | |
+|---|---|
+| **Date** | **2026-09-14, 10:14 → 11:05 UTC** (rev 5) ; rev 4 le 2026-09-14 08:27 → 09:25 sur `4314d93` ; rev 3 le 2026-09-14 00:07 → 01:05 sur `df574ed` ; rev 2 et rev 1 le 2026-09-08 (`947dbc4`, `1424dc3`) |
+| **Commit recetté** | **`e39b3d3`**, branche `claude/kycar-project-ffcplk`, arbre propre au départ, ports 4180 / 4173 libres, machine libre. Delta depuis `4314d93` : `git diff 4314d93..e39b3d3 --stat -- src tests` = **8 fichiers (+633 / −11)** — `src/app/source-navigation.ts` (neuf, 152), `src/app.tsx` (+76), `src/main.tsx` (+9), `src/screens/saved/SavedSearchesScreen.tsx` (+27), `saved.css` (+9) ; tests : `responsive.spec.ts` (sélecteur ACC-25, `0670917`), `source-fixture.spec.ts` (+4 tests ACC-26), sonde `tests/review/D8/source-acc-26.test.ts` (neuve). Commits : `0670917` (ACC-25), `186d35a` → `8dc0394` (`fix-app-5`, ACC-26), `e39b3d3` (D3-44). **`src/engine`, `src/providers`, `src/state`, `src/screens/market`, `src/screens/distribution`, `data/`, `tools/` intacts** |
+| **Agent** | `acceptance` rev 5 — même agent que les rev 3 et 4 (relancé par message), Fable, effort **max**, R5 (n'a construit ni le harnais ni les corrections) |
+| **Navigateur / outillage** | Chromium 141.0.7390.37 (`chromium-1194`, `executablePath`), `@playwright/test` 1.63.0, `@axe-core/playwright` 4.13.0, Node 22.22.2 |
+| **Serveurs** | suite : `npm run test:e2e` = build + `vite preview --port 4180 --strictPort` (seule sur la machine, 10:14 → 10:45) ; portes rapides 10:46 → 10:49 ; mesures ad hoc : mon `vite preview --port 4173 --strictPort` sur le même `dist/`, scripts lancés **un à la fois** (10:49 → 10:59), serveur arrêté à la fin |
+| **Source par défaut** | `fixture:test`, snapshot `be-20260921T060000Z` (19 986 servies) — inchangé ; recalcul indépendant de la rev 3 réutilisé tel quel (`data/` non modifié) |
+| **Build** | `npm run build` : **0 erreur, 0 warning**, 164 modules ; `npm run size` : **123,46 + 13,90 = 137,36 / 300 Kio** gzip (+0,70 Kio : `source-navigation.ts` et ses libellés) |
+| **Portes rejouées** | `test:contract` **105 / 105** (baseline servie 10 ms, annonces ingérées 3 388 ms, recalcul Σ p95 226,4 ms, filtré p95 17,8 ms) · `test:data` **153 / 153** ×2 (`KYCAR_DATA_PROFILE=test`, puis défaut) · `data:validate` **profil conforme** ×2 (gz 8 180 881 / 8 388 608 octets `test`, 2 083 639 / 2 097 152 `dev`) · `data:baseline --check` **artefacts conformes** ×2 (test 262 marques · 19 986 annonces · 121,3 / 121,2 Kio ; dev 135 · 4 997 · 64,0 Kio) · banc moteur non rejoué (`src/engine` intact depuis la rev 3 : FULL N = 100 000 p95 186,8 ms) |
+| **Écrits** | ce rapport (partie I rev 5 ; rev 4 en partie II, rev 3 en partie III, rev 2 / 1 en partie IV) ; **7 captures `R5-*.png`** (≤ 8) ; `reports/e2e/results.json` régénéré. Rien d'autre : `src/`, `tests/`, `tools/`, `data/`, `docs/` en lecture seule, aucun commit |
+
+---
+
+## 0. Rev 5 — ce qui a changé depuis la rev 4
+
+Décision **D3-44** : ACC-25 corrigé par le coordinateur (`0670917`, sélecteur `.kycar-footer-diagnostic > summary`, D-31) ; ACC-26 corrigé par **`fix-app-5`** (`8dc0394`) selon la règle « **la source servie est toujours celle que l'URL courante nomme** » (`src/app/source-navigation.ts` : `bootSourceOf`, `specOfUrl`, `decideSourceNavigation` → `internal` | `full` ; `navigate` passe en `location.assign` quand la spécification résolue diffère de celle amorcée ; garde `popstate` ; écran E : effectif actuel seulement pour les recherches créées sous la source servie, sinon « source : … (à la création) — ouvrir pour recalculer ») ; dette **D3-44a** (`SavedSearch` ne mémorise pas sa source hors de son URL). Cette rev 5 est **la suite complète sur l'état du tag**, et non un delta.
+
+| Où | Rev 4 (`4314d93`) | **Rev 5 (`e39b3d3`)** |
+|---|---|---|
+| Suite E2E (§2) | 372 tests : 338 verts, 3 attendus, 28 sautés, **3 inattendus** (ACC-25) | **384 tests (128 × 3) : 353 verts, 3 attendus (D8-15), 28 sautés, 0 inattendu, 0 instable** — 31,4 min ; +12 tests = ACC-26 × 4 × 3 projets, tous verts ; `responsive.spec.ts` « régime déclaré » vert sur les trois projets |
+| ACC-25 (§8) | MAJEUR de porte, ouvert | **CLOS** : suite verte ; ma mesure : **1** `<summary>` direct dans `.kycar-footer-diagnostic` (4 au total), régime « large / intermediate / compact » lu sur les trois viewports (§4.4) |
+| ACC-26 (§8) | MAJEUR, ouvert | **CLOS** : les deux sens croisés provoquent une **navigation complète** (témoin de document perdu, un chargement), l'URL, le Diagnostic, le bandeau et les effectifs nomment la même source ; la carte E d'une recherche d'une autre source **ne compare plus rien** ; réserve nommée **D3-44a** (recherche sans paramètre, §4.1 S3) |
+| ACC-19, ACC-20 (§8) | CLOS | **CLOS, non-régression** : conversion en une seule navigation interne, `provider=` conservé sur 10 étapes, ouverture d'une recherche de **même** source sans rechargement (§4.5) |
+| Navigation (§4.3) | — | **un seul chargement de document** sur tout P1 (desktop et mobile) et sur tout P2 (retours arrière compris) : la garde `popstate` ne recharge pas quand la source ne change pas |
+| Budgets (§6) | NFR-9 1 479–1 520 ms médians (max 1 585) ; NFR-5 p95 165 / 161 / 123 ms | **NFR-9 premier chiffre 1 476–1 531 ms médians (max 1 583)** sur `test` et `dev` ; NFR-5 p95 **159 / 194 / 106 ms** (série 1) et **154 / 188 / 105 ms** (série 2) ; NFR-6 / 7 / 8 tenues ; axe 24 + 13 à 0 ; bundle 137,36 Kio |
+| Nouveaux constats (§8.2) | ACC-25, ACC-26 | **ACC-27** (MINEUR, **préexistant**, hors delta) : à 768 et 360 px la seconde colonne de la grille du panneau Diagnostic mesure **0 px** — 8 lignes sur 16 illisibles quand le panneau est ouvert ; CSS inchangée depuis 2.8 |
+| Verdict (§9) | G9 non franchie en l'état (une condition) | **G9 FRANCHIE sous réserves nommées** ; avis : **livrer** — fusion `main` + tag `v0.1.0` sur `e39b3d3` |
+
+---
+
+## 1. Critères de la porte G9 (PLAN-3 §3.5) — recotés rev 5
+
+| Critère | Énoncé | Verdict rev 5 | Preuve |
+|---|---|---|---|
+| **G9-1** | E2E verts sur les trois projets | **ATTEINT** | `npm run test:e2e` complet sur `e39b3d3` : 384 tests, `stats: expected 356, skipped 28, unexpected 0, flaky 0` — 353 verts + 3 échecs attendus (D8-15, un par projet) + 28 sautés par contrat ; `reports/e2e/results.json` |
+| **G9-2** | 0 violation axe | **ATTEINT** | 24 / 24 (suite : A, B, C, D, E, F, /mentions, G × 3 projets) + 13 / 13 (ad hoc `axe.mjs` : A dense 217 zones / 216 cases, A parcours P1, B, D, feuille compacte) à 0 |
+| **G9-3** | budgets tenus | **ATTEINT** | NFR-9 premier chiffre max 1 583 ms (suite, tablet) / 1 488 ms (ad hoc) sur 45 mesures, budget 2 000 ; NFR-5 p95 ≤ 194 ms (budget 200) ; NFR-6 ≤ 226 (300) ; NFR-7 ≤ 40 (500) ; NFR-8 0 fenêtre en défaut ; bundle 137,36 / 300 Kio (§6) |
+| **G9-4** | bascule `?provider=synthetic` fonctionnelle | **ATTEINT** (réserve ACC-26 **levée**) | URL conservée à chaque écriture, F5 et changement d'écran ; **la source servie suit l'URL** y compris à l'ouverture d'une recherche enregistrée sous une autre source (navigation complète) ; source, étiquette, effectifs, Diagnostic cohérents ; réserve résiduelle D3-44a nommée à l'écran (§4.1) |
+| **G9-5** | `ACCEPTANCE.md` livré | **ATTEINT** | ce document (rev 5), 7 captures, `results.json` |
+| **G9-6** | dettes nommées | **ATTEINT** | §7 (D3-42a/b, D3-43a/b, D3-44a, ACC-22, ACC-23, ACC-27), §8 |
+
+---
+
+## 2. Décomptes E2E par projet (rev 5)
+
+`npm run test:e2e` sur `e39b3d3`, début 10:14:20 UTC, **1 884 s (31,4 min)**, une seule exécution, aucun rejeu. `stats: expected 356, skipped 28, unexpected 0, flaky 0`.
+
+| Projet | Total | Verts | Échecs attendus (D8-15) | Sautés | **Inattendus** | Instables | Durée cumulée |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `desktop` | 128 | 119 | 1 | 8 | **0** | 0 | 648,4 s |
+| `tablet` | 128 | 122 | 1 | 5 | **0** | 0 | 657,2 s |
+| `mobile` | 128 | 112 | 1 | 15 | **0** | 0 | 559,2 s |
+| **Total** | **384** | **353** | **3** | **28** | **0** | **0** | 1 864,8 s |
+
++12 tests depuis la rev 4 : `source-fixture` › ACC-26 (« enregistrée sous `?provider=synthetic`, rouverte depuis une page amorcée par défaut : la source suit l'URL », « … sous `?provider=fixture:test`, rouverte depuis une page amorcée SYNTHETIC : symétrique », « enregistrée SANS `?provider=` … listée dans une session SYNTHETIC : aucun écart », « MÊME source : l'ouverture reste une navigation INTERNE ») × 3 projets, **12 verts**. Les 28 sauts sont exactement ceux de la rev 4 (desktop 8, tablet 5, mobile 15 : gestes tactiles hors compact, régimes non concernés, brossage désactivé en compact, constats E2E-xx conditionnels). Les 3 échecs attendus sont `responsive.spec.ts:221` « DETTE D8-15 » (un par projet). Le test rouge de la rev 4 (`responsive.spec.ts` › régime déclaré, EX-NFR-18) est vert × 3 : `[MESURE] EX-NFR-18 — régime déclaré à desktop : large` / `tablet : intermediate` / `mobile : compact`.
+
+---
+
+## 3. Matrice — lignes recotées en rev 5
+
+Seules les lignes touchées par le delta ou par un constat nouveau sont reprises ; les autres lignes de la rev 3 (partie III §3) et de la rev 4 (partie II §3) restent valables et ont été rejouées vertes par la suite complète (P1/P2, persistance, partage d'URL, impression, clavier, ACC-02…16, C-R1-03/04/05, ACC-17…21, ACC-24).
+
+| Exigence | Rev 4 | **Rev 5** | Preuve |
+|---|---|---|---|
+| D-03 / DF-2 — l'URL est la déclaration partageable de la source ; la source servie est celle que l'URL nomme | PARTIELLE (ACC-26) | **TENUE** | §4.1 : S1, S2 (navigation complète), S3, S4, même source (interne) ; suite ACC-26 × 12 |
+| `EX-CRUD-1` / `3`, `EX-SCR-212` / `213` — recherches enregistrées, effectif actuel | PARTIELLE (ACC-26) | **TENUE** (réserve D3-44a) | carte d'une autre source : « source : … (à la création) — ouvrir pour recalculer », aucun `.kycar-saved-delta`, aucun « offres actuellement » ; carte de la même source : effectif actuel affiché ; `EX-CRUD-1` inchangée (`/marche?priceto=20000` au caractère près) |
+| `EX-NFR-18` régime déclaré | TENUE au rendu, test rouge (ACC-25) | **TENUE** | suite verte × 3 ; ma mesure §4.4 |
+| `EX-NAV-*` navigation interne (pas de rechargement hors changement de source) | — | **TENUE** | §4.3 : 1 chargement de document sur P1 desktop, P1 mobile, P2 ; retours arrière sans rechargement |
+| `EX-SCR-158` / `184` conversion du brossage (ACC-19) | TENUE | **TENUE** | §4.5 |
+| `EX-NAV-9`bis / D3-43 (b) `provider=` réservé (ACC-20) | TENUE | **TENUE** | §4.5 |
+| `EX-SCR-47` panneau Diagnostic | TENUE (ACC-24) | **PARTIELLE — ACC-27** (régimes intermédiaire et compact) | §4.6 : seconde colonne à 0 px à 768 / 360 px ; lisible à 1 280 px |
+| `EX-SCR-112/135/137` géométrie (ACC-22) | PARTIELLE | **PARTIELLE** (inchangé, admis D3-44) | — |
+| `EX-NFR-22` libellés d'erreur, `EX-NAV-9` décodage `mmmv` (ACC-23) | PARTIELLE | **PARTIELLE** (inchangé, admis D3-44) | — |
+
+---
+
+## 4. Revérification ciblée, capture à l'appui
+
+Scripts ad hoc (scratchpad, hors dépôt, sans import depuis `src/`) : `r5-acc26.mjs` (ACC-26, perdu / conservé, ACC-25), `r5-nav.mjs` (chargements de page P1 / P2, ACC-19, ACC-20), `r5-diag.mjs` (géométrie du Diagnostic, recapture). Témoin de document : une valeur posée sur `window` après le premier chargement ; elle survit à une navigation interne (`pushState` / `popstate`) et disparaît à une navigation complète. Compteurs : événement `load` de la page et requêtes de navigation du cadre principal.
+
+### 4.1 ACC-26 — la source servie est celle que l'URL nomme
+
+Préparation (un seul contexte, desktop) : trois recherches « Budget 20k … » enregistrées depuis `/marche?priceto=20000&provider=synthetic` (Diagnostic SYNTHETIC, 76 437 offres), `/marche?priceto=20000` (FIXTURE, 11 652) et `/marche?priceto=20000&provider=fixture:test` (FIXTURE, 11 652). `localStorage` : trois entrées `kycar:saved-searches/<uuid>` dont l'`url` est respectivement `/marche?priceto=20000&provider=synthetic`, `/marche?priceto=20000` et `/marche?priceto=20000&provider=fixture:test` — aucun champ de source hors de l'URL (D3-44a).
+
+| Scénario | Carte de l'écran E avant « Ouvrir » | Après « Ouvrir » |
+|---|---|---|
+| **S1** — session amorcée par **défaut** (`/recherches`), recherche créée sous `synthetic` | « Mode 1 · **76 437 offres à la création** · créée le 14 sept. 2026 · *source : synthétique (à la création) — ouvrir pour recalculer* » ; **aucun** `.kycar-saved-delta`, **aucun** « offres actuellement » (capture R5-ACC26-ecran-E-session-defaut-desktop) | **navigation complète** : témoin perdu, **1** chargement de document ; URL `/marche?priceto=20000&provider=synthetic` ; Diagnostic **SYNTHETIC** ; bandeau « Données synthétiques de démonstration — chiffres générés, sans valeur de marché réelle. » ; « 290 marques · 2 918 modèles · 76 437 offres » (capture R5-ACC26-ouvrir-synthetique-depuis-defaut-desktop) ; retour arrière → `/recherches` sous FIXTURE |
+| **S2** — session amorcée **`?provider=synthetic`** (`/recherches?provider=synthetic`), recherche créée sous `fixture:test` explicite | « 11 652 offres à la création · *source : fixtures, profil test (à la création) — ouvrir pour recalculer* », aucun delta (capture R5-ACC26-ecran-E-session-synthetique-desktop : la carte synthétique y affiche « 76 437 offres actuellement », les deux cartes fixtures ne comparent rien) | navigation complète (témoin perdu, 1 chargement) ; URL `/marche?priceto=20000&provider=fixture:test` ; Diagnostic **FIXTURE** ; bandeau « Jeu de données fictif à la forme AutoScout24 (profil test, 3 snapshots) — aucune annonce réelle. » ; 205 · 1 222 · 11 652 |
+| **S3** — session `synthetic`, recherche créée **sans paramètre** | « 11 652 offres à la création · *source : fixtures, profil test (à la création) — ouvrir pour recalculer* », aucun delta | **navigation interne** (témoin « S3 » conservé, 0 chargement) ; `navigate` reconduit le `provider=synthetic` de la session (ACC-20) → URL `/marche?priceto=20000&provider=synthetic`, Diagnostic **SYNTHETIC**, 76 437 offres. L'URL et l'écran sont d'accord ; la carte n'avait rien promis d'autre (« à la création », pas « rouvrir sur sa source »). C'est la limite nommée par `fix-app-5` §7 (2)–(3) et la dette **D3-44a** : l'utilisateur qui voudrait retrouver l'effectif de création doit revenir à une URL sans `provider=` |
+| **S4** — session par défaut, recherche créée sous `fixture:test` explicite | « 11 652 offres à la création · 11 652 offres actuellement » (spécification résolue = défaut) | navigation interne (témoin conservé), FIXTURE, 11 652 |
+| **Même source** — session `synthetic`, « Synthétique interne », écran E atteint par le menu (`/recherches?provider=synthetic`) | « 76 437 offres à la création · 76 437 offres actuellement » | navigation interne (témoin conservé), SYNTHETIC, 76 437 |
+
+Le garde de l'écran E coupe le **calcul** de l'écart et pas seulement son rendu (`delta` n'est évalué que si `otherSourceLabel === undefined`, lu dans `SavedSearchesScreen.tsx`) : le « − 64 785 offres depuis le 14/09 » de la rev 4 n'a plus de chemin. Aucune erreur de page sur l'ensemble des scénarios. Suite : les 4 tests ACC-26 × 3 projets verts, `[MESURE] ACC-26 — URL après Ouvrir : /marche?priceto=20000&provider=synthetic`, `… (sens inverse) : /marche?priceto=20000&provider=fixture:test`, `… témoin de document après Ouvrir (même source) : même document`. Verdict ACC-26 : **CLOS** (réserve D3-44a, visible et non trompeuse).
+
+### 4.2 ACC-26 — ce que la navigation complète perd et conserve
+
+Session par défaut : préférences posées (tri « Prix médian », sens croissant, « Masquer les modèles à moins de 3 offres » coché), deux zones cochées « Comparer », écran B atteint en interne, brossage posé, Diagnostic ouvert, écran E atteint par le menu, puis « Ouvrir » sur la recherche synthétique (navigation complète, 1 chargement).
+
+| État | Avant | Après la navigation complète | Verdict |
+|---|---|---|---|
+| Préférences `kycar:preferences` | `{"sortField":"median","sortDirection":"asc","hideSparseModels":true}` — sélecteur « Prix médian », bouton « Trier en ordre décroissant » (sens courant croissant), case cochée | **identiques** ; sélecteur, sens et case restitués sur l'écran A synthétique | **conservé** (localStorage) |
+| Recherches enregistrées | 3 entrées + index | 3 entrées + index | conservé |
+| Sélection de comparaison de session | lien « Comparer (2) » (aussi sur E avant l'ouverture) | « Comparer » | **perdu** — annoncé par `fix-app-5` §4 : elle désignait des modèles de l'autre source ; la forme partageable `/comparer?m=…` vit dans l'URL |
+| Panneau Diagnostic ouvert | ouvert | fermé | perdu (état éphémère) |
+| Brossage de l'écran B | URL `…?priceto=20000&selx=…&sely=…`, « 8 annonces sélectionnées » | après **deux retours arrière** (→ `/recherches` → B) : **URL identique**, « 8 annonces sélectionnées », Diagnostic FIXTURE | **conservé** par l'URL et l'historique |
+| Historique | — | `location.assign` ajoute une entrée ; les retours rejouent E puis B sous la source d'origine | conservé |
+
+Recapture (Opel Corsa) : brossage « 310 annonces sélectionnées » → navigation complète vers `?provider=synthetic` par l'URL → retour arrière → **même URL, « 310 annonces sélectionnées », FIXTURE** (capture R5-ACC26-retour-B-brossage-conserve-desktop). Rien n'est perdu en silence qui ait encore un sens après un changement de jeu de données.
+
+### 4.3 Chargements de page pendant P1 et P2 — un seul
+
+| Parcours | Étapes (toutes internes) | `load` | Requêtes de navigation | Témoin |
+|---|---|---:|---:|---|
+| **P1 desktop** | A nu (262 · 1 464 · 19 986) → filtres `?body=3&kmto=100000&priceto=20000` (31 · 69 · 146) → carte Volkswagen (`mmmv=74`) → zone Polo → B « Volkswagen Polo 149 offres · médiane 12 950 € · P25 9 990 € · P75 15 990 € · min 2 950 € – max 20 000 € » → D `/annonces` → retour arrière (B) | **1** | **1** | « P1 » intact à chaque étape (capture R5-P1-6-ecran-B-apres-retour-desktop) |
+| **P1 mobile** (feuille de filtres) | mêmes étapes, « 31 marques · 146 offres », B « Volkswagen Polo 149 offres » | **1** | **1** | intact |
+| **P2 desktop** | B Corsa `?priceto=20000` (331 offres) → projections Prix × année puis Nuée empilée → brossage (310) → conversion (308, 3 jetons, 1 entrée d'historique) → retour arrière (URL brossée, 310) → D → export CSV `kycar_Opel-Corsa_be-20260921T060000Z_20260914.csv` → retour B | **1** | **1** | « P2 » intact |
+| ACC-20 (`?provider=synthetic`) | chargement → filtre → carte → zone → annonces | **1** jusqu'au F5 volontaire | 1 | intact ; après F5 : mentions, retour Marché, E, « Ouvrir » même source **sans** nouveau chargement |
+
+La garde `popstate` n'a provoqué **aucun** rechargement sur un retour arrière de même source. Aucune navigation complète parasite. (Observation sans constat : revenir à la projection « Nuée empilée » laisse `g4v=a` explicite dans l'URL — paramètre en `historyMode: replace`, sans effet sur l'état.)
+
+### 4.4 ACC-25 — Diagnostic, régime déclaré
+
+| Viewport | `.kycar-footer-diagnostic > summary` | `summary` au total | « Régime d'affichage » | Source |
+|---|---:|---:|---|---|
+| 1 280 × 800 | **1** | 4 | large | FIXTURE |
+| 768 × 1 024 | **1** | 4 | intermediate | FIXTURE |
+| 360 × 740 | **1** | 4 | compact | FIXTURE |
+
+Le sélecteur corrigé (`> summary`) est non ambigu ; les trois `<summary>` imbriqués sont ceux des lignes pliées (ACC-24). Suite : test vert × 3. Verdict : **CLOS**.
+
+### 4.5 ACC-19 / ACC-20 — non-régression
+
+**ACC-19** (desktop, `/marche/54-opel/1918-corsa?priceto=20000`, projection « Nuée empilée ») : brossage « 310 annonces sélectionnées » → « Convertir la sélection en filtre » → URL `?fregfrom=1993&fregto=2024&g4v=a&kmfrom=15300&kmto=420000&pricefrom=500&priceto=19990` (plus de `selx` / `sely`), jetons « Prix : 500 € – 19 990 € », « Kilométrage : 15 300 km – 420 000 km », « Première immatriculation : 1993 – 2024 », en-tête **308 offres**, bandeau `ET-URL-CORRIGEE` « Paramètre « pricefrom » corrigé : borne ramenée au domaine, valeur retenue 500 », **une** entrée d'historique, **témoin conservé** ; retour arrière → URL brossée à l'identique, « 310 annonces sélectionnées » (capture R5-ACC19-conversion-desktop). Suite : ACC-19 × 2 projections × 2 projets verts, passage 3 « La sélection brossée tient déjà entièrement dans les filtres actifs : aucun filtre n'a été ajouté… ». **CLOS**.
+
+**ACC-20** (desktop, `/marche?provider=synthetic`) : chargement (SYNTHETIC, 294 · 3 021 · 100 000, aucun bandeau de correction) → `?priceto=20000&provider=synthetic` (290 · 2 918 · 76 437) → `?mmmv=74&priceto=20000&provider=synthetic` → `/marche/74-volkswagen/2084-golf?priceto=20000&provider=synthetic` → `/…/annonces?priceto=20000&provider=synthetic` → **F5** (SYNTHETIC, bandeau synthétique) → `/mentions?provider=synthetic` → `/marche?provider=synthetic` → `/recherches?provider=synthetic` → « Ouvrir » (même source) `/marche?priceto=20000&provider=synthetic`, SYNTHETIC, 76 437 ; `?provider=inconnu` conservé avec `ET-SOURCE-REPLI` (FIXTURE) ; `?provider=fixture:dev` lisible (135 · 820 · 4 997). Suite : ACC-20 × 3 × 3 verts. **CLOS**.
+
+### 4.6 Observation nouvelle — ACC-27 : la grille du Diagnostic à 768 et 360 px
+
+En ouvrant le panneau pour ACC-25 sur mobile, la capture R5-ACC25-diagnostic-mobile montre la seconde colonne du `<dl>` réduite à une lettre par ligne (« S o u r c e F I X T U R E … »). Mesure (`r5-diag.mjs`, `/marche`, panneau ouvert) :
+
+| Viewport | `grid-template-columns` résolue | Lignes dans une piste à 0 px | Hauteur du `<dl>` | Débordement du document |
+|---|---|---|---:|---|
+| 1 280 | `1124,02px 115,98px` | 0 / 16 (colonne droite étroite mais lisible) | 764 px | non |
+| 768 | **`728px 0px`** | **8 / 16** : Source, Annonces du snapshot, Code d'erreur, Requête canonique, Champs inconnus (par champ), Doublons détectés, Journal des rejets d'ingestion, Note de couverture | **6 844 px** | non |
+| 360 | **`320px 0px`** | **8 / 16** (les mêmes) | **6 844 px** | non |
+
+Cause probable (E4) : la règle `.kycar-footer-diagnostic dl { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); }` (2.8, `33899c1`, posée pour supprimer le débordement horizontal E2E-19) laisse la première piste prendre toute la largeur dès qu'une de ses lignes a une largeur intrinsèque supérieure au conteneur ; la seconde piste `minmax(0, 1fr)` tombe à 0. **Préexistant** : la règle est identique à `df574ed` et `4314d93` (vérifié par `git show`), le delta de cette rev n'y touche pas ; la rev 4 avait noté le déséquilibre sur desktop comme observation. « Régime d'affichage » est en première colonne (lisible), ce qui explique qu'EX-NFR-18 passe ; les tests lisent le DOM, pas le rendu. Sévérité **MINEUR** : panneau technique replié par défaut, information entière dans le DOM, provenance dite par ailleurs (bandeau, pied, `/mentions`). Correction attendue : une seule colonne sous 1 024 px (`grid-template-columns: 1fr`) ou `minmax(0, 1fr) minmax(0, 1fr)` — une ligne de CSS, **v0.1.1** (§8.2).
+
+---
+
+## 5. Accessibilité
+
+Suite : **24 / 24 balayages à 0 violation** (A, B, C, D, E, F, /mentions, G × 3 projets). Ad hoc (`axe.mjs`, tags wcag2a / wcag2aa / wcag21a / wcag21aa) : A dense (217 zones et 216 cases « Comparer » à 1 280 / 768 px, 144 à 360 px), A parcours P1, B Corsa, D Corsa, feuille de filtres compacte — **13 / 13 à 0** (1 règle « incomplete » par page, non décidable par axe, comme aux rev 3 et 4).
+
+---
+
+## 6. Budgets re-mesurés (machine libre, un script à la fois)
+
+### 6.1 `EX-NFR-9` — premier chiffre en 4G simulée (CDP 4 Mb/s ↓, 1 Mb/s ↑, 150 ms ; cache vidé)
+
+| Cas | Projet | Premier chiffre (5) | Médiane | Max | Kio avant le 1ᵉʳ chiffre | `baseline.json` `responseEnd` |
+|---|---|---|---:|---:|---:|---|
+| suite, `fixture:test` | desktop | 1502 1542 1504 1499 1503 | **1 503** | 1 542 | 253 | — |
+| | tablet | 1541 1583 1531 1510 1512 | **1 531** | 1 583 | 253 | — |
+| | mobile | 1506 1522 1513 1521 1510 | **1 513** | 1 522 | 253 | — |
+| ad hoc `fixture:test` | desktop | 1488 1481 1483 1481 1484 | **1 483** | 1 488 | 253 | 1 322–1 348 |
+| | tablet | 1482 1482 1478 1479 1482 | **1 482** | 1 482 | 253 | 1 325–1 346 |
+| | mobile | 1478 1472 1475 1480 1476 | **1 476** | 1 480 | 253 | 1 325–1 359 |
+| ad hoc **`fixture:dev`** | desktop | 1483 1477 1479 1476 1477 | **1 477** | 1 483 | 247 | 1 314–1 343 |
+| | tablet | 1477 1476 1473 1475 1476 | **1 476** | 1 477 | 247 | 1 310–1 338 |
+| | mobile | 1478 1474 1474 1477 1479 | **1 477** | 1 479 | 247 | 1 317–1 338 |
+
+45 mesures du premier chiffre, **maximum 1 583 ms** (budget 2 000) ; ossature suite 1 493 / 1 520 / 1 500 ms ; URL filtrée 1 488 / 1 497 / 1 493 ms ; C-R1-02 : « 2680 Kio transférés pour un snapshot de 2680 Kio (1,00 fois le fichier) » × 3 ; ad hoc : 0 entrée `.ndjson.gz` avant le premier chiffre, une seule ensuite (2 680 Kio `test`, 682 Kio `dev`) ; `baseline.json` 15 Kio (`test`) / 9 Kio (`dev`). **TENUE** — médianes dans ± 15 ms de la rev 4 (+1 Kio d'ossature).
+
+### 6.2 `EX-NFR-5` — application d'un filtre (clic → affichage mis à jour, `aria-busy` retombé)
+
+| Cas | Série | n | Valeurs (ms) | p50 | **p95** | max |
+|---|---|---:|---|---:|---:|---:|
+| mode 2, Golf 591 | 1 | 20 | 174 143 127 130 121 108 110 97 122 113 158 130 116 124 118 135 111 119 118 140 | 121,5 | **158,8** | 174 |
+| | 2 | 20 | 153 145 124 131 106 122 168 119 127 128 111 112 115 113 111 126 114 101 105 117 | 118 | **153,8** | 168 |
+| mode 2, Corsa synthétique 1 352 | 1 | 20 | 191 182 163 130 142 135 156 130 150 139 157 135 148 172 255 127 126 135 136 125 | 140,5 | **194,2** | 255 |
+| | 2 | 20 | 186 152 151 154 147 131 155 134 167 142 143 136 143 184 130 228 125 129 135 146 | 144,5 | **188,1** | 228 |
+| mode 1, sélection dense 11 652 | 1 | 12 | 111 75 71 94 92 59 66 81 101 77 75 73 | 76 | **105,5** | 111 |
+| | 2 | 12 | 104 72 72 86 78 68 79 76 107 75 72 62 | 75,5 | **105,3** | 107 |
+
+**TENUE** (budget 200 ms au p95) sur les deux séries. La cellule synthétique de 1 352 annonces — la plus grosse exercée — donne un p95 de 188–194 ms contre 161 ms en rev 4 : deux échantillons isolés (255, 228 ms) au milieu de série tirent le p95 ; les médianes (140,5 / 144,5) sont dans la variance des rev 3 et 4 (137,5 / 143). Je ne l'attribue pas au delta (E4) : `src/engine` et `src/screens/distribution` sont intacts, et la seule ligne nouvelle sur ce chemin est la décision de navigation dans `navigate` (une résolution de spécification par écriture d'URL, sans travail sur les données). À surveiller au prochain banc, pas un constat. Banc moteur : mesure de la rev 3 valable (FULL N = 100 000 p95 186,8 ms).
+
+### 6.3 `EX-NFR-6` / `7` / `8` (suite)
+NFR-6 : 178 / 157 / 138 ms médians (max 226 / 203 / 213) — TENUE. NFR-7 : 24 / 25 / 22 ms (max 33 / 27 / 40) — TENUE. NFR-8 : 92 / 92 / 91 fenêtres, **0 en défaut**, min 58 / 58 / 57 img/s — TENUE.
+
+### 6.4 `EX-NFR-10`
+137,36 / 300 Kio gzip (+0,70 Kio : module `source-navigation` et libellés courts des sources).
+
+---
+
+## 7. Dettes visibles (mis à jour rev 5)
+
+Reprend le §7 de la rev 3 (partie III) et celui de la rev 4 (partie II) ; état final au tag :
+
+| Dette | Où | En une phrase |
+|---|---|---|
+| **D3-42a** (ACC-18, écart de médiane A ↔ B) | zones et cartes de A, en-tête de B | Pour 159 modèles sur 1 464, la médiane de prix d'une zone de l'écran A diffère de celle de l'écran B du même modèle (Golf 9 900 € / 9 448 €) parce que le seuil de vraisemblance est calculé sur la sélection affichée ; l'écran A le dit en infobulle sur chaque statistique de prix ; recalcul par cellule en v0.1.1. |
+| **D3-42b** (C-3.5-03, densité P1) | parcours P1 | 146 offres · 31 marques, 3 marques à n ≥ 12 : le parcours cible montre surtout le régime « fourchette observée » ; accepté pour le MVP. |
+| **D3-43a** (écrêtage `pricefrom` à 500 €) | conversion brossage → filtre | Une sélection brossée contenant des annonces sous 500 € les perd à la conversion (310 → 308) ; le bandeau `ET-URL-CORRIGEE` le déclare. |
+| **D3-43b** (budget d'URL) | `EX-NAV-11` | Le plafond de 2 000 caractères ignore les ≈ 18 caractères de `provider=` ; invisible en pratique. |
+| **D3-44a** (source d'une recherche enregistrée) | écran E, `SavedSearch` | Une recherche ne mémorise sa source que par son URL ; celle qui n'en nomme aucune (créée sous la source par défaut) est, dans une session sur une autre source, **listée avec sa source de création et sans effectif actuel**, et **servie par la source de la session** à l'ouverture (§4.1 S3) — jamais un chiffre faux ; champ `sourceSpec` versionné en v0.1.1. Les entrées antérieures à ACC-20 sont traitées comme « source par défaut ». |
+| **ACC-22**, **ACC-23** (MINEUR, ouverts, admis D3-44) | écran A, messages | Bande de zone 81 / 115 px et 2 colonnes à 1 280 px ; codes d'erreur techniques, `mmmv` encodé non décodé, étiquette « profil perf » sur cache. |
+| **ACC-27** (MINEUR, nouveau, préexistant) | panneau Diagnostic à ≤ 768 px | Seconde colonne de la grille à 0 px : 8 lignes sur 16 (dont « Source ») illisibles quand le panneau est ouvert en régimes intermédiaire et compact ; lisible à 1 280 px ; une ligne de CSS (§4.6). |
+| D8-15, D8-29/37/36, O15/D8-20, D3-19/20/26/27/28, D3-39b/c, D3-40b, D3-34 (c)/(d), D8-32, DR-104 | — | inchangées (partie III §7). |
+
+---
+
+## 8. Constats
+
+### 8.1 Statut final ACC-01…26 (rev 5)
+
+| Id | Sév. | Statut rev 5 | Preuve |
+|---|---|---|---|
+| ACC-01 … ACC-10, ACC-12 … ACC-16 | — | **CLOS** (rev 2 / 2.10 / rev 3) | suite rev 5 verte sur les tests correspondants |
+| ACC-11 | MINEUR | **CLOS AVEC RÉSERVE** | couleur de l'anneau de focus ratifiée (2.10 §5.1) |
+| ACC-17 | MAJEUR | **CLOS** (rev 4) | suite verte (finition, parcours, sondes D6) ; `src/screens/market` et `distribution` intacts depuis |
+| ACC-18 | MAJEUR | **CLOS AVEC RÉSERVE** (D3-42a) | inchangé depuis la rev 4 |
+| ACC-19 | MAJEUR | **CLOS** | §4.5 ; suite × 6 verts |
+| ACC-20 | MAJEUR | **CLOS** | §4.5 ; suite × 9 verts |
+| ACC-21 | MAJEUR | **CLOS** (rev 4) | suite verte |
+| ACC-22 | MINEUR | **OUVERT** (admis D3-44) | inchangé |
+| ACC-23 | MINEUR | **OUVERT** (admis D3-44) | inchangé |
+| ACC-24 | MINEUR | **CLOS** | suite ACC-24 × 3 verts ; 16 lignes, note pliée |
+| **ACC-25** | MAJEUR (porte) | **CLOS** | §4.4 ; `responsive.spec.ts` vert × 3 dans la suite complète |
+| **ACC-26** | MAJEUR | **CLOS** (réserve D3-44a) | §4.1, §4.2 ; suite × 12 verts |
+
+### 8.2 Constats nouveaux de la rev 5
+
+| Id | Sév. | Exigence(s) | Constat et reproduction | Cause probable (E4) · correction attendue · qui |
+|---|---|---|---|---|
+| **ACC-27** | **MINEUR** (ne bloque ni la porte ni le tag) | `EX-SCR-47` (panneau Diagnostic), `EX-NFR-19` (régimes) | À 768 × 1 024 et 360 × 740, ouvrir « Diagnostic » (pied de page) affiche une grille dont la seconde colonne mesure **0 px** : « Source », « Annonces du snapshot », « Code d'erreur », « Requête canonique », « Champs inconnus (par champ) », « Doublons détectés », « Journal des rejets d'ingestion », « Note de couverture » s'empilent lettre par lettre ; hauteur du panneau 6 844 px (764 px à 1 280). Reproduction : `/marche` en 360 px → cliquer « Diagnostic » (capture R5-ACC25-diagnostic-mobile). Aucun débordement horizontal ; le DOM est complet ; à 1 280 px la colonne droite fait 116 px et reste lisible. | `src/app/app.css` `.kycar-footer-diagnostic dl { grid-template-columns: minmax(0, max-content) minmax(0, 1fr) }` (2.8) : la piste `max-content` absorbe toute la largeur. Correction : `grid-template-columns: 1fr` sous 1 024 px (ou deux pistes `minmax(0, 1fr)`), une sonde de géométrie dans `responsive.spec.ts` (largeur de chaque `dl > div` > 0). **fix-app / coordinateur, v0.1.1** ; préexistant (règle identique à `df574ed` et `4314d93`), donc hors du delta recetté — je ne demande pas de correction avant le tag. |
+
+### 8.3 Décisions (i)–(v) de la rev 3 — état final
+
+(i) `coverageNote` : ligne Diagnostic livrée (ACC-24 clos) ; (ii) quantiles non entiers : présentation conforme (ACC-17 clos) ; (iii) densité P1 : acceptée (D3-42b) ; (iv) en-tête 72 px : ratifié ; (v) écart A ↔ B : nommé en infobulle (D3-42 (1)), dette D3-42a. Aucune décision nouvelle n'est demandée par cette rev 5 ; ACC-27 est une dette proposée (v0.1.1).
+
+---
+
+## 9. Porte G9 recotée et avis de livraison définitif
+
+### **PORTE G9 (rev 5) : FRANCHIE SOUS RÉSERVES NOMMÉES**
+
+Les six conditions sont atteintes et prouvées sur `e39b3d3` par une **suite E2E complète** (384 tests, 0 inattendu, 0 instable, 3 échecs attendus D8-15), 37 balayages axe à 0, des budgets tenus avec marge (premier chiffre ≤ 1 583 ms pour 2 000 ; filtre p95 ≤ 194 ms pour 200), une bascule de source dont l'URL, l'écran et le Diagnostic ne se contredisent plus dans aucun des scénarios croisés, et des dettes toutes nommées. La condition qui manquait à la rev 4 (E2E verts) est remplie ; la réserve ACC-26 est levée. Réserves nommées, admises par D3-44 : ACC-22, ACC-23, D3-42a/b, D3-43a/b, D3-44a ; réserve nouvelle, MINEUR et préexistante : ACC-27.
+
+### Avis de livraison définitif (fusion `main` + tag `v0.1.0`) — **OUI, livrer `e39b3d3` tel quel**
+
+1. **L'état recetté est l'état du tag** : ne rien modifier entre cette recette et le tag — pas même la ligne de CSS d'ACC-27 —, sinon la suite complète serait à rejouer (31 min) pour que le tag reste couvert. ACC-27 va en v0.1.1 avec D3-42a et D3-44a.
+2. **Solide** : les cinq MAJEUR de la rev 3 et les deux de la rev 4 sont clos (ACC-17, 19, 20, 21, 24, 25, 26) ou nommés à l'écran (ACC-18) ; recalcul indépendant égal à l'écran ; un seul chargement de document sur les parcours cibles ; suite de contrat, données, validation, artefacts verts ; bundle 137,36 / 300 Kio.
+3. **À dire dans les notes de version** (ci-dessous) : la nature fictive des données, le rechargement de page lors d'un changement de source, la portée des recherches enregistrées entre sources (D3-44a), les dettes de présentation (ACC-22, ACC-23, ACC-27).
+
+### Notes de version v0.1.0 (finales)
+
+**Périmètre du MVP.** KYCAR v0.1.0 est un agrégateur analytique d'un marché de l'occasion : écran A (survol du marché : cartes-marques, zones-modèles, fourchettes de prix / année / kilométrage, 38 filtres, tri, export CSV des agrégats), écran B (distribution d'un modèle : en-tête statistique, histogrammes G1–G3 et graphes additionnels, nuage prix × année × kilométrage avec brossage, conversion du brossage en filtres, exports), écran D (annonces du modèle, tri, pagination, lien vers l'annonce d'origine), écran C (comparaison de 2 à 4 modèles), écrans E/F (recherches enregistrées, modèles suivis — stockage local uniquement), `/mentions`. Trois régimes responsive (1 280 / 768 / 360), accessibilité WCAG 2.1 A/AA automatisée à 0 violation, impression, clavier complet. Toute la navigation est interne (une seule page chargée par visite), sauf le changement de source de données.
+
+**Source de données : fictive.** L'application sert un **jeu de données fictif à la forme AutoScout24** (profil `test` : 3 snapshots hebdomadaires de 20 000 annonces, 19 986 servies après dédoublonnage, généré de façon déterministe, validé par schéma et par une revue indépendante). **Aucune annonce réelle, aucun lien avec AutoScout24** : la nature de la source est écrite sur chaque écran (bandeau), au pied de page, dans `/mentions`, dans le panneau Diagnostic et dans l'en-tête de chaque export CSV. Les agrégats de l'écran A sont précalculés et vérifiés à l'arrivée des annonces (premier chiffre ≈ 1,5 s en 4G). Quantiles de type 7 (EX-DATA-62), arrondis de présentation EX-DATA-64, axe année = première immatriculation.
+
+**Bascule de source (`?provider=`).** Paramètre d'URL, sans recompilation : `?provider=fixture:test` (défaut), `fixture:dev` (3 × 5 000), `synthetic` (100 000 annonces générées à la volée, bandeau « Données synthétiques de démonstration »), `fixture:perf` (non fourni : erreur explicite), `tweedehands` (refusé avec son motif). Le paramètre est **conservé** dans toutes les URL écrites par l'application (filtres, écrans, F5, recherches enregistrées). **La source servie est toujours celle que l'URL nomme** : changer de source — en éditant l'URL ou en rouvrant une recherche enregistrée sous une autre source — **recharge la page** ; les filtres, le brossage, les préférences de tri, les recherches enregistrées et l'historique sont conservés, la sélection de comparaison de session ne l'est pas. L'écran Recherches n'affiche l'effectif actuel que pour les recherches créées sous la source servie ; pour les autres, il nomme la source de création (« source : … (à la création) — ouvrir pour recalculer ») sans les comparer. Une recherche enregistrée **sans** paramètre de source (créée sous la source par défaut) est servie, à l'ouverture, par la source de la session en cours (D3-44a). Une valeur inconnue retombe sur le défaut en le disant (bandeau) et reste lisible dans l'URL.
+
+**Dettes et réserves connues.** D8-15 : pas de réglage « Assainissement KYCAR » (seuils par défaut). D8-29 / D8-37 : en mode 1, pas d'effectifs sur les cases ni de suggestions chiffrées à zéro résultat. O15 / D8-20 : le filtre Carrosserie ne s'applique pas au niveau modèle ; l'écran B le dit. D3-42a (ACC-18) : la médiane de prix d'un modèle peut différer entre l'écran A et l'écran B (seuil de vraisemblance calculé sur la sélection affichée) ; l'écran A le précise en infobulle. D3-42b (C-3.5-03) : le parcours « budget 20 000 €, coupé, < 100 000 km » ne retient que 146 offres sur ce jeu. D3-43a : la conversion d'un brossage écrête le prix plancher à 500 € en le déclarant. D3-43b : le plafond d'URL ignore le paramètre de source. D3-44a : voir bascule de source. ACC-22 : bandes de zone plus hautes que la maquette, 2 colonnes à 1 280 px. ACC-23 : codes d'erreur techniques dans les bandeaux de repli. ACC-27 : le panneau Diagnostic, ouvert à 768 px ou moins, rend sa seconde colonne illisible (lisible à 1 280 px ; correction v0.1.1). Couleur de l'anneau de focus (EX-SCR-87) et G7 absent en compact : écarts ratifiés. Données : D3-19/20 (densités par modèle), D3-26/27/28, D3-39b/c, D3-40b, D3-34 (c) (`fixture:perf` sans agrégats précalculés).
+
+---
+
+## Annexe — fichiers produits par la rev 5
+
+| Fichier | Contenu |
+|---|---|
+| `reports/ACCEPTANCE.md` | ce rapport (partie I rev 5 ; partie II rev 4 ; partie III rev 3 ; partie IV rev 2 et rev 1) |
+| `reports/acceptance/R5-ACC26-ecran-E-session-defaut-desktop.png` | écran E sous la source par défaut : carte synthétique « source : synthétique (à la création) — ouvrir pour recalculer », cartes fixtures « 11 652 offres actuellement » |
+| `reports/acceptance/R5-ACC26-ouvrir-synthetique-depuis-defaut-desktop.png` | après « Ouvrir » : écran A synthétique (bandeau, 290 · 2 918 · 76 437) — navigation complète |
+| `reports/acceptance/R5-ACC26-ecran-E-session-synthetique-desktop.png` | écran E sous `?provider=synthetic` : deux cartes fixtures sans effectif actuel ni delta, carte synthétique « 76 437 offres actuellement » |
+| `reports/acceptance/R5-ACC26-retour-B-brossage-conserve-desktop.png` | écran B Corsa après aller-retour cross-document : « 310 annonces sélectionnées » restituées par l'URL |
+| `reports/acceptance/R5-ACC25-diagnostic-mobile.png` | Diagnostic ouvert à 360 px (ACC-25 : un seul `summary` direct) — montre aussi ACC-27 |
+| `reports/acceptance/R5-ACC19-conversion-desktop.png` | conversion du brossage : 3 jetons, 308 offres, bandeau d'écrêtage à 500 € |
+| `reports/acceptance/R5-P1-6-ecran-B-apres-retour-desktop.png` | P1 : écran B Polo 149 offres après retour arrière depuis D, même document |
+| **Total** | **7 captures** (≤ 8) ; les 18 + 22 + 8 captures des rev 1–4 sont conservées |
+| `reports/e2e/results.json` | résultats Playwright de l'exécution rev 5 du 2026-09-14 10:14 UTC sur `e39b3d3` |
+
+Scripts (scratchpad, hors dépôt) : `nfr9.mjs`, `nfr5.mjs`, `axe.mjs` (rev 3, inchangés), `r5-acc26.mjs`, `r5-nav.mjs`, `r5-diag.mjs` ; journaux `r5-e2e.log`, `r5-contract.log`, `r5-data-*.log`, `r5-validate-*.log`, `r5-baseline-*.log`, `r5-nfr9.out`, `r5-nfr5*.out`, `r5-axe.out`.
+
+---
+---
+
+# Partie II — Historique conservé : rev 4 (`4314d93`, porte G9 non franchie sur ACC-25)
+
+Texte de la rev 4 reproduit tel quel ; ses titres sont préfixés « R4 · ». Ses conclusions sont remplacées par la partie I là où la rev 5 les a recotées.
+
+## R4 · ACCEPTANCE — recette finale navigateur du MVP à données fictives (PLAN-3 §3.5, porte G9) — rev 4 (delta)
 
 | | |
 |---|---|
@@ -14,7 +308,7 @@
 
 ---
 
-## 0. Rev 4 — ce qui a changé depuis la rev 3
+## R4 · 0. Rev 4 — ce qui a changé depuis la rev 3
 
 Décisions **D3-42** (commanditaire : ACC-18 → l'écran A nomme sa cellule, dette D3-42a ; C-3.5-03 accepté, dette D3-42b ; livraison approuvée après correctifs pré-tag) et **D3-43** (ratification de `fix-app-4` et `fix-screens-5`, dettes D3-43a/b). Lots recettés : **`fix-app-4`** (ACC-19, ACC-20, ACC-24), **`fix-screens-5`** (ACC-17, ACC-21, ACC-18 présentation), câblage `64926dd` (médiane d'immatriculation de l'écran B au plancher).
 
@@ -34,7 +328,7 @@ Décisions **D3-42** (commanditaire : ACC-18 → l'écran A nomme sa cellule, de
 
 ---
 
-## 1. Critères de la porte G9 (PLAN-3 §3.5) — recotés rev 4
+## R4 · 1. Critères de la porte G9 (PLAN-3 §3.5) — recotés rev 4
 
 | Critère | Énoncé | Verdict rev 4 | Preuve |
 |---|---|---|---|
@@ -47,7 +341,7 @@ Décisions **D3-42** (commanditaire : ACC-18 → l'écran A nomme sa cellule, de
 
 ---
 
-## 2. Décomptes E2E par projet (rev 4)
+## R4 · 2. Décomptes E2E par projet (rev 4)
 
 `npm run test:e2e` sur `4314d93`, début 08:27:25 UTC, **1 861 s (31,0 min)**. `stats: expected 341, skipped 28, unexpected 3, flaky 0`.
 
@@ -62,7 +356,7 @@ Décisions **D3-42** (commanditaire : ACC-18 → l'écran A nomme sa cellule, de
 
 ---
 
-## 3. Matrice — lignes recotées en rev 4
+## R4 · 3. Matrice — lignes recotées en rev 4
 
 Seules les lignes touchées par le delta sont reprises ; toutes les autres lignes de la rev 3 (§3 de la partie II) restent valables et ont été rejouées vertes par la suite (P1/P2, persistance, partage d'URL, impression, clavier, ACC-02…16, C-R1-03/04/05).
 
@@ -81,9 +375,9 @@ Seules les lignes touchées par le delta sont reprises ; toutes les autres ligne
 
 ---
 
-## 4. Revérification ciblée, capture à l'appui
+## R4 · 4. Revérification ciblée, capture à l'appui
 
-### 4.1 ACC-17, ACC-18, ACC-21 — écran A, écran B, CSV, contre le recalcul indépendant
+### R4 · 4.1 ACC-17, ACC-18, ACC-21 — écran A, écran B, CSV, contre le recalcul indépendant
 
 Attendus recalculés depuis `listings.ndjson.gz` (script de la rev 3, inchangé ; `data/` non modifié) : pour l'année, `[⌊p05⌋, ⌈p95⌉]` si n ≥ 12, sinon `[min, max]` ; pour la médiane de prix, le palier EX-SCR-33 (`n = 0` → « non calculable », `1` → « 1 seule offre », `2–4` → « n trop faible », sinon `médiane <arrondi demi-vers-l'infini>`).
 
@@ -100,7 +394,7 @@ Attendus recalculés depuis `listings.ndjson.gz` (script de la rev 3, inchangé 
 | ACC-21 : Aspid (n = 2), Morgan (1), Dangel (2), ACM (2) | « **1 modèle · 2 trop faible** », « **1 modèle · 1 seule offre** », « 2 modèles · 2 trop faible », « 1 modèle · 2 trop faible » ; zones cohérentes (« 2 trop faible », `n = 2`) ; Volkswagen (n ≥ 12) : « 54 modèles · médiane … » | palier EX-SCR-33, singulier | ✓ — capture R4-ACC21-aspid-desktop ; exhaustif : 171 marques à 1 ≤ n_prix ≤ 4 (rev 3 : 171), **0 médiane affichée sous le palier** (rev 3 : 171) ; 262 pluriels accordés |
 | ACC-18 : Golf | zone A « méd. 9 900 € » avec `title` « fourchette centrale (90 % des offres) — Prix calculé sur l'ensemble de la sélection affichée ici, … » et `aria-label` « 1 990 – 25 000 € — Prix calculé … » ; écran B « 591 offres · médiane 9 448 € · P25 5 159 € · P75 14 900 € · min 939 € – max 370 572 € · 1ʳᵉ immat. médiane 2018 » | recalcul : 9 900 (Σ snapshot) / 9 448 (cellule) | ✓ valeurs inchangées ; la mention est une **infobulle** (au survol) et un texte accessible, pas un texte visible — conforme à D3-42 (1) « infobulle/légende » |
 
-### 4.2 ACC-19 — conversion du brossage (desktop, `/marche/54-opel/1918-corsa?priceto=20000`)
+### R4 · 4.2 ACC-19 — conversion du brossage (desktop, `/marche/54-opel/1918-corsa?priceto=20000`)
 
 | Étape | Nuée empilée | Prix × année |
 |---|---|---|
@@ -111,7 +405,7 @@ Attendus recalculés depuis `listings.ndjson.gz` (script de la rev 3, inchangé 
 
 310 brossées → 308 filtrées : les deux annonces à 390–499 € sortent du filtre parce que `pricefrom` est écrêté au plancher AS24 de 500 € du domaine du filtre ; l'écrêtage est **déclaré** (D-03) — dette **D3-43a**. Capture R4-ACC19-conversion-desktop. Verdict : **CLOS**.
 
-### 4.3 ACC-20 — `provider=` à chaque écriture d'URL, et la recherche enregistrée
+### R4 · 4.3 ACC-20 — `provider=` à chaque écriture d'URL, et la recherche enregistrée
 
 | Étape (desktop, `/marche?provider=synthetic`) | URL | Source servie |
 |---|---|---|
@@ -126,25 +420,25 @@ Attendus recalculés depuis `listings.ndjson.gz` (script de la rev 3, inchangé 
 
 Verdict ACC-20 : **CLOS** (suite : 3 tests × 3 projets verts ; ad hoc : 8 étapes). La réserve ACC-26 est un cas distinct : la navigation **interne** vers une URL dont le `provider` diffère de la source amorcée par `main.tsx` ne peut pas changer de source (le provider est choisi au démarrage), et l'écran E compare des effectifs de deux sources.
 
-### 4.4 ACC-24 — note de couverture
+### R4 · 4.4 ACC-24 — note de couverture
 
 Panneau Diagnostic : **16 lignes**, la 16ᵉ « Note de couverture » repliée (`<details>`), résumé « Jeu de données FIXTURE (PLAN-3) : annonces FICTIVES à la forme AutoScout24, profil test, snapshot be-20260921T060000Z du… (1814 caractères) », texte entier de 1 814 caractères présent dans le document ; « Régime d'affichage : large » toujours lisible. Suite : ACC-24 vert ×3. Capture R4-ACC24-diagnostic-desktop. Verdict : **CLOS**. Deux effets de bord : (a) le seuil de repli (300 caractères) plie aussi « Champs inconnus (par champ) » (1 389) et « Drapeaux d'ingestion posés » (338) → **quatre `<summary>`** dans `.kycar-footer-diagnostic` → ACC-25 ; (b) la grille `<dl>` à deux colonnes se déséquilibre visuellement autour des lignes pliées (observation, sans constat).
 
-### 4.5 Non-régression (ACC-22, ACC-23, provenance, P2, mobile)
+### R4 · 4.5 Non-régression (ACC-22, ACC-23, provenance, P2, mobile)
 
 ACC-22 : en-tête 72 px, bande de zone 81 px (desktop) / 115 px (mobile), résumé 52 px, 2 colonnes à 1 280 px — inchangé, **OUVERT**. ACC-23 : `?mmmv=54%7C1918` toujours non décodé (déclaré non appliqué) ; `?provider=fixture:perf` en contexte neuf → `ET-ERREUR-PROVIDER` à 7 751 ms avec le code brut « Unexpected token '<', "<!doctype "… » et l'étiquette « profil perf » — inchangé, **OUVERT**. Provenance : bandeau, pied, Diagnostic `FIXTURE` inchangés. P2 : « Opel Corsa 331 offres · médiane 6 950 € · P25 3 990 € · P75 10 705 € · min 850 € – max 19 990 € · km médian 109 100 km · 1ʳᵉ immat. médiane 2018 · 38 % particuliers » (R4-P2-1-ecran-B-entete-desktop). Mobile P1 : « 31 marques · 146 offres », VW « 2016 – 2023 », aucun débordement.
 
 ---
 
-## 5. Accessibilité
+## R4 · 5. Accessibilité
 
 Suite : **24 / 24 balayages à 0 violation**. Ad hoc (`axe.mjs`, mêmes tags) sur les écrans modifiés : A dense avec 217 zones et 216 cases « Comparer » (notes de périmètre en `title`/`aria-label`, paliers de carte), A parcours P1, B, D, feuille compacte — **13 / 13 à 0**.
 
 ---
 
-## 6. Budgets re-mesurés (machine libre)
+## R4 · 6. Budgets re-mesurés (machine libre)
 
-### 6.1 `EX-NFR-9` — premier chiffre en 4G simulée
+### R4 · 6.1 `EX-NFR-9` — premier chiffre en 4G simulée
 
 | Cas | Projet | Premier chiffre (5) | Médiane | Max | Kio avant le 1ᵉʳ chiffre | `baseline.json` `responseEnd` |
 |---|---|---|---:|---:|---:|---|
@@ -160,7 +454,7 @@ Suite : **24 / 24 balayages à 0 violation**. Ad hoc (`axe.mjs`, mêmes tags) su
 
 45 mesures du premier chiffre, maximum 1 585 ms ; ossature suite 1 492 / 1 510 / 1 506 ms ; URL filtrée 1 490 / — / 1 492 ms ; C-R1-02 : « 2680 Kio transférés pour un snapshot de 2680 Kio (1,00 fois) » × 3 ; ad hoc : 0 entrée `.ndjson.gz` au premier chiffre, une seule ensuite (2 680 Kio `test`, 682 Kio `dev`). **TENUE**, +0 à +15 ms sur les médianes par rapport à la rev 3 (+0,85 Kio de script).
 
-### 6.2 `EX-NFR-5` — application d'un filtre (clic → affichage mis à jour, `aria-busy` retombé)
+### R4 · 6.2 `EX-NFR-5` — application d'un filtre (clic → affichage mis à jour, `aria-busy` retombé)
 
 | Cas | n | Série (ms) | p50 | **p95** | max |
 |---|---:|---|---:|---:|---:|
@@ -170,15 +464,15 @@ Suite : **24 / 24 balayages à 0 violation**. Ad hoc (`axe.mjs`, mêmes tags) su
 
 **TENUE** (budget 200 ms au p95). Les écrans ayant changé (notes de périmètre, paliers), le premier échantillon de chaque série porte le coût de première peinture (208 / 158 / 135 ms) ; les médianes sont dans la variance de la rev 3 (117 / 137,5 / 78). Banc moteur : `src/engine` non modifié par le delta, la mesure de la rev 3 (FULL N = 100 000 p95 186,8 ms) reste valable.
 
-### 6.3 `EX-NFR-6` / `7` / `8` (suite)
+### R4 · 6.3 `EX-NFR-6` / `7` / `8` (suite)
 NFR-6 : 162 / 170 / 146 ms médians (max 225 / 221 / 228) — TENUE. NFR-7 : 19 / 17 / 24 ms (max 23 / 32 / 26) — TENUE. NFR-8 : 92 / 93 / 92 fenêtres, **0 en défaut**, min 58 / 59 / 57 img/s — TENUE.
 
-### 6.4 `EX-NFR-10`
+### R4 · 6.4 `EX-NFR-10`
 136,66 / 300 Kio gzip (+0,85 Kio : codec des paramètres réservés, notes de périmètre, repli du Diagnostic).
 
 ---
 
-## 7. Dettes visibles (mis à jour rev 4)
+## R4 · 7. Dettes visibles (mis à jour rev 4)
 
 Reprend le §7 de la rev 3 (partie II), avec les entrées nouvelles :
 
@@ -194,9 +488,9 @@ Reprend le §7 de la rev 3 (partie II), avec les entrées nouvelles :
 
 ---
 
-## 8. Constats
+## R4 · 8. Constats
 
-### 8.1 Statut final ACC-01…24 (rev 4)
+### R4 · 8.1 Statut final ACC-01…24 (rev 4)
 
 | Id | Sév. | Statut rev 4 | Preuve |
 |---|---|---|---|
@@ -211,32 +505,32 @@ Reprend le §7 de la rev 3 (partie II), avec les entrées nouvelles :
 | ACC-23 | MINEUR | **OUVERT** | inchangé |
 | **ACC-24** | MINEUR | **CLOS** | §4.4 ; suite ACC-24 ×3 verts |
 
-### 8.2 Constats nouveaux de la rev 4
+### R4 · 8.2 Constats nouveaux de la rev 4
 
 | Id | Sév. | Exigence(s) | Constat et reproduction | Cause probable (E4) · correction attendue · qui |
 |---|---|---|---|---|
 | **ACC-25** | **MAJEUR** (bloque la porte G9-1, pas le produit) | critère G9 « E2E verts 3 projets » ; `EX-NFR-18` (test) | `responsive.spec.ts:38` échoue sur les trois projets : `strict mode violation: locator('.kycar-footer-diagnostic summary') resolved to 4 elements` — le `<summary>` du panneau, plus ceux de trois lignes repliées par ACC-24 (« Champs inconnus » 1 389 caractères, « Drapeaux d'ingestion » 338, « Note de couverture » 1 814 ; seuil de repli 300). Le produit est conforme : « Régime d'affichage : large / intermediate / compact » est lu sans ambiguïté par `.kycar-footer-diagnostic > summary` (ma mesure). Les lots ont rejoué leurs tests ciblés, pas ce test-ci. | `tests/e2e/responsive.spec.ts:32` : sélecteur à rendre non ambigu (`.kycar-footer-diagnostic > summary` ou `.first()`), justification D-31 (le DOM a légitimement gagné des `<details>` imbriqués) ; alternative produit : replier les lignes longues avec un `<button aria-expanded>` plutôt qu'un `<details>` imbriqué. **coordinateur (tests/e2e) ou fix-app**, puis rejeu ciblé `npx playwright test tests/e2e/responsive.spec.ts:38` sur les trois projets — une suite complète n'est pas nécessaire (aucun autre test n'emploie ce sélecteur : `grep` = 1 occurrence). |
 | **ACC-26** | **MAJEUR** (périmètre étroit : bascule de source explicite) | D-03 (l'URL est la déclaration partageable de la source), DF-2, `EX-SCR-212`/`213` (effectif actuel d'une recherche enregistrée) | Une recherche enregistrée depuis `/marche?priceto=20000&provider=synthetic` est stockée avec ce paramètre (D3-43 b) ; « Ouvrir » navigue **en interne** (`pushState`) vers `?priceto=20000&provider=synthetic` mais la source servie reste celle amorcée au démarrage (`FIXTURE`, 11 652 offres) : l'URL nomme `synthetic`, l'écran sert le jeu fictif par défaut, sans message ; la carte de l'écran E affiche « 76 437 offres à la création · 11 652 offres actuellement · − 64 785 offres depuis le 14/09 », un delta entre deux sources. Reproduction : `?provider=synthetic` → poser un filtre → « Enregistrer cette recherche » → `/recherches` → « Ouvrir ». Après F5 la source est bien `synthetic`. | `main.tsx` choisit le provider une fois ; `navigate` reconduit un `provider` **différent** de la source amorcée sans le détecter. Correction : quand la cible d'une navigation interne porte un `provider` ≠ spécification amorcée, faire une navigation complète (`location.assign`) ou retirer le paramètre en le disant ; l'écran E devrait calculer « effectif actuel » sur la même source ou signaler le changement. **fix-app** ; à reconsidérer dans D3-43 (b). Avant le tag si l'on tient à ce qu'une URL `provider=` ne mente jamais ; sinon, note de version. |
 
-### 8.3 Décisions (i)–(v) de la rev 3 — état après D3-42/D3-43
+### R4 · 8.3 Décisions (i)–(v) de la rev 3 — état après D3-42/D3-43
 
 (i) `coverageNote` : ligne Diagnostic livrée (ACC-24 clos) ; (ii) quantiles non entiers : présentation désormais conforme (ACC-17 clos) ; (iii) densité P1 : acceptée (D3-42b) ; (iv) en-tête 72 px : ratifié ; (v) écart A ↔ B : nommé en infobulle (D3-42 (1)), dette D3-42a.
 
 ---
 
-## 9. Porte G9 recotée et avis de livraison
+## R4 · 9. Porte G9 recotée et avis de livraison
 
-### **PORTE G9 (rev 4) : NON FRANCHIE EN L'ÉTAT — une condition sur six**
+### R4 · **PORTE G9 (rev 4) : NON FRANCHIE EN L'ÉTAT — une condition sur six**
 
 Cinq conditions sur six sont atteintes et prouvées sur `4314d93` (axe, budgets, bascule, rapport, dettes). La condition **« E2E verts sur les trois projets » n'est pas remplie** : trois échecs inattendus, un même test (`responsive.spec.ts:38`), une même cause (sélecteur ambigu depuis le repli des lignes longues du Diagnostic, ACC-25). Le produit qu'il mesure est conforme ; la correction tient dans une ligne de harnais (ou de balisage) et un rejeu ciblé sur les trois projets. **Dès que ce test repasse, la porte est franchie sous réserves nommées** (ACC-26, ACC-22, ACC-23, D3-42a/b, D3-43a/b) — je ne demande pas de nouvelle suite complète : rien d'autre n'a bougé entre `df574ed` et `4314d93` que ce que cette rev 4 a rejoué.
 
-### Avis de livraison (fusion `main` + tag `v0.1.0`) — **prêt avec réserves nommées, sous une condition**
+### R4 · Avis de livraison (fusion `main` + tag `v0.1.0`) — **prêt avec réserves nommées, sous une condition**
 
 1. **Condition** : remettre `responsive.spec.ts:38` au vert (ACC-25) et le rejouer sur les trois projets — la suite ne peut pas être livrée rouge, même pour une raison de harnais.
 2. **Recommandé avant le tag, non bloquant** : ACC-26 (une URL `provider=` qui ne correspond pas à la source servie contredit D-03 ; correction courte dans `navigate`), sinon la note de version doit dire « rechargez la page après avoir rouvert une recherche enregistrée sous une autre source ».
 3. **Solide** : les cinq MAJEUR de la rev 3 sont clos ou nommés à l'écran (ACC-17, 19, 20, 21 clos ; ACC-18 nommé, dette D3-42a) ; recalcul indépendant toujours égal à l'écran (années plancher/plafond comprises) ; budgets stables ; axe à zéro sur 37 balayages ; suite de contrat, données, validation, artefacts verts.
 
-### Notes de version v0.1.0 (proposition finalisée)
+### R4 · Notes de version v0.1.0 (proposition finalisée)
 
 **Périmètre du MVP.** KYCAR v0.1.0 est un agrégateur analytique d'un marché de l'occasion : écran A (survol du marché : cartes-marques, zones-modèles, fourchettes de prix / année / kilométrage, 38 filtres, tri, export CSV des agrégats), écran B (distribution d'un modèle : en-tête statistique, histogrammes G1–G3 et graphes additionnels, nuage prix × année × kilométrage avec brossage, conversion du brossage en filtres, exports), écran D (annonces du modèle, tri, pagination, lien vers l'annonce d'origine), écran C (comparaison de 2 à 4 modèles), écrans E/F (recherches enregistrées, modèles suivis — stockage local uniquement), `/mentions`. Trois régimes responsive (1 280 / 768 / 360), accessibilité WCAG 2.1 A/AA automatisée à 0 violation, impression, clavier complet.
 
@@ -248,7 +542,7 @@ Cinq conditions sur six sont atteintes et prouvées sur `4314d93` (axe, budgets,
 
 ---
 
-## Annexe — fichiers produits par la rev 4
+## R4 · Annexe — fichiers produits par la rev 4
 
 | Fichier | Contenu |
 |---|---|
@@ -268,7 +562,7 @@ Scripts (scratchpad, hors dépôt) : `nfr9.mjs`, `nfr5.mjs`, `axe.mjs`, `r4-a.mj
 ---
 ---
 
-# Partie II — Historique conservé : rev 3 (`df574ed`, porte G9 sous réserves)
+# Partie III — Historique conservé : rev 3 (`df574ed`, porte G9 sous réserves)
 
 Texte de la rev 3 reproduit tel quel ; ses titres sont préfixés « R3 · ». Ses conclusions sont remplacées par la partie I là où la rev 4 les a recotées.
 
@@ -686,7 +980,7 @@ Commandes et scripts (hors dépôt, scratchpad de session) : `recalc.mjs` (recal
 ---
 ---
 
-# Partie III — Historique conservé : rev 2 (`947dbc4`, porte G8) et rev 1 (`1424dc3`)
+# Partie IV — Historique conservé : rev 2 (`947dbc4`, porte G8) et rev 1 (`1424dc3`)
 
 Texte de la rev 2 reproduit tel quel (il contient lui-même la rev 1) ; ses titres sont préfixés « R2 · » pour rester retrouvables sans se confondre avec la partie I.
 
@@ -1102,5 +1396,6 @@ Hypothèses de cette recette (E4), toutes écrites comme telles : moteur Chromiu
 | `reports/acceptance/ACC-01-ecran-B-corsa-body-desktop.png` | **rev 2** — écran B Corsa `?body=3` : 1 352 offres, jeton « Carrosserie : Coupé », bandeau « Filtre Carrosserie non appliqué… » | rev 2 |
 | **Total** | **18 captures PNG (viewport, DPR 1)** | **≈ 1,7 Mo** (< 5 Mo) |
 | `reports/e2e/results.json` | résultats Playwright de l'exécution **rev 2** du 2026-09-08 23:25 UTC sur `947dbc4` (D8-33 : à commiter avec ce rapport) | régénéré |
+
 
 
