@@ -14,7 +14,12 @@
  *                                     selon `?provider=` puis `VITE_KYCAR_PROVIDER`, à défaut
  *                                     `fixture:test` (D3-01). Une spécification inconnue ou non
  *                                     câblée retombe sur le défaut AVEC un avertissement écrit dans
- *                                     la `coverageNote` du snapshot — jamais un repli muet.
+ *                                     la `coverageNote` du snapshot — jamais un repli muet. La
+ *                                     spécification amorcée est EXPOSÉE à la coquille (`bootSource`,
+ *                                     `ACC-26`) : une navigation interne vers une URL qui nomme une
+ *                                     AUTRE source devient une navigation complète, qui repasse
+ *                                     ici — l'URL ne peut donc jamais nommer une source que
+ *                                     l'application ne sert pas.
  *   3. `createAggregationEngine()`  — moteur piloté par le vrai Web Worker (calcul hors thread de
  *                                     rendu, ARCHITECTURE §1.3) ; injecté dans le contrôleur.
  *   4. `new DataController(...)`    — hôte d'orchestration (réessais, repli cache, chargement
@@ -29,6 +34,7 @@ import { loadReferenceData } from './orchestration/reference-loader';
 import { createAggregationEngine } from './engine/index';
 import { SyntheticDataProvider } from './providers/synthetic/index';
 import { resolveProvider, resolveProviderSpec, type ProviderSpec } from './providers/registry';
+import { bootSourceOf } from './app/source-navigation';
 import { createHttpFixtureLoader, warmFixtureMeta } from './providers/fixture/loaders/http';
 import type { FixtureLoader } from './providers/fixture/loaders/types';
 import {
@@ -106,6 +112,7 @@ async function bootstrap(): Promise<void> {
       referenceData={referenceData}
       stores={stores}
       providerSpec={selection.spec}
+      bootSource={bootSourceOf(search, env)}
       providerWarning={selection.warning}
       fixtureSnapshotCount={fixtureSnapshotCount}
     />,

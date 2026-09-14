@@ -47,3 +47,12 @@
 .kycar-saved-delta--down {
   color: var(--color-text-muted);
 }
+
+/* `ACC-26` — une recherche enregistrée sous une AUTRE source (`?provider=`) que celle amorcée :
+   sa source est NOMMÉE, sans chiffre et sans écart (l'effectif actuel porterait sur le jeu servi
+   ici, et sa soustraction à l'effectif figé d'un autre jeu n'aurait aucun sens). Teinte atténuée,
+   comme les autres lignes d'état de la carte : c'est une information, pas une alerte. */
+.kycar-saved-current--other-source {
+  color: var(--color-text-muted);
+  font-style: italic;
+}

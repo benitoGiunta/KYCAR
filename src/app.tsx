@@ -69,6 +69,13 @@ import {
   type AppView,
 } from './app/navigation';
 import { DIAGNOSTIC_FOLD_THRESHOLD, coverageNoteValue } from './app/diagnostics';
+import {
+  DEFAULT_BOOT_SOURCE,
+  decideSourceNavigation,
+  shortSourceLabel,
+  specOfUrl,
+  type BootSource,
+} from './app/source-navigation';
 import { removalPatchFor, topRestrictiveFilters } from './app/restrictive-filters';
 import { fixtureProfileOf, footerSourceLine, sourceNotice } from './app/source-notice';
 import { CapExceededError } from './persistence/index';
@@ -108,6 +115,13 @@ export interface AppProps {
   readonly providerWarning?: string | null;
   /** Nombre de snapshots du profil de fixtures servi, lu de l'index du profil. `null` = non su. */
   readonly fixtureSnapshotCount?: number | null;
+  /**
+   * `ACC-26` — spécification AMORCÉE par `main.tsx` (et celle qu'une URL sans `?provider=` vaudrait).
+   * Le provider est choisi UNE fois, au démarrage : la coquille doit savoir laquelle, pour refuser
+   * de pousser dans l'historique une URL qui nommerait une AUTRE source que celle qu'elle sert.
+   * Absente (tests, montage isolé) : l'amorçage neutre `DEFAULT_BOOT_SOURCE` (source par défaut).
+   */
+  readonly bootSource?: BootSource;
 }
 
 const PRIMER_SELECTIONS: Readonly<Record<PrimerShortcutId, SelectionState>> = {
@@ -189,6 +203,8 @@ export function App(props: AppProps): JSX.Element {
   const providerWarning = props.providerWarning ?? null;
 
   // ---- Localisation (source de vérité du rendu, EX-NAV-18) -------------------------------------
+  /** `ACC-26` — source AMORCÉE par `main.tsx`, jamais redevinée depuis `window.location`. */
+  const bootSource = props.bootSource ?? DEFAULT_BOOT_SOURCE;
   const [location, setLocation] = useState(currentLocation);
   const view = useMemo<AppView>(() => resolveView(location.pathname), [location.pathname]);
 
@@ -203,7 +219,20 @@ export function App(props: AppProps): JSX.Element {
    */
   const navigate = useCallback((url: string, mode: 'push' | 'replace' = 'push'): void => {
     const source = typeof window !== 'undefined' && window.location ? window.location.search : '';
+    // `ACC-20` — les paramètres RÉSERVÉS de l'URL courante (`provider`) sont reconduits ici, au
+    // point de passage unique des écritures d'URL, avant toute décision.
     const target = carryReservedParams(url, source);
+    const decision = decideSourceNavigation(target, bootSource);
+    // `ACC-26` — L'URL EST LA DÉCLARATION PARTAGEABLE DE LA SOURCE, ET L'ÉCRAN SERT CE QU'ELLE
+    // NOMME. `pushState` ne traverse pas `main.tsx` : le provider, le chargeur, le moteur et le
+    // contrôleur restent ceux de l'amorçage. Une cible qui RÉSOUT une autre spécification ne peut
+    // donc pas être servie ici — elle est prise par une navigation COMPLÈTE, qui ré-amorce
+    // l'application sur la source demandée. Le repli du registre est compris dans la comparaison :
+    // une valeur inconnue vaut le défaut, donc ne recharge rien quand le défaut est déjà servi.
+    if (decision.mode === 'full' && typeof window !== 'undefined' && typeof window.location?.assign === 'function') {
+      window.location.assign(target);
+      return;
+    }
     if (typeof window !== 'undefined' && window.history) {
       if (mode === 'replace') window.history.replaceState({}, '', target);
       else window.history.pushState({}, '', target);
@@ -212,14 +241,29 @@ export function App(props: AppProps): JSX.Element {
     const pathname = qIndex === -1 ? target : target.slice(0, qIndex);
     const search = qIndex === -1 ? '' : target.slice(qIndex);
     setLocation({ pathname, search });
-  }, []);
+  }, [bootSource]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const onPop = (): void => setLocation(currentLocation());
+    const onPop = (): void => {
+      // `ACC-26` — filet du RETOUR ARRIÈRE : une entrée d'historique restituée dans ce document
+      // (bfcache d'un document amorcé sous une autre source, entrée poussée avant un `F5`) pourrait
+      // nommer une source que ce document ne sert pas. On recharge alors, plutôt que d'afficher des
+      // chiffres qui contredisent l'URL. Le rechargement est idempotent : au retour, `main.tsx`
+      // amorce la source nommée, et la même vérification rend « interne ».
+      const here = currentLocation();
+      if (
+        decideSourceNavigation(`${here.pathname}${here.search}`, bootSource).mode === 'full' &&
+        typeof window.location?.reload === 'function'
+      ) {
+        window.location.reload();
+        return;
+      }
+      setLocation(here);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, []);
+  }, [bootSource]);
 
   // ---- Sélection de filtres dérivée de l'URL (deep-link, EX-NAV-21 corrections) -----------------
   /**
@@ -727,6 +771,16 @@ export function App(props: AppProps): JSX.Element {
    * `null` = indisponible (provider en échec) ; absent de la carte = pas encore résolu.
    */
   const [currentCounts, setCurrentCounts] = useState<ReadonlyMap<string, number | null>>(new Map());
+  /**
+   * `ACC-26` — recherches enregistrées sous une AUTRE source que celle amorcée : libellé court de
+   * la source qu'elles nomment. Leur effectif actuel n'est PAS calculé : il porterait sur le jeu
+   * servi ici, alors que l'effectif figé de la carte vient d'un autre jeu — la soustraction des deux
+   * (« − 64 785 offres depuis le 14/09 », recette rev 4) n'est un écart de marché sur aucune source.
+   * Le critère est la source de CRÉATION (celle qui a produit `effectifInitial`), pas celle que
+   * « Ouvrir » servira : une recherche enregistrée sans paramètre de source, listée dans une session
+   * amorcée ailleurs, tombe elle aussi dans ce cas — c'est le même écart entre deux jeux.
+   */
+  const [otherSourceById, setOtherSourceById] = useState<ReadonlyMap<string, string>>(new Map());
   useEffect(() => {
     if (start === null) return;
     if (view.kind !== 'savedSearches' && view.kind !== 'followed') return;
@@ -734,10 +788,21 @@ export function App(props: AppProps): JSX.Element {
     void (async () => {
       const next = new Map<string, number | null>();
       if (view.kind === 'savedSearches') {
+        const others = new Map<string, string>();
         for (const record of stores.saved.list()) {
+          // `ACC-26` — source de CRÉATION de la recherche, lue sur l'URL enregistrée TELLE QUELLE
+          // (sans reconduction) : c'est elle qui a produit l'`effectifInitial` figé de la carte.
+          // Une URL qui ne nomme aucune source a été enregistrée sous la source « sans paramètre »
+          // — depuis `ACC-20`, une session sur une autre source aurait porté le paramètre (E4).
+          const createdUnder = specOfUrl(record.value.url, bootSource);
+          if (createdUnder !== bootSource.spec) {
+            others.set(record.value.id, shortSourceLabel(createdUnder));
+            continue;
+          }
           const query = record.value.url.split('?')[1] ?? '';
           next.set(record.value.id, await controller.countForSelection(loadQuery(query).selection));
         }
+        if (live) setOtherSourceById(others);
       } else {
         for (const record of stores.followed.list()) {
           const { makeId, modelId } = record.value;
@@ -749,7 +814,7 @@ export function App(props: AppProps): JSX.Element {
     return () => {
       live = false;
     };
-  }, [view.kind, start, controller, stores, crudTick]);
+  }, [view.kind, start, controller, stores, crudTick, bootSource]);
 
   // ---- Handlers d'écran A -----------------------------------------------------------------------
   const prefs = stores.preferences.read();
@@ -1533,6 +1598,9 @@ export function App(props: AppProps): JSX.Element {
             saved={stores.saved.list()}
             recent={stores.recent.list()}
             currentCountById={currentCounts}
+            /* `ACC-26` — recherches d'une AUTRE source : leur carte NOMME cette source au lieu
+               d'afficher un effectif et un écart calculés sur le jeu servi ici. */
+            otherSourceById={otherSourceById}
             /* `EX-SCR-213` (`D8-31`, fix-screens-2 §8.2) — condition d'affichage de l'écart :
                il n'est rendu que si le snapshot a CHANGÉ depuis l'enregistrement. Absent ⇒ aucun
                écart, jamais un « + 0 ». */

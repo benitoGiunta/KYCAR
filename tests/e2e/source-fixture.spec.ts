@@ -12,7 +12,7 @@
  *      `?provider=` bascule la source de bout en bout (URL → registre → provider → étiquette), et
  *      une spécification inconnue retombe sur le défaut AVEC un avertissement VISIBLE.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 import {
   applyFilterSheet,
@@ -234,5 +234,145 @@ test.describe('ACC-24 — note de couverture du snapshot', () => {
     expect(texte.length).toBeGreaterThan(20);
     expect(texte).not.toBe('—');
     expect(texte).not.toBe('aucune');
+  });
+});
+
+/* ================================================================================================
+ * ACC-26 — la source SERVIE est toujours celle que l'URL COURANTE nomme (recette rev 4 §8)
+ * ================================================================================================
+ * Constat : une recherche enregistrée depuis `/marche?priceto=20000&provider=synthetic` est stockée
+ * avec son paramètre (D3-43 b), mais « Ouvrir » navigue EN INTERNE (`pushState`) : le provider ayant
+ * été choisi UNE fois au démarrage par `main.tsx`, l'URL nommait `synthetic` pendant que l'écran
+ * servait le jeu par défaut, sans un mot — et la carte de l'écran E comparait l'effectif figé d'une
+ * source à l'effectif actuel d'une AUTRE (« 76 437 à la création · 11 652 actuellement · − 64 785 »).
+ *
+ * Règle posée par la remédiation (`D-03`, `DF-2`) : **l'URL est la déclaration partageable de la
+ * source ; la source servie est toujours celle que l'URL courante nomme.** Toute navigation interne
+ * dont la cible RÉSOUT une spécification différente de celle amorcée devient une navigation
+ * COMPLÈTE (`location.assign`), qui fait ré-amorcer `main.tsx` sur la bonne source.
+ */
+test.describe('ACC-26 — ouvrir une recherche enregistrée sous une AUTRE source', () => {
+  /** Barre d'outils d'écran : enregistrement de la recherche courante (`EX-CRUD-1`). */
+  async function saveSearch(page: Page, name: string): Promise<void> {
+    await page.locator('.kycar-market-toolbar').getByRole('button', { name: 'Enregistrer cette recherche' }).first().click();
+    await page.getByPlaceholder('Nom de la recherche').fill(name);
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+    await expect(page.locator('.kycar-banner-message')).toContainText('Recherche enregistrée', { timeout: 20_000 });
+  }
+
+  const savedRow = (page: Page, name: string) => page.locator('.kycar-saved-row', { hasText: name });
+  const diagnosticSource = (page: Page) => page.locator('.kycar-footer-diagnostic dd').nth(1);
+
+  test('enregistrée sous ?provider=synthetic, rouverte depuis une page amorcée par DÉFAUT : la source suit l’URL', async ({
+    page,
+  }, testInfo) => {
+    await page.goto('/marche?priceto=20000&provider=synthetic', { waitUntil: 'commit' });
+    await waitForMarket(page);
+    await expect(diagnosticSource(page)).toHaveText('SYNTHETIC');
+    await saveSearch(page, 'Budget 20k synthétique');
+
+    // Page amorcée par DÉFAUT (`fixture:test`) : l'écran E liste une recherche d'une AUTRE source.
+    await open(page, '/recherches');
+    const row = savedRow(page, 'Budget 20k synthétique');
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    const carte = (await row.innerText()).replace(/\n+/g, ' · ');
+    mesure(testInfo, 'ACC-26 — carte d’une recherche d’une autre source', carte);
+
+    // `EX-SCR-212`/`213` : jamais un delta entre DEUX sources, ni un « effectif actuel » d'une autre.
+    await expect(row.locator('.kycar-saved-delta')).toHaveCount(0);
+    expect(carte).not.toMatch(/offres actuellement/);
+    expect(carte).toMatch(/source\s*:\s*synthétique/i);
+    expect(carte).toMatch(/ouvrir pour recalculer/i);
+
+    // « Ouvrir » : l'URL nomme `synthetic`, l'écran DOIT servir `synthetic`.
+    await row.getByRole('button', { name: 'Ouvrir' }).click();
+    await waitForMarket(page);
+    const url = new URL(page.url());
+    mesure(testInfo, 'ACC-26 — URL après Ouvrir', `${url.pathname}${url.search}`);
+    expect(url.searchParams.get('provider')).toBe('synthetic');
+    expect(url.searchParams.get('priceto')).toBe('20000');
+    await expect(diagnosticSource(page)).toHaveText('SYNTHETIC');
+    await expect(page.locator('.kycar-banner-source')).toContainText(/données synthétiques/i);
+  });
+
+  test('enregistrée sous ?provider=fixture:test, rouverte depuis une page amorcée SYNTHETIC : symétrique', async ({
+    page,
+  }, testInfo) => {
+    await page.goto('/marche?priceto=20000&provider=fixture:test', { waitUntil: 'commit' });
+    await waitForMarket(page);
+    await expect(diagnosticSource(page)).toHaveText('FIXTURE');
+    await saveSearch(page, 'Budget 20k fixtures');
+
+    await page.goto('/recherches?provider=synthetic', { waitUntil: 'commit' });
+    await expect(page.locator('#kycar-main h1').first()).toBeVisible({ timeout: 60_000 });
+    const row = savedRow(page, 'Budget 20k fixtures');
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    const carte = (await row.innerText()).replace(/\n+/g, ' · ');
+    mesure(testInfo, 'ACC-26 — carte (sens inverse)', carte);
+    await expect(row.locator('.kycar-saved-delta')).toHaveCount(0);
+    expect(carte).not.toMatch(/offres actuellement/);
+    expect(carte).toMatch(/source\s*:\s*fixtures, profil test/i);
+
+    await row.getByRole('button', { name: 'Ouvrir' }).click();
+    await waitForMarket(page);
+    const url = new URL(page.url());
+    mesure(testInfo, 'ACC-26 — URL après Ouvrir (sens inverse)', `${url.pathname}${url.search}`);
+    expect(url.searchParams.get('provider')).toBe('fixture:test');
+    await expect(diagnosticSource(page)).toHaveText('FIXTURE');
+    await expect(page.locator('.kycar-banner-source')).toContainText(FIXTURE_TEXT);
+  });
+
+  test('enregistrée SANS `?provider=` (donc sous la source par défaut), listée dans une session SYNTHETIC : aucun écart', async ({
+    page,
+  }, testInfo) => {
+    // Une recherche enregistrée depuis une URL qui ne NOMME aucune source a été créée sous la source
+    // par défaut (`ACC-20` garantit qu'une session non par défaut aurait porté le paramètre). Son
+    // effectif figé vient donc de CETTE source : la session synthétique qui la liste ne peut pas lui
+    // opposer un effectif actuel — ce serait le même écart entre deux sources qu'`ACC-26`.
+    await open(page, '/marche?priceto=20000');
+    await expect(diagnosticSource(page)).toHaveText('FIXTURE');
+    await saveSearch(page, 'Budget 20k par défaut');
+
+    await page.goto('/recherches?provider=synthetic', { waitUntil: 'commit' });
+    await expect(page.locator('#kycar-main h1').first()).toBeVisible({ timeout: 60_000 });
+    const row = savedRow(page, 'Budget 20k par défaut');
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    const carte = (await row.innerText()).replace(/\n+/g, ' · ');
+    mesure(testInfo, 'ACC-26 — carte d’une recherche enregistrée sans paramètre', carte);
+    await expect(row.locator('.kycar-saved-delta')).toHaveCount(0);
+    expect(carte).not.toMatch(/offres actuellement/);
+    expect(carte).toMatch(/source\s*:\s*fixtures, profil test/i);
+  });
+
+  test('MÊME source : l’ouverture reste une navigation INTERNE (aucun rechargement inutile)', async ({
+    page,
+  }, testInfo) => {
+    await page.goto('/marche?priceto=20000&provider=synthetic', { waitUntil: 'commit' });
+    await waitForMarket(page);
+    await saveSearch(page, 'Synthétique interne');
+
+    // Navigation interne vers l'écran E : le paramètre réservé voyage (`ACC-20`).
+    await openNav(page);
+    await page.getByRole('link', { name: 'Recherches', exact: true }).click();
+    await expect(page.locator('#kycar-main h1').first()).toBeVisible({ timeout: 20_000 });
+    expect(new URL(page.url()).searchParams.get('provider')).toBe('synthetic');
+
+    const row = savedRow(page, 'Synthétique interne');
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    // Même source : l'effectif actuel EST calculable, et il est affiché.
+    await expect(row.locator('.kycar-saved-current')).toContainText(/offres actuellement/, { timeout: 30_000 });
+
+    // Témoin de DOCUMENT : il ne survit qu'à une navigation interne.
+    await page.evaluate(() => {
+      (window as unknown as Record<string, unknown>)['__kycarAcc26'] = 'même document';
+    });
+    await row.getByRole('button', { name: 'Ouvrir' }).click();
+    await waitForMarket(page);
+    const temoin = await page.evaluate(
+      () => (window as unknown as Record<string, unknown>)['__kycarAcc26'] ?? null,
+    );
+    mesure(testInfo, 'ACC-26 — témoin de document après Ouvrir (même source)', String(temoin));
+    expect(temoin).toBe('même document');
+    await expect(diagnosticSource(page)).toHaveText('SYNTHETIC');
   });
 });
