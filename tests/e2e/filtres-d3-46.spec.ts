@@ -202,10 +202,10 @@ test('D3-46 (b) — panneau déplié : cartes en grille sur toute la largeur, sa
   const panel = await openAll(page, regime);
 
   const cards = panel.locator('.kycar-filter-card');
-  // La carte « Essentiels » en tête, puis une carte par groupe secondaire portant au moins un filtre
-  // non primaire (11 : `kilometrage` et `vendeur` n'ont que des primaires, déjà dans la barre ou
-  // dans « Essentiels » — chaque filtre n'apparaît qu'une fois).
-  expect(await cards.count()).toBeGreaterThanOrEqual(12);
+  // La carte « Essentiels » en tête, puis une carte par groupe d'`EX-SCR-93` portant au moins un
+  // filtre non primaire (12 sur 14 : `kilometrage` et `vendeur` n'ont que des primaires, déjà dans la
+  // barre ou dans « Essentiels » — chaque filtre n'apparaît qu'une fois).
+  expect(await cards.count()).toBe(13);
   await expect(cards.first()).toHaveAttribute('data-card', 'essentiels');
   await expect(panel.getByLabel('Rechercher un filtre')).toBeVisible();
   // Aucun filtre en double : un seul champ « Prix à » et une seule case « Coupé » sur la page.

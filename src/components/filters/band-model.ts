@@ -188,7 +188,7 @@ export function buildFilterCards(selection: SelectionState, regime: BandRegime):
     },
   ];
   for (const g of buildSecondaryGroups(selection)) {
-    const defs = g.defs.filter((d) => !d.primary);
+    const defs = g.defs.filter((d) => !isShownAsPrimary(d));
     const shown = defs.filter((d) => d.control !== 'none');
     if (shown.length === 0) continue;
     cards.push({
@@ -202,12 +202,22 @@ export function buildFilterCards(selection: SelectionState, regime: BandRegime):
   return cards;
 }
 
+/** Vrai si le filtre est rendu par un contrôle primaire (barre ou « Essentiels ») : un primaire, ou
+ * la borne haute d'un couple dont la borne basse est primaire (`kmto` sous `kmfrom`). */
+function isShownAsPrimary(def: FilterDef): boolean {
+  if (def.primary) return true;
+  if (def.scopeType === 'range_max' && def.pairedWith !== undefined) {
+    return FILTER_BY_ID.get(def.pairedWith)?.primary === true;
+  }
+  return false;
+}
+
 /**
  * `D3-46` (b) — carte à déplier pour un filtre trouvé par la recherche (`EX-SCR-79`) : la carte
  * « Essentiels » pour un primaire, la carte de son groupe sinon.
  */
 export function cardKeyOf(def: FilterDef): string {
-  return def.primary === true ? ESSENTIALS_CARD_KEY : def.group;
+  return isShownAsPrimary(def) ? ESSENTIALS_CARD_KEY : def.group;
 }
 
 /**

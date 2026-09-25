@@ -167,9 +167,18 @@ describe('R-D5-2.8-09 — EX-SCR-103 : `FilterBand` câble la dérivation vers l
   // Sonde STATIQUE du câblage, même convention que `tests/review/D8/shell-static.test.ts`.
   const source = readFileSync(resolve(process.cwd(), 'src/components/filters/FilterBand.tsx'), 'utf8');
 
-  it('la sélection taxonomique est dérivée par `withRouteTaxonomy`, pas recopiée à la main', () => {
+  /*
+   * D-31 — deux vérifications AMENDÉES par `ux-filters` (v0.1.1) au titre de D3-46 (c) : toute
+   * modification du bandeau, choix de l'écran G compris, va dans un BROUILLON (`draftSelection`)
+   * avant application. Le résumé du contrôle `Marque / Modèle` et le positionnement de l'écran G
+   * doivent donc montrer le choix EN ATTENTE : la dérivation part du brouillon (identique à la
+   * sélection appliquée quand il est propre). Le fait sondé — la dérivation passe par
+   * `withRouteTaxonomy` avec le couple de la route, jamais recopiée à la main — est inchangé ; et la
+   * feuille compacte n'a plus de dérivation séparée : elle rend le même `screenGSummary`.
+   */
+  it('la sélection taxonomique est dérivée par `withRouteTaxonomy` (du brouillon), pas recopiée à la main', () => {
     expect(source).toContain('withRouteTaxonomy');
-    expect(source).toMatch(/const taxonomySelection = withRouteTaxonomy\(selection, props\.mode, props\.routePair\)/);
+    expect(source).toMatch(/const taxonomySelection = withRouteTaxonomy\(draftSelection, props\.mode, props\.routePair\)/);
   });
 
   it('`screenGSummary` est calculé sur la sélection taxonomique, plus sur `selection`', () => {
@@ -183,6 +192,10 @@ describe('R-D5-2.8-09 — EX-SCR-103 : `FilterBand` câble la dérivation vers l
   });
 
   it('la feuille du régime compact dérive elle aussi son résumé du couple de la route', () => {
-    expect(source).toMatch(/mmmvSummary\(withRouteTaxonomy\(draftSelection, props\.mode, props\.routePair\), props\.referenceData\)/);
+    // Un seul résumé, dérivé du brouillon avec le couple de la route, rendu dans la barre, la carte
+    // « Essentiels » et la feuille compacte (qui partagent `FilterCards`).
+    expect(source).toMatch(/screenGSummary=\{screenGSummary\}/);
+    expect(source).not.toMatch(/mmmvSummary\(draftSelection,/);
+    expect(source).not.toMatch(/mmmvSummary\(selection,/);
   });
 });

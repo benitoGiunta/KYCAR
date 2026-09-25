@@ -242,3 +242,45 @@ describe('InteractionController — composition débounce + historique + recalcu
     expect(pushState).not.toHaveBeenCalled();
   });
 });
+
+describe('InteractionController.applyDraft — D3-46 (c) : une application, une entrée d’historique', () => {
+  const make = () => {
+    const opts = {
+      replaceState: vi.fn(),
+      pushState: vi.fn(),
+      recomputeLocal: vi.fn(),
+      reload: vi.fn(),
+    };
+    return { opts, controller: new InteractionController(opts) };
+  };
+
+  it('un lot de filtres R : un seul pushState, un recalcul local, aucun rechargement', () => {
+    const { opts, controller } = make();
+    controller.applyDraft('/marche?kmto=100000&priceto=20000', ['R']);
+    expect(opts.pushState).toHaveBeenCalledTimes(1);
+    expect(opts.pushState).toHaveBeenCalledWith('/marche?kmto=100000&priceto=20000');
+    expect(opts.replaceState).not.toHaveBeenCalled();
+    expect(opts.recomputeLocal).toHaveBeenCalledTimes(1);
+    expect(opts.reload).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(2000);
+    expect(opts.pushState).toHaveBeenCalledTimes(1);
+  });
+
+  it('un filtre T dans le lot : un seul pushState et un seul rechargement', () => {
+    const { opts, controller } = make();
+    controller.applyDraft('/marche?gear=A&priceto=20000', ['R', 'T']);
+    expect(opts.pushState).toHaveBeenCalledTimes(1);
+    expect(opts.reload).toHaveBeenCalledTimes(1);
+    expect(opts.recomputeLocal).not.toHaveBeenCalled();
+  });
+
+  it('abandonne toute application planifiée par scheduleChange encore en attente', () => {
+    const { opts, controller } = make();
+    const commit = vi.fn(() => '/marche?kwd=a');
+    controller.scheduleChange({ filterId: 'keyword', gesture: 'keystroke', control: 'text-field', cls: 'T', commit });
+    controller.applyDraft('/marche?kwd=abc', ['T']);
+    vi.advanceTimersByTime(2000);
+    expect(commit).not.toHaveBeenCalled();
+    expect(opts.pushState).toHaveBeenCalledTimes(1);
+  });
+});

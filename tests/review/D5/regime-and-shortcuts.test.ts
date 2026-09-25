@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   cascadeRemovalMessage,
-  deferredApplyLabel,
+  draftApplyLabel,
   isTypingTarget,
 } from '../../../src/components/filters/band-model';
 import { buildActiveFilterTokens, buildSearchDescription } from '../../../src/components/filters/labels';
@@ -90,18 +90,32 @@ describe('R-D5-31 — EX-SCR-73 : message de notification du retrait en cascade'
   });
 });
 
-describe('R-D5-32 — EX-SCR-97 : libellé du bouton d’application différée (régime compact)', () => {
-  it('effectif projeté connu : « Voir les <n> offres »', () => {
-    expect(deferredApplyLabel(1281)).toBe('Voir les 1 281 offres');
-    expect(deferredApplyLabel(1)).toBe('Voir les 1 offre');
+/*
+ * D-31 — sonde AMENDÉE par `ux-filters` (v0.1.1) au titre de la décision D3-46 (retour de test du
+ * commanditaire, `reports/data/DATA-LEAD-DECISIONS.md`). Ce que figeait l'ancienne rédaction : le
+ * libellé « Voir les <n> offres » du bouton de la seule feuille compacte (`deferredApplyLabel`).
+ * D3-46 (c) généralise l'application différée à TOUS les régimes : un bouton « Appliquer » unique
+ * (barre condensée, pied du panneau, pied de la feuille), qui affiche l'effectif prévisionnel
+ * (« Appliquer — 1 281 offres ») ou, tant qu'il n'est pas connu, le nombre de modifications
+ * (`draftApplyLabel`, `band-model.ts`). Les trois vérifications sont conservées à l'identique sur le
+ * nouveau libellé : effectif connu (singulier/pluriel), inconnu (jamais un chiffre inventé), nul
+ * (jamais « aucune offre » après un tiret).
+ */
+describe('R-D5-32 — EX-SCR-97 [amendée 3.6 — D3-46] : libellé du bouton « Appliquer » du brouillon', () => {
+  it('effectif projeté connu : « Appliquer — <n> offres »', () => {
+    expect(draftApplyLabel(1281, 2)).toBe('Appliquer — 1 281 offres');
+    expect(draftApplyLabel(1, 1)).toBe('Appliquer — 1 offre');
   });
 
-  it('effectif projeté inconnu (pas encore répondu) : libellé neutre, jamais un chiffre inventé', () => {
-    expect(deferredApplyLabel(undefined)).toBe('Voir les résultats');
+  it('effectif projeté inconnu (pas encore répondu) : nombre de modifications, jamais un chiffre inventé', () => {
+    expect(draftApplyLabel(undefined, 2)).toBe('Appliquer (2 modifications)');
+    expect(draftApplyLabel(undefined, 1)).toBe('Appliquer (1 modification)');
+    expect(draftApplyLabel(undefined, 0)).toBe('Appliquer');
   });
 
   it('effectif projeté nul : ne délègue pas à `formatOfferCount` (« aucune offre » serait boiteux ici)', () => {
-    expect(deferredApplyLabel(0)).not.toContain('aucune offre');
+    expect(draftApplyLabel(0, 1)).not.toContain('aucune offre');
+    expect(draftApplyLabel(0, 1)).toBe('Appliquer — 0 offre');
   });
 });
 
