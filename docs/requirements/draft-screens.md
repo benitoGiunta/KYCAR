@@ -453,7 +453,11 @@ d'un écran interne.
 +==========================================================================================+
 ```
 
-`EX-SCR-42` — **En-tête, hauteur fixe 48 px**, collant en haut (`position: sticky; top: 0`).
+`EX-SCR-42` — **En-tête, hauteur fixe 48 px**, **non collant** : il défile avec la page, fil
+d'Ariane et bandeaux d'état compris ; la seule région collante de la page est la barre condensée
+du bandeau de filtres (`EX-SCR-56`). Remplace : « collant en haut (`position: sticky; top: 0`) » —
+en-tête, fil d'Ariane et bandeau, tous collants, occupaient 243 à 318 px (un tiers de la page)
+une fois la page défilée (retour de test du commanditaire, `DATA-LEAD-DECISIONS.md` D3-46). [amendée 3.6 — D3-46]
 Contenu de gauche à droite : marque textuelle `KYCAR` (retour à `/marche` en conservant les
 filtres actifs), **exactement quatre** onglets de navigation principaux — `Marché`,
 `Comparer (n)`, `Recherches`, `Suivis (n)` —, et à droite le jeton de snapshot. `n` est
@@ -489,7 +493,8 @@ un menu contenant les segments masqués.
 | `/suivis` | `Marché > Modèles suivis` | idem |
 
 La hauteur du fil d'Ariane est fixe quel que soit le nombre de segments ; un segment trop long
-est tronqué selon `EX-SCR-13`, jamais replié sur deux lignes.
+est tronqué selon `EX-SCR-13`, jamais replié sur deux lignes. Le fil d'Ariane, porté par l'en-tête,
+**n'est pas collant** : il défile avec la page (`EX-SCR-42`). [amendée 3.6 — D3-46]
 
 `EX-SCR-46` — **Double compteur à droite du fil d'Ariane.** Deux nombres, séparés par une barre
 verticale : à gauche, `<n> offres` = effectif après application des filtres **hors** taxonomie
@@ -607,16 +612,42 @@ les écrans A, B, C et D l'incluent à l'identique.
 +------------------------------------------------------------------------------------------+
 ```
 
-`EX-SCR-55` — Le bandeau comporte **exactement quatre zones**, dans cet ordre vertical :
-(1) la **ligne primaire**, toujours visible ; (2) le **champ de recherche de filtre** ;
-(3) le **panneau des groupes secondaires**, replié par défaut ; (4) la **ligne des filtres
-actifs**, toujours visible dès qu'au moins un filtre est posé.
+`EX-SCR-55` — Le bandeau comporte, dans cet ordre : (1) une **barre condensée**, toujours
+visible et seule région collante de la page, portant **exactement trois filtres** — `Marque /
+Modèle` (sélecteur structuré ouvrant l'écran `G`, avec son résumé), `Prix` (intervalle),
+`Kilométrage` (intervalle) —, le bouton `Tous les filtres (<k>)` (`<k>` = `EX-SCR-91`) et, à
+l'extrémité droite, le compteur de résultats (`EX-SCR-78`) ou, dès que le brouillon diffère de la
+sélection appliquée, les boutons `Annuler` et `Appliquer` (`EX-SRCH-1…8`) ; (2) le **panneau
+`Tous les filtres`**, fermé par défaut, qui porte en tête le champ de recherche de filtre
+(`EX-SCR-79`) puis **une carte par groupe** : la carte `Essentiels` (les primaires d'`EX-SCR-59`
+qui ne sont pas dans la barre : 1ʳᵉ immatriculation, carburant, carrosserie, boîte de vitesses,
+type de vendeur, mot-clé) puis une carte par groupe d'`EX-SCR-93` portant au moins un filtre non
+primaire ; (3) la **ligne des filtres actifs**, visible dès qu'au moins un filtre est posé, **non
+collante** (elle suit le flux sous la barre et défile avec la page). Chaque filtre n'apparaît
+qu'une fois dans le bandeau. **Aucun défilement horizontal**, à aucun régime : une rangée qui ne
+tient pas se condense (champs rétrécissables, libellés masqués visuellement mais conservés dans le
+nom accessible) ou passe à la ligne, jamais `overflow-x`. Remplace : « exactement quatre zones —
+ligne primaire des neuf contrôles toujours visible, recherche, groupes secondaires, filtres
+actifs » (la ligne primaire défilait horizontalement sur 5 600 à 7 600 px). [amendée 3.6 — D3-46]
 
-`EX-SCR-56` — Le bandeau est **collant** sous l'en-tête. Replié il occupe 96 px ; déplié il
-occupe au maximum 320 px, sa zone (3) devenant défilante à l'intérieur. Il ne masque jamais
-plus de 40 % de la hauteur du viewport. Sur l'écran B, cette persistance est une exigence
-explicite du commanditaire : « sur la page de graphe, il est possible de mettre des filtres qui
-s'appliquent directement sur toute la page ».
+`EX-SCR-56` — **Collage et hauteurs.** Seule la barre condensée colle, en haut du viewport
+(`top: 0`) ; l'en-tête et le fil d'Ariane défilent (`EX-SCR-42`). **Hauteur collante totale**
+(tous éléments `sticky`/`fixed` en haut du viewport, mesurée après défilement) **≤ 64 px** en
+régimes `large` et `intermédiaire`, **≤ 56 px** en `compact` — jamais plus de 40 % du viewport.
+Le panneau `Tous les filtres` s'ouvre **en surimpression** sous la barre (aucun décalage de la
+page), borné à **70 % du viewport** barre comprise, avec défilement vertical interne et un pied
+fixe (`Fermer`, `Annuler`, `Appliquer`) toujours visible ; ses cartes sont **toutes dépliées** par
+défaut et disposées en **colonnes** (`column-width: 280px`, une carte n'est jamais coupée) sur toute
+la largeur de l'écran, sans trous ; l'ordre de tabulation suit l'ordre des colonnes. `Appliquer`
+depuis le panneau le **referme** (le focus revient au bouton `Tous les filtres`) pour montrer le
+résultat. `Échap` ou `Fermer`
+referment le panneau **sans appliquer** et **conservent le brouillon** (la barre continue de porter
+`Appliquer`), le focus revenant au bouton `Tous les filtres`. Aucune modification ni application ne
+réinitialise le défilement de la page ni celui du panneau, ni le focus. Sur l'écran B, la
+persistance de la barre reste l'exigence du commanditaire : « sur la page de graphe, il est
+possible de mettre des filtres qui s'appliquent directement sur toute la page ». Remplace :
+« collant sous l'en-tête ; replié 96 px ; déplié 320 px au plus, zone (3) défilante ; jamais plus
+de 40 % du viewport ». [amendée 3.6 — D3-46]
 
 ### 4.2 Classification des 101 filtres
 
@@ -657,6 +688,11 @@ La classe `R` du filtre primaire `Carrosserie` en mode 1 est justifiée par `Mod
 (`EX-DATA-105`) ; si `bodyTypes` est un tableau vide pour un modèle, ce modèle **ne satisfait
 aucun** prédicat `body` et la note d'exclusion `EX-SCR-178` annonce
 `<k> modèles sans carrosserie renseignée`.
+
+**Présentation `[amendée 3.6 — D3-46]`** : la liste des primaires ci-dessus est inchangée ; seuls les trois
+premiers contrôles (Marque / Modèle, Prix, Kilométrage) sont dans la barre condensée, les autres
+dans la carte `Essentiels` du panneau `Tous les filtres` (`EX-SCR-55`) — tous dans cette carte en
+régime `compact`. Remplace : « les huit contrôles sur la ligne primaire toujours visible ».
 
 `Pays` (`cy`) n'est **plus** un contrôle primaire : `EX-SRCH-18bis`/`D-15` en fait une valeur
 injectée par le `DataProvider` selon le marketplace du snapshot, jamais un filtre utilisateur —
@@ -762,7 +798,11 @@ Un paramètre de borne **isolée**, sans jumeau dans le catalogue — cas de `ls
 
 `EX-SCR-68` — **Validation d'intervalle.** Si `from > to`, les deux champs passent en bordure
 rouge, le message `La borne basse dépasse la borne haute` s'affiche sous le contrôle, et le
-filtre **n'est pas appliqué** ; l'ancienne valeur reste en vigueur. Aucune permutation
+filtre **n'est pas appliqué** ; l'ancienne valeur reste en vigueur. La validation (ordre des
+bornes, ramenage au domaine) s'exerce **à la validation du champ** — sortie du champ ou `Entrée` —
+et non à chaque frappe : une valeur intermédiaire (`2` en route vers `20000`) n'est ni ramenée ni
+refusée pendant la saisie, et ne modifie pas le brouillon. Remplace : validation à chaque frappe
+(qui réécrivait `2` en `500` sous les doigts de l'utilisateur). [amendée 3.6 — D3-46] Aucune permutation
 automatique des bornes : elle masquerait une faute de frappe. Cette règle porte
 **exclusivement** sur la saisie interactive dans le contrôle. Un intervalle inversé **reçu dans
 une URL** est permuté par `EX-NAV-22` : l'auteur d'une URL reçue n'est pas présent pour corriger
@@ -894,13 +934,16 @@ vers la source (`EX-SRCH-18bis`), invisibles dans le bandeau. La route survit (`
 Le bouton est désactivé quand aucun filtre n'est actif. Aucune confirmation : l'action est
 réversible par le retour arrière du navigateur.
 
-`EX-SCR-78` — **Compteur de résultats** à l'extrémité droite de la zone (4), au format
-`EX-SCR-10`, mis à jour à chaque changement. Pendant `ET-CHARGE-MAJ`, il affiche la valeur
+`EX-SCR-78` — **Compteur de résultats** à l'extrémité droite de la barre condensée (`EX-SCR-55`
+`[amendée 3.6 — D3-46]` ; remplace : « de la zone (4) »), au format `EX-SCR-10`, mis à jour à chaque
+changement appliqué ; tant que le brouillon est sale, il cède la place à `Annuler` / `Appliquer`,
+dont le libellé porte l'effectif prévisionnel. Pendant `ET-CHARGE-MAJ`, il affiche la valeur
 précédente atténuée suivie de `…`, jamais `0`.
 
 ### 4.6 Recherche de filtre
 
-`EX-SCR-79` — **Champ `Rechercher un filtre`**, zone (2), largeur 320 px en `large`. Il filtre
+`EX-SCR-79` — **Champ `Rechercher un filtre`**, en tête du panneau `Tous les filtres`
+(`[amendée 3.6 — D3-46]` ; remplace : « zone (2) »), largeur 320 px en `large`. Il filtre
 la liste des groupes et des contrôles sur trois index simultanés : le libellé français, le
 libellé anglais relevé, et le nom du paramètre d'URL (`kmto`, `bcol`). Justification de
 l'index sur le paramètre d'URL : il permet à un utilisateur avancé, ou à un test automatisé,
@@ -912,8 +955,9 @@ Zéro correspondance affiche `Aucun filtre ne correspond à « <saisie> »` plus
 plus proches par distance de Levenshtein ≤ 3.
 
 `EX-SCR-81` — Le champ est atteignable au clavier par `/` depuis n'importe où dans
-l'application, sauf lorsque le focus est déjà dans un champ de saisie. `Échap` le vide et
-referme les groupes ouverts par la recherche.
+l'application, sauf lorsque le focus est déjà dans un champ de saisie ; `/` ouvre d'abord le
+panneau `Tous les filtres` (la feuille en `compact`) qui le porte. `Échap` le vide ; champ déjà
+vide, `Échap` referme le panneau (`EX-SCR-56`). [amendée 3.6 — D3-46]
 
 ### 4.7 Affectation des 101 filtres
 
@@ -1128,7 +1172,12 @@ remplacé par `[3 filtres actifs]` à titre d'illustration. Au survol, le compte
 `Afficher les filtres secondaires`.
 
 `EX-SCR-92` — **Repliement des groupes.** Chaque groupe secondaire est replié par défaut, sauf
-ceux qui contiennent au moins un filtre actif, qui sont dépliés au chargement. L'état de
+ceux qui contiennent au moins un filtre actif, qui sont dépliés au chargement. Depuis
+`[amendée 3.6 — D3-46]`, chaque groupe est une **carte** du panneau `Tous les filtres` (en-tête repliable
+portant un chevron et `<n> filtres`, badge `<n> actifs`, `Réinitialiser`) ; **toutes les cartes sont
+dépliées par défaut** (« déplier tous les filtres en cartes ») ; un groupe
+dont tous les filtres sont primaires (`Kilométrage`, `Vendeur`) n'a pas de carte propre, ses
+filtres étant dans la barre ou dans `Essentiels`. L'état de
 repliement de chaque groupe est encodé dans l'URL. Le titre de groupe replié affiche toujours
 `<n> actifs` ou rien si zéro.
 
@@ -1166,25 +1215,35 @@ le second reste sans contrôle observable), hors budget de la remédiation 2.8. 
 qui l'exerce reste `it.fails`/`test.fail`, annoté `DETTE D8-15`, jusqu'à sa mise en œuvre.
 [amendée 2.8 — D8-15]
 
-`EX-SCR-96` — **Régime `intermédiaire` (768–1279 px).** La ligne primaire passe sur deux
-lignes de contrôles (5 puis 4), hauteur du bandeau replié 132 px. Le champ
-`Rechercher un filtre` perd son libellé et conserve son icône. Le panneau des groupes perd sa
-colonne de gauche : les groupes deviennent un accordéon pleine largeur.
+`EX-SCR-96` — **Régime `intermédiaire` (768–1279 px).** La barre condensée tient sur **une**
+rangée de 52 px : les libellés visibles des trois filtres sont masqués visuellement (conservés dans
+le nom accessible ; les champs portent `Prix min`, `Prix max`, `Km min`, `Km max`), le bouton
+affiche `Filtres (<k>)` (nom accessible `Tous les filtres (<k>)`) et `Appliquer` masque
+visuellement son effectif prévisionnel (annoncé par la région `aria-live`). Le panneau dispose ses
+cartes sur deux colonnes. Remplace : « ligne primaire sur deux lignes de contrôles (5 puis 4),
+bandeau replié 132 px ; accordéon pleine largeur ». [amendée 3.6 — D3-46]
 
-`EX-SCR-97` — **Régime `compact` (< 768 px).** Le bandeau se réduit à une **barre unique de
-56 px** portant : un bouton `Filtres (5)` de 44 px de haut, le compteur de résultats, et un
-défilement horizontal des jetons de filtres actifs. Le bouton ouvre une **feuille plein écran**
-comportant l'intégralité des groupes en accordéon, un pied collant avec
-`Réinitialiser` et `Voir les 1 281 offres`, et une croix de fermeture. Dans cette feuille, et
-dans ce seul cas, l'application est **différée** : les filtres ne s'appliquent qu'à la
-validation, afin d'éviter des rechargements successifs sur réseau mobile. Ce comportement est
-signalé par le libellé du bouton de validation, qui affiche l'effectif projeté.
+`EX-SCR-97` — **Régime `compact` (< 768 px).** La barre condensée se réduit à une **barre unique de
+56 px** portant un bouton `Filtres (<k>)` de 44 px de haut et le compteur de résultats — ou
+`Annuler` / `Appliquer` quand le brouillon est sale (la feuille refermée conserve le brouillon).
+Aucun jeton n'y défile : la ligne des filtres actifs, sous la barre, n'est pas collante et passe à
+la ligne. Le bouton ouvre une **feuille plein écran** portant `Réinitialiser` et `Fermer` en
+tête, la recherche de filtre et **toutes** les cartes sur une colonne (carte `Essentiels` avec les
+neuf primaires), un corps défilant et un pied fixe `Annuler` / `Appliquer — <n> offres`.
+L'application différée, qui n'était propre qu'à ce régime, est désormais celle de **tous** les
+régimes (`EX-SRCH-1…8`). Remplace : « barre de 56 px avec défilement horizontal des jetons ; pied
+`Réinitialiser` / `Voir les 1 281 offres` ; application différée dans ce seul cas ». [amendée 3.6 — D3-46]
 
 `EX-SCR-98` — En régime `compact`, l'histogramme miniature des contrôles d'intervalle
-(`EX-SCR-67`) est supprimé, et la liste de paliers devient une liste déroulante native.
+(`EX-SCR-67`) est supprimé, et la liste de paliers devient une liste déroulante native. Dans la
+barre condensée (tous régimes), les intervalles ne portent que leurs deux champs : les paliers
+suggérés sont offerts dans les cartes du panneau. [amendée 3.6 — D3-46]
 
 `EX-SCR-99` — **Accessibilité du bandeau.** Chaque groupe est un `<fieldset>` avec `<legend>`.
 La zone (4) est une région `aria-live="polite"` annonçant `<n> filtres actifs, <n> offres`.
+Une seconde région `aria-live="polite"` annonce l'état du brouillon (`<n> modifications en
+attente : <n> offres après application`) ; le bouton `Appliquer` porte dans son nom accessible
+l'effectif prévisionnel ou le nombre de modifications. [amendée 3.6 — D3-46]
 Le parcours au clavier suit l'ordre visuel ; `Tab` ne pénètre jamais dans un groupe replié.
 Contraste minimal 4,5:1 pour tout texte, 3:1 pour les bordures de contrôle.
 
@@ -1261,8 +1320,9 @@ ou plusieurs marques sans modèle, l'écran A reste affiché et la liste des car
 ```
 
 `EX-SCR-105` — L'écran A comporte **exactement trois blocs** dans la zone principale, dans cet
-ordre : (1) la **barre de synthèse et de tri**, hauteur fixe 44 px, collante sous le bandeau de
-filtres ; (2) la **grille de cartes-marques** ; (3) le **pied de grille** portant le compteur
+ordre : (1) la **barre de synthèse et de tri**, hauteur fixe 44 px, **non collante** (remplace :
+« collante sous le bandeau de filtres » — empilée sous la barre condensée, elle portait la hauteur
+collante au-delà du budget d'`EX-SCR-56`) [amendée 3.6 — D3-46] ; (2) la **grille de cartes-marques** ; (3) le **pied de grille** portant le compteur
 de progression et le bouton de chargement.
 
 `EX-SCR-106` — **Barre de synthèse.** Contenu exact, de gauche à droite :
@@ -1630,7 +1690,8 @@ cosmétique, et un `slug` erroné n'empêche pas l'affichage (redirection canoni
 ```
 
 `EX-SCR-141` — L'écran B comporte **exactement quatre blocs** dans la zone principale :
-(1) l'**en-tête statistique** de 76 px, collant sous le bandeau de filtres ;
+(1) l'**en-tête statistique** de 76 px, **non collant** (remplace : « collant sous le bandeau
+de filtres » — même motif qu'`EX-SCR-105`) [amendée 3.6 — D3-46] ;
 (2) la **rangée des trois histogrammes imposés** ;
 (3) la **vue tri-dimensionnelle `G4`**, seule à occuper toute la largeur ;
 (4) la **grille des graphes additionnels** `G5` à `G15`.

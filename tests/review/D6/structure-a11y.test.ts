@@ -65,6 +65,8 @@ function baseZone(partial: Partial<ModelZoneViewModel> = {}): ModelZoneViewModel
     year: { label: '2010 – 2025', caption: 'fourchette centrale (90 % des offres)', available: true },
     mileage: { label: '12 000 – 240 000 km', caption: 'fourchette centrale (90 % des offres)', available: true },
     medianLabel: 'méd. 17 400 €',
+    // D-31 (ux-filters, D3-46 retouche 4) : champ requis par `ModelZoneViewModel` depuis fix-screens-5 (ACC-18), ajouté au fixture sans changer d'assertion.
+    priceScopeNote: undefined,
     coverage: null,
     coverageLevel: 'indisponible',
     coverageTooltip: 'couverture d’échantillon indisponible',

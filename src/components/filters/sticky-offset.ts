@@ -1,63 +1,53 @@
 /**
- * KYCAR — Décalage de collage du bandeau de filtres (`EX-SCR-56`, ACC-02)
+ * KYCAR — Hauteur de la barre de filtres collante (`[amendée 3.6 — D3-46]` d'`EX-SCR-56`)
  * =================================================================================================
- * `EX-SCR-56` : « le bandeau est COLLANT SOUS L'EN-TÊTE ». Deux éléments frères ne peuvent pas se
- * coller l'un sous l'autre en CSS seul : `top` doit valoir la hauteur de l'en-tête, qui varie avec
- * le régime, le fil d'Ariane et les bandeaux d'état empilés (`EX-SCR-38`). On la MESURE donc, et on
- * la publie dans la variable `--kycar-band-top` que `app.css` lit sur `.kycar-filter-bar`.
+ * Avant `D3-46`, l'en-tête ET le bandeau collaient, l'un sous l'autre : il fallait mesurer la
+ * hauteur de l'en-tête pour placer le bandeau (`--kycar-band-top`). Le retour du commanditaire
+ * (« un tiers de la page bouffé ») a supprimé ce collage : l'en-tête et le fil d'Ariane défilent avec
+ * la page, et seule la BARRE CONDENSÉE du bandeau (`.kycar-band-bar`) colle, à `top: 0`. Il n'y a
+ * donc plus de décalage à publier sous l'en-tête.
  *
- * Le module est réduit à deux fonctions : `stickyTopPx` est PURE (testable sans DOM) et arrondit la
- * hauteur mesurée ; `observeHeaderHeight` branche un `ResizeObserver` (repli sur `resize` quand il
- * n'existe pas) et rend sa fonction d'arrêt. Aucun style n'est écrit ailleurs que dans cette
- * variable, et rien n'est fait hors navigateur.
+ * Reste un besoin : `scroll-padding-top` du document (`app.css`) doit valoir la hauteur de la barre,
+ * sans quoi `scrollIntoView` (ancres, prise de focus, `EX-NFR-12`) amène le contenu SOUS la barre,
+ * où il est recouvert. On la MESURE (elle varie avec le régime et l'état du brouillon) et on la
+ * publie dans `--kycar-band-height`. `stickyTopPx` est PURE (testable sans DOM).
  */
 
-/** Valeur de `top` (en px, entier) pour un en-tête de hauteur `headerHeight`. */
-export function stickyTopPx(headerHeight: number): number {
-  if (!Number.isFinite(headerHeight) || headerHeight <= 0) return 0;
-  return Math.round(headerHeight);
+/** Hauteur (en px, entier) publiée pour une barre de hauteur mesurée `height`. */
+export function stickyTopPx(height: number): number {
+  if (!Number.isFinite(height) || height <= 0) return 0;
+  return Math.round(height);
 }
 
-/** Sélecteur de l'en-tête collant de la coquille (`app.css`, `.kycar-header`). */
-export const APP_HEADER_SELECTOR = '.kycar-header';
+/** Sélecteur de la barre collante du bandeau (`filter-band.css`, `.kycar-band-bar`). */
+export const BAND_BAR_SELECTOR = '.kycar-band-bar';
 
-/** Nom de la variable CSS lue par `.kycar-filter-bar` (`app.css`). */
-export const BAND_TOP_VAR = '--kycar-band-top';
-
-/** Sélecteur du conteneur collant du bandeau (`app.css`, `.kycar-filter-bar`). */
-export const BAND_BAR_SELECTOR = '.kycar-filter-bar';
-
-/** Hauteur du bandeau collant, publiée pour le `scroll-padding-top` du document. */
+/** Hauteur de la barre collante, publiée pour le `scroll-padding-top` du document. */
 export const BAND_HEIGHT_VAR = '--kycar-band-height';
 
 /**
- * Publie en continu la hauteur de l'en-tête dans `--kycar-band-top` sur l'élément racine. Rend une
- * fonction d'arrêt (à appeler au démontage). Sans DOM, sans en-tête, ou sans `ResizeObserver`, le
- * comportement se dégrade sans jamais lever : la variable garde son défaut (`0px`), le bandeau colle
- * alors au haut du viewport plutôt qu'au bas de l'en-tête.
+ * Publie en continu la hauteur de la barre collante dans `--kycar-band-height` sur l'élément racine.
+ * Rend une fonction d'arrêt (à appeler au démontage). Sans DOM, sans barre, ou sans
+ * `ResizeObserver`, le comportement se dégrade sans jamais lever.
  */
-export function observeHeaderHeight(): () => void {
+export function observeBandHeight(bar: Element | null = null): () => void {
   if (typeof document === 'undefined') return () => undefined;
   const root = document.documentElement;
-  const header = document.querySelector(APP_HEADER_SELECTOR);
-  if (root === null || header === null) return () => undefined;
-  const bar = document.querySelector(BAND_BAR_SELECTOR);
+  const target = bar ?? document.querySelector(BAND_BAR_SELECTOR);
+  if (root === null || target === null) return () => undefined;
 
   const publish = (): void => {
-    root.style.setProperty(BAND_TOP_VAR, `${stickyTopPx(header.getBoundingClientRect().height)}px`);
-    // `--kycar-band-height` alimente le `scroll-padding-top` du document (`app.css`) : sans lui,
-    // `scrollIntoView` amène le contenu SOUS l'en-tête et le bandeau collants, où il est recouvert.
-    if (bar !== null) {
-      root.style.setProperty(BAND_HEIGHT_VAR, `${stickyTopPx(bar.getBoundingClientRect().height)}px`);
-    }
+    root.style.setProperty(BAND_HEIGHT_VAR, `${stickyTopPx(target.getBoundingClientRect().height)}px`);
   };
   publish();
 
   if (typeof ResizeObserver === 'function') {
     const ro = new ResizeObserver(publish);
-    ro.observe(header);
-    if (bar !== null) ro.observe(bar);
-    return () => ro.disconnect();
+    ro.observe(target);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty(BAND_HEIGHT_VAR);
+    };
   }
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', publish);

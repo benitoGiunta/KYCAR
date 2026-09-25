@@ -21,6 +21,13 @@
  *     dernier changement reçu — un nouveau changement REMPLACE le recalcul en attente, jamais ne
  *     s'y ajoute (« au plus un recalcul en attente à tout instant », aucune file).
  *
+ * `D3-46` (v0.1.1, `[amendée 3.6 — D3-46]` d'`EX-SRCH-1…8`) : le bandeau n'appelle PLUS
+ * `scheduleChange` — plus aucune application automatique après débounce. Toute modification va
+ * dans un brouillon (`draft.ts`) et s'applique d'un bloc par `applyDraft` (une entrée
+ * d'historique, scission `T`/`R` du lot). `scheduleChange` et le regroupeur restent le mécanisme
+ * de référence de la table `EX-SRCH` (sondés par `interaction.test.ts`/`D5`), sans appelant
+ * d'application dans le bandeau.
+ *
  * Ce module ne connaît ni l'état de sélection ni le codec d'URL : il reçoit de l'appelant un
  * `computeUrl()` (rappelé APRÈS que l'appelant a appliqué le changement, pour lire l'URL à jour) et
  * des callbacks `replaceState`/`pushState`/`recomputeLocal`/`reload`. Ce découplage le rend
@@ -252,6 +259,22 @@ export class InteractionController {
   /** Cas toujours `pushState`, hors débounce (`EX-NAV-14`) : route, réinitialisation, pagination. */
   forcePush(url: string): void {
     this.history.forcePush(url);
+  }
+
+  /**
+   * `D3-46` (c) — application EXPLICITE d'un brouillon (« Appliquer », Entrée) : UNE seule entrée
+   * d'historique (`pushState`, comme `ACC-19`), quel que soit le nombre de filtres modifiés, puis la
+   * scission `T`/`R` du lot appliqué — un filtre `T` modifié ⇒ un rechargement `DataProvider`
+   * (qui recalcule aussi ce que les `R` demandaient) ; sinon, des `R` seuls ⇒ un recalcul local,
+   * passé par l'absorbeur de rafales `EX-SRCH-1bis`. Toute minuterie `scheduleChange` encore en
+   * attente est abandonnée : le brouillon appliqué la contient déjà.
+   */
+  applyDraft(url: string, classes: readonly FilterClass[]): void {
+    for (const t of this.pendingByFilter.values()) clearTimeout(t);
+    this.pendingByFilter.clear();
+    this.history.forcePush(url);
+    if (classes.includes('T')) this.opts.reload();
+    else if (classes.includes('R')) this.rBurst.notifyChange();
   }
 
   get isGroupingHistory(): boolean {

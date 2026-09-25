@@ -6,13 +6,21 @@
  */
 
 /*
- * `EX-SCR-56` (ACC-02) — l'en-tête et le bandeau de filtres sont COLLANTS : sans marge de
- * défilement, `scrollIntoView` (ancres, prise de focus, `EX-NFR-12`) amène le contenu visé SOUS eux,
- * où il est recouvert et où un clic tombe sur le bandeau. `scroll-padding-top` réserve exactement
- * leur hauteur cumulée, publiée par `src/components/filters/sticky-offset.ts`.
+ * `[amendée 3.6 — D3-46]` — seule la BARRE CONDENSÉE du bandeau de filtres colle (`top: 0`) ;
+ * l'en-tête et le fil d'Ariane défilent avec la page. Sans marge de défilement, `scrollIntoView`
+ * (ancres, prise de focus, `EX-NFR-12`) amènerait le contenu visé SOUS la barre, où il est recouvert.
+ * La marge est posée sur le CONTENU (`scroll-margin-top`, hauteur publiée par
+ * `src/components/filters/sticky-offset.ts` dans `--kycar-band-height`), et non plus sur le document
+ * (`scroll-padding-top`) : un `scroll-padding-top` s'appliquait aussi aux champs de la barre collante
+ * elle-même — le navigateur, pour « montrer » le curseur d'un champ situé dans cette bande réservée,
+ * faisait remonter la page de ~31 px à CHAQUE frappe (mesuré : 400 → 406 → 375 → 344 px), et tout
+ * en haut au clic. C'est la perte de position dont se plaignait le commanditaire.
  */
-:root {
-  scroll-padding-top: calc(var(--kycar-band-top, 0px) + var(--kycar-band-height, 0px));
+.kycar-main,
+.kycar-main *,
+.kycar-footer,
+.kycar-footer * {
+  scroll-margin-top: calc(var(--kycar-band-height, 0px) + var(--space-2));
 }
 
 .kycar-app {
@@ -54,10 +62,10 @@
 }
 
 /* ---- En-tête + navigation --------------------------------------------------------------------- */
+/* `EX-SCR-42` `[amendée 3.6 — D3-46]` : l'en-tête n'est PLUS collant — il défile avec la page (retour
+   du commanditaire : en-tête + fil d'Ariane + bandeau collants mangeaient un tiers de la hauteur). */
 .kycar-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -170,26 +178,19 @@
 }
 
 /*
- * `EX-SCR-56` (ACC-02) — le COLLAGE est porté par ce conteneur, pas par le bandeau.
- * Avant 2.10, `position: sticky; top: 0` était posé sur `.kycar-filter-band`, dont le parent
- * `.filter-bar` faisait exactement sa hauteur : la boîte de collage n'offrait AUCUNE course et la
- * règle était inerte (mesuré en recette : bandeau à y = −1 029 après 1 200 px de défilement).
- * Le conteneur, lui, est un enfant direct de la coquille : sa boîte de collage est la page entière.
- * `top` vaut la hauteur de l'en-tête, mesurée et publiée par `src/components/filters/sticky-offset.ts`
- * (deux frères ne peuvent pas se coller l'un sous l'autre en CSS seul) ; à défaut, le bandeau colle
- * au haut du viewport plutôt que sous l'en-tête — jamais rien de pire.
- * `z-index` au-dessus de l'en-tête (10) : la feuille plein écran du régime compact (`EX-SCR-97`) est
- * enfermée dans le contexte d'empilement du bandeau et doit rester au-dessus de l'en-tête.
- * Le rembourrage vertical retombe à zéro : la hauteur normative (96 / 132 / 56 px) est celle du
- * bandeau lui-même, qui porte son propre rembourrage.
+ * `[amendée 3.6 — D3-46]` — ce conteneur ne colle plus : il n'a plus de BOÎTE à l'écran
+ * (`display: contents`), pour que la barre condensée du bandeau (`.kycar-band-bar`, seule région
+ * collante) colle dans `.kycar-app`, c'est-à-dire sur toute la hauteur de la page, pendant que la
+ * ligne des filtres actifs suit le flux et défile. Borné à `@media screen` : à l'impression,
+ * `print.css` le masque (`.filter-bar { display: none }`), et cette règle ne doit pas l'en empêcher.
+ * Historique : avant 2.10 le collage était inerte (parent à la hauteur exacte du bandeau) ; de 2.10 à
+ * v0.1.0 ce conteneur collait SOUS l'en-tête collant (`--kycar-band-top`), soit 243 à 318 px collants
+ * mesurés après 1 200 px de défilement — le « tiers de page » du retour du commanditaire.
  */
-.kycar-filter-bar {
-  position: sticky;
-  top: var(--kycar-band-top, 0px);
-  z-index: 20;
-  padding: 0;
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+@media screen {
+  .kycar-filter-bar {
+    display: contents;
+  }
 }
 
 .kycar-main {

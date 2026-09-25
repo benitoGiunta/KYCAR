@@ -3,7 +3,7 @@
  * =================================================================================================
  * Centralise le choix entre les contrôles à un seul `FilterDef` (`ControlRenderer.tsx`) et les
  * trois contrôles à plusieurs filtres apparentés (couple d'intervalle, localisation composite,
- * sélecteur structuré `mmmv`), pour que `PrimaryLine.tsx` et `SecondaryGroups.tsx` n'aient à
+ * sélecteur structuré `mmmv`), pour que `PrimaryLine.tsx` et `FilterCards.tsx` n'aient à
  * connaître qu'UN point d'entrée par filtre du registre.
  */
 import { FILTER_BY_ID } from '../../state/filter-registry';
@@ -56,6 +56,10 @@ export interface FilterFieldRowProps {
   /** `EX-SCR-98` (régime `compact`, `D8-15`) : routé vers `RangeControl` — liste de paliers en
    * liste déroulante native plutôt qu'en boutons. Sans effet sur les autres contrôles. */
   readonly compact?: boolean;
+  /** `D3-46` (a) — rendu dans la barre condensée : intervalle sans paliers, avec texte indicatif
+   * court (`shortLabel`). Sans effet sur les autres contrôles. */
+  readonly condensed?: boolean;
+  readonly shortLabel?: string;
   readonly onChange: OnFilterChange;
   /** Requis uniquement pour `mmmv` (`structured-picker`). */
   readonly onOpenScreenG?: () => void;
@@ -70,6 +74,8 @@ export function FilterFieldRow({
   facetCounts,
   facetCountsPending,
   compact,
+  condensed,
+  shortLabel,
   onChange,
   onOpenScreenG,
   screenGSummary,
@@ -115,6 +121,8 @@ export function FilterFieldRow({
         disabled={disabled}
         disabledReason={disabledReason}
         compact={compact}
+        showSteps={condensed !== true}
+        shortLabel={shortLabel}
         onChange={onChange}
       />
     );

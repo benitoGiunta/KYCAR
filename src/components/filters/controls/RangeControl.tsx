@@ -12,9 +12,10 @@
  *
  * `EX-SCR-68` : validation d'intervalle interactive — si `from > to`, le changement est REFUSÉ
  * (jamais permuté ; la permutation `EX-NAV-22` ne s'applique qu'au chargement d'une URL) et un
- * message inline s'affiche.
+ * message inline s'affiche. `[amendée 3.6 — D3-46]` : ce contrôle et le ramenage au domaine
+ * s'exercent à la validation du champ (sortie, Entrée), plus à chaque frappe.
  */
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 
 import type { FilterDef } from '../../../state/filter-types';
 import { formatNumberFr } from '../labels';
@@ -33,6 +34,13 @@ export interface RangeControlProps {
    * comme après cette correction : rien à masquer côté `RangeControl`, seule la construction du
    * palier change de forme). */
   readonly compact?: boolean;
+  /** `D3-46` (a) — barre condensée : les paliers suggérés ne sont pas rendus (ils le sont dans la
+   * carte du panneau « Tous les filtres ») ; la barre ne porte que les deux champs. Défaut `true`. */
+  readonly showSteps?: boolean;
+  /** `D3-46` (a) — libellé court (« Prix », « Km ») : texte indicatif des champs de la barre
+   * condensée (« Prix min » / « Prix max »), où le libellé visible peut être masqué faute de
+   * largeur. Absent ⇒ aucun texte indicatif (rendu d'avant). */
+  readonly shortLabel?: string;
   readonly onChange: OnFilterChange;
 }
 
@@ -109,6 +117,8 @@ export function RangeControl({
   disabled,
   disabledReason,
   compact,
+  showSteps = true,
+  shortLabel,
   onChange,
 }: RangeControlProps) {
   const [error, setError] = useState<string | null>(null);
@@ -116,31 +126,80 @@ export function RangeControl({
   const label = toDef !== undefined ? fromDef.label.replace(/\s+de$/, '') : fromDef.label;
   const domain = fromDef.numericDomain;
 
-  const commitTyped = (which: 'from' | 'to', raw: string): void => {
+  // `D3-46` (c) — le texte SAISI est un état local du contrôle : la valeur du brouillon n'est mise à
+  // jour, pendant la frappe, que par une valeur COMPLÈTE et valide (dans le domaine, bornes dans
+  // l'ordre). Une valeur intermédiaire (« 2 » en route vers « 20000 », sous le minimum de 500 €) ne
+  // touche ni le brouillon ni le champ : elle était auparavant ramenée au minimum À LA FRAPPE, ce qui
+  // réécrivait le champ sous les doigts de l'utilisateur (« 2 » → « 500 », puis « 5000 »…). Le
+  // contrôle d'`EX-SCR-67`/`68` (valeur ramenée au domaine, borne basse > borne haute refusée)
+  // s'exerce à la VALIDATION du champ : sortie du champ (`blur`) ou Entrée — qui, elle, applique
+  // ensuite le brouillon (`FilterBand`).
+  const [fromText, setFromText] = useState(fromValue === undefined ? '' : String(fromValue));
+  const [toText, setToText] = useState(toValue === undefined ? '' : String(toValue));
+  const matches = (text: string, value: number | undefined): boolean =>
+    value === undefined ? text.trim().length === 0 : text.trim().length > 0 && Number(text) === value;
+  // Valeur changée HORS de la frappe (« Annuler », palier, jeton retiré, retour arrière) : le champ
+  // reprend la valeur du brouillon.
+  useEffect(() => {
+    if (!matches(fromText, fromValue)) setFromText(fromValue === undefined ? '' : String(fromValue));
+  }, [fromValue]);
+  useEffect(() => {
+    if (!matches(toText, toValue)) setToText(toValue === undefined ? '' : String(toValue));
+  }, [toValue]);
+
+  const defOf = (which: 'from' | 'to'): FilterDef => (which === 'from' ? fromDef : toDef ?? fromDef);
+  const outOfOrder = (which: 'from' | 'to', n: number): boolean => {
+    if (toDef === undefined) return false;
+    const nextFrom = which === 'from' ? n : fromValue;
+    const nextTo = which === 'to' ? n : toValue;
+    return nextFrom !== undefined && nextTo !== undefined && nextFrom > nextTo;
+  };
+
+  /** Frappe : met à jour le texte ; propage au brouillon une valeur vide ou complète et valide. */
+  const onTyped = (which: 'from' | 'to', raw: string): void => {
+    if (which === 'from') setFromText(raw);
+    else setToText(raw);
     setError(null);
+    const def = defOf(which);
     if (raw.trim().length === 0) {
-      onChange({ filterId: which === 'from' ? fromDef.id : (toDef ?? fromDef).id, value: undefined, gesture: 'keystroke' });
+      onChange({ filterId: def.id, value: undefined, gesture: 'keystroke' });
       return;
     }
     const n = Number(raw);
     if (!Number.isFinite(n)) return;
-    const def = which === 'from' ? fromDef : toDef ?? fromDef;
+    if (clampToDomain(n, def).clamped) return; // hors domaine : tranché à la validation du champ
+    if (outOfOrder(which, n)) return; // bornes inversées : tranché à la validation du champ
+    onChange({ filterId: def.id, value: n, gesture: 'keystroke' });
+  };
+
+  /** Validation du champ (`blur`, Entrée) : domaine (`EX-SCR-67`), ordre des bornes (`EX-SCR-68`). */
+  const commitTyped = (which: 'from' | 'to'): void => {
+    const raw = which === 'from' ? fromText : toText;
+    const current = which === 'from' ? fromValue : toValue;
+    const setText = which === 'from' ? setFromText : setToText;
+    if (raw.trim().length === 0) return;
+    const n = Number(raw);
+    const def = defOf(which);
+    if (!Number.isFinite(n)) {
+      setText(current === undefined ? '' : String(current));
+      return;
+    }
     const { value: clamped, clamped: wasClamped } = clampToDomain(n, def);
-    const otherValue = which === 'from' ? toValue : fromValue;
-    if (toDef !== undefined) {
-      const nextFrom = which === 'from' ? clamped : fromValue;
-      const nextTo = which === 'to' ? clamped : toValue;
-      if (nextFrom !== undefined && nextTo !== undefined && nextFrom > nextTo) {
-        setError('La borne basse dépasse la borne haute');
-        return; // EX-SCR-68 : refusé, jamais permuté, ancienne valeur conservée
-      }
-      void otherValue;
+    if (outOfOrder(which, clamped)) {
+      setError('La borne basse dépasse la borne haute');
+      setText(current === undefined ? '' : String(current));
+      return; // EX-SCR-68 : refusé, jamais permuté, ancienne valeur conservée
     }
     if (wasClamped) {
+      setText(String(clamped));
       setClampedMsg(`Ramené à ${formatNumberFr(clamped, fromDef.unit)}`);
       setTimeout(() => setClampedMsg(null), 4000);
     }
-    onChange({ filterId: def.id, value: clamped, gesture: 'keystroke' });
+    if (clamped !== current) onChange({ filterId: def.id, value: clamped, gesture: 'keystroke' });
+  };
+  const onFieldKeyDown = (which: 'from' | 'to', e: KeyboardEvent): void => {
+    // Entrée valide d'abord le champ ; l'événement remonte ensuite au bandeau, qui applique.
+    if (e.key === 'Enter') commitTyped(which);
   };
 
   const commitPalier = (which: 'from' | 'to', paletteValue: number): void => {
@@ -155,11 +214,14 @@ export function RangeControl({
         <input
           type="number"
           aria-label={fromDef.label}
-          value={fromValue ?? ''}
+          placeholder={shortLabel !== undefined ? `${shortLabel} min` : undefined}
+          value={fromText}
           disabled={disabled}
           min={domain?.min}
           max={domain?.max}
-          onInput={(e) => commitTyped('from', (e.currentTarget as HTMLInputElement).value)}
+          onInput={(e) => onTyped('from', (e.currentTarget as HTMLInputElement).value)}
+          onBlur={() => commitTyped('from')}
+          onKeyDown={(e) => onFieldKeyDown('from', e)}
         />
         {toDef !== undefined ? (
           <>
@@ -167,16 +229,19 @@ export function RangeControl({
             <input
               type="number"
               aria-label={toDef.label}
-              value={toValue ?? ''}
+              placeholder={shortLabel !== undefined ? `${shortLabel} max` : undefined}
+              value={toText}
               disabled={disabled}
               min={domain?.min}
               max={domain?.max}
-              onInput={(e) => commitTyped('to', (e.currentTarget as HTMLInputElement).value)}
+              onInput={(e) => onTyped('to', (e.currentTarget as HTMLInputElement).value)}
+              onBlur={() => commitTyped('to')}
+              onKeyDown={(e) => onFieldKeyDown('to', e)}
             />
           </>
         ) : null}
       </div>
-      {domain?.steps !== undefined ? (
+      {showSteps && domain?.steps !== undefined ? (
         <RangeSteps
           steps={domain.steps}
           unit={fromDef.unit}

@@ -17,10 +17,12 @@
   container-type: inline-size;
 }
 
-/* Barre de synthese - EX-SCR-106, hauteur fixe 44px, collante sous le bandeau de filtres. */
+/* Barre de synthese - EX-SCR-106, hauteur fixe 44px. `EX-SCR-105` [amendee 3.6 - D3-46] : n'est
+   PLUS collante. Collee a `top: 0`, elle passait sous la barre de filtres (masquee) ou depassait
+   dessous (61 a 120 px mesures) : empilee sous la barre condensee, elle aurait porte la hauteur
+   collante au-dela du budget D3-46 (64 px / 56 px en compact). Elle defile avec la page. */
 .kycar-market-summary-bar {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 1;
   min-height: 44px;
   display: flex;

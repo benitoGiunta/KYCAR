@@ -15,7 +15,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 import {
-  applyFilterSheet,
+  applyFilters,
   derived,
   mesure,
   open,
@@ -173,9 +173,11 @@ test.describe('ACC-20 — le paramètre de bascule survit à chaque écriture d�
     await waitForMarket(page);
 
     // (1) pose d'un filtre réel : l'URL est réécrite par la coquille.
+    // D-31 (`ux-filters`, décision D3-46) : la saisie va dans un brouillon, appliqué par
+    // « Appliquer » dans TOUS les régimes (plus seulement dans la feuille compacte).
     await openFilterSheet(page, compact);
     await page.locator('.kycar-primary-line').getByLabel('Prix à', { exact: true }).fill('20000');
-    await applyFilterSheet(page, compact);
+    await applyFilters(page);
     await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
     const afterFilter = new URL(page.url());
     mesure(testInfo, 'ACC-20 — URL après pose d’un filtre', `${afterFilter.pathname}${afterFilter.search}`);

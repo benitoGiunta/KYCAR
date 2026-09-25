@@ -686,11 +686,23 @@ export function App(props: AppProps): JSX.Element {
     };
   }, [currentMode, start, controller, selection]);
 
-  /** `D8-15` (`EX-SCR-97`) — effectif PROJETÉ de la sélection brouillon de la feuille compacte. */
+  /**
+   * `D8-15` (`EX-SCR-97`), `D3-46` (c) — effectif PRÉVISIONNEL du brouillon du bandeau (tous
+   * régimes) : un CALCUL (`countForSelection`), jamais une navigation. Chaque demande invalide la
+   * précédente (`projectedSeq`) : une réponse arrivée pour un brouillon déjà modifié est ignorée, et
+   * l'effectif redevient inconnu (`undefined`) jusqu'à la réponse courante — le bouton affiche alors
+   * « Appliquer (n modifications) », jamais un effectif périmé.
+   */
   const [projectedResultCount, setProjectedResultCount] = useState<number | undefined>(undefined);
+  const projectedSeq = useRef(0);
   const onDraftSelectionChange = useCallback(
     (draft: SelectionState): void => {
-      void controller.countForSelection(draft).then((n) => setProjectedResultCount(n ?? undefined));
+      projectedSeq.current += 1;
+      const seq = projectedSeq.current;
+      setProjectedResultCount(undefined);
+      void controller.countForSelection(draft).then((n) => {
+        if (seq === projectedSeq.current) setProjectedResultCount(n ?? undefined);
+      });
     },
     [controller],
   );
@@ -1379,8 +1391,13 @@ export function App(props: AppProps): JSX.Element {
       view.kind === 'compare' ? (
         <>
         <div class="filter-bar kycar-filter-bar">
+          {/* `D3-46` (c) — le bandeau n'est plus REMONTÉ à chaque changement de requête (il ne l'est
+              qu'au changement de chemin, où mode et couple de route changent) : il relit la
+              sélection appliquée dans `initialSelection` à chaque rendu. Un remontage par requête
+              perdait l'état du panneau « Tous les filtres », son défilement, le focus et le
+              brouillon en cours à chaque application — le symptôme même du retour du commanditaire. */}
           <FilterBand
-            key={`${location.pathname}${location.search}`}
+            key={location.pathname}
             mode={filterBandMode}
             initialSelection={selection}
             originAndPath={location.pathname}

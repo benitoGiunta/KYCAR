@@ -29,14 +29,23 @@ async function computed(page: Page, selector: string, property: string): Promise
 }
 
 test.describe('EX-NFR-31 — feuille @media print minimale', () => {
-  test('règle 1 : l’en-tête collant perd son positionnement fixe à l’impression', async ({ page }, testInfo) => {
+  // D-31 (`ux-filters`, décision D3-46) : l'en-tête n'est PLUS collant à l'écran (il défile avec la
+  // page) ; la seule région collante est la barre condensée du bandeau (`.kycar-band-bar`, dans
+  // `.filter-bar`). L'équivalent D3-46 de la règle 1 : à l'écran, l'en-tête n'est pas collant et la
+  // barre l'est ; à l'impression, l'en-tête est `static` et la région collante du bandeau n'atteint
+  // pas le papier (`.filter-bar` masqué, règle 3).
+  test('règle 1 : aucune région collante n’atteint le papier (en-tête statique, barre de filtres masquée)', async ({
+    page,
+  }, testInfo) => {
     await open(page, `${SURFACES.A}${P1_QUERY}`);
-    expect(await computed(page, '.app-header', 'position')).toBe('sticky');
+    expect(await computed(page, '.app-header', 'position')).not.toBe('sticky');
+    expect(await computed(page, '.kycar-band-bar', 'position')).toBe('sticky');
 
     await page.emulateMedia({ media: 'print' });
     const printed = await computed(page, '.app-header', 'position');
     mesure(testInfo, 'EX-NFR-31 — position de .app-header à l’impression', printed);
     expect(printed).toBe('static');
+    await expect(page.locator('.kycar-band-bar')).toBeHidden();
   });
 
   test('règle 2 : les bandeaux d’état et le bandeau C3 sont imprimés', async ({ page }) => {
@@ -77,7 +86,13 @@ test.describe('EX-NFR-31 — feuille @media print minimale', () => {
     const rulePresent = await hasCssRuleFor(page, 'kycar-market-summary-bar');
     mesure(testInfo, 'EX-SCR-106 — règle CSS .kycar-market-summary-bar chargée', String(rulePresent));
     expect(rulePresent, 'la feuille de style de l’écran A doit être livrée dans le bundle').toBe(true);
-    expect(await computed(page, '.summary-bar', 'position')).toBe('sticky');
+    // D-31 (`ux-filters`, décision D3-46) : la barre de synthèse n'est PLUS collante (`EX-SCR-105`
+    // amendée) — empilée sous la barre de filtres condensée, elle aurait porté la hauteur collante
+    // au-delà du budget de D3-46. Le fait mesuré par ce constat (la feuille de l'écran A est livrée et
+    // sa règle s'applique) se lit désormais sur une autre propriété de la même règle : sa hauteur
+    // minimale normative de 44 px (`EX-SCR-105`), jamais le rendu par défaut du navigateur.
+    expect(await computed(page, '.summary-bar', 'position')).not.toBe('sticky');
+    expect(await computed(page, '.summary-bar', 'min-height')).toBe('44px');
   });
 
   test('CONSTAT E2E-22 — le résumé des filtres actifs n’atteint jamais le papier (EX-NFR-31 règle 3)', async ({

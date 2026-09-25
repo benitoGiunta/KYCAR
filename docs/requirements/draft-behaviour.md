@@ -172,6 +172,12 @@ devient inutilisable (des dizaines d'entrées pour un seul geste de raffinement)
 n'est créée, le retour arrière du navigateur ramène l'utilisateur hors de l'application (ou à un état
 de filtres bien antérieur) au lieu d'annuler le dernier changement.
 
+**[amendée 3.6 — D3-46]** — un « changement de filtre appliqué » est désormais une **application de
+brouillon** (`Appliquer`, `Entrée`, §B.1) : elle produit exactement une entrée d'historique, quel
+que soit le nombre de filtres modifiés ; les retraits immédiats (jeton, `Tout effacer`) en
+produisent une chacun (`EX-NAV-14`). Le regroupement d'`EX-NAV-13` n'a plus de rafale à regrouper
+dans le bandeau. Remplace : « une entrée par filtre appliqué post-debounce ».
+
 **EX-NAV-12 — Décision retenue : une entrée d'historique est produite par changement de filtre
 appliqué **et** par les paramètres marqués `pushState` dans `EX-NAV-10bis` ; les paramètres marqués
 `replaceState` ne produisent jamais d'entrée d'historique (`ARB-41`).** Un changement de filtre
@@ -330,6 +336,25 @@ d'`EX-DATA-107` s'affiche en plus et n'est pas refermable.
 
 ### B.1 Application des filtres par type de contrôle
 
+**[amendée 3.6 — D3-46] — Plus aucune application automatique.** Toute modification d'un contrôle du
+bandeau (saisie, case, palier, liste) écrit dans un **brouillon** de
+sélection, local au bandeau ; rien n'est appliqué — ni URL, ni historique, ni recalcul — avant un
+geste explicite : le bouton **`Appliquer`**, collant et toujours visible dès que le brouillon diffère
+de la sélection appliquée (barre condensée, pied du panneau `Tous les filtres`, pied de la feuille
+compacte), ou `Entrée` dans un champ texte ou nombre. `Annuler` rétablit la sélection appliquée.
+L'application fait **une seule** navigation (une entrée d'historique, `EX-NAV-12`), éprouve le
+plafond d'URL (`EX-NAV-11`) et engage la scission `T`/`R` du lot (un filtre `T` modifié ⇒ un
+rechargement, sinon un recalcul local). Restent **immédiats** (actions explicites) : retirer un
+jeton actif, `Tout effacer`, `Annuler` d'une notification de retrait en cascade, la conversion d'une
+sélection brossée en filtre (écran B), et le bouton `Appliquer` de l'écran `G` — modale à validation
+explicite — qui applique aussitôt son choix **en emportant le brouillon en cours** (une seule
+navigation, jamais deux `Appliquer` à la suite ; en mode 2, un choix qui change de route suit
+`EX-SRCH-14`). Les délais de la table ci-dessous ne gouvernent plus l'application : ils gouvernent
+le seul **calcul de l'effectif prévisionnel** du brouillon (`Appliquer — 1 234 offres`), jamais une
+navigation. Remplace : « application automatique de chaque contrôle après le débounce de sa ligne
+de table » — une valeur tapée s'appliquait avant la fin de la saisie (retour de test du
+commanditaire, `DATA-LEAD-DECISIONS.md` D3-46).
+
 | ID | Type de contrôle | Filtres concernés | Application | Debounce |
 |---|---|---|---|---|
 | EX-SRCH-1 | Case à cocher / bouton radio (valeur unique ou multiple, faible cardinalité) | `offer`, `fuel`, `gear`, `body`, `dtrain`(hors périmètre), `custtype`, `ustate`, `prevownersid`, `powertype` | Immédiate au changement | 0 ms |
@@ -342,13 +367,16 @@ d'`EX-DATA-107` s'affiche en plus et n'est pas refermable.
 | EX-SRCH-8 | Sélection marque (mode 1) / clic zone-modèle (navigation mode 2) | `mmmv`, changement de route | Immédiate | 0 ms |
 | EX-SRCH-9 | Bouton de réinitialisation (§B.4) | tout groupe ou la totalité | Immédiate | 0 ms |
 
-Aucun contrôle du bandeau n'exige de validation explicite (pas de bouton « Rechercher ») : la
-recherche se recalcule automatiquement dès qu'un filtre change, selon les délais ci-dessus. Ce choix
-découle directement de la nature analytique de l'outil (l'utilisateur explore par petites touches
-successives, cf. 00-CONTEXT.md « filtres applicables à la volée qui recalculent toute la page ») —
-un bouton de validation ajouterait une étape sans bénéfice pour ce mode d'usage.
+~~Aucun contrôle du bandeau n'exige de validation explicite (pas de bouton « Rechercher ») : la
+recherche se recalcule automatiquement dès qu'un filtre change, selon les délais ci-dessus.~~
+**[amendée 3.6 — D3-46]** : remplacé par l'application explicite décrite en tête de §B.1. Le motif d'origine
+(« filtres applicables à la volée ») reste servi — une application est un clic ou `Entrée`, et
+recalcule toute la page —, mais l'essai réel a montré que l'application pendant la frappe coupait
+la saisie et faisait perdre la position de l'utilisateur.
 
-**EX-SRCH-1bis — regroupement des rafales de filtres de classe `R` (`ARB-57`).** Un contrôle de
+**EX-SRCH-1bis — regroupement des rafales de filtres de classe `R` (`ARB-57`).** [amendée 3.6 — D3-46] :
+une application de brouillon est **un** changement au sens de cette règle, quel que soit le
+nombre de filtres qu'elle modifie. Un contrôle de
 classe `R` (§B.2bis) s'applique immédiatement (`EX-SRCH-1`, débounce 0 ms) **tant que** moins de
 trois changements ont eu lieu dans les 300 ms écoulées. Au **troisième** changement dans cette
 fenêtre, l'application entre en mode groupé : les changements suivants sont accumulés et un
@@ -484,7 +512,9 @@ utilisateur ne permet d'exclure les annonces accidentées** ; cette absence est 
 **EX-SRCH-19 — Réinitialisation par groupe.** Chaque groupe visuel du bandeau (ex. « Prix », «
 Kilométrage et année », « Motorisation », « Équipements » — le découpage exact relève de
 `draft-screens.md`) porte son propre bouton de réinitialisation, qui ne vide que les paramètres de
-ce groupe.
+ce groupe. [amendée 3.6 — D3-46] : ce bouton, porté par la carte du groupe dans le panneau `Tous les
+filtres`, vide le groupe **dans le brouillon** (appliqué par `Appliquer`), comme toute autre
+modification faite dans le panneau ; `Tout effacer` (ligne des filtres actifs) reste immédiat.
 
 **EX-SRCH-20 — Ce qui survit à tout reset.** La route (mode et couple marque/modèle en mode 2) n'est
 jamais affectée par une réinitialisation, qu'elle soit globale ou par groupe : réinitialiser les
@@ -767,8 +797,9 @@ froid exclu**, et la campagne publie `n`, la médiane et le `p95`.
 **EX-NFR-31 — impression (`ARB-63`).** L'impression et l'export PDF d'un écran sont **hors
 périmètre fonctionnel v1** : aucune mise en page d'impression n'est spécifiée, aucune table de
 données n'est ajoutée pour l'impression. Une feuille `@media print` **minimale** est néanmoins
-exigée, et son contenu est clos : les éléments collants (en-tête, bandeau de filtres, barre de
-synthèse) perdent leur positionnement fixe ; les bandeaux d'état et le bandeau `C3` sont imprimés ;
+exigée, et son contenu est clos : les éléments collants (depuis `[amendée 3.6 — D3-46]`, la seule barre
+condensée du bandeau ; remplace : « en-tête, bandeau de filtres, barre de synthèse ») perdent leur
+positionnement fixe ; les bandeaux d'état et le bandeau `C3` sont imprimés ;
 le bandeau de filtres est remplacé par un résumé textuel des filtres actifs, un par ligne ; les
 contrôles interactifs ne sont pas imprimés. Tout au-delà est une dette assumée, consignée comme
 telle.

@@ -107,9 +107,10 @@ export function countActiveFilters(selection: SelectionState): number {
 }
 
 /**
- * `EX-SCR-56` (ACC-02) — nombre de filtres actifs portés par la LIGNE PRIMAIRE (`EX-SCR-59`). Sert
- * au compteur du bouton « Plus de filtres (n) » : `n` compte ce que le bandeau REPLIÉ ne montre
- * pas, c'est-à-dire les actifs des groupes secondaires (`countActiveFilters` moins ceux-ci).
+ * `EX-SCR-56` (ACC-02) — nombre de filtres actifs portés par la LIGNE PRIMAIRE (`EX-SCR-59`).
+ * `[amendée 3.6 — D3-46]` : le bouton « Tous les filtres (n) » compte désormais TOUS les actifs
+ * (`countActiveFilters`) ; cette fonction reste l'outil de décompte des primaires (carte
+ * « Essentiels »).
  */
 export function countPrimaryActive(selection: SelectionState): number {
   let n = 0;
@@ -117,6 +118,134 @@ export function countPrimaryActive(selection: SelectionState): number {
     if (isFilterActive(def, selection)) n++;
   }
   return n;
+}
+
+/* ================================================================================================
+ * `D3-46` (a)/(b) — barre condensée à trois filtres + panneau de cartes
+ * ============================================================================================== */
+
+/**
+ * `D3-46` (a) — les TROIS contrôles primaires toujours visibles dans la barre condensée, hors régime
+ * compact : Marque et modèle (sélecteur structuré ouvrant l'écran G), Prix, Kilométrage. Ce sont
+ * les trois critères C1 du parcours cible (`EX-SCR-60`) qui ont un contrôle de bandeau (la
+ * carrosserie, quatrième critère cité, est une grille de 9 cases qui ne tient pas sur une ligne
+ * condensée : elle est la première case de la carte « Essentiels »).
+ */
+export const ALWAYS_VISIBLE_FILTER_KEYS: readonly string[] = ['makesModelsVariants', 'priceFrom', 'mileageFrom'];
+
+/** Les trois contrôles de la barre condensée, dans l'ordre `PRIMARY_ORDER`. */
+export function buildAlwaysVisibleControls(): readonly PrimaryControlGroup[] {
+  return buildPrimaryControls().filter((g) => ALWAYS_VISIBLE_FILTER_KEYS.includes(g.key));
+}
+
+/**
+ * Contrôles de la carte « Essentiels » du panneau : les primaires (`EX-SCR-59`) qui ne sont PAS
+ * déjà dans la barre — en régime compact, où la barre n'en porte aucun (résumé « Filtres (n) »),
+ * la carte les porte tous.
+ */
+export function buildEssentialControls(regime: BandRegime): readonly PrimaryControlGroup[] {
+  const all = buildPrimaryControls();
+  return regime === 'compact' ? all : all.filter((g) => !ALWAYS_VISIBLE_FILTER_KEYS.includes(g.key));
+}
+
+/** Clé de la carte des primaires dans le panneau (jamais une clé de `GROUP_ORDER`). */
+export const ESSENTIALS_CARD_KEY = 'essentiels';
+
+export interface FilterCardViewModel {
+  readonly key: string;
+  readonly label: string;
+  /** Nombre de filtres actifs de la carte (badge, `EX-SCR-91`/`92`). */
+  readonly activeCount: number;
+  /** Filtres vidés par « Réinitialiser » sur cette carte (`EX-SRCH-19`, `DR-061`). */
+  readonly resetFilterIds: readonly string[];
+  /** Carte des primaires : contrôles regroupés (couples d'intervalle) ; sinon `undefined`. */
+  readonly primaryControls?: readonly PrimaryControlGroup[];
+  /** Carte d'un groupe secondaire : ses filtres (registre) ; sinon `undefined`. */
+  readonly defs?: readonly FilterDef[];
+}
+
+/**
+ * `D3-46` (b) — cartes du panneau « Tous les filtres », dans l'ordre d'affichage : la carte
+ * « Essentiels » (primaires hors barre) puis une carte par groupe secondaire (`EX-SCR-93`). Chaque
+ * carte porte son badge d'actifs.
+ *
+ * Chaque filtre apparaît UNE fois dans le bandeau : un primaire vit dans la barre ou dans la carte
+ * « Essentiels », jamais en plus dans la carte de son groupe (l'ancien accordéon le répétait, ce qui
+ * affichait deux contrôles pour une même valeur). Un groupe dont tous les filtres sont primaires
+ * (`kilometrage`, `vendeur`) n'a donc pas de carte propre : ses filtres sont dans la barre ou dans
+ * « Essentiels ». Badge et réinitialisation d'une carte portent sur les filtres qu'elle AFFICHE.
+ */
+export function buildFilterCards(selection: SelectionState, regime: BandRegime): readonly FilterCardViewModel[] {
+  const essentials = buildEssentialControls(regime);
+  const essentialDefs = essentials.flatMap((g) => g.defs);
+  const cards: FilterCardViewModel[] = [
+    {
+      key: ESSENTIALS_CARD_KEY,
+      label: 'Essentiels',
+      activeCount: essentialDefs.filter((d) => isFilterActive(d, selection)).length,
+      resetFilterIds: essentialDefs.filter((d) => d.cls !== 'D').map((d) => d.id),
+      primaryControls: essentials,
+    },
+  ];
+  for (const g of buildSecondaryGroups(selection)) {
+    const defs = g.defs.filter((d) => !isShownAsPrimary(d));
+    const shown = defs.filter((d) => d.control !== 'none');
+    if (shown.length === 0) continue;
+    cards.push({
+      key: g.key,
+      label: g.label,
+      activeCount: defs.filter((d) => isFilterActive(d, selection)).length,
+      resetFilterIds: defs.filter((d) => d.cls !== 'D').map((d) => d.id),
+      defs,
+    });
+  }
+  return cards;
+}
+
+/** Vrai si le filtre est rendu par un contrôle primaire (barre ou « Essentiels ») : un primaire, ou
+ * la borne haute d'un couple dont la borne basse est primaire (`kmto` sous `kmfrom`). */
+function isShownAsPrimary(def: FilterDef): boolean {
+  if (def.primary) return true;
+  if (def.scopeType === 'range_max' && def.pairedWith !== undefined) {
+    return FILTER_BY_ID.get(def.pairedWith)?.primary === true;
+  }
+  return false;
+}
+
+/**
+ * `D3-46` (b) — carte à déplier pour un filtre trouvé par la recherche (`EX-SCR-79`) : la carte
+ * « Essentiels » pour un primaire, la carte de son groupe sinon.
+ */
+export function cardKeyOf(def: FilterDef): string {
+  return isShownAsPrimary(def) ? ESSENTIALS_CARD_KEY : def.group;
+}
+
+/**
+ * `D3-46` (c) — libellé du bouton « Appliquer » du brouillon. Effectif prévisionnel CONNU (calculé
+ * par le contrôleur de données sur la sélection brouillon, jamais une navigation) : « Appliquer —
+ * 1 234 offres » ; inconnu (calcul en cours, ou pas de calculateur) : « Appliquer (2
+ * modifications) » — jamais un effectif inventé ou périmé. `0` n'est pas « aucune offre » (formule
+ * boiteuse après un tiret) mais « 0 offre ».
+ */
+export function draftApplyLabel(projectedCount: number | undefined, changeCount: number): string {
+  if (projectedCount !== undefined) {
+    if (projectedCount === 0) return 'Appliquer — 0 offre';
+    return `Appliquer — ${formatOfferCount(projectedCount)}`;
+  }
+  if (changeCount <= 0) return 'Appliquer';
+  return `Appliquer (${changeCount} modification${changeCount > 1 ? 's' : ''})`;
+}
+
+/**
+ * `D3-46` (c) — annonce polie (`aria-live`) de l'état du brouillon : rien à annoncer quand il est
+ * propre ; sinon le nombre de modifications en attente et, dès qu'il est connu, l'effectif
+ * prévisionnel.
+ */
+export function draftStatusMessage(changeCount: number, projectedCount: number | undefined): string {
+  if (changeCount <= 0) return '';
+  const pending = `${changeCount} modification${changeCount > 1 ? 's' : ''} en attente`;
+  if (projectedCount === undefined) return `${pending}, effectif en cours de calcul`;
+  return `${pending} : ${projectedCount === 0 ? '0 offre' : formatOfferCount(projectedCount)} après application`;
 }
 
 /**
@@ -212,14 +341,3 @@ export function cascadeRemovalMessage(removedFilterIds: readonly string[]): stri
   return `${n} filtre${plural} retiré${plural}`;
 }
 
-/**
- * `EX-SCR-97` : « le bouton [de validation] affiche l'effectif projeté. » `projectedCount`
- * provient de l'appelant (le contrôleur, seul à pouvoir évaluer un effectif sous une sélection
- * candidate non encore appliquée) ; `undefined` tant qu'il n'a pas encore répondu ⇒ un libellé
- * neutre plutôt qu'un effectif inventé ou périmé.
- */
-export function deferredApplyLabel(projectedCount: number | undefined): string {
-  if (projectedCount === undefined) return 'Voir les résultats';
-  if (projectedCount === 0) return 'Voir les résultats (0 offre)';
-  return `Voir les ${formatOfferCount(projectedCount)}`;
-}

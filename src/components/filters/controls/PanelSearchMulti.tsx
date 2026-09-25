@@ -53,6 +53,9 @@ export function PanelSearchMulti({ def, value, disabled, disabledReason, facetCo
       </p>
       <input
         type="text"
+        // `D3-46` (c) : Entrée dans ce champ de RECHERCHE interne ne doit pas appliquer le brouillon
+        // (il ne porte pas de valeur de filtre) — `FilterBand` lit ce marqueur.
+        data-enter-apply="off"
         placeholder="Rechercher un équipement…"
         value={query}
         disabled={disabled}
