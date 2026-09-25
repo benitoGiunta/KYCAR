@@ -241,13 +241,13 @@ Règles : la sonde du reviewer passe sans modification (D-31/D-32) ; R3 dès la 
 ```bash
 npm run build         # tsc app + worker + vite build ; doit être 0 erreur / 0 warning
 npm run lint          # eslint . ; vert
-npm test              # suite unitaire (784) PUIS sondes de revue promues (1188) ; tout doit être vert
+npm test              # suite unitaire (809) PUIS sondes de revue promues (1199) ; tout doit être vert
 npm run test:unit     # suite unitaire seule
 npm run test:review   # sondes de revue seules (2 dettes externes en it.fails annoté : R-D9-21, R-D2-16 ; jamais skip)
 npm run test:contract # contrat des providers (105 cas, fixtures dev/test + baseline.json + baseline vs moteur)
 npm run test:data     # sondes data-review (153 ; KYCAR_DATA_PROFILE=test pour le profil complet)
 npm run data:validate # fixtures + baseline.json conformes au schéma (dev et test)
-npm run size          # bundle initial < 300 Ko gzip (137,4 Kio le 2026-09-14, v0.1.0)
+npm run size          # bundle initial < 300 Ko gzip (139,6 Kio le 2026-09-25, après D3-46)
 npm run test:e2e      # recette navigateur (build de prod + Chromium préinstallé), 3 projets ; 3 test.fail() attendus = dette D8-15
                       # port 4180 : reuseExistingServer=false, un serveur résiduel fait échouer (le tuer, ou KYCAR_E2E_PORT)
 ```

@@ -64,6 +64,11 @@ test conforme. **Non rejoués** : `npm test` complet (sondes de revue ≈ 1 108,
 profil test, **`npm run test:e2e` complet** (dernier état connu : rouge avant `mvp-integrate`, réaligné
 par lui mais non revalidé de bout en bout).
 
+**Après v0.1.0 — 2026-09-25 (D3-46, D3-47)** : retour de test du commanditaire sur la barre de filtres traité par `ux-filters`
+(fusion `f557f1f` sur `claude/kycar-project-ffcplk`) : barre collante condensée ≤ 56 px, trois filtres visibles, panneau de cartes
+sans défilement horizontal, brouillon + « Appliquer » collant, en-tête et fil d'Ariane non collants. Portes et E2E complets verts
+(389 / 3 attendus / 0 inattendu). **Non encore fusionné dans `main`** : en test chez le commanditaire ; tag `v0.1.1` sur sa décision.
+
 **LIVRÉ le 2026-09-14 — `v0.1.0`** (D3-45) : après `fix-app-4`, `fix-screens-5`, ACC-25 (harnais) et `fix-app-5` (ACC-26), la recette
 rev 5 sur `e39b3d3` a rendu G9 **FRANCHIE SOUS RÉSERVES NOMMÉES** et l'avis « livrer tel quel » ; `claude/kycar-project-ffcplk`
 fusionnée `--no-ff` dans `main` (`5fe7e89`, poussé), notes `docs/RELEASE-NOTES-v0.1.0.md`. Le tag `v0.1.0` (refusé depuis la session, 403 sur `refs/tags/*`) a été **posé par le
