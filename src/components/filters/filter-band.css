@@ -14,7 +14,8 @@
  *   - `.kycar-band-panel` — le panneau « Tous les filtres », en SURIMPRESSION sous la barre
  *     (`position: absolute`, aucun décalage de la page), borné à 70 % du viewport, défilement
  *     vertical interne (`.kycar-band-panel__body`), pied fixe (Fermer / Annuler / Appliquer).
- *   - `.kycar-filter-cards` — grille `repeat(auto-fill, minmax(280px, 1fr))`, une carte par groupe.
+ *   - `.kycar-filter-cards` — COLONNES CSS (`column-width: 280px`), une carte par groupe, toutes
+ *     dépliées par défaut, empilées sans trous (retouche coordinateur de D3-46).
  *   - la ligne des filtres actifs, NON collante, passe à la ligne au lieu de défiler.
  *
  * Pourquoi `display: contents` sur `.kycar-filter-band` : une boîte collante ne colle que dans la
@@ -381,15 +382,22 @@
   cursor: pointer;
 }
 
-/* Grille de cartes : toute la largeur, jamais de défilement horizontal. */
+/* Cartes en COLONNES CSS (retouche coordinateur de D3-46) : toute la largeur, autant de colonnes
+   de 280 px au moins qu'il en tient (4 à 1 280 px, 2 à 768 px, 1 en compact), jamais de défilement
+   horizontal. Contrairement à une grille, des cartes de hauteurs très différentes (« Financement »,
+   10 filtres ; « Géographie », 1) s'empilent sans laisser de trous sous les plus courtes. L'ordre du
+   DOM — donc de tabulation et de lecture — descend chaque colonne puis passe à la suivante. */
 .kycar-filter-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  align-items: start;
-  gap: var(--space-2);
+  column-width: 280px;
+  column-gap: var(--space-2);
 }
 
 .kycar-filter-card {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 var(--space-2);
+  break-inside: avoid;
   min-width: 0;
   padding: 0;
   border-radius: var(--radius-md);
@@ -407,11 +415,36 @@
 }
 
 .kycar-filter-card .kycar-secondary-group__toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
   text-align: left;
+}
+
+.kycar-filter-card__title,
+.kycar-filter-card__meta {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kycar-filter-card[data-card='essentiels'] {
   border-color: var(--color-primary);
+}
+
+.kycar-filter-card__chevron {
+  display: inline-block;
+  width: 1.1em;
+  color: var(--color-text-muted);
+}
+
+.kycar-filter-card__count {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
 }
 
 .kycar-filter-card__badge {
@@ -469,7 +502,7 @@
 }
 
 /* Cartes de groupe (EX-SCR-92/93) : en-tête repliable, badge d'actifs, réinitialisation. La
-   disposition en grille est portée par `.kycar-filter-cards` ci-dessus (`D3-46` (b)). */
+   disposition en colonnes est portée par `.kycar-filter-cards` ci-dessus (`D3-46` (b)). */
 .kycar-secondary-group {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -895,7 +928,7 @@
   padding: var(--space-2) var(--space-3);
 }
 .kycar-compact-sheet .kycar-filter-cards {
-  grid-template-columns: minmax(0, 1fr);
+  column-count: 1;
 }
 .kycar-compact-sheet__footer {
   flex-wrap: nowrap;

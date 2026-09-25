@@ -64,12 +64,11 @@ import {
 import { formatOfferCount } from '../../screens/market/format';
 import { ActiveFilterTokens } from './ActiveFilterTokens';
 import {
-  ESSENTIALS_CARD_KEY,
   buildAlwaysVisibleControls,
+  buildFilterCards,
   cardKeyOf,
   cascadeRemovalMessage,
   countActiveFilters,
-  defaultExpandedGroups,
   draftApplyLabel,
   draftStatusMessage,
   isTypingTarget,
@@ -231,8 +230,10 @@ export function FilterBand(props: FilterBandProps) {
   };
 
   /* ---- Interface ----------------------------------------------------------------------------- */
+  // Retouche coordinateur (« déplier TOUS les filtres en cartes ») : toutes les cartes sont dépliées
+  // par défaut ; chacune reste repliable par son titre (chevron + nombre de filtres).
   const [expandedCards, setExpandedCards] = useState<ReadonlySet<string>>(
-    () => new Set([ESSENTIALS_CARD_KEY, ...defaultExpandedGroups(props.initialSelection)]),
+    () => new Set(buildFilterCards({}, props.regime ?? 'large').map((c) => c.key)),
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [screenGOpen, setScreenGOpen] = useState(false);
@@ -412,10 +413,15 @@ export function FilterBand(props: FilterBandProps) {
     if (refocus) moreRef.current?.focus();
   };
 
-  /** « Appliquer » / Entrée : UNE navigation, plafond d'URL éprouvé, scission T/R du lot. */
-  const handleApplyDraft = (): void => {
+  /**
+   * « Appliquer » / Entrée : UNE navigation, plafond d'URL éprouvé, scission T/R du lot. `candidate`
+   * (défaut : le brouillon) sert l'écran G, qui applique son choix AVEC le brouillon en cours.
+   * Retouche coordinateur (H5 refusée) : appliquer depuis le panneau déplié le REFERME, le focus
+   * revenant au bouton « Tous les filtres » — l'utilisateur veut voir le résultat.
+   */
+  const handleApplyDraft = (candidate?: SelectionState): void => {
     const p = propsRef.current;
-    const next: MutableSelectionState = { ...draftRef.current.draft };
+    const next: MutableSelectionState = { ...(candidate ?? draftRef.current.draft) };
     cascadeRemoveOrphans(next);
     if (!isDraftDirty(p.initialSelection, next)) return;
     // `EX-NAV-11` : REFUS avec son message, jamais de troncature ; le brouillon est conservé pour
@@ -435,6 +441,9 @@ export function FilterBand(props: FilterBandProps) {
     if (p.regime === 'compact' && compactSheetOpen) {
       setCompactSheetOpen(false);
       moreRef.current?.focus();
+    } else if (panelOpen) {
+      setPanelOpen(false);
+      moreRef.current?.focus();
     } else if (refocus) {
       moreRef.current?.focus();
     }
@@ -451,8 +460,10 @@ export function FilterBand(props: FilterBandProps) {
    * `EX-SRCH-14` (`D8-31`) — application du sélecteur marque/modèle (écran G). En mode 2, un choix
    * qui CHANGE DE ROUTE (autre marque ⇒ retour à l'écran A, autre modèle ⇒ son écran B) reste une
    * navigation immédiate : c'est un changement d'écran (`EX-SRCH-8`, `EX-NAV-14`) validé par le
-   * bouton « Appliquer » de l'écran G lui-même ; la redirection emporte le brouillon courant. Partout
-   * ailleurs (`D3-46` (c)), le choix est écrit dans le BROUILLON comme toute autre modification.
+   * bouton « Appliquer » de l'écran G lui-même ; la redirection emporte le brouillon courant.
+   * Retouche coordinateur (H2 refusée) : ailleurs aussi, l'écran G est une modale À VALIDATION
+   * EXPLICITE — son « Appliquer » applique IMMÉDIATEMENT (une navigation), en emportant le brouillon
+   * en cours de la barre : jamais deux « Appliquer » à la suite.
    * Décision prise par `resolveMakeChange` (`src/state/navigation.ts`, source de vérité unique).
    */
   const handleScreenGApply = (mmmv: string): void => {
@@ -480,7 +491,7 @@ export function FilterBand(props: FilterBandProps) {
         return;
       }
     }
-    handleDraftChange({ filterId: 'makesModelsVariants', value: mmmv, gesture: 'selection-immediate' });
+    handleApplyDraft(withDraftValue(draftRef.current.draft, 'makesModelsVariants', mmmv));
   };
 
   function openScreenG(): void {
@@ -551,7 +562,7 @@ export function FilterBand(props: FilterBandProps) {
       type="button"
       class="kycar-band-apply"
       aria-disabled={dirty ? undefined : 'true'}
-      onClick={handleApplyDraft}
+      onClick={() => handleApplyDraft()}
     >
       {inBar ? (
         <>

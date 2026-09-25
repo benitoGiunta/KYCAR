@@ -194,7 +194,7 @@ test.describe('D3-46 (a) — bandeau replié : trois filtres visibles, aucun dé
  * (b) — « Tous les filtres » : cartes en grille sur la largeur, recherche en tête
  * ============================================================================================== */
 
-test('D3-46 (b) — panneau déplié : cartes en grille sur toute la largeur, sans barre horizontale, recherche en tête', async ({
+test('D3-46 (b) — panneau déplié : toutes les cartes dépliées, en colonnes sur toute la largeur, sans barre horizontale, recherche en tête', async ({
   page,
 }, testInfo) => {
   const regime = regimeOf(testInfo);
@@ -212,15 +212,29 @@ test('D3-46 (b) — panneau déplié : cartes en grille sur toute la largeur, sa
   await expect(page.getByLabel('Prix à', { exact: true })).toHaveCount(1);
   await expect(page.getByLabel('Coupé', { exact: true })).toHaveCount(1);
 
+  // Retouche coordinateur : « déplier TOUS les filtres en cartes » — aucune carte repliée, aucune
+  // carte réduite à son titre.
+  await expect(panel.locator('.kycar-filter-card[data-expanded="false"]')).toHaveCount(0);
   const g = await panel.evaluate((el) => {
     const cardEls = Array.from(el.querySelectorAll('.kycar-filter-card'));
-    const firstTop = Math.round(cardEls[0]?.getBoundingClientRect().top ?? 0);
-    const firstRow = cardEls.filter((c) => Math.abs(Math.round(c.getBoundingClientRect().top) - firstTop) <= 1).length;
+    const lefts = cardEls.map((c) => Math.round(c.getBoundingClientRect().left));
+    const firstRow = new Set(lefts).size; // nombre de colonnes occupées
+    // Ordre du DOM (= tabulation) : colonne par colonne, de haut en bas.
+    const pos = cardEls.map((c) => {
+      const r = c.getBoundingClientRect();
+      return [Math.round(r.left), Math.round(r.top)] as const;
+    });
+    const domOrderIsColumnOrder = pos.every(
+      (p, i) => i === 0 || p[0] > pos[i - 1]![0] || (p[0] === pos[i - 1]![0] && p[1] > pos[i - 1]![1]),
+    );
+    const empty = cardEls.filter((c) => c.querySelector('.kycar-secondary-group__body') === null).length;
     const grid = el.querySelector('.kycar-filter-cards');
     const r = el.getBoundingClientRect();
     return {
       firstRow,
-      columns: grid === null ? '' : getComputedStyle(grid).gridTemplateColumns,
+      domOrderIsColumnOrder,
+      empty,
+      columns: grid === null ? '' : `column-width ${getComputedStyle(grid).columnWidth}`,
       width: Math.round(r.width),
       height: Math.round(r.height),
       viewportW: document.documentElement.clientWidth,
@@ -231,10 +245,12 @@ test('D3-46 (b) — panneau déplié : cartes en grille sur toute la largeur, sa
   mesure(
     testInfo,
     `D3-46 (b) — panneau (${regime})`,
-    `${g.firstRow} cartes sur la 1re rangée · colonnes ${g.columns} · ${g.width}×${g.height} px sur ${g.viewportW}×${g.viewportH} · débordements : ${m.offenders.join(' | ') || 'aucun'}`,
+    `${g.firstRow} colonnes · ${g.columns} · ordre DOM = ordre des colonnes : ${g.domOrderIsColumnOrder} · ${g.width}×${g.height} px sur ${g.viewportW}×${g.viewportH} · débordements : ${m.offenders.join(' | ') || 'aucun'}`,
   );
   expect(m.doc).toBeLessThanOrEqual(m.client);
   expect(m.offenders).toEqual([]);
+  expect(g.empty).toBe(0);
+  expect(g.domOrderIsColumnOrder).toBe(true);
   // Sur toute la largeur de l'écran (à la gouttière près).
   expect(g.width).toBeGreaterThanOrEqual(g.viewportW - 40);
   if (regime === 'large') expect(g.firstRow).toBeGreaterThanOrEqual(3);
@@ -374,11 +390,53 @@ test('D3-46 (c) — dans le panneau, une modification ne réinitialise ni le dé
   });
   expect(hit, 'le bouton « Appliquer » du pied est recouvert').toBe(true);
 
-  // Clic : une navigation, la carrosserie est posée.
+  // Clic : une navigation, la carrosserie est posée. Retouche coordinateur (H5 refusée) : le
+  // panneau (la feuille en compact) se REFERME pour montrer le résultat, le focus revient au bouton
+  // qui l'avait ouvert, et le défilement de la page ne bouge pas.
   await watchHistory(page);
+  const pageBefore = await page.evaluate(() => window.scrollY);
   await apply.click();
   await page.waitForFunction(() => window.location.search.includes('body=3'), null, { timeout: 20_000 });
   expect(await historyCalls(page)).toHaveLength(1);
+  await expect(panel).toBeHidden();
+  await expect(
+    regime === 'compact'
+      ? bar(page).getByRole('button', { name: /^Filtres/ })
+      : bar(page).getByRole('button', { name: /^Tous les filtres/ }),
+  ).toBeFocused();
+  expect(Math.abs((await page.evaluate(() => window.scrollY)) - pageBefore)).toBeLessThanOrEqual(2);
+});
+
+test('D3-46 (c) — l’écran G applique IMMÉDIATEMENT son choix, en emportant le brouillon de la barre (une navigation)', async ({
+  page,
+}, testInfo) => {
+  const regime = regimeOf(testInfo);
+  await open(page, '/marche');
+  // Un brouillon en cours : kilométrage ≤ 100 000, non appliqué.
+  const scope = regime === 'compact' ? await openAll(page, regime) : bar(page);
+  await scope.getByLabel('Kilométrage à', { exact: true }).fill('100000');
+  await expect(page.locator('.kycar-filter-band')).toHaveAttribute('data-dirty', 'true');
+  const before = page.url();
+  expect(before).not.toContain('kmto=');
+
+  await watchHistory(page);
+  await scope.locator('.kycar-control--structured-picker button').first().click();
+  const dialog = page.getByRole('dialog', { name: 'Sélectionner marque et modèle' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByPlaceholder('Rechercher…').first().fill('Opel');
+  await dialog.locator('[role="option"]').first().click();
+  await dialog.getByRole('button', { name: 'Appliquer' }).click();
+
+  // UNE navigation, qui porte le choix de G ET le brouillon ; aucun second « Appliquer » requis.
+  await page.waitForFunction(() => window.location.search.includes('mmmv='), null, { timeout: 20_000 });
+  const url = new URL(page.url());
+  const calls = await historyCalls(page);
+  mesure(testInfo, `D3-46 (c) — écran G (${regime})`, `${url.pathname}${url.search} · ${calls.join(' | ')}`);
+  expect(calls).toHaveLength(1);
+  expect(url.searchParams.get('mmmv')).toBe('54');
+  expect(url.searchParams.get('kmto')).toBe('100000');
+  await expect(page.locator('.kycar-filter-band')).toHaveAttribute('data-dirty', 'false');
+  await expect(bar(page).getByRole('button', { name: /^Appliquer/ })).toHaveCount(0);
 });
 
 /* ================================================================================================

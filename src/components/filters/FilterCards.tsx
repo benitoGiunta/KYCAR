@@ -6,9 +6,12 @@
  * secondaires d'`EX-SCR-93` —, disposées en grille CSS `repeat(auto-fill, minmax(280px, 1fr))` sur
  * toute la largeur de l'écran, jamais de défilement horizontal (une colonne en régime compact).
  *
- * Ce qui ne change pas : chaque carte est un `<fieldset>` avec `<legend>` (`EX-SCR-99`), repliée par
- * défaut sauf si elle porte un filtre actif (`EX-SCR-92`), et `Tab` ne pénètre jamais une carte
- * repliée — son contenu n'est simplement pas rendu. Chaque en-tête porte le badge « <n> actifs » et
+ * Chaque carte est un `<fieldset>` avec `<legend>` (`EX-SCR-99`). Retouche coordinateur : toutes
+ * les cartes sont DÉPLIÉES par défaut (« déplier tous les filtres en cartes ») et disposées en
+ * COLONNES CSS (`column-width: 280px`, `break-inside: avoid`) : des cartes de hauteurs différentes
+ * s'empilent sans trous, l'ordre du DOM (donc de tabulation) est celui des colonnes, de haut en bas
+ * puis de gauche à droite. Chaque carte reste repliable par son titre (chevron, nombre de filtres) ;
+ * `Tab` ne pénètre jamais une carte repliée — son contenu n'est simplement pas rendu. Chaque en-tête porte le badge « <n> actifs » et
  * le bouton « Réinitialiser » de la carte (`EX-SRCH-19`, `DR-061`).
  *
  * Toutes les valeurs affichées sont celles du BROUILLON (`D3-46` (c)) : `onChange` et
@@ -55,6 +58,8 @@ export function FilterCards({
       {buildFilterCards(selection, regime).map((card) => {
         const expanded = expandedCards.has(card.key);
         const bodyId = `kycar-filter-card-${card.key}`;
+        const shownDefs = (card.defs ?? []).filter((d) => !isConsumedElsewhere(d) && d.control !== 'none');
+        const filterCount = card.primaryControls !== undefined ? card.primaryControls.length : shownDefs.length;
         return (
           <fieldset
             key={card.key}
@@ -70,21 +75,35 @@ export function FilterCards({
                 aria-controls={bodyId}
                 onClick={() => onToggleCard(card.key)}
               >
-                {card.label}
-                {card.activeCount > 0 ? (
-                  <span class="kycar-filter-card__badge">{` ${card.activeCount} actif${card.activeCount > 1 ? 's' : ''}`}</span>
-                ) : null}
+                {/* Deux lignes FIXES (titre ; nombre de filtres et badge d'actifs) : poser un filtre
+                    n'ajoute jamais une ligne, la carte ne change pas de hauteur. */}
+                <span class="kycar-filter-card__title">
+                  <span class="kycar-filter-card__chevron" aria-hidden="true">
+                    {expanded ? '▾' : '▸'}
+                  </span>
+                  {card.label}
+                </span>
+                <span class="kycar-filter-card__meta">
+                  <span class="kycar-filter-card__count">{`${filterCount} filtre${filterCount > 1 ? 's' : ''}`}</span>
+                  {card.activeCount > 0 ? (
+                    <span class="kycar-filter-card__badge">{` · ${card.activeCount} actif${card.activeCount > 1 ? 's' : ''}`}</span>
+                  ) : null}
+                </span>
               </button>
-              {card.activeCount > 0 ? (
-                <button
-                  type="button"
-                  class="kycar-secondary-group__reset"
-                  aria-label={`Réinitialiser le groupe ${card.label}`}
-                  onClick={() => onResetCard(card.resetFilterIds)}
-                >
-                  Réinitialiser
-                </button>
-              ) : null}
+              {/* Toujours rendu, masqué (et hors tabulation) sans filtre actif : son apparition ne
+                  change pas la hauteur de la carte — en colonnes CSS, un changement de hauteur
+                  rééquilibre les colonnes et déplaçait le panneau sous le curseur (8 px mesurés). */}
+              <button
+                type="button"
+                class="kycar-secondary-group__reset"
+                aria-label={`Réinitialiser le groupe ${card.label}`}
+                style={card.activeCount > 0 ? undefined : { visibility: 'hidden' }}
+                aria-hidden={card.activeCount > 0 ? undefined : 'true'}
+                tabIndex={card.activeCount > 0 ? undefined : -1}
+                onClick={() => onResetCard(card.resetFilterIds)}
+              >
+                Réinitialiser
+              </button>
             </legend>
             {expanded ? (
               <div class="kycar-secondary-group__body" id={bodyId}>
@@ -102,9 +121,7 @@ export function FilterCards({
                     screenGSummary={screenGSummary}
                   />
                 ) : (
-                  (card.defs ?? [])
-                    .filter((d) => !isConsumedElsewhere(d) && d.control !== 'none')
-                    .map((def) => (
+                  shownDefs.map((def) => (
                       <FilterFieldRow
                         key={def.id}
                         def={def}

@@ -42,8 +42,9 @@ describe('R-D3-46-a — aucun défilement horizontal dans le bandeau', () => {
     expect(ruleBody(bandCss, '.kycar-band-bar__row .kycar-primary-line')).toMatch(/min-width:\s*0/);
   });
 
-  it('la grille des cartes : `repeat(auto-fill, minmax(280px, 1fr))`', () => {
-    expect(ruleBody(bandCss, '.kycar-filter-cards')).toMatch(/repeat\(auto-fill,\s*minmax\(280px,\s*1fr\)\)/);
+  it('les cartes en colonnes CSS de 280 px, jamais coupées (retouche coordinateur)', () => {
+    expect(ruleBody(bandCss, '.kycar-filter-cards')).toMatch(/column-width:\s*280px/);
+    expect(ruleBody(bandCss, '.kycar-filter-card')).toMatch(/break-inside:\s*avoid/);
   });
 });
 
