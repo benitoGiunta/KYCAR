@@ -34,6 +34,11 @@ async function markFocusables(page: Page, root: string): Promise<number> {
       if (container === null) return 0;
       let i = 0;
       for (const el of container.querySelectorAll<HTMLElement>(focusableSelector)) {
+        // D-31 (`ux-filters`, retouche coordinateur de D3-46 : toutes les cartes du panneau sont
+        // dépliées) : un contrôle d'un `<fieldset disabled>` (filtre désactivé, `EX-SCR-88`) n'est
+        // PAS dans l'ordre de tabulation (HTML) mais échappait au sélecteur, faute d'attribut
+        // `disabled` propre ; il n'apparaissait jamais tant que ces groupes restaient repliés.
+        if (el.matches(':disabled')) continue;
         el.setAttribute('data-e2e-tab', String(i));
         i += 1;
       }

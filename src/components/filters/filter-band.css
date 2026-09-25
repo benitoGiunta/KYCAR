@@ -422,13 +422,14 @@
   text-align: left;
 }
 
+/* Titre et méta passent à la ligne plutôt que d'être tronqués ; seule la méta dépend des filtres
+   actifs, et elle tient sur une ligne (« 10 filtres · 10 actifs ») à la largeur minimale de carte. */
 .kycar-filter-card__title,
 .kycar-filter-card__meta {
   display: block;
   max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .kycar-filter-card[data-card='essentiels'] {
