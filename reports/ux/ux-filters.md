@@ -288,7 +288,19 @@ Portes rejouées après retouches : voir §11.
 
 ## 11. Portes après retouches
 
-(complété en fin de retouche)
+| Porte | Résultat |
+|---|---|
+| `npm run build` | 0 erreur, 0 avertissement |
+| `npm run lint` | code de sortie 0 |
+| `npm run test:review` (complet, `tsc -p tsconfig.review.json` compris) | **vert** : 112 fichiers, 1 199 tests |
+| `npx vitest run src/components/filters src/state src/app --no-file-parallelism` | 13 fichiers, 211 tests verts |
+| Playwright 4181 : `filtres-d3-46`, `parcours-p1`, `parcours-p2`, `clavier`, `a11y` (3 projets) | **173 verts**, 10 `skip` de plate-forme préexistants, 0 échec (`filtres-d3-46` : 33/33) |
+
+Deux ajustements pendant le rejeu : (i) les titres de carte passent à la ligne au lieu d'être
+tronqués (la sonde (b) signalait `text-overflow` comme débordement) ; (ii) `clavier.spec.ts`
+`markFocusables` ignore désormais les contrôles d'un `<fieldset disabled>` (hors de l'ordre de
+tabulation en HTML ; jamais rendus tant que les groupes restaient repliés), justification D-31 en tête
+de la ligne.
 
 ## 12. Hors périmètre / pour le coordinateur
 
