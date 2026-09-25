@@ -12,7 +12,9 @@
 .kycar-screen-g {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  /* `D3-46` : au-dessus de la barre collante (20) ET de la feuille compacte (30), d'où l'écran G
+     s'ouvre en régime compact. */
+  z-index: 40;
   display: flex;
   flex-direction: column;
   max-width: 720px;
