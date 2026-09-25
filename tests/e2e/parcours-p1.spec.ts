@@ -16,10 +16,11 @@ import {
   P1_QUERY,
   derived,
   DENSE_QUERY,
-  applyFilterSheet,
+  applyFilters,
   constat,
   mesure,
   open,
+  openAllFilters,
   openFilterSheet,
   parseInteger,
   readCardCounts,
@@ -36,14 +37,18 @@ async function openMarket(page: import('@playwright/test').Page, query = ''): Pr
 }
 
 /**
- * `EX-SCR-97` (D8-15) — coche « Berline » là où le régime courant place le contrôle : directement
- * dans la ligne primaire en `large`/`intermédiaire`, dans la FEUILLE plein écran à application
- * différée en `compact`. Le fait exercé (ajouter une carrosserie au filtre `body`) est identique.
+ * `EX-SCR-97` (D8-15) — coche « Berline » là où le régime courant place le contrôle.
+ * D-31 (`ux-filters`, décision D3-46) : la carrosserie n'est plus dans la barre repliée mais dans la
+ * carte « Essentiels » du panneau « Tous les filtres » (la feuille en compact), et TOUTE modification
+ * va dans un brouillon appliqué par « Appliquer », quel que soit le régime. Le fait exercé (ajouter
+ * une carrosserie au filtre `body`, URL `body=3,6`) est identique ; le paramètre `compact` n'est plus
+ * nécessaire au geste, il est conservé pour la signature des appelants.
  */
 async function checkBerline(page: Page, compact: boolean): Promise<void> {
-  await openFilterSheet(page, compact);
+  void compact;
+  await openAllFilters(page);
   await page.getByLabel('Berline', { exact: true }).check();
-  await applyFilterSheet(page, compact);
+  await applyFilters(page);
   await page.waitForFunction(() => window.location.search.includes('body=3,6'), null, { timeout: 20_000 });
 }
 
@@ -77,29 +82,30 @@ test.describe('Parcours 1 — mode 1, survol du marché filtré', () => {
     await openMarket(page);
 
     // D8-15/D-31 : depuis que la coquille fournit `regime`, le régime COMPACT d'`EX-SCR-97` est
-    // réellement atteignable — sous 768 px les contrôles vivent dans une FEUILLE plein écran à
-    // application DIFFÉRÉE (« Appliquer »), et l'URL ne bouge qu'à l'application. Le parcours
-    // mesuré (les trois filtres posés, l'URL canonique, l'effectif affiché) est identique ; seul le
-    // chemin d'interaction suit l'exigence.
+    // réellement atteignable — sous 768 px les contrôles vivent dans une FEUILLE plein écran.
+    // D-31 (`ux-filters`, décision D3-46) : l'application DIFFÉRÉE est désormais celle de TOUS les
+    // régimes — les trois filtres vont dans un brouillon et l'URL ne bouge qu'au clic sur
+    // « Appliquer », en UNE navigation. L'ancienne attente de l'URL après chaque saisie (application
+    // automatique après débounce) est remplacée par son contraire vérifiable : l'URL ne bouge PAS
+    // avant « Appliquer ». Le parcours mesuré (les trois filtres posés, l'URL canonique, l'effectif
+    // affiché) est identique.
     const compact = regimeOf(testInfo) === 'compact';
+    const before = page.url();
     await openFilterSheet(page, compact);
 
-    // (1) budget ≤ 20 000 € — saisie libre dans la borne haute du couple `EX-SCR-67`.
+    // (1) budget ≤ 20 000 € — saisie libre dans la borne haute du couple `EX-SCR-67` (barre
+    //     condensée, ou carte « Essentiels » de la feuille en compact).
     await page.locator('.kycar-primary-line').getByLabel('Prix à', { exact: true }).fill('20000');
-    if (!compact) {
-      await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
-    }
 
     // (2) kilométrage ≤ 100 000 km.
     await page.locator('.kycar-primary-line').getByLabel('Kilométrage à', { exact: true }).fill('100000');
-    if (!compact) {
-      await page.waitForFunction(() => window.location.search.includes('kmto=100000'), null, { timeout: 20_000 });
-    }
+    expect(page.url(), 'D3-46 : aucune application avant « Appliquer »').toBe(before);
 
-    // (3) carrosserie coupé — case à cocher du groupe primaire `Carrosserie`.
+    // (3) carrosserie coupé — case à cocher de la carte « Essentiels » du panneau « Tous les filtres ».
+    await openAllFilters(page);
     await page.getByLabel('Coupé', { exact: true }).check();
-    // `EX-SCR-97` — application DIFFÉRÉE en compact : rien n'est posé avant ce clic.
-    await applyFilterSheet(page, compact);
+    expect(page.url(), 'D3-46 : aucune application avant « Appliquer »').toBe(before);
+    await applyFilters(page);
     await page.waitForFunction(() => window.location.search.includes('body=3'), null, { timeout: 20_000 });
 
     // (4) pays BE : `EX-SRCH-18bis` interdit d'en faire un filtre utilisateur — le périmètre belge

@@ -177,21 +177,50 @@ export async function readMarketSummary(page: Page): Promise<MarketSummary> {
 }
 
 /**
- * `EX-SCR-97` (D8-15) — en régime COMPACT, la ligne primaire et les groupes secondaires ne vivent
- * qu'à l'intérieur d'une FEUILLE plein écran à application DIFFÉRÉE. Ces deux aides encadrent la
- * pose de filtres pour que chaque test décrive le MÊME parcours quel que soit le régime : ouvrir
- * (si besoin), agir sur les mêmes libellés, appliquer (si besoin). Elles ne font rien hors compact.
+ * `EX-SCR-97` (D8-15) — en régime COMPACT, les filtres ne vivent qu'à l'intérieur d'une FEUILLE plein
+ * écran. `openFilterSheet` l'ouvre (si besoin) et ne fait rien hors compact : hors compact, Prix et
+ * Kilométrage sont dans la barre condensée, toujours visible (`D3-46` (a)).
  */
 export async function openFilterSheet(page: Page, compact: boolean): Promise<void> {
   if (!compact) return;
+  const sheet = page.getByRole('dialog', { name: 'Filtres' });
+  if (await sheet.isVisible()) return;
   await page.locator('.kycar-compact-bar__open').click();
-  await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
+  await expect(sheet).toBeVisible();
 }
 
-export async function applyFilterSheet(page: Page, compact: boolean): Promise<void> {
-  if (!compact) return;
-  await page.locator('.kycar-compact-sheet__footer button').last().click();
-  await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeHidden();
+/**
+ * D-31 — aides AJOUTÉES par `ux-filters` au titre de la décision D3-46 (v0.1.1). Depuis D3-46 :
+ *   (b) seuls trois filtres (Marque et modèle, Prix, Kilométrage) sont dans la barre ; tous les
+ *       autres (carrosserie, carburant, année…) vivent dans le panneau « Tous les filtres » (la
+ *       feuille en compact) — `openAllFilters` l'ouvre, quel que soit le régime ;
+ *   (c) plus AUCUNE application automatique : toute modification va dans un brouillon, appliqué par
+ *       le bouton « Appliquer » — `applyFilters` le clique (barre condensée, ou pied de la feuille en
+ *       compact) et attend que le brouillon soit appliqué. Elle remplace `applyFilterSheet`, qui ne
+ *       faisait quelque chose qu'en compact (la seule application différée d'avant D3-46).
+ * Chaque parcours décrit ainsi le MÊME geste dans les trois régimes : ouvrir, agir sur les mêmes
+ * libellés, appliquer une fois.
+ */
+export async function openAllFilters(page: Page): Promise<void> {
+  const compactOpen = page.locator('.kycar-compact-bar__open');
+  if (await compactOpen.isVisible()) {
+    await openFilterSheet(page, true);
+    return;
+  }
+  const more = page.locator('.kycar-band-bar').getByRole('button', { name: /^Tous les filtres/ });
+  if ((await more.getAttribute('aria-expanded')) !== 'true') await more.click();
+  await expect(page.getByRole('region', { name: 'Tous les filtres' })).toBeVisible();
+}
+
+export async function applyFilters(page: Page): Promise<void> {
+  const sheet = page.getByRole('dialog', { name: 'Filtres' });
+  const inSheet = await sheet.isVisible();
+  const apply = inSheet
+    ? page.locator('.kycar-compact-sheet__footer').getByRole('button', { name: /^Appliquer/ })
+    : page.locator('.kycar-band-bar__row, .kycar-compact-bar').getByRole('button', { name: /^Appliquer/ });
+  await apply.click();
+  if (inSheet) await expect(sheet).toBeHidden();
+  await expect(page.locator('.kycar-filter-band')).toHaveAttribute('data-dirty', 'false');
 }
 
 /**

@@ -18,10 +18,11 @@ import {
   derived,
   P2_PATH,
   SURFACES,
-  applyFilterSheet,
+  applyFilters,
   constat,
   mesure,
   open,
+  openAllFilters,
   openFilterSheet,
   readMarketSummary,
   readSelectionCount,
@@ -56,15 +57,15 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     // d'`EX-SCR-97` (feuille plein écran, application différée) est réellement atteignable. Le
     // parcours mesuré (poser deux filtres, partager l'URL, la rouvrir dans un contexte neuf) est
     // identique ; seul le chemin d'interaction suit le régime.
+    // D-31 (`ux-filters`, décision D3-46) : les deux filtres vont dans un brouillon appliqué en UNE
+    // fois (« Appliquer ») dans tous les régimes ; la carrosserie est dans « Tous les filtres ».
     const compact = regimeOf(testInfo) === 'compact';
     await open(page, SURFACES.A);
     await openFilterSheet(page, compact);
     await page.locator('.kycar-primary-line').getByLabel('Prix à', { exact: true }).fill('20000');
-    if (!compact) {
-      await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
-    }
+    await openAllFilters(page);
     await page.getByLabel('Coupé', { exact: true }).check();
-    await applyFilterSheet(page, compact);
+    await applyFilters(page);
     await page.waitForFunction(() => window.location.search.includes('body=3'), null, { timeout: 20_000 });
     await page.waitForFunction(() => window.location.search.includes('priceto=20000'), null, { timeout: 20_000 });
     await waitForMarket(page);
@@ -153,11 +154,17 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
     // (`EX-SCR-97`), à application DIFFÉRÉE : le plafond d'URL est donc éprouvé au moment de
     // l'application, pas à la coche du brouillon. Le fait mesuré — la pose est REFUSÉE, avec son
     // message, et l'URL n'est ni tronquée ni modifiée — est identique dans les deux régimes.
+    // D-31 (`ux-filters`, décision D3-46) : l'application DIFFÉRÉE est désormais celle de tous les
+    // régimes (brouillon + « Appliquer »), et la carrosserie vit dans le panneau « Tous les filtres ».
+    // Le plafond est donc éprouvé au clic sur « Appliquer » partout ; le fait mesuré est inchangé.
     const compact = regimeOf(testInfo) === 'compact';
-    await openFilterSheet(page, compact);
+    await openAllFilters(page);
     const checkbox = page.locator('#filter-bodyType-3');
     await checkbox.click();
-    if (compact) await page.locator('.kycar-compact-sheet__footer button').last().click();
+    await page
+      .locator(compact ? '.kycar-compact-sheet__footer' : '.kycar-band-bar__row')
+      .getByRole('button', { name: /^Appliquer/ })
+      .click();
 
     const banner = page.locator('.kycar-banner-message');
     await expect(banner).toBeVisible({ timeout: 20_000 });
@@ -167,15 +174,18 @@ test.describe('EX-NAV-18 — une URL suffit à reconstituer l’état', () => {
 
     // Refus, jamais troncature : l'URL est inchangée…
     expect(await page.evaluate(() => window.location.search.includes('body='))).toBe(false);
-    // …et le contrôle revient à son état antérieur. En compact, la feuille reste OUVERTE sur le
-    // brouillon (l'utilisateur peut retirer un filtre au lieu de tout perdre) : c'est la sélection
-    // APPLIQUÉE qui est refusée, et le jeton correspondant n'apparaît donc jamais dans le bandeau.
-    if (compact) {
-      await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
-      await expect(page.locator('.kycar-active-tokens__list')).not.toContainText('Carrosserie');
-    } else {
-      await expect(checkbox).not.toBeChecked();
-    }
+    // …et c'est la sélection APPLIQUÉE qui est refusée : le panneau (la feuille en compact) reste
+    // OUVERT sur le brouillon, toujours sale, pour que l'utilisateur retire un filtre au lieu de tout
+    // perdre, et le jeton correspondant n'apparaît jamais dans la ligne des filtres actifs.
+    // D-31 (D3-46) : hors compact, l'ancienne vérification « la case revient décochée » décrivait
+    // l'application immédiate refusée ; son équivalent D3-46 est « le brouillon est conservé,
+    // jamais appliqué » — vérifié ici dans les trois régimes.
+    await expect(
+      compact ? page.getByRole('dialog', { name: 'Filtres' }) : page.getByRole('region', { name: 'Tous les filtres' }),
+    ).toBeVisible();
+    await expect(page.locator('.kycar-filter-band')).toHaveAttribute('data-dirty', 'true');
+    await expect(checkbox).toBeChecked();
+    await expect(page.locator('.kycar-active-tokens__list')).not.toContainText('Carrosserie');
   });
 
   test('EX-SCR-140 / DR-099 — routes héritées et slug erroné canonisés par replaceState', async ({ page }, testInfo) => {

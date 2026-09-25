@@ -19,134 +19,139 @@ import {
   regimeOf,
   mesure,
   brushScatter,
+  openAllFilters,
   stripSpaces,
 } from './_helpers';
 
 /* ================================================================================================
  * ACC-02 — `EX-SCR-56` : le bandeau de filtres COLLE, et sa hauteur repliée est bornée
- * ============================================================================================== */
+ * ================================================================================================
+ * D-31 — bloc AMENDÉ par `ux-filters` (v0.1.1) au titre de la décision D3-46 (retour de test du
+ * commanditaire : « un tiers de la page bouffé » par l'en-tête, le fil d'Ariane et le bandeau, tous
+ * collants). Ce que figeait l'ancienne rédaction, et son équivalent D3-46 :
+ *   - « le bandeau colle SOUS l'en-tête collant » → l'en-tête ne colle plus ; SEULE la barre
+ *     condensée (`.kycar-band-bar`) colle, en haut du viewport (y = 0), et l'en-tête a défilé ;
+ *   - « replié : ≤ 96 px (132 en intermédiaire, 56 en compact) et ≤ 40 % du viewport » → la barre
+ *     condensée tient dans ≤ 64 px (large, intermédiaire) / 56 px (compact) et ≤ 40 % du viewport ;
+ *   - « déplié : ≤ 320 px et ≤ 40 % du viewport, zone (3) défilante » → le panneau « Tous les
+ *     filtres », en surimpression, est borné à 70 % du viewport et son corps défile verticalement.
+ * La mesure de la hauteur collante TOTALE (tous éléments collants confondus) est dans
+ * `filtres-d3-46.spec.ts` (d).
+ */
 
-test.describe('ACC-02 — bandeau de filtres collant et borné (EX-SCR-56)', () => {
+test.describe('ACC-02 — barre de filtres collante et bornée (EX-SCR-56 [amendée 3.6 — D3-46])', () => {
   for (const [nom, url] of [
     ['écran A', `/marche${P1_QUERY}`],
     ['écran B', P2_PATH],
   ] as const) {
-    test(`${nom} : après 1 200 px de défilement le bandeau reste visible sous l’en-tête (EX-SCR-56)`, async ({
+    test(`${nom} : après 1 200 px de défilement la barre condensée colle en haut du viewport (EX-SCR-56)`, async ({
       page,
     }, testInfo) => {
       await open(page, url);
 
-      // Défilement franc de la page, bien au-delà de la hauteur du bandeau.
+      // Défilement franc de la page, bien au-delà de la hauteur de l'en-tête et du bandeau.
       await page.evaluate(() => window.scrollTo(0, 1200));
       await page.waitForTimeout(150);
 
       const geom = await page.evaluate(() => {
-        const band = document.querySelector('.kycar-filter-band');
+        const bar = document.querySelector('.kycar-band-bar');
         const header = document.querySelector('.kycar-header');
-        if (band === null || header === null) return null;
-        const b = band.getBoundingClientRect();
+        if (bar === null || header === null) return null;
+        const b = bar.getBoundingClientRect();
         const h = header.getBoundingClientRect();
         return {
           scrollY: window.scrollY,
-          bandTop: Math.round(b.top),
-          bandBottom: Math.round(b.bottom),
+          barTop: Math.round(b.top),
+          barBottom: Math.round(b.bottom),
           headerBottom: Math.round(h.bottom),
           viewport: window.innerHeight,
         };
       });
-      expect(geom, 'bandeau ou en-tête absent du DOM').not.toBeNull();
+      expect(geom, 'barre ou en-tête absent du DOM').not.toBeNull();
       if (geom === null) return;
       mesure(
         testInfo,
-        `ACC-02 ${nom} — bandeau après défilement`,
-        `scrollY=${geom.scrollY} · bandeau y=${geom.bandTop}..${geom.bandBottom} · bas d’en-tête=${geom.headerBottom}`,
+        `ACC-02 ${nom} — barre après défilement`,
+        `scrollY=${geom.scrollY} · barre y=${geom.barTop}..${geom.barBottom} · bas d’en-tête=${geom.headerBottom}`,
       );
 
       expect(geom.scrollY, 'la page doit avoir réellement défilé').toBeGreaterThan(600);
-      // Collant : le bandeau est encore dans le viewport, et SOUS l'en-tête (jamais recouvert).
-      expect(geom.bandTop).toBeGreaterThanOrEqual(0);
-      expect(geom.bandTop).toBeGreaterThanOrEqual(geom.headerBottom - 1);
-      expect(geom.bandBottom).toBeLessThanOrEqual(geom.viewport);
+      // Collante : la barre est en haut du viewport ; l'en-tête, lui, a défilé (D3-46).
+      expect(geom.barTop).toBe(0);
+      expect(geom.barBottom).toBeLessThanOrEqual(geom.viewport);
+      expect(geom.headerBottom).toBeLessThanOrEqual(0);
     });
   }
 
-  test('hauteur repliée du bandeau ≤ 40 % du viewport, et ≤ 96 px (132 en intermédiaire) — EX-SCR-56, EX-SCR-96/97', async ({
+  test('hauteur de la barre condensée ≤ 40 % du viewport, et ≤ 64 px (56 en compact) — EX-SCR-56, EX-SCR-96/97', async ({
     page,
   }, testInfo) => {
     const regime = regimeOf(testInfo);
     await open(page, `/marche${P1_QUERY}`);
 
-    // « Replié » au sens d'`EX-SCR-56` : zones (2) et (3) fermées. `EX-SCR-92` ouvre le panneau au
-    // chargement quand un groupe porte un filtre actif — on le referme pour mesurer l'état replié.
+    // « Replié » : panneau « Tous les filtres » fermé (état d'arrivée, aucun paramètre d'URL).
     if (regime !== 'compact') {
-      const more = page.getByRole('button', { name: /Plus de filtres|Moins de filtres/ });
-      if ((await more.getAttribute('aria-expanded')) === 'true') await more.click();
+      const more = page.locator('.kycar-band-bar').getByRole('button', { name: /^Tous les filtres/ });
       await expect(more).toHaveAttribute('aria-expanded', 'false');
     }
 
     const m = await page.evaluate(() => {
-      const band = document.querySelector('.kycar-filter-band');
-      if (band === null) return null;
-      const parts = Array.from(band.children).map(
+      const bar = document.querySelector('.kycar-band-bar');
+      if (bar === null) return null;
+      const parts = Array.from(bar.children).map(
         (c) => `${String(c.className).split(/\s+/)[0]}=${Math.round(c.getBoundingClientRect().height)}`,
       );
-      const bar = document.querySelector('.kycar-compact-bar');
       return {
-        height: Math.round(band.getBoundingClientRect().height),
+        height: Math.round(bar.getBoundingClientRect().height),
         viewport: window.innerHeight,
         parts: parts.join(' · '),
-        compactBar: bar === null ? null : Math.round(bar.getBoundingClientRect().height),
       };
     });
-    expect(m, 'bandeau absent du DOM').not.toBeNull();
+    expect(m, 'barre absente du DOM').not.toBeNull();
     if (m === null) return;
 
     mesure(
       testInfo,
-      `ACC-02 — hauteur repliée (${regime})`,
+      `ACC-02 — hauteur de la barre condensée (${regime})`,
       `${m.height} px sur un viewport de ${m.viewport} px (${((m.height / m.viewport) * 100).toFixed(1)} %) · ${m.parts}`,
     );
-    // `EX-SCR-56` : 96 px replié ; `EX-SCR-96` porte ce plafond à 132 px en régime intermédiaire
-    // (ligne primaire sur deux lignes). Dans tous les cas, jamais plus de 40 % du viewport.
-    const plafond = regime === 'intermediate' ? 132 : 96;
+    // D3-46 (d) : ≤ 64 px en large et intermédiaire, ≤ 56 px en compact ; jamais plus de 40 %.
     expect(m.height).toBeLessThanOrEqual(0.4 * m.viewport);
-    expect(m.height).toBeLessThanOrEqual(plafond);
-    // `EX-SCR-97` — en compact, la barre unique du bandeau mesure 56 px.
-    if (regime === 'compact') expect(m.compactBar).toBe(56);
+    expect(m.height).toBeLessThanOrEqual(regime === 'compact' ? 56 : 64);
   });
 
-  test('déplié, le bandeau ne dépasse ni 320 px ni 40 % du viewport, et sa zone (3) défile (EX-SCR-56)', async ({
+  test('déplié, le panneau « Tous les filtres » ne dépasse pas 70 % du viewport, et son corps défile (EX-SCR-56)', async ({
     page,
   }, testInfo) => {
     test.skip(
       regimeOf(testInfo) === 'compact',
-      'EX-SCR-97 : en compact les zones (2) et (3) vivent dans une FEUILLE plein écran, pas dans le bandeau',
+      'EX-SCR-97 : en compact le panneau est une FEUILLE plein écran, pas une surimpression bornée',
     );
     await open(page, `/marche${P1_QUERY}`);
-    const more = page.getByRole('button', { name: /Plus de filtres|Moins de filtres/ });
+    const more = page.locator('.kycar-band-bar').getByRole('button', { name: /^Tous les filtres/ });
     if ((await more.getAttribute('aria-expanded')) === 'false') await more.click();
     await expect(more).toHaveAttribute('aria-expanded', 'true');
 
     const m = await page.evaluate(() => {
-      const band = document.querySelector('.kycar-filter-band');
-      const zone3 = document.querySelector('.kycar-band-panel');
-      if (band === null || zone3 === null) return null;
+      const bar = document.querySelector('.kycar-band-bar');
+      const panel = document.querySelector('.kycar-band-panel');
+      const body = document.querySelector('.kycar-band-panel__body');
+      if (bar === null || panel === null || body === null) return null;
       return {
-        height: Math.round(band.getBoundingClientRect().height),
+        total: Math.round(panel.getBoundingClientRect().bottom - bar.getBoundingClientRect().top),
         viewport: window.innerHeight,
-        overflowY: getComputedStyle(zone3).overflowY,
-        scrollable: zone3.scrollHeight > zone3.clientHeight,
+        overflowY: getComputedStyle(body).overflowY,
+        scrollable: body.scrollHeight > body.clientHeight,
       };
     });
-    expect(m, 'bandeau ou zone (3) absent du DOM').not.toBeNull();
+    expect(m, 'barre, panneau ou corps absent du DOM').not.toBeNull();
     if (m === null) return;
     mesure(
       testInfo,
-      'ACC-02 — hauteur dépliée',
-      `${m.height} px sur ${m.viewport} px · zone (3) overflow-y=${m.overflowY}, défilante=${m.scrollable}`,
+      'ACC-02 — hauteur dépliée (barre + panneau)',
+      `${m.total} px sur ${m.viewport} px · corps overflow-y=${m.overflowY}, défilant=${m.scrollable}`,
     );
-    expect(m.height).toBeLessThanOrEqual(320);
-    expect(m.height).toBeLessThanOrEqual(0.4 * m.viewport);
+    expect(m.total).toBeLessThanOrEqual(Math.ceil(0.7 * m.viewport) + 1);
     expect(m.overflowY).toBe('auto');
     expect(m.scrollable).toBe(true);
   });
@@ -873,6 +878,10 @@ test('ACC-10 — au-delà de 40 cartes, au plus 12 sont montées, sans plafonner
 test('ACC-11 — survol et état coché sont visibles dans le bandeau (EX-SCR-87)', async ({ page }, testInfo) => {
   test.skip(regimeOf(testInfo) === 'compact', 'EX-SCR-97 : les contrôles vivent dans la feuille plein écran en compact');
   await open(page, `/marche${P1_QUERY}`);
+  // D-31 (`ux-filters`, décision D3-46) : les cases de carburant et de carrosserie ne sont plus dans
+  // la barre repliée mais dans la carte « Essentiels » du panneau « Tous les filtres » : on l'ouvre.
+  // Le fait mesuré (retour visuel au survol, état coché inversé) est inchangé.
+  await openAllFilters(page);
 
   const option = page.locator('.kycar-primary-line .kycar-checkbox-option').first();
   const avant = await option.evaluate((el) => getComputedStyle(el).backgroundColor);

@@ -95,7 +95,7 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
     expect(Number.parseFloat(ring?.width ?? '0')).toBeGreaterThanOrEqual(1);
   });
 
-  test('tous les contrôles de la ligne primaire du bandeau sont atteints au clavier, dans l’ordre du DOM (EX-NFR-14)', async ({
+  test('tous les contrôles de la barre de filtres et de son panneau sont atteints au clavier, dans l’ordre du DOM (EX-NFR-14)', async ({
     page,
   }, testInfo) => {
     await open(page, SURFACES.A);
@@ -104,18 +104,27 @@ test.describe('EX-NFR-12 / EX-NFR-14 — clavier, focus et titres', () => {
     // barre unique et la ligne primaire n'existe qu'à l'intérieur de la FEUILLE plein écran. Le fait
     // mesuré (tous les contrôles de la ligne primaire atteints au clavier, dans l'ordre du DOM) est
     // inchangé ; il est simplement exercé là où l'exigence place désormais la ligne.
-    if (regimeOf(testInfo) === 'compact') {
+    // D-31 (`ux-filters`, décision D3-46) : la « ligne primaire » n'existe plus d'un seul tenant —
+    // trois filtres dans la barre condensée, les autres primaires dans la carte « Essentiels » du
+    // panneau « Tous les filtres » (la feuille en compact). L'équivalent D3-46 de la région mesurée
+    // est donc la barre ET son panneau ouvert (la feuille en compact) : tous leurs contrôles doivent
+    // être atteints au clavier, dans l'ordre du DOM. Le seuil (> 10 contrôles) est conservé.
+    const compact = regimeOf(testInfo) === 'compact';
+    if (compact) {
       await page.locator('.kycar-compact-bar__open').click();
       await expect(page.getByRole('dialog', { name: 'Filtres' })).toBeVisible();
+    } else {
+      await page.locator('.kycar-band-bar').getByRole('button', { name: /^Tous les filtres/ }).click();
+      await expect(page.getByRole('region', { name: 'Tous les filtres' })).toBeVisible();
     }
-    const total = await markFocusables(page, '.kycar-primary-line');
+    const total = await markFocusables(page, compact ? '.kycar-compact-sheet' : '.kycar-band-bar');
     expect(total).toBeGreaterThan(10);
 
     // On repart du début du document : le parcours traverse en-tête puis bandeau.
     await focusFirstTabbable(page);
     const seen = await collectMarkedTabOrder(page, total + 30);
 
-    mesure(testInfo, 'clavier — contrôles de la ligne primaire', `${seen.length} atteints sur ${total}`);
+    mesure(testInfo, 'clavier — contrôles de la barre et du panneau', `${seen.length} atteints sur ${total}`);
     // Aucun contrôle sauté : les index atteints couvrent l'intégralité de la région…
     expect(new Set(seen).size).toBe(total);
     // …et ils sont atteints dans l'ordre du DOM, qui est l'ordre visuel de la ligne primaire.
