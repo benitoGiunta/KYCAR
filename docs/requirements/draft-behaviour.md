@@ -337,7 +337,7 @@ d'`EX-DATA-107` s'affiche en plus et n'est pas refermable.
 ### B.1 Application des filtres par type de contrôle
 
 **[amendée 3.6 — D3-46] — Plus aucune application automatique.** Toute modification d'un contrôle du
-bandeau (saisie, case, palier, liste, choix de l'écran `G` en mode 1) écrit dans un **brouillon** de
+bandeau (saisie, case, palier, liste) écrit dans un **brouillon** de
 sélection, local au bandeau ; rien n'est appliqué — ni URL, ni historique, ni recalcul — avant un
 geste explicite : le bouton **`Appliquer`**, collant et toujours visible dès que le brouillon diffère
 de la sélection appliquée (barre condensée, pied du panneau `Tous les filtres`, pied de la feuille
@@ -346,8 +346,10 @@ L'application fait **une seule** navigation (une entrée d'historique, `EX-NAV-1
 plafond d'URL (`EX-NAV-11`) et engage la scission `T`/`R` du lot (un filtre `T` modifié ⇒ un
 rechargement, sinon un recalcul local). Restent **immédiats** (actions explicites) : retirer un
 jeton actif, `Tout effacer`, `Annuler` d'une notification de retrait en cascade, la conversion d'une
-sélection brossée en filtre (écran B), et un choix de l'écran `G` qui **change de route** en mode 2
-(`EX-SRCH-14`). Les délais de la table ci-dessous ne gouvernent plus l'application : ils gouvernent
+sélection brossée en filtre (écran B), et le bouton `Appliquer` de l'écran `G` — modale à validation
+explicite — qui applique aussitôt son choix **en emportant le brouillon en cours** (une seule
+navigation, jamais deux `Appliquer` à la suite ; en mode 2, un choix qui change de route suit
+`EX-SRCH-14`). Les délais de la table ci-dessous ne gouvernent plus l'application : ils gouvernent
 le seul **calcul de l'effectif prévisionnel** du brouillon (`Appliquer — 1 234 offres`), jamais une
 navigation. Remplace : « application automatique de chaque contrôle après le débounce de sa ligne
 de table » — une valeur tapée s'appliquait avant la fin de la saisie (retour de test du

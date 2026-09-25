@@ -636,8 +636,11 @@ actifs » (la ligne primaire défilait horizontalement sur 5 600 à 7 600 px). [
 régimes `large` et `intermédiaire`, **≤ 56 px** en `compact` — jamais plus de 40 % du viewport.
 Le panneau `Tous les filtres` s'ouvre **en surimpression** sous la barre (aucun décalage de la
 page), borné à **70 % du viewport** barre comprise, avec défilement vertical interne et un pied
-fixe (`Fermer`, `Annuler`, `Appliquer`) toujours visible ; ses cartes sont disposées en grille
-`repeat(auto-fill, minmax(280px, 1fr))` sur toute la largeur de l'écran. `Échap` ou `Fermer`
+fixe (`Fermer`, `Annuler`, `Appliquer`) toujours visible ; ses cartes sont **toutes dépliées** par
+défaut et disposées en **colonnes** (`column-width: 280px`, une carte n'est jamais coupée) sur toute
+la largeur de l'écran, sans trous ; l'ordre de tabulation suit l'ordre des colonnes. `Appliquer`
+depuis le panneau le **referme** (le focus revient au bouton `Tous les filtres`) pour montrer le
+résultat. `Échap` ou `Fermer`
 referment le panneau **sans appliquer** et **conservent le brouillon** (la barre continue de porter
 `Appliquer`), le focus revenant au bouton `Tous les filtres`. Aucune modification ni application ne
 réinitialise le défilement de la page ni celui du panneau, ni le focus. Sur l'écran B, la
@@ -1170,8 +1173,9 @@ remplacé par `[3 filtres actifs]` à titre d'illustration. Au survol, le compte
 
 `EX-SCR-92` — **Repliement des groupes.** Chaque groupe secondaire est replié par défaut, sauf
 ceux qui contiennent au moins un filtre actif, qui sont dépliés au chargement. Depuis
-`[amendée 3.6 — D3-46]`, chaque groupe est une **carte** du panneau `Tous les filtres` (en-tête repliable,
-badge `<n> actifs`, `Réinitialiser`) ; la carte `Essentiels` est dépliée par défaut ; un groupe
+`[amendée 3.6 — D3-46]`, chaque groupe est une **carte** du panneau `Tous les filtres` (en-tête repliable
+portant un chevron et `<n> filtres`, badge `<n> actifs`, `Réinitialiser`) ; **toutes les cartes sont
+dépliées par défaut** (« déplier tous les filtres en cartes ») ; un groupe
 dont tous les filtres sont primaires (`Kilométrage`, `Vendeur`) n'a pas de carte propre, ses
 filtres étant dans la barre ou dans `Essentiels`. L'état de
 repliement de chaque groupe est encodé dans l'URL. Le titre de groupe replié affiche toujours

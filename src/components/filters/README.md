@@ -22,10 +22,12 @@ sticky header + breadcrumb + band. The band is now:
   `Filtres (n)` + count only.
 - **(b) the `Tous les filtres` panel**, an overlay under the bar (no page shift), at most 70 % of the
   viewport, internal vertical scroll, fixed footer (`Fermer`, `Annuler`, `Appliquer`): filter search
-  first, then one card per group (`FilterCards.tsx`) in a `repeat(auto-fill, minmax(280px, 1fr))`
-  grid — the `Essentiels` card (primaries not in the bar) then each group with at least one
+  first, then one card per group (`FilterCards.tsx`) — the `Essentiels` card (primaries not in the bar) then each group with at least one
   non-primary filter. Each filter appears once. Compact: the full-screen sheet with one column.
   `Échap`/`Fermer` close without applying and keep the draft; focus returns to the opener.
+  Coordinator review: all cards are expanded by default and laid out in CSS columns
+  (`column-width: 280px`, `break-inside: avoid`) instead of a grid; `Appliquer` from the panel
+  closes it; screen G's own `Appliquer` applies at once, carrying the bar's draft.
 - **(c) a draft** (`src/state/draft.ts`): every control writes to the draft; nothing is applied
   until `Appliquer` or `Entrée` in a text/number field — one navigation
   (`InteractionController.applyDraft`), URL budget checked then. Token removal, `Tout effacer`

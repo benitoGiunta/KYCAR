@@ -30,8 +30,8 @@ cours de route, deux causes de perte de position qui ne sont pas l'application a
   et à droite l'effectif — remplacé par **`Annuler` / `Appliquer — 1 234 offres`** dès qu'une
   modification est en attente. L'en-tête, le fil d'Ariane, la ligne des filtres actifs, la barre de
   synthèse (A) et l'en-tête statistique (B) **défilent avec la page**.
-- **`Tous les filtres`** ouvre, en surimpression sous la barre, un panneau de **cartes en grille**
-  (4 colonnes à 1 280 px, 2 à 768 px) : recherche de filtre en tête, carte `Essentiels` (année,
+- **`Tous les filtres`** ouvre, en surimpression sous la barre, un panneau de **cartes toutes
+  dépliées, en colonnes CSS** (4 colonnes à 1 280 px, 2 à 768 px, sans trous — retouche 3) : recherche de filtre en tête, carte `Essentiels` (année,
   carburant, carrosserie, boîte, vendeur, mot-clé), puis une carte par groupe avec son badge
   « n actifs » ; borné à 70 % de l'écran, défilement vertical interne, pied fixe `Fermer` /
   `Annuler` / `Appliquer`. En compact : feuille plein écran, une colonne, pied fixe.
@@ -80,7 +80,7 @@ brouillon sale), `apres-1280-panneau`, `apres-768-brouillon`, `apres-768-panneau
   `Appliquer` est toujours visible sans défilement de page, et le résultat reste visible sous le
   panneau. *Écarté* : panneau dans le flux, non collant — l'ouvrir après défilement l'aurait placé
   hors de l'écran, et `Appliquer` n'aurait plus été « collant, toujours visible ».
-- **Le panneau reste ouvert après `Appliquer`** (hors compact) : son défilement et le focus sont
+- *(Remplacé par la retouche 2, §10 : le panneau se referme après `Appliquer`.)* **Le panneau restait ouvert après `Appliquer`** (hors compact) : son défilement et le focus sont
   conservés, l'utilisateur affine par petites touches (00-CONTEXT) ; `Fermer` / `Échap` le referment.
   En compact, `Appliquer` referme la feuille (plein écran : sinon on ne verrait jamais le résultat).
 - **`Échap` / `Fermer` conservent le brouillon** (choix demandé) : rien n'est perdu par un geste de
@@ -91,8 +91,9 @@ brouillon sale), `apres-1280-panneau`, `apres-768-brouillon`, `apres-768-panneau
   (et la borne haute d'un couple primaire) ; `Kilométrage` et `Vendeur`, entièrement primaires,
   n'ont pas de carte propre → **13 cartes** : `Essentiels` + 12 des 14 groupes d'`EX-SCR-93`.
   La recherche de filtre déplie `Essentiels` pour un primaire.
-- Cartes = `<fieldset>`/`<legend>` repliables (repliées sauf actives, `EX-SCR-92`, `Essentiels`
-  dépliée), titre dans la carte (legend flottante), badge « n actifs », `Réinitialiser`.
+- Cartes = `<fieldset>`/`<legend>` repliables, titre dans la carte (legend flottante), badge
+  « n actifs », `Réinitialiser`. *(Retouche 3 : toutes dépliées par défaut, en colonnes CSS, chevron
+  et nombre de filtres.)*
 
 ### 3.3 Brouillon + « Appliquer » (c)
 
@@ -251,7 +252,10 @@ chaque fichier) ; `reports/e2e/results.json` n'a pas été modifié. `tsc -p tsc
 signale une erreur **préexistante** (identique sur `c4151e3`) dans `tests/review/D6/structure-a11y.test.ts:52`
 (`priceScopeNote`), hors périmètre — §10.
 
-## 9. Hypothèses (E4)
+## 9. Hypothèses (E4) — statut après relecture du coordinateur
+
+H1, H3, H4, H6 : **ratifiées** (décidées). H2 et H5 : **refusées**, remplacées par les retouches 1 et
+2 (§10). Texte d'origine conservé ci-dessous.
 
 - **H1** — Barre de 52 px et non 64 : marge pour un éventuel bandeau d'erreur transitoire (borne
   refusée, valeur ramenée), rendu en surimpression sous la barre, jamais dans sa hauteur.
@@ -263,22 +267,33 @@ signale une erreur **préexistante** (identique sur `c4151e3`) dans `tests/revie
   brouillon) ; `Tout effacer` reste immédiat et vide aussi le brouillon.
 - **H4** — `Kilométrage` et `Vendeur` n'ont pas de carte : 13 cartes et non « 13 groupes +
   Essentiels = 14 » comme l'écrit le brief ; la règle « chaque filtre une fois » a été préférée à une
-  carte vide ou à des doublons.
+  carte vide ou à des doublons. *(Depuis la retouche 3, toutes les cartes sont dépliées.)*
 - **H5** — Le panneau reste ouvert après `Appliquer` hors compact (« ni le défilement du panneau ni le
   focus ») ; en compact la feuille se referme.
 - **H6** — Après une application, `scrollY` peut AUGMENTER de la hauteur de la ligne des jetons qui
   apparaît au-dessus du contenu : c'est l'ancrage de défilement du navigateur qui garde le contenu
   regardé immobile ; la sonde (c) l'admet explicitement (jamais de remontée).
 
-## 10. Hors périmètre / pour le coordinateur
+## 10. Retouches coordinateur (relecture de `56cf99a`)
 
-1. **`src/screens/market/market.css` et `src/screens/distribution/distribution.css`** : une ligne
-   chacune (`position: sticky; top: 0` → `position: relative`), commentaire D3-46. Hors du périmètre
-   d'écriture nominal, mais nommées par le brief (« décolle-la ») ; exigences `EX-SCR-105`/`141`
-   amendées en conséquence. À ratifier (ligne D3-nn).
-2. **Erreur de type préexistante** `tests/review/D6/structure-a11y.test.ts:52` (`ModelZoneViewModel.priceScopeNote`
-   requis) : `npm run test:review` échoue à son étape `tsc` indépendamment de ce lot (reproduit sur
-   `c4151e3`). Les sondes elles-mêmes passent sous vitest.
+| # | Demande | Fait | Preuve |
+|---|---|---|---|
+| 1 | **H2 refusée** : l'écran G, modale à validation explicite, applique IMMÉDIATEMENT en mode 1, en emportant le brouillon de la barre | `handleScreenGApply` → `handleApplyDraft(withDraftValue(brouillon, mmmv, choix))` : une navigation pour les deux, jamais deux « Appliquer ». Mode 2 inchangé (changement de route) | E2E neuve `filtres-d3-46` « l'écran G applique IMMÉDIATEMENT… » : brouillon `kmto=100000`, choix Opel → UN `pushState` `/marche?kmto=100000&mmmv=54`, bandeau propre, 3 projets |
+| 2 | **H5 refusée** : « Appliquer » depuis le panneau le referme, focus au bouton « Tous les filtres », défilement de page inchangé | `handleApplyDraft` referme le panneau (comme la feuille compacte) et rend le focus au bouton | Sonde (c) « dans le panneau… » étendue : panneau masqué, focus sur « Tous les filtres » (« Filtres » en compact), `scrollY` ±2 px |
+| 3 | **Cartes vides / trous** : toutes les cartes dépliées, colonnes CSS | Toutes les cartes dépliées par défaut ; `.kycar-filter-cards { column-width: 280px; column-gap }`, `.kycar-filter-card { break-inside: avoid }` (4 colonnes à 1 280 px, 2 à 768, 1 en compact) ; titre repliable avec chevron ▾/▸ et « n filtres » ; titre sur deux lignes FIXES (titre ; nombre + badge d'actifs) et « Réinitialiser » toujours rendu (masqué sans actif) — sans quoi cocher une case changeait la hauteur d'une carte, rééquilibrait les colonnes et déplaçait le panneau de 8 px | Sonde (b) : aucune carte repliée ni vide, ordre du DOM (= tabulation) = ordre des colonnes (haut → bas puis gauche → droite), 4/2/1 colonnes, aucun débordement ; revue `draft-d3-46` : `column-width: 280px` + `break-inside: avoid` ; captures `apres-1280-panneau.png`, `apres-768-panneau.png` refaites |
+| 4 | `npm run test:review` rouge à l'étape `tsc` | `tests/review/D6/structure-a11y.test.ts` : `priceScopeNote: undefined` ajouté au fixture `baseZone`, justification D-31 en une ligne, aucune assertion changée | `npm run test:review` vert de bout en bout (§11) |
+| 5 | Ratifiés | Lignes `market.css` / `distribution.css` (barres d'écran décollées) et H1, H3, H4, H6 : **décidées** (plus des hypothèses). H2 et H5 : remplacées par les retouches 1 et 2 | — |
+
+Portes rejouées après retouches : voir §11.
+
+## 11. Portes après retouches
+
+(complété en fin de retouche)
+
+## 12. Hors périmètre / pour le coordinateur
+
+1. ~~`market.css` / `distribution.css`~~ : **ratifié** par le coordinateur.
+2. ~~Erreur de type `structure-a11y.test.ts:52`~~ : **corrigée** (retouche 4).
 3. **ACC-26 `source-fixture` (desktop)** : un échec isolé non reproduit (carte de l'écran E sans la
    mention de source, sauvegarde faite juste après le premier rendu) — probable course dans la
    sauvegarde (écran E / persistance), à surveiller dans la suite complète.
