@@ -195,9 +195,11 @@
 }
 
 .kycar-band-more[aria-expanded='true'] {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-primary-contrast);
+  /* Ouvert : bordure d'accent et fond teinté, texte sombre (lisible aussi sous le survol, qui ne
+     change que le fond — ACC-11). */
+  border: 2px solid var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
+  color: var(--color-text);
 }
 
 /* Extrémité droite : effectif appliqué, ou Annuler / Appliquer quand le brouillon est sale. */
@@ -238,9 +240,21 @@
 }
 
 .kycar-band-apply {
+  display: inline-block;
+  text-align: center;
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-primary-contrast);
+}
+
+.kycar-band-apply__main,
+.kycar-band-apply__detail {
+  display: inline;
+}
+
+/* Survol (`EX-SCR-87`) : « Appliquer » garde son fond d'accent, assombri — jamais blanc sur blanc. */
+.kycar-band-apply:hover {
+  background: color-mix(in srgb, var(--color-primary) 85%, #000);
 }
 
 .kycar-band-apply[aria-disabled='true'],
@@ -377,6 +391,23 @@
 
 .kycar-filter-card {
   min-width: 0;
+  padding: 0;
+  border-radius: var(--radius-md);
+}
+
+/* Titre DANS la carte (et non posé sur son trait supérieur, rendu par défaut d'un `<legend>`) :
+   une carte repliée reste une carte lisible, pas un filet. */
+.kycar-filter-card > legend {
+  float: left;
+  padding: var(--space-1) var(--space-2);
+}
+
+.kycar-filter-card > .kycar-secondary-group__body {
+  clear: both;
+}
+
+.kycar-filter-card .kycar-secondary-group__toggle {
+  text-align: left;
 }
 
 .kycar-filter-card[data-card='essentiels'] {

@@ -546,15 +546,21 @@ export function FilterBand(props: FilterBandProps) {
   /** Bouton « Appliquer » : libellé visible « Appliquer » + détail, masqué visuellement là où la
    * largeur manque mais toujours dans le nom accessible. `aria-disabled` plutôt que `disabled` : le
    * bouton garde le focus après usage (`D3-46` : aucune application ne perd le focus). */
-  const applyButton = () => (
+  const applyButton = (inBar = false) => (
     <button
       type="button"
       class="kycar-band-apply"
       aria-disabled={dirty ? undefined : 'true'}
       onClick={handleApplyDraft}
     >
-      <span class="kycar-band-apply__main">Appliquer</span>
-      {applyLabelDetail.length > 0 ? <span class="kycar-band-apply__detail">{applyLabelDetail}</span> : null}
+      {inBar ? (
+        <>
+          <span class="kycar-band-apply__main">Appliquer</span>
+          {applyLabelDetail.length > 0 ? <span class="kycar-band-apply__detail">{applyLabelDetail}</span> : null}
+        </>
+      ) : (
+        `Appliquer${applyLabelDetail}`
+      )}
     </button>
   );
   const cancelButton = () => (
@@ -574,7 +580,7 @@ export function FilterBand(props: FilterBandProps) {
   const barEnd = dirty ? (
     <div class="kycar-band-bar__draft">
       {cancelButton()}
-      {applyButton()}
+      {applyButton(true)}
     </div>
   ) : props.resultCount !== undefined ? (
     <span class="kycar-band-bar__count">
