@@ -2,7 +2,8 @@
  * KYCAR — Champ « Rechercher un filtre » (`EX-SCR-79`/`81`), zone (2)
  * =================================================================================================
  * Distinct du champ `kwd` (`Mot-clé dans l'annonce`, rendu par `PrimaryLine.tsx`) — deux libellés
- * flottants différents pour ne jamais être confondus (`EX-SCR-71`). `Échap` vide le champ.
+ * flottants différents pour ne jamais être confondus (`EX-SCR-71`). `Échap` vide le champ ; depuis
+ * `D3-46`, il vit en tête du panneau « Tous les filtres » (ou de la feuille compacte).
  */
 import { searchFilters } from './filter-search';
 
@@ -32,7 +33,9 @@ export function FilterSearch({ query, onQueryChange }: FilterSearchProps) {
           onQueryChange(v, searchFilters(v).groupsToExpand);
         }}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') {
+          // `Échap` vide le champ ; champ DÉJÀ vide, il laisse passer l'événement : le panneau
+          // « Tous les filtres » se referme alors (`D3-46` (b)).
+          if (e.key === 'Escape' && query.length > 0) {
             e.preventDefault();
             onQueryChange('', new Set());
           }

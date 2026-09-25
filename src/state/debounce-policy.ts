@@ -8,6 +8,12 @@
  * ligne `EX-SRCH-4`, 500 ms, en saisie libre). Une table indexée uniquement par `ControlKind`
  * gommerait cette distinction ; ce module indexe donc par (filtre, geste), avec repli par
  * `ControlKind` pour tout filtre non nommé explicitement par le texte normatif.
+ *
+ * `[amendée 3.6 — D3-46]` : ces délais ne gouvernent PLUS l'application d'un filtre (le bandeau
+ * écrit dans un brouillon et n'applique que sur « Appliquer » / Entrée, `draft.ts`). Ils gouvernent
+ * désormais le seul CALCUL de l'effectif prévisionnel du brouillon (« Appliquer — 1 234 offres ») :
+ * un calcul, jamais une navigation ni une entrée d'historique. Même table, même geste, même seuil
+ * de caractères pour `location` (aucun calcul sous `POSTAL_CODE_MIN_CHARS`).
  */
 
 import type { ControlKind } from './filter-types';

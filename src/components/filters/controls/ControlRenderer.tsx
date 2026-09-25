@@ -1,7 +1,7 @@
 /**
  * KYCAR — Dispatcheur générique par `ControlKind` (`EX-SCR-72bis`) pour les contrôles à UN seul
  * `FilterDef`. Les contrôles à plusieurs `FilterDef` (couple d'intervalle, localisation composite,
- * sélecteur structuré) sont assemblés par l'appelant (`PrimaryLine.tsx`/`SecondaryGroups.tsx`), qui
+ * sélecteur structuré) sont assemblés par l'appelant (`PrimaryLine.tsx`/`FilterCards.tsx`), qui
  * seul connaît les filtres apparentés (`pairedWith`, `location`/`radius`/`crossBorder`).
  */
 import { BooleanToggle } from './BooleanToggle';

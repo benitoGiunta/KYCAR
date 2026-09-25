@@ -11,9 +11,11 @@
   color: var(--color-text);
 }
 
+/* `EX-SCR-141` [amendée 3.6 — D3-46] : l'en-tête statistique n'est PLUS collant (89 à 263 px
+   mesurés : empilé sous la barre de filtres condensée, il aurait triplé le budget collant de D3-46,
+   64 px / 56 px en compact). Il défile avec la page ; l'effectif Σ reste dans la barre condensée. */
 .kycar-stat-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 2;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
